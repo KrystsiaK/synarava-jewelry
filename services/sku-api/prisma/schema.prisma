@@ -1,0 +1,155 @@
+// Portable SKU registry — separate database from Synarava CMS/commerce projection.
+// See docs/adr/0004-portable-sku-service-boundary.md
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("SKU_DATABASE_URL")
+}
+
+enum WorkspaceStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum ProfileStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
+enum ReservationStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  EXPIRED
+  TOMBSTONE
+}
+
+enum AssignmentSource {
+  RESERVED
+  LEGACY_V0
+}
+
+enum AssignmentStatus {
+  ACTIVE
+  EXTERNAL_CHANGE_DETECTED
+  SUPERSEDED
+}
+
+enum AssignmentLockState {
+  NONE
+  PUBLICATION_LOCKED
+  ORDER_LOCKED
+}
+
+model Workspace {
+  id            String         @id @default(cuid())
+  key           String         @unique
+  status        WorkspaceStatus @default(ACTIVE)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  profiles      PolicyProfile[]
+  reservations  Reservation[]
+  assignments   Assignment[]
+  auditEvents   AuditEvent[]
+  sequenceCursors SequenceCursor[]
+}
+
+model PolicyProfile {
+  id                 String        @id @default(cuid())
+  workspaceId        String
+  version            Int
+  status             ProfileStatus @default(DRAFT)
+  separator          String
+  suffixWidth        Int
+  suffixStart        Int           @default(1)
+  /// Always false for v1 — cancelled sequences remain tombstones.
+  suffixReuse        Boolean       @default(false)
+  allowedCharacters  String
+  /// Map of familyKey → stem token
+  families           Json
+  publishedAt        DateTime?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  workspace          Workspace     @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, version])
+  @@index([workspaceId, status])
+}
+
+model SequenceCursor {
+  id             String    @id @default(cuid())
+  workspaceId    String
+  stem           String
+  lastAllocated  Int
+  updatedAt      DateTime  @updatedAt
+  workspace      Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, stem])
+}
+
+model Reservation {
+  id             String            @id @default(cuid())
+  workspaceId    String
+  sku            String
+  stem           String
+  sequence       Int
+  familyKey      String
+  policyVersion  Int
+  status         ReservationStatus @default(PENDING)
+  idempotencyKey String
+  correlationId  String
+  expiresAt      DateTime?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  workspace      Workspace         @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  assignment     Assignment?
+
+  @@unique([workspaceId, sku])
+  @@unique([workspaceId, idempotencyKey])
+  @@index([workspaceId, stem, status])
+}
+
+model Assignment {
+  id                 String              @id @default(cuid())
+  workspaceId        String
+  sku                String
+  policyVersion      Int
+  source             AssignmentSource
+  status             AssignmentStatus    @default(ACTIVE)
+  lockState          AssignmentLockState @default(NONE)
+  externalSystem     String
+  externalShop       String?
+  externalProductId  String?
+  externalVariantId  String?
+  reservationId      String?             @unique
+  correlationId      String
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  workspace          Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  reservation        Reservation?        @relation(fields: [reservationId], references: [id])
+
+  @@unique([workspaceId, sku])
+  @@index([workspaceId, externalVariantId])
+}
+
+model AuditEvent {
+  id            String    @id @default(cuid())
+  workspaceId   String
+  actor         String
+  action        String
+  correlationId String
+  payloadDigest String?
+  before        Json?
+  after         Json?
+  createdAt     DateTime  @default(now())
+  workspace     Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@index([correlationId])
+}

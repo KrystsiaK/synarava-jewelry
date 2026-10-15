@@ -19,7 +19,8 @@
     "legal:export": "node scripts/export-legal-documents.mjs",
     "lint": "eslint .",
     "test": "vitest",
-    "test:run": "vitest run",
+    "test:run": "vitest run && pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",
+    "test:sku": "pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",
     "test:coverage": "vitest run --coverage",
     "hooks:install": "node scripts/install-git-hooks.mjs",
     "prepare": "node scripts/install-git-hooks.mjs",
@@ -37,6 +38,7 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
+    "@synarava/sku-contract": "workspace:*",
     "@aws-sdk/client-s3": "^3.1055.0",
     "@aws-sdk/s3-request-presigner": "^3.1055.0",
     "@number-flow/react": "^0.6.2",
@@ -89,6 +91,7 @@
     "eslint-config-next": "16.3.8",
     "jsdom": "^25.0.1",
     "prisma": "^6.19.3",
+    "railway": "3.15.0",
     "storybook": "^8.6.18",
     "tailwindcss": "^4",
     "typescript": "^5",

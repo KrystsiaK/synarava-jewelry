@@ -190,16 +190,17 @@ The public app URL must be HTTPS so Shopify can deliver signed webhooks.
 
 ## Railway
 
-Production deployment is defined in `railway.json`:
+**synarava-web** deploy protocol: [`deploy/railway.synarava-web.json`](deploy/railway.synarava-web.json) (set service Config File to that path).
 
 - build: `pnpm build`
-- pre-deploy: `pnpm prisma:deploy`, then the idempotent department-collection
-  backfill (`pnpm catalog:backfill-departments`)
+- pre-deploy: `pnpm prisma:deploy`
 - start: `pnpm start`
 - healthcheck: `/api/health`
 - Next.js deployment skew protection uses Railway's commit SHA (falling back to
   the Railway deployment ID), so tabs left open across a release reload before
   invoking obsolete Server Actions.
+
+**sku-api** (staging): Railway Infrastructure as Code partial [`.railway/railway.ts`](/.railway/railway.ts) — see [`docs/runbooks/sku-api-railway-staging.md`](docs/runbooks/sku-api-railway-staging.md). Do not point sku-api at the web CaC file.
 
 Use `package.json` `version` as the release marker. Bump it before deploying a meaningful production release.
 GitHub CI checks that this value is valid semver and that release tags match `vX.Y.Z`.

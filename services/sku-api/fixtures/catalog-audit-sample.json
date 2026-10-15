@@ -1,0 +1,22 @@
+{
+  "workspaceKey": "synarava-shop",
+  "items": [
+    {
+      "externalVariantId": "gid://shopify/ProductVariant/fixture-ok",
+      "sku": "JW-NECK-001",
+      "note": "Replace with real ledger SKU on staging for a clean pass"
+    },
+    {
+      "externalVariantId": "gid://shopify/ProductVariant/fixture-mismatch",
+      "sku": "JW-NECK-999"
+    },
+    {
+      "externalVariantId": "gid://shopify/ProductVariant/fixture-missing",
+      "sku": "JW-BRACELET-001"
+    },
+    {
+      "externalVariantId": "gid://shopify/ProductVariant/fixture-empty",
+      "sku": ""
+    }
+  ]
+}

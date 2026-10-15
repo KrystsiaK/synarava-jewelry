@@ -59,20 +59,22 @@ Translation rollout and recovery are documented in `docs/runbooks/translation-op
 
 - [ ] Проверить версию релиза в `package.json` (`0.2.0` для текущего Railway-ready pass)
 - [ ] Прогнать preflight локально: `pnpm lint`, `pnpm test:run`, `pnpm exec tsc --noEmit`, `pnpm build`
-- [ ] Запустить миграции: `pnpm prisma:deploy` (на Railway это делает `railway.json` `preDeployCommand`)
+- [ ] Запустить миграции: `pnpm prisma:deploy` (на Railway это делает `deploy/railway.synarava-web.json` `preDeployCommand`)
 - [ ] Сгенерировать `ADMIN_PASSWORD_HASH`: `pnpm auth:hash`
 - [ ] Установить `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`
 - [ ] Проверить что `/admin` редиректит на `/admin/login`, а после входа доступны все разделы
 
 ## Railway
 
-Конфигурация деплоя хранится в `railway.json`, чтобы build/deploy protocol был версионирован в git:
+Конфигурация **synarava-web** хранится в [`deploy/railway.synarava-web.json`](../../deploy/railway.synarava-web.json) (legacy Config as Code). В Settings сервиса Config File должен быть `/deploy/railway.synarava-web.json` — не корень репозитория, иначе новый `sku-api` подхватывал Next `pnpm build`/`start`.
 
 - builder: `RAILPACK`
 - build command: `pnpm build`
 - pre-deploy command: `pnpm prisma:deploy`
 - start command: `pnpm start`
 - healthcheck: `/api/health`
+
+Portable SKU API (`sku-api`): Infrastructure as Code partial в [`.railway/railway.ts`](../../.railway/railway.ts) — см. [`sku-api-railway-staging.md`](sku-api-railway-staging.md). Config as Code для новых сервисов deprecated ([Railway IaC](https://docs.railway.com/infrastructure-as-code)).
 
 Для PostgreSQL в Railway выставить `DATABASE_URL` как reference variable на Postgres service, например `${{Postgres.DATABASE_URL}}`.
 
@@ -87,7 +89,7 @@ Railpack должен использовать стандартную устан
 - [ ] Для hotfix после production использовать patch (`0.2.0` → `0.2.1`).
 - [ ] В git tag использовать формат `vX.Y.Z`, например `v0.2.0`.
 - [ ] Убедиться, что GitHub CI прошел `check:version`, typecheck, lint, unit tests и build.
-- [ ] В release commit включать `railway.json`, `prisma/migrations/**`, `docs/runbooks/deploy.md`, `docs/audits/2026-07-security.md` и кодовые изменения.
+- [ ] В release commit включать `deploy/railway.synarava-web.json` (и при SKU-изменениях `.railway/**`), `prisma/migrations/**`, `docs/runbooks/deploy.md`, `docs/audits/2026-07-security.md` и кодовые изменения.
 
 ---
 

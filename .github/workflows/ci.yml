@@ -16,6 +16,55 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Path filter
+    runs-on: ubuntu-latest
+    outputs:
+      shop: ${{ steps.filter.outputs.shop }}
+      sku: ${{ steps.filter.outputs.sku }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Detect path changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            shop:
+              - 'app/**'
+              - 'components/**'
+              - 'lib/**'
+              - '!lib/sku/**'
+              - 'prisma/**'
+              - 'e2e/**'
+              - 'public/**'
+              - 'deploy/railway.synarava-web.json'
+              - 'package.json'
+              - 'pnpm-lock.yaml'
+              - 'pnpm-workspace.yaml'
+              - 'next.config.*'
+              - 'vitest.config.*'
+              - 'vitest.setup.ts'
+            sku:
+              - 'services/sku-api/**'
+              - 'packages/sku-core/**'
+              - 'packages/sku-contract/**'
+              - 'lib/sku/**'
+              - '.railway/**'
+              - 'deploy/n8n/**'
+              - 'docs/adr/0004-portable-sku-service-boundary.md'
+              - 'docs/proposals/portable-sku-service.md'
+              - 'docs/runbooks/sku-*.md'
+              - 'docs/runbooks/portable-sku-platform-railway.md'
+              - 'docs/runbooks/portable-sku-platform-production.md'
+              - 'docs/wiki/portable-sku-service.md'
+              - 'docs/wiki/portable-sku-current-status.md'
+              - 'docs/testing/portable-sku-staging-matrix.md'
+              - 'scripts/sku-platform-*-adopt-check.sh'
+              - 'scripts/sku-platform-production-plan-check.sh'
+              - 'scripts/lib/railway-*.mjs'
+
   quality:
     name: Quality Gates
     runs-on: ubuntu-latest
@@ -83,6 +132,9 @@ jobs:
 
   storefront-smoke:
     name: Storefront smoke (desktop and mobile)
+    needs: changes
+    # Skip heavy smoke when the diff is sku/docs-only; always run on tag pushes.
+    if: ${{ needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:

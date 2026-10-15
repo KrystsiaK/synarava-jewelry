@@ -46,7 +46,7 @@ When the user says **общий компонент**, **shared control**, or **l
 7. **Owner badges** via `owner` (`Shopify` | `Synarava` | `Shopify push`).
 8. After contract changes, update `docs/wiki/synarava-cms.md` and this skill (keep `.agents` + `.claude` copies in sync); run `graphify update .`.
 9. **Missing control → library.** If synarava-cms has no piece for the job, add it under `components/admin/shared`, re-export it, and use that. Do not ship a one-off header, tab row, or field.
-10. **Locale shell.** Editors with a language strip and section tabs use the product shell: `AdminPanel.Header` (`adm-panel__header--ruled`) + `AdminLocaleTabs embedded`, then `AdminSectionTabs embedded` in `AdminPanel.Body`. Content inset is `adm-inset-x`. Standalone `AdminSectionTabs` draws its own border and climbs out of the locale frame.
+10. **Locale shell.** Editors with a language strip and section tabs use the product shell: `AdminPanel.Header` (`adm-panel__header--ruled`) + `AdminLocaleTabs embedded`, then `AdminSectionTabs embedded` in `AdminPanel.Body`. Content inset is `adm-inset-x`. Standalone `AdminSectionTabs` draws its own border and climbs out of the locale frame. Well children must not re-paint `border` / `rounded-b-*` — the well owns that chrome. Do **not** wrap that locale `AdminPanel` in a second `.adm-panel` (stacked bottom borders).
 
 ## Component map
 

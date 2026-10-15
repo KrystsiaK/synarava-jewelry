@@ -7,3 +7,4 @@
 | [0001](0001-shopify-hybrid-commerce.md) | Shopify — единственный commerce backend (Hybrid) | accepted | 2026-08-11 |
 | [0002](0002-shopify-catalog-ownership.md) | Shopify владеет каталогом, Synarava — read model + editorial | accepted | 2026-09-08 |
 | [0003](0003-commerce-conflict-deep-diff.md) | Детект конфликтов: deep-diff нормализованного Shopify JSON | accepted | 2026-10-10 |
+| [0004](0004-portable-sku-service-boundary.md) | Переносимый SKU-компонент как отдельный сервис в общей монорепе | accepted | 2026-10-12 |

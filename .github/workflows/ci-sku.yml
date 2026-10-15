@@ -1,0 +1,75 @@
+name: CI SKU
+
+# Path-scoped SKU platform checks. Shop storefront smoke lives in ci.yml.
+on:
+  pull_request:
+    paths:
+      - "services/sku-api/**"
+      - "packages/sku-core/**"
+      - "packages/sku-contract/**"
+      - "lib/sku/**"
+      - ".railway/**"
+      - "deploy/n8n/**"
+      - "docs/adr/0004-portable-sku-service-boundary.md"
+      - "docs/proposals/portable-sku-service.md"
+      - "docs/runbooks/sku-*.md"
+      - "docs/runbooks/portable-sku-platform-railway.md"
+      - "docs/wiki/portable-sku-service.md"
+      - "docs/testing/portable-sku-staging-matrix.md"
+      - ".github/workflows/ci-sku.yml"
+  push:
+    branches:
+      - "**"
+    paths:
+      - "services/sku-api/**"
+      - "packages/sku-core/**"
+      - "packages/sku-contract/**"
+      - "lib/sku/**"
+      - ".railway/**"
+      - "deploy/n8n/**"
+      - "docs/adr/0004-portable-sku-service-boundary.md"
+      - "docs/proposals/portable-sku-service.md"
+      - "docs/runbooks/sku-*.md"
+      - "docs/runbooks/portable-sku-platform-railway.md"
+      - "docs/wiki/portable-sku-service.md"
+      - "docs/testing/portable-sku-staging-matrix.md"
+      - ".github/workflows/ci-sku.yml"
+
+concurrency:
+  group: ci-sku-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  sku-quality:
+    name: SKU Quality Gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: SKU unit tests
+        run: pnpm test:sku
+
+      - name: SKU API typecheck
+        run: pnpm --filter @synarava/sku-api typecheck
+
+      - name: SKU workflow contract
+        run: pnpm exec vitest run lib/sku/__tests__/n8n-catalog-audit-workflow.test.ts

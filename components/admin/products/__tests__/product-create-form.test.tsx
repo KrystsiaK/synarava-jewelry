@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -20,6 +20,21 @@ vi.mock("@/app/admin/actions/taxonomy", () => ({
 
 vi.mock("@/app/admin/actions/product-organization", () => ({
   listShopifyProductOrganizationAction: vi.fn().mockResolvedValue({ options: [] }),
+}));
+
+vi.mock("@/app/admin/actions/sku-assign", () => ({
+  loadSkuAssignContext: vi.fn().mockResolvedValue({
+    configured: false,
+    reason: "test",
+    familyKeys: [],
+    currentSku: "",
+    pending: true,
+    pendingReservationSku: null,
+    shopifyLinked: false,
+    variantId: null,
+  }),
+  previewProductSkuAction: vi.fn(),
+  assignProductSkuAction: vi.fn(),
 }));
 
 import { CreateProductForm } from "@/components/admin/products/product-create-form";
@@ -57,6 +72,20 @@ beforeEach(() => {
 });
 
 describe("CreateProductForm", () => {
+  it("uses one ProductLocaleWorkspace panel with embedded tabs (no stacked borders)", () => {
+    const { container } = render(<CreateProductForm collections={collections} />);
+
+    const localeShell = container.querySelector('[data-component="ProductLocaleWorkspace"]');
+    expect(localeShell).toHaveClass("adm-panel");
+    // Outer form must not also be `.adm-panel` — that stacked two gold bottom edges.
+    expect(container.querySelector("form.adm-panel")).toBeNull();
+    expect(container.querySelectorAll(".adm-panel").length).toBe(1);
+
+    const panel = screen.getByRole("tabpanel");
+    expect(panel.className).not.toMatch(/rounded-b-/);
+    expect(panel.className).not.toMatch(/\bborder\b/);
+  });
+
   it("renders the core Shopify-backed fields and the gallery manager", async () => {
     const user = userEvent.setup();
     render(<CreateProductForm collections={collections} />);
@@ -64,8 +93,10 @@ describe("CreateProductForm", () => {
     expect(screen.getByRole("heading", { name: "Build the product one area at a time" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Slug/ })).toBeInTheDocument();
-    expect(screen.getByLabelText(/SKU/)).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    expect(screen.getByRole("textbox", { name: /^SKU/ })).toBeInTheDocument();
     // Collection lives on the Product (essentials) tab — Catalog was removed.
+    await user.click(screen.getByRole("tab", { name: /Title & organization/i }));
     expect(screen.getByRole("option", { name: "Lava Collection" })).toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Featured" })).not.toBeInTheDocument();
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
@@ -115,6 +146,42 @@ describe("CreateProductForm", () => {
     expect(screen.getByLabelText("Português translation reviewed")).toBeInTheDocument();
   });
 
+  it("on Save with empty required fields opens the Product tab and focuses Title", async () => {
+    const user = userEvent.setup();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    render(<CreateProductForm collections={collections} />);
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
+    expect(screen.getByRole("tab", { name: /Price Sell/i })).toHaveAttribute("aria-selected", "true");
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+
+    expect(screen.getByRole("tab", { name: /Title & organization/i })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveFocus();
+    });
+    expect(screen.queryByRole("button", { name: "Continue and save" })).not.toBeInTheDocument();
+  });
+
+  it("after fixing Title/Slug, next Save opens Price and focuses the price field", async () => {
+    const user = userEvent.setup();
+    HTMLElement.prototype.scrollIntoView = vi.fn();
+    render(<CreateProductForm collections={collections} />);
+    await act(async () => {});
+
+    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
+    await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
+    await user.click(screen.getByRole("tab", { name: /Media/i }));
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+
+    expect(screen.getByRole("tab", { name: /Price Sell/i })).toHaveAttribute("aria-selected", "true");
+    await waitFor(() => {
+      expect(screen.getByRole("spinbutton", { name: /Price/ })).toHaveFocus();
+    });
+  });
+
   it("opens the confirmation modal after filling required fields and saves on confirm", async () => {
     mocks.saveProductAction.mockResolvedValue({ success: "Product saved.", created: true, product: undefined });
     const user = userEvent.setup();
@@ -123,7 +190,8 @@ describe("CreateProductForm", () => {
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
-    await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    await user.type(screen.getByRole("textbox", { name: /^SKU/ }), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
 
@@ -141,7 +209,8 @@ describe("CreateProductForm", () => {
 
     await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), "Lava Ring");
     await user.type(screen.getByRole("textbox", { name: /Slug/ }), "lava-ring");
-    await user.type(screen.getByLabelText(/SKU/), "LAVA-1");
+    await user.click(screen.getByRole("tab", { name: /Inventory Stock/i }));
+    await user.type(screen.getByRole("textbox", { name: /^SKU/ }), "LAVA-1");
     await user.click(screen.getByRole("tab", { name: /Price Sell/i }));
     await user.type(screen.getByRole("spinbutton", { name: /Price/ }), "45.00");
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);

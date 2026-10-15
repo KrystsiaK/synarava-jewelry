@@ -1,0 +1,26 @@
+{
+  "workspaceKey": "synarava-shop",
+  "rows": [
+    {
+      "sku": "JW-NECK-001",
+      "externalSystem": "shopify",
+      "externalShop": "synarava-staging.myshopify.com",
+      "externalProductId": "gid://shopify/Product/1001",
+      "externalVariantId": "gid://shopify/ProductVariant/2001"
+    },
+    {
+      "sku": "JW-BRACELET-001",
+      "externalSystem": "shopify",
+      "externalShop": "synarava-staging.myshopify.com",
+      "externalProductId": "gid://shopify/Product/1002",
+      "externalVariantId": "gid://shopify/ProductVariant/2002"
+    },
+    {
+      "sku": "BA-CH-001",
+      "externalSystem": "shopify",
+      "externalShop": "synarava-staging.myshopify.com",
+      "externalProductId": "gid://shopify/Product/1003",
+      "externalVariantId": "gid://shopify/ProductVariant/2003"
+    }
+  ]
+}

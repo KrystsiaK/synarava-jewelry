@@ -37,6 +37,10 @@ For the `staging` environment, verify in the Railway UI:
 - Session and webhook secrets are independently generated for staging.
 - `ENABLE_NON_PRODUCTION_ANALYTICS` is absent unless analytics is being tested
   deliberately.
+- Portable SKU API (when enabled): separate `sku-api` + `sku-postgres` via
+  `.railway/railway.ts`; web Config File `/deploy/railway.synarava-web.json`;
+  server-only `SKU_API_URL` + `SKU_API_TOKEN` on synarava-web — see
+  [`sku-api-railway-staging.md`](sku-api-railway-staging.md).
 
 Railway variables are scoped per environment. Duplicating an environment copies
 configuration, so every external service reference still needs this review.

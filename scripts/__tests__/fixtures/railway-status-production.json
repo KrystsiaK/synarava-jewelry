@@ -1,0 +1,14 @@
+{
+  "id": "6d7d5885-43eb-4283-b4a4-e552fc6dba7b",
+  "name": "portable-sku-platform",
+  "environments": {
+    "edges": [
+      {
+        "node": {
+          "id": "d8cb7dd8-5c26-4255-a8c5-7795f1993de6",
+          "name": "production"
+        }
+      }
+    ]
+  }
+}

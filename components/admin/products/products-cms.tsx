@@ -26,6 +26,7 @@ import {
 import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
   checkCatalogConflictsAction,
+  loadCatalogConflictSignalsAction,
   rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
 import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
@@ -190,14 +191,10 @@ export function ProductsCms({
     });
   }, []);
 
-  useEffect(() => {
-    if (skipFilterFetchRef.current) {
-      skipFilterFetchRef.current = false;
-      return;
-    }
+  const reloadProductList = useCallback(() => {
     const requestId = ++requestIdRef.current;
     setListError(null);
-    void fetchProductPage({
+    return fetchProductPage({
       q: debouncedQuery,
       status: statusFilter,
       category: categoryFilter,
@@ -216,6 +213,24 @@ export function ProductsCms({
         setListError("Could not refresh the product list.");
       });
   }, [debouncedQuery, statusFilter, categoryFilter, collectionFilter, sortBy]);
+
+  useEffect(() => {
+    if (skipFilterFetchRef.current) {
+      skipFilterFetchRef.current = false;
+      return;
+    }
+    void reloadProductList();
+  }, [reloadProductList]);
+
+  /** Pull/create from Shopify updates the DB, but this list is client state — router.refresh alone leaves stale rows until hard reload. */
+  function handleConflictsApplied() {
+    void (async () => {
+      const refreshed = await loadCatalogConflictSignalsAction();
+      if (refreshed.signals) setConflictSignals(refreshed.signals);
+      else if (refreshed.error) pushToast({ message: refreshed.error, tone: "info" });
+      await reloadProductList();
+    })();
+  }
 
   const loadMore = useCallback(() => {
     if (!hasNextPage || loadingMore || !endCursor) return;
@@ -328,6 +343,7 @@ export function ProductsCms({
       if (result.success) {
         pushToast({ message: result.success, tone: "success" });
         setShopifyStoreMismatch(null);
+        await reloadProductList();
         refreshPreservingScroll(router);
       }
       setConfirmStoreRebind(false);
@@ -703,6 +719,7 @@ export function ProductsCms({
         focusedProductId={focusedConflictProductId}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
+        onApplied={() => { handleConflictsApplied(); }}
       />
 
       {shopifyStoreMismatch ? (

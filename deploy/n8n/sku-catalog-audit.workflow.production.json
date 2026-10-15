@@ -1,0 +1,277 @@
+{
+  "name": "SKU catalog audit (production)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "Schedule daily 03:00 UTC",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst previousDigest = typeof staticData.previousDigest === 'string' && staticData.previousDigest.length > 0\n  ? staticData.previousDigest\n  : null;\nreturn [{ json: { previousDigest } }];"
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "Load checkpoint",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const previousDigest = $('Load checkpoint').first().json.previousDigest ?? null;\nconst raw = $env.CATALOG_ITEMS_JSON;\nif (!raw || String(raw).trim() === '') {\n  throw new Error('CATALOG_ITEMS_JSON env is empty. Set a JSON array of { externalVariantId, sku } (max 100).');\n}\nlet items;\ntry {\n  items = JSON.parse(String(raw));\n} catch (error) {\n  throw new Error('CATALOG_ITEMS_JSON is not valid JSON');\n}\nif (!Array.isArray(items) || items.length === 0) {\n  throw new Error('CATALOG_ITEMS_JSON must be a non-empty array');\n}\nif (items.length > 100) {\n  throw new Error('CATALOG_ITEMS_JSON exceeds max batch 100');\n}\nconst workspaceKey = $env.SKU_API_WORKSPACE || 'synarava-shop';\nconst correlationId = `n8n-catalog-audit-${Date.now()}`;\nreturn [{\n  json: {\n    workspaceKey,\n    previousDigest,\n    correlationId,\n    body: {\n      items: items.map((row) => ({\n        externalVariantId: String(row.externalVariantId || ''),\n        sku: row.sku == null ? '' : String(row.sku),\n      })),\n      previousDigest,\n      correlationId,\n    },\n  },\n}];"
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "Build audit payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.SKU_API_URL || '').replace(/\\/$/, '') + '/v1/workspaces/' + encodeURIComponent($json.workspaceKey) + '/audit/catalog' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.body }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": false,
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "POST audit/catalog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        780,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SKU_API_BEARER_PRODUCTION",
+          "name": "sku-api Bearer (production)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "should-notify",
+              "leftValue": "={{ $json.shouldNotify }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "shouldNotify?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://synarava-shop-app-production.up.railway.app/admin/settings#shared-sku-policy",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a1b2c3d4-0006-4000-8000-000000000006",
+      "name": "Notify Telegram \u00b7 SKU",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        -120
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_API_PRODUCTION",
+          "name": "Telegram \u00b7 Synarava Ops (production)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const audit = $('POST audit/catalog').first().json;\nif (!audit || typeof audit.digest !== 'string') {\n  throw new Error('audit response missing digest');\n}\nconst staticData = $getWorkflowStaticData('global');\nstaticData.previousDigest = audit.digest;\nstaticData.updatedAt = new Date().toISOString();\nstaticData.lastCorrelationId = audit.correlationId ?? null;\nstaticData.lastDeviationCount = audit.deviationCount ?? 0;\nreturn [{\n  json: {\n    ok: true,\n    previousDigest: staticData.previousDigest,\n    shouldNotify: audit.shouldNotify === true,\n    deviationCount: audit.deviationCount ?? 0,\n  },\n}];"
+      },
+      "id": "a1b2c3d4-0007-4000-8000-000000000007",
+      "name": "Save checkpoint (after notify)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const audit = $('POST audit/catalog').first().json;\nif (!audit || typeof audit.digest !== 'string') {\n  throw new Error('audit response missing digest');\n}\nconst staticData = $getWorkflowStaticData('global');\nstaticData.previousDigest = audit.digest;\nstaticData.updatedAt = new Date().toISOString();\nstaticData.lastCorrelationId = audit.correlationId ?? null;\nstaticData.lastDeviationCount = audit.deviationCount ?? 0;\nreturn [{\n  json: {\n    ok: true,\n    previousDigest: staticData.previousDigest,\n    shouldNotify: false,\n    deviationCount: audit.deviationCount ?? 0,\n  },\n}];"
+      },
+      "id": "a1b2c3d4-0008-4000-8000-000000000008",
+      "name": "Save checkpoint (no notify)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        120
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule daily 03:00 UTC": {
+      "main": [
+        [
+          {
+            "node": "Load checkpoint",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load checkpoint": {
+      "main": [
+        [
+          {
+            "node": "Build audit payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build audit payload": {
+      "main": [
+        [
+          {
+            "node": "POST audit/catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST audit/catalog": {
+      "main": [
+        [
+          {
+            "node": "shouldNotify?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "shouldNotify?": {
+      "main": [
+        [
+          {
+            "node": "Notify Telegram \u00b7 SKU",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Save checkpoint (no notify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Telegram \u00b7 SKU": {
+      "main": [
+        [
+          {
+            "node": "Save checkpoint (after notify)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": false,
+    "synarava": {
+      "stage": "etap6-production",
+      "environment": "production",
+      "endpoint": "POST /v1/workspaces/{key}/audit/catalog",
+      "docs": "docs/runbooks/portable-sku-platform-production.md",
+      "telegramHeader": "\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT",
+      "import": "manual-only \u2014 do not auto-import"
+    }
+  },
+  "pinData": {},
+  "tags": [
+    {
+      "name": "sku-production"
+    }
+  ]
+}

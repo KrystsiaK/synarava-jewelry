@@ -10,7 +10,13 @@ export default defineConfig({
     globals: true,
     // GHA runners under load exceed the 5s default on heavy admin form suites.
     testTimeout: 15_000,
-    exclude: ["**/node_modules/**", "**/e2e/**", "**/.next/**"],
+    exclude: [
+      "**/node_modules/**",
+      "**/e2e/**",
+      "**/.next/**",
+      "packages/**",
+      "services/**",
+    ],
     coverage: {
       provider: "v8",
       reporter: ["text", "html", "lcov"],

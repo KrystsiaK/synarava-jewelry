@@ -34,6 +34,16 @@ import {
 } from "@/lib/shopify/collection-sync";
 import { env } from "@/lib/env";
 import { getS3, getS3Bucket } from "@/lib/s3";
+import { tryCreateSkuClient } from "@/lib/sku/client";
+import { getSkuServiceConfig } from "@/lib/sku/config";
+import { confirmPendingSkuAfterShopifyWrite } from "@/lib/sku/assign-variant-sku";
+import { readPendingSkuReservation } from "@/lib/sku/pending-reservation";
+import { localSkuForEmptyShopifySku } from "@/lib/sku/pending-sku";
+import { persistLocalSku } from "@/lib/sku/persist-local-sku";
+import {
+  assertSkuAssignableBeforePush,
+  requireSkuClientForPendingConfirm,
+} from "@/lib/sku/push-sku-gate";
 import {
   matchReadyShopifyMedia,
   SHOPIFY_PRODUCT_MEDIA_FRAGMENT,
@@ -756,7 +766,12 @@ async function savePulledProduct(
   const firstVariant = remote.variants.nodes[0];
   // Shopify can return resourcePublicationsV2 nodes with publication: null.
   const onlineStorePublication = findOnlineStorePublication(remote.resourcePublicationsV2.nodes);
-  const remoteSku = firstVariant?.sku?.trim() || `SHOPIFY-${remote.id.split("/").pop()}`;
+  // Empty Shopify SKU → PENDING-* local identity (assignable). Never invent SHOPIFY-* as assigned.
+  const remoteSku = firstVariant?.sku?.trim()
+    || localSkuForEmptyShopifySku({
+      shopifyProductId: remote.id,
+      shopifyVariantId: firstVariant?.id ?? null,
+    });
   const imageUrl = pickShopifyProductImageUrl({
     featuredImageUrl: remote.featuredMedia?.preview?.image?.url,
     media: remote.media.nodes.map((item) => ({
@@ -1029,7 +1044,11 @@ async function finishPulledProduct(
 
   const pulledVariantIds: string[] = [];
   for (const variant of remote.variants.nodes) {
-    const sku = variant.sku?.trim() || `${remoteSku}-${variant.id.split("/").pop()}`;
+    const sku = variant.sku?.trim()
+      || localSkuForEmptyShopifySku({
+        shopifyProductId: remote.id,
+        shopifyVariantId: variant.id,
+      });
     // Same Shopify-compatible stock contract as the inventory_levels/update webhook
     // (REV-05) — otherwise a multi-location product's stock flips depending on
     // whether it was last touched by a full pull or the webhook.
@@ -1597,6 +1616,12 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // exists.
     const localVariant = product.variants[0];
     const commerceSku = localVariant?.sku ?? product.sku;
+    const pendingSkuReservation = readPendingSkuReservation(product.details);
+    assertSkuAssignableBeforePush({
+      skuApiConfigured: getSkuServiceConfig().configured,
+      commerceSku,
+      pendingReservation: pendingSkuReservation,
+    });
     const commercePriceCents = localVariant?.priceCents ?? product.priceCents;
     const commerceCompareAtCents = localVariant?.compareAtCents ?? product.compareAtCents;
     const commerceTaxable = localVariant?.taxable ?? true;
@@ -1888,11 +1913,21 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     let pushedInventory: { variantId: string; quantity: number } | null = null;
     if (remoteVariant) {
       const variantData = await shopifyAdminRequest<{
-        productVariantsBulkUpdate: { productVariants: ShopifyProduct["variants"]["nodes"]; userErrors: UserError[] };
+        productVariantsBulkUpdate: {
+          productVariants: Array<{
+            id: string;
+            title: string;
+            sku: string | null;
+            price: string;
+            compareAtPrice: string | null;
+            inventoryItem: { id: string; sku: string | null } | null;
+          }>;
+          userErrors: UserError[];
+        };
       }>(
         `mutation SynaravaVariantUpdate($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
           productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-            productVariants { id title sku price compareAtPrice inventoryItem { id } }
+            productVariants { id title sku price compareAtPrice inventoryItem { id sku } }
             userErrors { field message }
           }
         }`,
@@ -1920,6 +1955,40 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             status: product.status, shopifyVariantId: savedVariant.id,
             shopifyInventoryItemId: savedVariant.inventoryItem?.id ?? null,
           } });
+        }
+        const readBackSku = savedVariant.inventoryItem?.sku ?? savedVariant.sku ?? "";
+        if (pendingSkuReservation && readBackSku) {
+          const skuClient = requireSkuClientForPendingConfirm(tryCreateSkuClient());
+          const confirmResult = await confirmPendingSkuAfterShopifyWrite(
+            {
+              productId,
+              shopifyProductId: remote.id,
+              shopifyVariantId: savedVariant.id,
+              shopifyReadBackSku: readBackSku,
+              localVariantId: localVariant?.id ?? null,
+            },
+            {
+              client: skuClient,
+              externalShop: env.SHOPIFY_STORE_DOMAIN ?? "unknown.myshopify.com",
+              loadProduct: async (id) => db.product.findUnique({
+                where: { id },
+                select: {
+                  id: true,
+                  sku: true,
+                  details: true,
+                  shopifyProductId: true,
+                  variants: {
+                    orderBy: { createdAt: "asc" },
+                    select: { id: true, sku: true, shopifyVariantId: true },
+                  },
+                },
+              }),
+              persistLocalSku,
+            },
+          );
+          if (!confirmResult.ok) {
+            throw new Error(`SKU reserved and written to Shopify, but confirm failed: ${confirmResult.error}`);
+          }
         }
         const inventoryItemId = savedVariant.inventoryItem?.id;
         if (inventoryItemId && localVariant) {

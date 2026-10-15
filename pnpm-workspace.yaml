@@ -1,6 +1,10 @@
+packages:
+  - "packages/*"
+  - "services/*"
+
 allowBuilds:
-  '@prisma/client': true
-  '@prisma/engines': true
+  "@prisma/client": true
+  "@prisma/engines": true
   core-js-pure: true
   esbuild: true
   prisma: true
@@ -9,6 +13,8 @@ allowBuilds:
 ignoredBuiltDependencies:
   - sharp
   - unrs-resolver
+minimumReleaseAgeExclude:
+  - railway@3.15.0
 overrides:
   browserslist: 4.28.9
   deepmerge-ts: 8.0.2

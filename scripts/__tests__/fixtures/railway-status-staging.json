@@ -1,0 +1,14 @@
+{
+  "id": "6d7d5885-43eb-4283-b4a4-e552fc6dba7b",
+  "name": "portable-sku-platform",
+  "environments": {
+    "edges": [
+      {
+        "node": {
+          "id": "env-staging-fixture",
+          "name": "staging"
+        }
+      }
+    ]
+  }
+}

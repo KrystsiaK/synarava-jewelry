@@ -34,8 +34,11 @@
     "node_modules",
     ".agents",
     ".claude",
+    ".railway",
     "mobile",
     "scripts",
+    "packages",
+    "services",
     "**/__tests__/**",
     "*.config.ts",
     "*.config.mts"

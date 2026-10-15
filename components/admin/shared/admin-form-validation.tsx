@@ -22,13 +22,18 @@ export type AdminValidationFieldProps = {
   onInput: () => void;
 };
 
+export type ShowFieldErrorsOptions = {
+  /** Prefer this visual/tab order when choosing which invalid control to focus. */
+  fieldOrder?: readonly string[];
+};
+
 export type AdminFormValidation<FieldName extends string> = {
   clearFieldError: (name: FieldName) => void;
   fieldErrorId: (name: FieldName) => string;
   fieldErrors: AdminFieldErrors<FieldName>;
   fieldId: (name: FieldName) => string;
   fieldProps: (name: FieldName) => AdminValidationFieldProps;
-  showFieldErrors: (errors: AdminFieldErrors<FieldName>) => void;
+  showFieldErrors: (errors: AdminFieldErrors<FieldName>, options?: ShowFieldErrorsOptions) => void;
   validate: () => boolean;
 };
 
@@ -51,8 +56,30 @@ export function collectNativeFieldErrors(form: HTMLFormElement): AdminFieldError
   return errors;
 }
 
-export function focusFirstInvalidField(form: HTMLFormElement, fieldErrors: AdminFieldErrors) {
-  const invalidNames = Object.keys(fieldErrors);
+function orderedInvalidFieldNames(
+  fieldErrors: AdminFieldErrors,
+  fieldOrder?: readonly string[],
+): string[] {
+  const present = new Set(Object.keys(fieldErrors));
+  if (!fieldOrder?.length) return [...present];
+
+  const ordered: string[] = [];
+  for (const name of fieldOrder) {
+    if (present.has(name)) {
+      ordered.push(name);
+      present.delete(name);
+    }
+  }
+  for (const name of present) ordered.push(name);
+  return ordered;
+}
+
+export function focusFirstInvalidField(
+  form: HTMLFormElement,
+  fieldErrors: AdminFieldErrors,
+  fieldOrder?: readonly string[],
+) {
+  const invalidNames = orderedInvalidFieldNames(fieldErrors, fieldOrder);
   if (invalidNames.length === 0) return;
 
   // Visible unit wins over a hidden mirror with the same name. Hidden inputs
@@ -66,6 +93,24 @@ export function focusFirstInvalidField(form: HTMLFormElement, fieldErrors: Admin
   }
 
   const invalidNameSet = new Set(invalidNames);
+  // Prefer the first invalid control in visual fieldOrder when provided;
+  // otherwise walk the form DOM (legacy behavior / non-product forms).
+  if (fieldOrder?.length) {
+    for (const name of invalidNames) {
+      const field = Array.from(form.elements).find(
+        (element): element is ValidatableField =>
+          isValidatableField(element)
+          && element.name === name
+          && element.type !== "hidden",
+      );
+      if (field) {
+        scrollAdminFieldIntoView(field);
+        return;
+      }
+    }
+    return;
+  }
+
   const field = Array.from(form.elements).find(
     (element): element is ValidatableField =>
       isValidatableField(element)
@@ -97,16 +142,24 @@ export function useAdminFormValidation<FieldName extends string>({
   const fieldId = useCallback((name: FieldName) => `${validationId}-${name}-field`, [validationId]);
   const fieldErrorId = useCallback((name: FieldName) => `${validationId}-${name}-error`, [validationId]);
 
-  const showFieldErrors = useCallback((nextErrors: AdminFieldErrors<FieldName>) => {
+  const showFieldErrors = useCallback((
+    nextErrors: AdminFieldErrors<FieldName>,
+    options?: ShowFieldErrorsOptions,
+  ) => {
     cancelPendingFocus();
     setFieldErrors(nextErrors);
     if (Object.keys(nextErrors).length === 0) return;
 
     // Wait for error markup and any closing confirmation dialog to commit,
     // otherwise the dialog's focus restoration can steal focus back.
+    // A second frame lets tab `hidden` toggles (flushSync section changes) paint.
     focusAnimationFrameRef.current = window.requestAnimationFrame(() => {
-      focusAnimationFrameRef.current = null;
-      if (formRef.current) focusFirstInvalidField(formRef.current, nextErrors);
+      focusAnimationFrameRef.current = window.requestAnimationFrame(() => {
+        focusAnimationFrameRef.current = null;
+        if (formRef.current) {
+          focusFirstInvalidField(formRef.current, nextErrors, options?.fieldOrder);
+        }
+      });
     });
   }, [cancelPendingFocus, formRef]);
 
