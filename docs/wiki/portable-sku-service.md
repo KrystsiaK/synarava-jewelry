@@ -1,12 +1,12 @@
 # Portable SKU service
 
-**Status:** Этап 1–5 code on staging · **platform** Railway `portable-sku-platform` (ID `6d7d5885-…`; staging target: sku-api+sku-postgres+n8n+n8n-postgres) · Этап 6 not started  
-**ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
-**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)  
-**Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)  
-**Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)  
-**Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)  
-**Current status snapshot:** [`portable-sku-current-status.md`](portable-sku-current-status.md)  
+**Status:** Этап 1–5 code on staging · **platform** Railway `portable-sku-platform` (ID `6d7d5885-…`; staging target: sku-api+sku-postgres+n8n+n8n-postgres) · Этап 6 **prep** (IaC/runbook; no production apply/import until Business Owner go)
+**ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)
+**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)
+**Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)
+**Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)
+**Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+**Current status snapshot:** [`portable-sku-current-status.md`](portable-sku-current-status.md)
 **Platform Railway:** [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
 
 ## Packages
@@ -51,7 +51,7 @@ Synarava server env (never expose to browser): `SKU_API_URL` (**HTTPS** public s
 
 ## Bootstrap
 
-On start (unless `SKU_BOOTSTRAP=0`): idempotent ensure of workspace `synarava-shop` + published profile v1.  
+On start (unless `SKU_BOOTSTRAP=0`): idempotent ensure of workspace `synarava-shop` + published profile v1.
 **Do not** use `SKU_SEED_EXAMPLE` on staging/production (removed from the runtime path).
 
 ## Admin UI
@@ -96,6 +96,6 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 - Push writing every variant SKU (still primary-focused on Push path)
 - Kiryl confirm → staging IaC apply on `portable-sku-platform` after safe adoption `plan` (adopt sku-*; create staging n8n+n8n-postgres; no prod)
 - `EXTERNAL_CHANGE_DETECTED` · recovery-queue automation
-- Этап 6 production rollout
+- Этап 6 production rollout (prep docs/IaC: [`portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md); apply gated)
 - Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto; Этап 5 n8n smoke Pass)
 

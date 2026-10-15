@@ -57,8 +57,12 @@ jobs:
               - 'docs/proposals/portable-sku-service.md'
               - 'docs/runbooks/sku-*.md'
               - 'docs/runbooks/portable-sku-platform-railway.md'
+              - 'docs/runbooks/portable-sku-platform-production.md'
               - 'docs/wiki/portable-sku-service.md'
+              - 'docs/wiki/portable-sku-current-status.md'
               - 'docs/testing/portable-sku-staging-matrix.md'
+              - 'scripts/sku-platform-*-adopt-check.sh'
+              - 'scripts/lib/railway-*.mjs'
 
   quality:
     name: Quality Gates

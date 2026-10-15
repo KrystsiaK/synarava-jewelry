@@ -220,7 +220,7 @@ Workflow не хранит next number и не вызывает LLM для ка�
 
 | Railway project | ID | Staging **target** | Role |
 | --- | --- | --- | --- |
-| **`portable-sku-platform`** (renamed from `handsome-commitment`) | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | `sku-api`, `sku-postgres`, staging `n8n`, `n8n-postgres`, `n8n-data` | Multi-workspace SKU API + staging automation |
+| **`portable-sku-platform`** (renamed from `handsome-commitment`) | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | staging: `sku-api`, `sku-postgres`, `n8n`, `n8n-postgres`, `n8n-data-v2`; production Stage 6: adopt `sku-platform-n8n*` + create `sku-api`/`sku-postgres` | Multi-workspace SKU API + per-env automation |
 | **`synarava-shop`** | `fe392310-…` | `synarava-web` only | First client (storefront + Admin adapter) |
 
 Current staging fact may be `sku-api`+`sku-postgres` only (no n8n yet) — that is inventory, not the Этап 5 target. Production `sku-platform-n8n*` must not be modified for staging.
@@ -337,8 +337,14 @@ Delivery flow: feature branch → path-aware CI → merge в `staging` → не�
 
 ### Этап 6 — ограниченный production rollout
 
+**Статус prep (2026-10-15):** IaC + runbook + workflow JSON на ветке Stage 6 (base **`staging`**). **Не** merge / **не** `railway config apply` / **не** import в production n8n без Business Owner + Kiryl go.
+
+- Safe source branch: **`staging`** (ahead of `main`; PR #148 = staging→main vehicle — leave open).
+- Railway: project `portable-sku-platform` (`6d7d5885-…`) / production env `d8cb7dd8-…`; adopt `sku-platform-n8n*` + volumes; **create only** `sku-api` + `sku-postgres`.
+- Runbook: [`docs/runbooks/portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md)
+- Workflow import artifact (manual): [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy/n8n/sku-catalog-audit.workflow.production.json) — Telegram header **`🔴 PRODUCTION · SKU AUDIT`** on shared Synarava Ops channel (credential inside n8n; no secrets in git).
 - сначала один новый draft product;
-- feature flag/kill switch;
+- feature flag/kill switch: unset production web `SKU_API_URL` / `SKU_API_TOKEN` ([`lib/sku/config.ts`](../../lib/sku/config.ts)); secondary — deactivate n8n workflow;
 - ручное подтверждение Business Owner;
 - наблюдение минимум одного полного операционного цикла;
 - только затем расширение на остальные новые товары и другие workspace.

@@ -73,15 +73,15 @@ SKU API is multi-workspace by design. Collocating it inside the Synarava Railway
 1. Railway project: **`portable-sku-platform`** (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`) — multi-workspace SKU API; Synarava is the first client.
 2. Synarava Railway project (`synarava-shop`) hosts **web only**. It must not create a duplicate `sku-api` / `sku-postgres` / n8n for SKU.
 3. **Staging target:** `sku-api`, `sku-postgres`, **staging `n8n`**, **`n8n-postgres`** (separate persistence), **`n8n-data`**. Current fact may be sku-api+sku-postgres only — that is inventory, not the target.
-4. **Production:** out of scope for this IaC; do not modify prod `sku-platform-n8n*`.
+4. **Production (Stage 6 prep):** same project ID; hard guard also on production environment ID **`d8cb7dd8-5c26-4255-a8c5-7795f1993de6`**. Adopt existing `sku-platform-n8n` / `sku-platform-n8n-postgres` / volumes (zero create/delete/replace). **Create only** isolated production `sku-api` + `sku-postgres`. Do not bump n8n image/version on primary adopt without documented justification.
 5. Synarava ↔ SKU API: **public HTTPS** + per-workspace Bearer + rate limiting **before** scrypt auth (no raw Bearer in rate-limit keys). Same-project n8n may use private `${{sku-api.*}}`.
 6. Source code remains in the Synarava pnpm monorepo for now; HTTP contract stays the portability boundary.
 7. CI/CD and Railway watch paths are split: shop paths must not redeploy sku-api; sku paths must not redeploy the storefront.
-8. IaC apply guard uses the **immutable project ID**. Apply only after `config plan` shows **no** create/delete/replace of existing `sku-api` / `sku-postgres` (creating staging n8n* is expected).
+8. Staging IaC apply guard: immutable project ID; after `config plan` show **no** create/delete/replace of existing staging `sku-api` / `sku-postgres` (creating staging n8n* is expected). Production Stage 6 plan gate: creates **only** `sku-api` + `sku-postgres`; forbid create/delete/replace of `sku-platform-n8n*` / volumes.
 
 ### Consequences
 
-- **Positive**: clear platform boundary; rename-safe IaC identity; staging automation isolated from prod n8n.
-- **Negative**: HTTPS exposure needs rate limits; staging n8n cutover needs explicit `plan` review.
-- **Accepted trade-off (2026-10-14):** one n8n per environment (own Postgres, volume, owner account, secrets) over a shared automation n8n. Isolation + same-project private networking + upgrade testing on staging outweigh the extra instance and credentials. DBs stay next to their owning service (cross-project = public TCP proxy). Current prod `sku-platform-n8n*` is interim; prod will get the staging layout.
-- **Ops gate:** do not `railway config apply` until Kiryl confirms [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md).
+- **Positive**: clear platform boundary; rename-safe IaC identity; staging automation isolated from prod n8n; Stage 6 can adopt live prod n8n without recreate.
+- **Negative**: HTTPS exposure needs rate limits; staging n8n cutover and production adopt both need explicit `plan` review.
+- **Accepted trade-off (2026-10-14):** one n8n per environment (own Postgres, volume, owner account, secrets) over a shared automation n8n. Isolation + same-project private networking + upgrade testing on staging outweigh the extra instance and credentials. DBs stay next to their owning service (cross-project = public TCP proxy). Production keeps existing `sku-platform-n8n*` names on Stage 6 adopt (not renamed to staging’s `n8n` / `n8n-postgres` during primary rollout).
+- **Ops gate:** do not `railway config apply` until Kiryl confirms. Staging: [`portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md). Production Stage 6: [`portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md) — also requires Business Owner explicit go; no merge/apply/import from prep alone.
