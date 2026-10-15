@@ -1302,6 +1302,66 @@ html[data-theme="dark"] .archive-record-dim {
   background: #000;
 }
 
+/*
+ * Product media text scrim (ProductCard, discovery/related rails).
+ * Light: soft porcelain / champagne mist — readable ink without a muddy black veil.
+ * Dark: keeps the cinematic charcoal lift for white title/meta.
+ */
+.product-media-scrim {
+  background-image: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.8) 0%,
+    rgb(0 0 0 / 0.25) 48%,
+    transparent 100%
+  );
+}
+
+.product-media-scrim--rail {
+  background-image: linear-gradient(
+    to top,
+    rgb(0 0 0 / 0.65) 0%,
+    transparent 100%
+  );
+}
+
+.product-media-scrim__title {
+  color: #fff;
+}
+
+.product-media-scrim__meta {
+  color: rgb(255 255 255 / 0.75);
+}
+
+html[data-theme="light"] .product-media-scrim {
+  /* Warm ivory → champagne mist; short, airy lift — never charcoal */
+  background-image: linear-gradient(
+    to top,
+    rgb(252 250 247 / 0.94) 0%,
+    rgb(248 242 234 / 0.78) 28%,
+    rgb(245 238 230 / 0.38) 48%,
+    rgb(247 247 245 / 0.06) 66%,
+    transparent 100%
+  );
+}
+
+html[data-theme="light"] .product-media-scrim--rail {
+  background-image: linear-gradient(
+    to top,
+    rgb(252 250 247 / 0.92) 0%,
+    rgb(248 242 234 / 0.7) 36%,
+    rgb(247 247 245 / 0.08) 68%,
+    transparent 100%
+  );
+}
+
+html[data-theme="light"] .product-media-scrim__title {
+  color: var(--color-foreground);
+}
+
+html[data-theme="light"] .product-media-scrim__meta {
+  color: var(--color-muted-ink);
+}
+
 .final-sigil {
   isolation: isolate;
   contain: paint;
