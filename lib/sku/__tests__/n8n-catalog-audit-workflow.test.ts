@@ -11,6 +11,7 @@ type WorkflowNode = {
   readonly name: string;
   readonly type: string;
   readonly parameters?: Record<string, unknown>;
+  readonly credentials?: Record<string, unknown>;
 };
 
 type WorkflowDoc = {
@@ -38,8 +39,8 @@ describe("sku-catalog-audit n8n workflow (Этап 5 Slice B)", () => {
       "n8n-nodes-base.httpRequest",
     );
     expect(byName.get("shouldNotify?")?.type).toBe("n8n-nodes-base.if");
-    expect(byName.get("Notify webhook")?.type).toBe(
-      "n8n-nodes-base.httpRequest",
+    expect(byName.get("Notify Telegram · SKU")?.type).toBe(
+      "n8n-nodes-base.telegram",
     );
     expect(byName.has("Save checkpoint (after notify)")).toBe(true);
     expect(byName.has("Save checkpoint (no notify)")).toBe(true);
@@ -68,16 +69,32 @@ describe("sku-catalog-audit n8n workflow (Этап 5 Slice B)", () => {
     expect(conditions?.conditions?.[0]?.leftValue).toContain("shouldNotify");
   });
 
-  it("wires notify only on IF true branch; checkpoint on both branches", () => {
+  it("wires Telegram notify only on IF true branch; checkpoint on both branches", () => {
     const connections = workflow.connections as Record<
       string,
       { main: Array<Array<{ node: string }>> }
     >;
     const ifBranches = connections["shouldNotify?"]?.main;
-    expect(ifBranches?.[0]?.[0]?.node).toBe("Notify webhook");
+    expect(ifBranches?.[0]?.[0]?.node).toBe("Notify Telegram · SKU");
     expect(ifBranches?.[1]?.[0]?.node).toBe("Save checkpoint (no notify)");
-    expect(connections["Notify webhook"]?.main?.[0]?.[0]?.node).toBe(
+    expect(connections["Notify Telegram · SKU"]?.main?.[0]?.[0]?.node).toBe(
       "Save checkpoint (after notify)",
     );
+  });
+
+  it("Telegram message includes STAGING marker and SKU Audit link; no secrets", () => {
+    const notify = workflow.nodes.find((n) => n.name === "Notify Telegram · SKU");
+    expect(notify?.type).toBe("n8n-nodes-base.telegram");
+    const text = String(notify?.parameters?.text ?? "");
+    expect(text).toContain("🟡 STAGING");
+    expect(text).toContain("SKU Audit");
+    expect(text).toContain(
+      "https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy",
+    );
+    expect(String(notify?.parameters?.chatId ?? "")).toContain(
+      "$env.TELEGRAM_CHAT_ID",
+    );
+    expect(JSON.stringify(workflow)).not.toMatch(/\d{8,}:[A-Za-z0-9_-]{20,}/);
+    expect(JSON.stringify(workflow)).not.toMatch(/bot[0-9]+:/i);
   });
 });

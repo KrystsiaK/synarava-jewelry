@@ -6,6 +6,7 @@
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)  
 **Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)  
 **Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)  
+**Current status snapshot:** [`portable-sku-current-status.md`](portable-sku-current-status.md)  
 **Platform Railway:** [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
 
 ## Packages
@@ -29,7 +30,7 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 
 - `GET /health` — ready when credentials configured **and** DB reachable (Postgres mode); body includes `store`
 - `POST /v1/workspaces/{key}/skus/preview|validate`
-- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) — **smoke Pass** (first notify, later silent)
+- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) — **smoke Pass** (first **Telegram** notify, later silent)
 - `POST /v1/workspaces/{key}/reservations` (+ `Idempotency-Key`)
 - `POST /v1/workspaces/{key}/assignments/confirm`
 - `POST /v1/workspaces/{key}/assignments/{id}/lock`

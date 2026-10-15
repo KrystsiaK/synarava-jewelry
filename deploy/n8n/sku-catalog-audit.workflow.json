@@ -112,24 +112,23 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "={{ $env.NOTIFY_WEBHOOK_URL }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ {\n  source: 'sku-catalog-audit-staging',\n  shouldNotify: $json.shouldNotify,\n  deviationCount: $json.deviationCount,\n  itemCount: $json.itemCount,\n  digest: $json.digest,\n  durationMs: $json.durationMs,\n  llmEnabled: $json.llmEnabled,\n  correlationId: $json.correlationId,\n  deviations: $json.deviations\n} }}",
-        "options": {
-          "response": {
-            "response": {
-              "neverError": false
-            }
-          }
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=🟡 STAGING · SKU catalog audit\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy",
+        "additionalFields": {
+          "appendAttribution": false
         }
       },
       "id": "a1b2c3d4-0006-4000-8000-000000000006",
-      "name": "Notify webhook",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [1300, -120]
+      "name": "Notify Telegram · SKU",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1300, -120],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_API_STAGING",
+          "name": "Telegram · SKU staging"
+        }
+      }
     },
     {
       "parameters": {
@@ -169,11 +168,11 @@
     },
     "shouldNotify?": {
       "main": [
-        [{ "node": "Notify webhook", "type": "main", "index": 0 }],
+        [{ "node": "Notify Telegram · SKU", "type": "main", "index": 0 }],
         [{ "node": "Save checkpoint (no notify)", "type": "main", "index": 0 }]
       ]
     },
-    "Notify webhook": {
+    "Notify Telegram · SKU": {
       "main": [[{ "node": "Save checkpoint (after notify)", "type": "main", "index": 0 }]]
     }
   },
