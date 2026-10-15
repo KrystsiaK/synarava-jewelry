@@ -168,7 +168,8 @@ export default defineRailway((ctx) => {
       SKU_API_TOKEN: preserve(),
       SKU_API_WORKSPACE: "synarava-shop",
       CATALOG_ITEMS_JSON: preserve(),
-      NOTIFY_WEBHOOK_URL: preserve(),
+      // Chat ID only — bot token lives in n8n Telegram credential (never in git).
+      TELEGRAM_CHAT_ID: preserve(),
     },
   });
 

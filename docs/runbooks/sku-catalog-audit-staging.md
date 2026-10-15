@@ -70,7 +70,7 @@ Exit codes: `0` no new notify · `2` should notify · `1` transport/API error.
 2. **Load checkpoint** — `previousDigest` from n8n `$getWorkflowStaticData('global')`.
 3. **Build payload** — parse `CATALOG_ITEMS_JSON` env (JSON array, max 100).
 4. **POST** private `sku-api` → `/v1/workspaces/{SKU_API_WORKSPACE}/audit/catalog` with Header Auth Bearer.
-5. **IF `shouldNotify`** → **Notify webhook** (`NOTIFY_WEBHOOK_URL`) with PII-free summary.
+5. **IF `shouldNotify`** → **Notify Telegram · SKU** (`n8n-nodes-base.telegram`) — PII-free summary with **🟡 STAGING** and a link to [SKU Audit](https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy). Chat ID from `$env.TELEGRAM_CHAT_ID`; bot token only in the n8n Telegram credential (never in git).
 6. **Save checkpoint** — always write `digest` back to static data (both branches). Notify failure leaves digest unsaved on the true branch until after successful notify.
 
 Static data persists only for **active** scheduled/production executions, not manual “Test workflow” runs.
@@ -136,8 +136,10 @@ In Railway → **portable-sku-platform** → **staging** → service **`n8n`**:
 | `N8N_BLOCK_ENV_ACCESS_IN_NODE` | `false` (IaC — Code nodes need `$env.CATALOG_ITEMS_JSON`) |
 | `SKU_API_WORKSPACE` | `synarava-shop` |
 | `CATALOG_ITEMS_JSON` | JSON array (see step 3 — copy-paste M2 row) |
-| `NOTIFY_WEBHOOK_URL` | staging webhook (e.g. Slack incoming / webhook.site for first smoke) |
+| `TELEGRAM_CHAT_ID` | staging ops chat ID (sealed; **never** commit) |
 | `DB_*` | wired from `n8n-postgres` via IaC |
+
+Telegram **bot token** is **not** a Railway env var for this workflow — create an n8n credential **Telegram · SKU staging** (`telegramApi`) in the editor. Do not put tokens or chat IDs in the workflow JSON.
 
 3. **Redeploy** `n8n` after setting domain + vars.
 4. Open `https://<n8n-public-domain>` → finish **n8n owner account** setup (n8n 2.x user management). `N8N_BASIC_AUTH_*` may be ignored on 2.x; rely on the owner login + restrict who has the public URL.
@@ -174,15 +176,15 @@ Redeploy or “Update variables” as Railway requires. Audit is read-only vs th
    - Header name: `Authorization`
    - Header value: `Bearer <SKU_API_TOKEN>`
 4. Open node **POST audit/catalog** → select that credential (placeholder id `SKU_API_BEARER` in JSON).
-5. Confirm **Notify webhook** URL expression uses `$env.NOTIFY_WEBHOOK_URL`.
+5. Create / select Telegram credential **Telegram · SKU staging** on node **Notify Telegram · SKU** (placeholder id `TELEGRAM_API_STAGING`). Confirm `chatId` uses `$env.TELEGRAM_CHAT_ID` and the message includes **🟡 STAGING** + SKU Audit link.
 6. **Save** workflow. Do **not** activate yet.
 
 ### 5. First smoke (manual execute)
 
-> Static data checkpoint does **not** persist on manual test runs. Use this only to prove HTTP + IF + notify path.
+> Static data checkpoint does **not** persist on manual test runs. Use this only to prove HTTP + IF + Telegram notify path.
 
-1. Ensure `NOTIFY_WEBHOOK_URL` points at a catcher you can see.
-2. Set `CATALOG_ITEMS_JSON` so the first audit has a known deviation → expect `shouldNotify: true` and a webhook POST.
+1. Ensure `TELEGRAM_CHAT_ID` + Telegram credential are set for a chat you can see.
+2. Set `CATALOG_ITEMS_JSON` so the first audit has a known deviation → expect `shouldNotify: true` and a Telegram message (**🟡 STAGING** + SKU Audit link).
 3. Fix items / digest path: second **API** call with same `previousDigest` must return `shouldNotify: false` (CLI or curl against sku-api).
 4. Confirm **Settings → Assignments** in Synarava Admin did not change (audit is read-only).
 
@@ -190,17 +192,17 @@ Redeploy or “Update variables” as Railway requires. Audit is read-only vs th
 
 1. In n8n, **Activate** the workflow (toggle On).
 2. Wait for a scheduled run **or** use “Execute workflow” only for connectivity; rely on the next **active** cron for real checkpoint persistence.
-3. After one successful active run with deviations: webhook fires once.
-4. Leave catalog unchanged → next active run: **no** webhook (`shouldNotify: false`).
+3. After one successful active run with deviations: Telegram fires once.
+4. Leave catalog unchanged → next active run: **no** Telegram (`shouldNotify: false`).
 
-### 7. Pass criteria (Kiryl) — **met (Stage 5 smoke)**
+### 7. Pass criteria (Kiryl) — **met (Stage 5 smoke)** · monorepo synced to live Telegram notify
 
 | Check | Expected | Result |
 | --- | --- | --- |
 | Railway staging `n8n` + `n8n-postgres` + volume | Running in **portable-sku-platform / staging** only | Pass |
 | Prod `sku-platform-n8n*` | Untouched | Pass |
 | Workflow active | Cron `0 3 * * *` UTC | Pass |
-| Notify | Only when audit `shouldNotify: true` | Pass — first scheduled run notified |
+| Notify | **Notify Telegram · SKU** only when audit `shouldNotify: true` | Pass — live staging uses Telegram (repo JSON synced) |
 | Checkpoint | Identical active re-run does not notify again | Pass — later scheduled runs silent |
 | Ledger | No new SKUs / assignment mutations from the workflow | Pass |
 | Scope | PR #148 still open / no main merge / no Railway apply without confirm | Held |
