@@ -37,6 +37,7 @@ import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
 import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { truncateText } from "@/lib/text/truncate";
+import { useCanHover } from "@/lib/hooks/use-can-hover";
 import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
@@ -391,7 +392,7 @@ function MaterialsScrollSection({ product }: { product: ProductSummary }) {
                   alt={item.title}
                   fill
                   sizes="(max-width: 768px) 82vw, 58vw"
-                  className="artifact-hover-image object-cover grayscale contrast-[1.06] transition-[filter,transform] duration-700 hover:scale-[1.025] hover:grayscale-0"
+                  className="artifact-hover-image object-cover md:grayscale contrast-[1.06] transition-[filter,transform] duration-700 hover:scale-[1.025] md:hover:grayscale-0"
                 />
                 <span className="absolute bottom-5 right-5 font-serif text-7xl leading-none text-white/15">
                   {String(index + 1).padStart(2, "0")}
@@ -471,7 +472,7 @@ function SymbolismScrollSection({
                   alt={`${product.title} shown as an editorial detail`}
                   fill
                   sizes="(max-width: 1024px) 100vw, 75vw"
-                  className="object-cover grayscale contrast-[1.08]"
+                  className="object-cover md:grayscale md:contrast-[1.08]"
                 />
               </motion.div>
               <div className="pointer-events-none absolute inset-4 border border-white/25 md:inset-6" />
@@ -635,7 +636,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
             {fitVideoSrc ? (
               <PerformanceVideo
                 ref={videoRef}
-                className="h-full w-full object-cover grayscale contrast-[1.08]"
+                className="h-full w-full object-cover md:grayscale md:contrast-[1.08]"
                 src={fitVideoSrc}
                 poster={product.process.mediaImage || undefined}
                 autoPlay={!reduceMotion}
@@ -648,7 +649,7 @@ function CraftSection({ product, fitVideoSrc }: { product: ProductSummary; fitVi
                 aria-label={processMediaAlt}
               />
             ) : product.process.mediaImage ? (
-              <Image src={product.process.mediaImage} alt={processMediaAlt} fill sizes="100vw" className="object-cover grayscale contrast-[1.08]" />
+              <Image src={product.process.mediaImage} alt={processMediaAlt} fill sizes="100vw" className="object-cover md:grayscale md:contrast-[1.08]" />
             ) : null}
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/35 via-transparent to-black/10" />
             <div className="pointer-events-none absolute inset-4 border border-white/20 md:inset-7" />
@@ -728,6 +729,7 @@ function LookbookSection({ product }: { product: ProductSummary }) {
   const ref = useRef<HTMLElement>(null);
   const isInView = useInView(ref, { once: true, margin: "-8%" });
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const canHover = useCanHover();
 
   if (
     product.lookbook.length === 0 ||
@@ -771,7 +773,12 @@ function LookbookSection({ product }: { product: ProductSummary }) {
           >
             <motion.div
               className="relative h-full w-full"
-              animate={{ filter: hoveredIdx === i ? "grayscale(0%) contrast(1.08)" : "grayscale(40%) contrast(1.02)" }}
+              animate={{
+                filter:
+                  !canHover || hoveredIdx === i
+                    ? "grayscale(0%) contrast(1.08)"
+                    : "grayscale(40%) contrast(1.02)",
+              }}
               transition={{ duration: 0.5 }}
             >
               <Image

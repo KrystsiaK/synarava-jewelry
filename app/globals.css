@@ -687,6 +687,15 @@ html[data-backdrop-filter-url="true"] .site-nav-mobile-glass {
   filter: grayscale(0) brightness(0.92);
 }
 
+/* Phones have no hover — keep storefront media full color. */
+@media (max-width: 767px) {
+  .artifact-hover-image,
+  .artifact-hover-image-wrap:hover .artifact-hover-image,
+  .artifact-hover-image:hover {
+    filter: none;
+  }
+}
+
 .artifact-footer {
   position: relative;
   overflow: hidden;
@@ -1008,6 +1017,14 @@ html[data-theme="dark"] .shop-hero-image-overlay {
 @media (max-width: 767px) {
   .shop-hero-image {
     filter: saturate(0.82) contrast(1.08) brightness(0.88);
+  }
+
+  /* Dark theme heroes: drop mobile grayscale so product/site photos stay colorful. */
+  html[data-theme="dark"] .shop-hero-image,
+  html[data-theme="dark"] .home-hero-media,
+  html[data-theme="dark"] .collections-hero-media,
+  html[data-theme="dark"] .collection-detail-hero-media {
+    filter: saturate(0.9) contrast(1.06) brightness(0.94);
   }
 
   .shop-hero-image-overlay {
@@ -4218,6 +4235,8 @@ body.admin-mode .ui-tooltip,
    so it occupies the panel’s rounded top (not inset below the crescents). */
 .adm-panel {
   --adm-panel-radius: 0.875rem;
+  /* Inner fill radius tracks the padding-edge curve (outer − border). */
+  --adm-panel-inner-radius: calc(var(--adm-panel-radius) - 1px);
   --adm-panel-sticky-above: 0px;
   min-width: 0;
   border: 1px solid var(--adm-border);
@@ -4235,6 +4254,11 @@ body.admin-mode .ui-tooltip,
   border-width: 3px;
   border-color: var(--adm-border);
   transition: border-color 220ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/* 3px locale frame → well fill must track the inner curve, not the outer. */
+.adm-panel.adm-locale-frame {
+  --adm-panel-inner-radius: calc(var(--adm-panel-radius) - 3px);
 }
 
 .adm-panel.adm-locale-frame[data-locale="en"],
@@ -4755,6 +4779,10 @@ html[data-theme="light"] .adm-section-tab[aria-selected="true"] .adm-section-tab
   background: var(--adm-tab-well);
   border: 1px solid color-mix(in srgb, var(--adm-cool) 22%, var(--adm-border));
   border-top: 0;
+  /* Panel root stays overflow:visible for sticky — the well must round its
+     own fill so bottom corners track the gold border (no square “clip”). */
+  border-radius: 0 0 var(--adm-panel-inner-radius, var(--adm-panel-radius, 0.75rem))
+    var(--adm-panel-inner-radius, var(--adm-panel-radius, 0.75rem));
 }
 
 .adm-section-tabs[data-embedded="true"] .adm-section-tabs__well {
@@ -4767,10 +4795,6 @@ html[data-theme="light"] .adm-section-tab[aria-selected="true"] .adm-section-tab
 .adm-section-tabs[data-active-group="synarava"] .adm-section-tabs__well .adm-product-section-header {
   background: color-mix(in srgb, var(--adm-accent) 8%, var(--adm-panel));
   border-color: color-mix(in srgb, var(--adm-accent) 22%, var(--adm-border));
-}
-
-.adm-section-tabs:not([data-embedded="true"]) .adm-section-tabs__well {
-  border-radius: 0 0 var(--adm-panel-radius, 0.75rem) var(--adm-panel-radius, 0.75rem);
 }
 
 .adm-section-tabs__well .adm-product-section-header {

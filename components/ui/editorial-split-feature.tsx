@@ -7,6 +7,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { ease } from "@/lib/animation";
+import { useCanHover } from "@/lib/hooks/use-can-hover";
 
 type EditorialSplitFeatureProps = {
   title: ReactNode;
@@ -55,6 +56,7 @@ export function EditorialSplitFeature({
   const isInView = useInView(ref, { once: true, margin: "-12%" });
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start end", "end start"] });
   const imgY = useTransform(scrollYProgress, [0, 1], ["-8%", "8%"]);
+  const canHover = useCanHover();
 
   const content = (
     <div
@@ -80,12 +82,11 @@ export function EditorialSplitFeature({
         >
           <motion.div
             className={cx(
-              "relative -top-[11%] h-[122%] w-full will-change-transform",
+              "group/editorial-media relative -top-[11%] h-[122%] w-full will-change-transform",
               imageClassName,
             )}
             style={{ y: imgY }}
-            initial={{ filter: "grayscale(1) brightness(0.84)" }}
-            whileHover={href ? { filter: "grayscale(0) brightness(0.92)", scale: 1.03 } : undefined}
+            whileHover={href && canHover ? { scale: 1.03 } : undefined}
             transition={{ duration: 0.75 }}
           >
             <Image
@@ -93,7 +94,11 @@ export function EditorialSplitFeature({
               src={imageSrc}
               fill
               sizes="(max-width: 768px) 100vw, 58vw"
-              className="object-cover"
+              className={cx(
+                "object-cover md:grayscale md:brightness-[0.84] transition-[filter] duration-700",
+                href &&
+                  "md:group-hover/editorial-media:grayscale-0 md:group-hover/editorial-media:brightness-[0.92]",
+              )}
             />
           </motion.div>
         </div>
