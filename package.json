@@ -38,11 +38,12 @@
     "prisma:studio": "prisma studio"
   },
   "dependencies": {
-    "@synarava/sku-contract": "workspace:*",
     "@aws-sdk/client-s3": "^3.1055.0",
     "@aws-sdk/s3-request-presigner": "^3.1055.0",
     "@number-flow/react": "^0.6.2",
     "@prisma/client": "^6.19.3",
+    "@sentry/nextjs": "^11.7.0",
+    "@synarava/sku-contract": "workspace:*",
     "@tiptap/extension-link": "^3.31.3",
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",

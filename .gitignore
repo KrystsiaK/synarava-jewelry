@@ -95,3 +95,6 @@ packages/*/dist/
 
 # SKU catalog audit CLI checkpoint (local)
 **/.sku-audit-checkpoint.json
+
+# Sentry Config File
+.env.sentry-build-plugin
