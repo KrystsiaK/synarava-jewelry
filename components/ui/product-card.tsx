@@ -103,21 +103,21 @@ export function ProductCard({
             </motion.div>
           )}
 
-          {/* Overlay slide-up */}
+          {/* Overlay slide-up — theme scrim: soft porcelain in light, charcoal in dark */}
           <motion.div
-            className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/80 via-black/25 to-transparent p-5"
+            className="product-media-scrim absolute inset-0 flex flex-col justify-end p-5"
             variants={{
               rest: { opacity: 0, y: "30%" },
               hover: { opacity: 1, y: "0%" },
             }}
             transition={{ type: "spring", stiffness: 360, damping: 28 }}
           >
-            <p className="label-mono mb-1 text-[0.65rem] text-white/75">
+            <p className="product-media-scrim__meta label-mono mb-1 text-[0.65rem]">
               {product.series}
             </p>
             <div className="flex items-end justify-between gap-2">
               <p
-                className="font-serif leading-tight text-white"
+                className="product-media-scrim__title font-serif leading-tight"
                 style={{ fontSize: isFeatured ? "clamp(1.2rem,2vw,1.6rem)" : "clamp(1rem,1.4vw,1.2rem)" }}
               >
                 {formatDisplayTitle(product.title)}
