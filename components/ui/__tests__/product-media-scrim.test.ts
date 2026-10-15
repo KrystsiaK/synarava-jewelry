@@ -54,7 +54,7 @@ describe("Product media scrim", () => {
       /html\[data-theme="light"\]\s*\.product-media-scrim\s*\{[^}]*\}/s,
     )?.[0];
     expect(typeof lightBlock).toBe("string");
-    expect(lightBlock).toMatch(/247\s+247\s+245/);
+    expect(lightBlock).toMatch(/252\s+250\s+247/);
     expect(lightBlock).not.toMatch(/0\s+0\s+0\s*\/\s*0\.[6-9]/);
     expect(cssSource).toMatch(
       /html\[data-theme="light"\]\s*\.product-media-scrim__title\s*\{\s*color:\s*var\(--color-foreground\)/,

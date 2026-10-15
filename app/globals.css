@@ -1333,12 +1333,13 @@ html[data-theme="dark"] .archive-record-dim {
 }
 
 html[data-theme="light"] .product-media-scrim {
+  /* Warm ivory → champagne mist; short, airy lift — never charcoal */
   background-image: linear-gradient(
     to top,
-    rgb(247 247 245 / 0.97) 0%,
-    rgb(242 234 226 / 0.86) 34%,
-    rgb(236 226 218 / 0.42) 58%,
-    rgb(247 247 245 / 0.08) 78%,
+    rgb(252 250 247 / 0.94) 0%,
+    rgb(248 242 234 / 0.78) 28%,
+    rgb(245 238 230 / 0.38) 48%,
+    rgb(247 247 245 / 0.06) 66%,
     transparent 100%
   );
 }
@@ -1346,9 +1347,9 @@ html[data-theme="light"] .product-media-scrim {
 html[data-theme="light"] .product-media-scrim--rail {
   background-image: linear-gradient(
     to top,
-    rgb(247 247 245 / 0.96) 0%,
-    rgb(242 234 226 / 0.78) 42%,
-    rgb(247 247 245 / 0.12) 78%,
+    rgb(252 250 247 / 0.92) 0%,
+    rgb(248 242 234 / 0.7) 36%,
+    rgb(247 247 245 / 0.08) 68%,
     transparent 100%
   );
 }
