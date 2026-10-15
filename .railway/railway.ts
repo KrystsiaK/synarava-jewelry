@@ -106,8 +106,8 @@ export default defineRailway((ctx) => {
     healthcheck: "/health",
     healthcheckTimeout: 30,
     env: {
-      // Explicit so n8n's `${{sku-api.PORT}}` resolves (runtime-injected PORT
-      // is not referenceable); matches the public domain targetPort.
+      // Listen port for sku-api (and public domain targetPort). n8n SKU_API_URL
+      // must hardcode :8080 — the sku-api PORT template ref resolves empty.
       PORT: "8080",
       SKU_DATABASE_URL: skuPostgres.env.DATABASE_URL,
       SKU_API_CREDENTIALS: preserve(),
@@ -159,9 +159,12 @@ export default defineRailway((ctx) => {
       DB_POSTGRESDB_DATABASE: n8nPostgres.env.PGDATABASE,
       DB_POSTGRESDB_USER: n8nPostgres.env.PGUSER,
       DB_POSTGRESDB_PASSWORD: n8nPostgres.env.PGPASSWORD,
+      // Code/HTTP nodes read $env.CATALOG_ITEMS_JSON / SKU_API_URL — must allow.
+      // https://docs.n8n.io/hosting/configuration/environment-variables/security/
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: "false",
       // Same-project private URL to sku-api (not synarava-shop; not prod n8n).
-      SKU_API_URL:
-        "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}",
+      // Hardcode :8080 — sku-api PORT template ref resolves empty even when set.
+      SKU_API_URL: "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080",
       SKU_API_TOKEN: preserve(),
       SKU_API_WORKSPACE: "synarava-shop",
       CATALOG_ITEMS_JSON: preserve(),

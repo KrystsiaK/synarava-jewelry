@@ -38,8 +38,16 @@ describe("sku-api Railway IaC adopt fields", () => {
     expect(railwayTs).toMatch(/N8N_USER_FOLDER:\s*"\/home\/node"/);
   });
 
-  it("pins sku-api PORT so n8n's private SKU_API_URL has a port", () => {
+  it("pins sku-api listen port and hardcodes it in n8n SKU_API_URL", () => {
     expect(railwayTs).toMatch(/PORT:\s*"8080"/);
-    expect(railwayTs).toContain("${{sku-api.PORT}}");
+    // `${{sku-api.PORT}}` resolves empty — must use literal :8080.
+    expect(railwayTs).toContain(
+      'SKU_API_URL: "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080"',
+    );
+    expect(railwayTs).not.toContain("${{sku-api.PORT}}");
+  });
+
+  it("allows n8n Code nodes to read $env (CATALOG_ITEMS_JSON)", () => {
+    expect(railwayTs).toMatch(/N8N_BLOCK_ENV_ACCESS_IN_NODE:\s*"false"/);
   });
 });

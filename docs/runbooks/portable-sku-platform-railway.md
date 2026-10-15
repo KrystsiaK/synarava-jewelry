@@ -97,6 +97,14 @@ CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `p
 | `SKU_API_TOKEN` | Staging Bearer for workspace `synarava-shop` |
 | `SKU_API_WORKSPACE` | `synarava-shop` |
 
+## Staging n8n → sku-api (same project)
+
+| Variable | Value |
+| --- | --- |
+| `SKU_API_URL` | `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` — **literal `:8080`** (`${{sku-api.PORT}}` resolves empty) |
+| `N8N_BLOCK_ENV_ACCESS_IN_NODE` | `false` so Code nodes can read `$env.CATALOG_ITEMS_JSON` |
+| `CATALOG_ITEMS_JSON` | See [`sku-catalog-audit-staging.md`](sku-catalog-audit-staging.md) §3 (M2 copy-paste) |
+
 ## Watch paths / CI
 
 Authored in `.railway/railway.ts` (`build.watchPatterns` + `source.checkSuites: true`) so `config plan` does not clear live staging settings.

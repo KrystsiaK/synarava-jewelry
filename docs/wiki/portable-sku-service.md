@@ -29,7 +29,7 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 
 - `GET /health` — ready when credentials configured **and** DB reachable (Postgres mode); body includes `store`
 - `POST /v1/workspaces/{key}/skus/preview|validate`
-- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
+- `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) — **smoke Pass** (first notify, later silent)
 - `POST /v1/workspaces/{key}/reservations` (+ `Idempotency-Key`)
 - `POST /v1/workspaces/{key}/assignments/confirm`
 - `POST /v1/workspaces/{key}/assignments/{id}/lock`
@@ -96,5 +96,5 @@ Postgres integration covers persist-across-reconnect, **parallel same-stem uniqu
 - Kiryl confirm → staging IaC apply on `portable-sku-platform` after safe adoption `plan` (adopt sku-*; create staging n8n+n8n-postgres; no prod)
 - `EXTERNAL_CHANGE_DETECTED` · recovery-queue automation
 - Этап 6 production rollout
-- Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto)
+- Manual matrix rows M6 / M9–M11 / M13 (M2 Pass Kiryl 2026-10-13; M3/M4/M5/M7/M8/M12 auto; Этап 5 n8n smoke Pass)
 
