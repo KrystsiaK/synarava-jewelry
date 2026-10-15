@@ -11,11 +11,11 @@
 
 | Ref | Role |
 | --- | --- |
-| **`origin/staging`** | **Safe source** for Stage 6 prep — holds Stages 1–5 + Telegram notify (#168) |
-| `origin/main` | Behind staging; no SKU platform code yet |
-| PR [#148](https://github.com/KrystsiaK/synarava-jewelry/pull/148) | Open `staging`→`main` vehicle — **do not merge** from this Stage 6 prep |
+| **`origin/staging`** | Integration source containing the complete Stage 6 release |
+| **`origin/main`** | Only permitted production deploy branch |
+| PR [#148](https://github.com/KrystsiaK/synarava-jewelry/pull/148) | The single `staging`→`main` release vehicle; direct pushes to `main` are forbidden |
 
-This runbook’s IaC PR should target **`staging`**. Production `sku-api` GitHub deploy branch is **`staging`** (`PROD_SKU_API_GITHUB_BRANCH`) until #148 lands; then switch to `main` in a follow-up before broader rollout.
+PR #169 must first merge into **`staging`**. Then PR #148 must merge the complete current `staging` history into protected **`main`**. Production `sku-api` always deploys from **`main`** (`PROD_SKU_API_GITHUB_BRANCH`). The production plan-check fails unless `git merge-base --is-ancestor origin/staging origin/main` succeeds.
 
 ## Identity (hard guards)
 
@@ -38,7 +38,7 @@ This runbook’s IaC PR should target **`staging`**. Production `sku-api` GitHub
 | Action | Resource | Notes |
 | --- | --- | --- |
 | **create** | `sku-postgres` | Isolated production SKU DB |
-| **create** | `sku-api` | Isolated production API (branch `staging` until #148) |
+| **create** | `sku-api` | Isolated production API sourced only from protected `main` after PR #148 |
 | **adopt / no structural change** | `sku-platform-n8n` | Zero create/delete/replace; image stays `2.42.7` |
 | **adopt / no structural change** | `sku-platform-n8n-postgres` | Zero create/delete/replace |
 | **adopt / no structural change** | `sku-platform-n8n-volume` | Exact live volume name |
@@ -83,6 +83,8 @@ railway login
 
 ### Plan gate checklist — abort unless all true
 
+- [ ] PR #169 is merged into `staging`, and PR #148 merged the complete current `staging` history into protected `main`
+- [ ] Automated ancestry gate confirms `origin/main` contains `origin/staging`
 - [ ] Environment is **production** and environment ID is `d8cb7dd8-5c26-4255-a8c5-7795f1993de6`
 - [ ] Project ID is `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`
 - [ ] **Exactly two creates:** `sku-api` and `sku-postgres`
@@ -167,15 +169,17 @@ Artifact: [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy
 
 ## Ordered manual production steps (human-only)
 
-1. Confirm Business Owner + Kiryl go for Stage 6 apply (this prep does **not** grant it).
-2. Run `./scripts/sku-platform-production-adopt-check.sh` (status → pull → partials → **plan+gate**).
-3. Confirm gate PASS (exactly creates `sku-api` + `sku-postgres`; volumes/`sku-platform-n8n*` untouched).
-4. `railway config apply` — **only** after explicit go.
-5. Seal production `sku-api` credentials + Synarava web `SKU_API_*`.
-6. Create Telegram credential inside production n8n (Synarava Ops).
-7. Import production workflow JSON; keep inactive until pilot go.
-8. Enable assign for **one draft** product; Business Owner confirms.
-9. Rollback via kill switch if anything fails.
+1. Merge PR #169 into `staging` through GitHub.
+2. Merge the complete `staging` branch into protected `main` through PR #148; no direct push to `main`.
+3. Confirm Business Owner + Kiryl go for Stage 6 apply (this prep does **not** grant it).
+4. Run `./scripts/sku-platform-production-adopt-check.sh` (main ancestry → status → pull → partials → **plan+gate**).
+5. Confirm gate PASS (exactly creates `sku-api` + `sku-postgres`; volumes/`sku-platform-n8n*` untouched).
+6. `railway config apply` — **only** after explicit go.
+7. Seal production `sku-api` credentials + Synarava web `SKU_API_*`.
+8. Create Telegram credential inside production n8n (Synarava Ops).
+9. Import production workflow JSON; keep inactive until pilot go.
+10. Enable assign for **one draft** product; Business Owner confirms.
+11. Rollback via kill switch if anything fails.
 
 ## Related
 

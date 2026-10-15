@@ -68,7 +68,7 @@ railway link --project portable-sku-platform --environment production
 /package.json
 ```
 
-Production GitHub branch: `staging` until PR #148 merges to `main` (`PROD_SKU_API_GITHUB_BRANCH`).
+Production GitHub branch: protected `main` (`PROD_SKU_API_GITHUB_BRANCH`). The production plan-check fails unless current `origin/main` contains the complete `origin/staging` history merged through PR #148.
 
 ### synarava-shop → `synarava-shop-app` (web)
 

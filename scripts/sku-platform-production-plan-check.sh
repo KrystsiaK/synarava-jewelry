@@ -37,7 +37,14 @@ fi
 
 command -v railway >/dev/null || abort "railway CLI not found"
 command -v node >/dev/null || abort "node is required for plan gate"
+command -v git >/dev/null || abort "git is required for main release ancestry gate"
 [[ -f "${GATE_JS}" ]] || abort "missing plan gate module: ${GATE_JS}"
+
+echo "==> Verify protected main contains the complete staging history"
+git fetch --quiet origin main staging \
+  || abort "could not refresh origin/main and origin/staging"
+git merge-base --is-ancestor origin/staging origin/main \
+  || abort "origin/main does not contain current origin/staging. Merge staging → main through PR #148 before production plan/apply."
 
 mkdir -p "${LOCAL_DIR}"
 

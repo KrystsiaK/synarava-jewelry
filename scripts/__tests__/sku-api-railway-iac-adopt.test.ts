@@ -69,6 +69,13 @@ describe("Stage 6 production Railway IaC guards + adopt", () => {
     join(dirname(fileURLToPath(import.meta.url)), "../../.railway/railway.ts"),
     "utf8",
   );
+  const productionPlanCheck = readFileSync(
+    join(
+      dirname(fileURLToPath(import.meta.url)),
+      "../sku-platform-production-plan-check.sh",
+    ),
+    "utf8",
+  );
 
   it("guards immutable project id and production environment id", () => {
     expect(SKU_PLATFORM_PROJECT_ID).toBe(
@@ -108,9 +115,17 @@ describe("Stage 6 production Railway IaC guards + adopt", () => {
   });
 
   it("documents production safe github branch", () => {
-    expect(PROD_SKU_API_GITHUB_BRANCH).toBe("staging");
+    expect(PROD_SKU_API_GITHUB_BRANCH).toBe("main");
     expect(railwayTs).toContain("PROD_SKU_API_GITHUB_BRANCH");
     expect(railwayTs).toMatch(/autoUpdates:\s*\{\s*type:\s*"disabled"/);
+  });
+
+  it("blocks production plan until main contains the complete staging history", () => {
+    expect(productionPlanCheck).toContain("git fetch --quiet origin main staging");
+    expect(productionPlanCheck).toContain(
+      "git merge-base --is-ancestor origin/staging origin/main",
+    );
+    expect(productionPlanCheck).toContain("through PR #148");
   });
 
   it("creates isolated production sku-api + sku-postgres", () => {

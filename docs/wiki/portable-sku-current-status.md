@@ -12,9 +12,10 @@
 
 ## Safe source for Stage 6
 
-- **Source branch:** `staging` (ahead of `main`; includes #168 Telegram notify).
-- **PR #148** (`staging`→`main`) remains the main-land vehicle — leave open; do not merge from Stage 6 prep.
-- Production `sku-api` GitHub deploy branch stays `staging` until #148 merges (then switch to `main` in a follow-up).
+- **Integration source:** `staging` (includes #168 Telegram notify and, after merge, #169).
+- **Production source:** protected `main` only.
+- **PR #148** is the single `staging`→`main` release vehicle and must carry the complete current `staging` history; direct pushes to `main` are forbidden.
+- Production plan/apply is blocked until the ancestry gate confirms `origin/main` contains `origin/staging`.
 
 ## Stage 5 notify (live staging)
 

@@ -91,11 +91,11 @@ export const SKU_API_WATCH_PATTERNS = [
 ] as const;
 
 /**
- * Safe GitHub deploy branch for production sku-api until PR #148
- * (`staging`→`main`) lands. Staging is ahead of main and holds Stages 1–5.
- * After #148 merges, switch this to `main` in a follow-up (documented).
+ * Production sku-api deploys only from protected `main`.
+ * Before any production plan/apply, the plan-check proves that origin/main
+ * contains the complete origin/staging history merged through PR #148.
  */
-export const PROD_SKU_API_GITHUB_BRANCH = "staging";
+export const PROD_SKU_API_GITHUB_BRANCH = "main";
 
 function assertSkuPlatformProject(ctx: {
   projectId?: string;

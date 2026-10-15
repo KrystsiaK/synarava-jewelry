@@ -339,7 +339,7 @@ Delivery flow: feature branch → path-aware CI → merge в `staging` → не�
 
 **Статус prep (2026-10-15):** IaC + runbook + workflow JSON на ветке Stage 6 (base **`staging`**). **Не** merge / **не** `railway config apply` / **не** import в production n8n без Business Owner + Kiryl go.
 
-- Safe source branch: **`staging`** (ahead of `main`; PR #148 = staging→main vehicle — leave open).
+- Integration source: **`staging`**. Production deploy source: protected **`main`** only, after PR #148 merges the complete current `staging` history; direct pushes to `main` are forbidden.
 - Railway: project `portable-sku-platform` (`6d7d5885-…`) / production env `d8cb7dd8-…`; adopt `sku-platform-n8n*` + volumes; **create only** `sku-api` + `sku-postgres`.
 - Runbook: [`docs/runbooks/portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md)
 - Workflow import artifact (manual): [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy/n8n/sku-catalog-audit.workflow.production.json) — Telegram header **`🔴 PRODUCTION · SKU AUDIT`** on shared Synarava Ops channel (credential inside n8n; no secrets in git).
