@@ -27,32 +27,44 @@ export const EXPECTED_CREATE_NAMES = Object.freeze(["sku-api", "sku-postgres"]);
 
 /**
  * @param {unknown} change
- * @returns {{ action: string, name: string } | null}
+ * @returns {{ action: string, name: string, kind: string, severity: string } | null}
  */
 export function normalizePlanChange(change) {
   if (!change || typeof change !== "object") return null;
   const c = /** @type {Record<string, unknown>} */ (change);
+  const kind = typeof c.kind === "string" ? c.kind.trim().toLowerCase() : "";
+  const severity =
+    typeof c.severity === "string" ? c.severity.trim().toLowerCase() : "";
+  const summary = typeof c.summary === "string" ? c.summary.trim() : "";
   const actionRaw =
     (typeof c.action === "string" && c.action) ||
     (typeof c.op === "string" && c.op) ||
     (typeof c.type === "string" && c.type) ||
+    (kind && kind.split(".").at(-1)) ||
     "";
-  const nameRaw =
+  let nameRaw =
     (typeof c.name === "string" && c.name) ||
     (typeof c.resource === "string" && c.resource) ||
     (typeof c.resourceName === "string" && c.resourceName) ||
     "";
+  if (!nameRaw && summary) {
+    nameRaw =
+      summary.match(/^Create\s+(?:service|database|volume)\s+(.+)$/i)?.[1] ||
+      summary.match(/^Update\s+([^\s]+)\s+/i)?.[1] ||
+      summary.match(/^(?:Set|Update|Delete)\s+variable\s+([^.]+)\./i)?.[1] ||
+      "";
+  }
   const action = actionRaw.trim().toLowerCase();
   const name = nameRaw.trim();
   if (!action || !name) return null;
-  return { action, name };
+  return { action, name, kind, severity };
 }
 
 /**
  * @param {unknown} plan
  * @returns {{
  *   formatKnown: boolean,
- *   changes: Array<{ action: string, name: string }>,
+ *   changes: Array<{ action: string, name: string, kind: string, severity: string }>,
  * }}
  */
 export function extractPlanChangesWithFormat(plan) {
@@ -61,7 +73,17 @@ export function extractPlanChangesWithFormat(plan) {
   }
   const p = /** @type {Record<string, unknown>} */ (plan);
 
-  const candidates = [p.changes, p.diff, p.operations, p.steps];
+  const changeSet =
+    p.changeSet && typeof p.changeSet === "object"
+      ? /** @type {Record<string, unknown>} */ (p.changeSet)
+      : null;
+  const candidates = [
+    p.changes,
+    changeSet?.changes,
+    p.diff,
+    p.operations,
+    p.steps,
+  ];
   for (const list of candidates) {
     if (Array.isArray(list)) {
       return {
@@ -163,7 +185,17 @@ export function evaluateProductionPlanGate(plan, opts = {}) {
   }
 
   for (const change of changes) {
-    const { action, name } = change;
+    const { action, name, kind, severity } = change;
+
+    if (severity === "destructive") {
+      errors.push(`FORBIDDEN destructive change ${kind || action} on "${name}"`);
+    }
+
+    if (kind === "resource.update") {
+      errors.push(
+        `FORBIDDEN structural update of existing resource "${name}"`,
+      );
+    }
 
     if (isCreateAction(action)) {
       creates.push(name);
