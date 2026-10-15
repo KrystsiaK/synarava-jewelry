@@ -28,6 +28,8 @@ export type AdminPanelRootProps = {
 /**
  * Rounded admin shell. Compound: `AdminPanel.Root` / `.Header` / `.Body`.
  * Keep overflow visible — clipping the root would trap sticky to the panel.
+ * Floor fills (e.g. `.adm-section-tabs__well`) must use `--adm-panel-inner-radius`
+ * so their corners track the border without relying on root overflow clip.
  *
  * Sticky headers use the synarava-cms band rhythm (`.adm-band`) and, when
  * sticky, `.adm-band--sticky-radius` so optical pad-y survives `top − radius`.
