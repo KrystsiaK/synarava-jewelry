@@ -16,6 +16,8 @@ export default defineConfig({
       "**/.next/**",
       "packages/**",
       "services/**",
+      ".pnpm-store/**",
+      ".codex-tmp/**",
     ],
     coverage: {
       provider: "v8",
