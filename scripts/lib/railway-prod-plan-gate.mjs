@@ -1,19 +1,26 @@
 /**
  * Stage 6 production plan gate for portable-sku-platform.
- * Forbids create/delete/replace of existing n8n / n8n-postgres / volumes.
- * Allows create only for sku-api + sku-postgres (and non-structural env updates).
  *
- * Accepts either:
- * - Railway `config plan --json` style objects (best-effort)
- * - A simple fixture shape used by unit tests
+ * Hard rules:
+ * - Unknown plan format OR 0 recognized changes → fail
+ * - Exactly two creates required: sku-api, sku-postgres
+ * - Any other create OR any delete/replace → fail
+ * - Existing sku-platform-n8n / sku-platform-n8n-postgres /
+ *   sku-platform-n8n-volume / postgres-volume must not be created,
+ *   deleted, or replaced
+ *
+ * Env updates on adopted services are allowed (not create/delete/replace).
  *
  * https://docs.railway.com/cli/config
  */
 
+import fs from "node:fs";
+
 export const FORBIDDEN_RESOURCE_NAMES = Object.freeze([
   "sku-platform-n8n",
   "sku-platform-n8n-postgres",
-  "sku-platform-n8n-data",
+  "sku-platform-n8n-volume",
+  "postgres-volume",
 ]);
 
 export const EXPECTED_CREATE_NAMES = Object.freeze(["sku-api", "sku-postgres"]);
@@ -42,29 +49,68 @@ export function normalizePlanChange(change) {
 }
 
 /**
- * Extract change list from plan JSON (several CLI shapes).
  * @param {unknown} plan
- * @returns {Array<{ action: string, name: string }>}
+ * @returns {{
+ *   formatKnown: boolean,
+ *   changes: Array<{ action: string, name: string }>,
+ * }}
  */
-export function extractPlanChanges(plan) {
-  if (!plan || typeof plan !== "object") return [];
+export function extractPlanChangesWithFormat(plan) {
+  if (!plan || typeof plan !== "object") {
+    return { formatKnown: false, changes: [] };
+  }
   const p = /** @type {Record<string, unknown>} */ (plan);
 
   const candidates = [p.changes, p.diff, p.operations, p.steps];
   for (const list of candidates) {
     if (Array.isArray(list)) {
-      return list
-        .map(normalizePlanChange)
-        .filter((x) => x !== null);
+      return {
+        formatKnown: true,
+        changes: list.map(normalizePlanChange).filter((x) => x !== null),
+      };
     }
   }
 
-  // Nested `{ plan: { changes: [...] } }`
   if (p.plan && typeof p.plan === "object") {
-    return extractPlanChanges(p.plan);
+    return extractPlanChangesWithFormat(p.plan);
   }
 
-  return [];
+  return { formatKnown: false, changes: [] };
+}
+
+/** @deprecated Prefer extractPlanChangesWithFormat */
+export function extractPlanChanges(plan) {
+  return extractPlanChangesWithFormat(plan).changes;
+}
+
+/**
+ * @param {string} action
+ */
+function isCreateAction(action) {
+  return action === "create" || action === "add" || action === "new";
+}
+
+/**
+ * @param {string} action
+ */
+function isDeleteAction(action) {
+  return (
+    action === "delete" ||
+    action === "remove" ||
+    action === "destroy" ||
+    action === "drop"
+  );
+}
+
+/**
+ * @param {string} action
+ */
+function isReplaceAction(action) {
+  return (
+    action === "replace" ||
+    action === "recreate" ||
+    action === "force-recreate"
+  );
 }
 
 /**
@@ -80,7 +126,7 @@ export function evaluateProductionPlanGate(plan, opts = {}) {
   const forbiddenSet = new Set(forbiddenNames);
   const expectedCreateSet = new Set(expectedCreates);
 
-  const changes = extractPlanChanges(plan);
+  const { formatKnown, changes } = extractPlanChangesWithFormat(plan);
   /** @type {string[]} */
   const errors = [];
   /** @type {string[]} */
@@ -88,21 +134,38 @@ export function evaluateProductionPlanGate(plan, opts = {}) {
   /** @type {string[]} */
   const mutationsOnExisting = [];
 
+  if (!formatKnown) {
+    errors.push(
+      "UNKNOWN plan format — expected a changes/diff/operations/steps array (hard fail)",
+    );
+    return {
+      ok: false,
+      errors,
+      creates,
+      mutationsOnExisting,
+      changeCount: 0,
+      formatKnown: false,
+    };
+  }
+
+  if (changes.length === 0) {
+    errors.push(
+      "ZERO recognized plan changes — expected exactly two creates: sku-api, sku-postgres (hard fail)",
+    );
+    return {
+      ok: false,
+      errors,
+      creates,
+      mutationsOnExisting,
+      changeCount: 0,
+      formatKnown: true,
+    };
+  }
+
   for (const change of changes) {
     const { action, name } = change;
-    const isCreate =
-      action === "create" || action === "add" || action === "new";
-    const isDelete =
-      action === "delete" ||
-      action === "remove" ||
-      action === "destroy" ||
-      action === "drop";
-    const isReplace =
-      action === "replace" ||
-      action === "recreate" ||
-      action === "force-recreate";
 
-    if (isCreate) {
+    if (isCreateAction(action)) {
       creates.push(name);
       if (forbiddenSet.has(name)) {
         errors.push(
@@ -115,31 +178,27 @@ export function evaluateProductionPlanGate(plan, opts = {}) {
       }
     }
 
-    if (isDelete || isReplace) {
-      if (forbiddenSet.has(name) || expectedCreateSet.has(name) || true) {
-        // Any delete/replace of managed names is a hard fail for Stage 6.
-        mutationsOnExisting.push(`${action}:${name}`);
-        errors.push(
-          `FORBIDDEN ${action} of "${name}" — Stage 6 plan must not delete/replace existing n8n/Postgres/volumes`,
-        );
-      }
+    if (isDeleteAction(action) || isReplaceAction(action)) {
+      mutationsOnExisting.push(`${action}:${name}`);
+      errors.push(
+        `FORBIDDEN ${action} of "${name}" — Stage 6 plan must not delete/replace existing n8n/Postgres/volumes`,
+      );
     }
   }
 
+  // Exactly the expected creates — always required (hard).
   const createSet = new Set(creates);
   for (const expected of expectedCreateSet) {
     if (!createSet.has(expected)) {
-      // Soft: plan fixtures may omit creates when testing forbidden-only.
-      // Callers that require creates pass `requireExpectedCreates: true`.
+      errors.push(`MISSING expected create "${expected}"`);
     }
   }
-
-  const requireExpectedCreates = opts.requireExpectedCreates === true;
-  if (requireExpectedCreates) {
-    for (const expected of expectedCreateSet) {
-      if (!createSet.has(expected)) {
-        errors.push(`MISSING expected create "${expected}"`);
-      }
+  if (creates.length !== expectedCreateSet.size) {
+    // Catch duplicates or extras already partially covered above.
+    if (creates.length > expectedCreateSet.size) {
+      errors.push(
+        `EXPECTED exactly ${expectedCreateSet.size} creates (${[...expectedCreateSet].join(", ")}); got ${creates.length}: ${creates.join(", ")}`,
+      );
     }
   }
 
@@ -149,6 +208,7 @@ export function evaluateProductionPlanGate(plan, opts = {}) {
     creates,
     mutationsOnExisting,
     changeCount: changes.length,
+    formatKnown: true,
   };
 }
 
@@ -163,7 +223,33 @@ export function evaluateProductionPlanGateFromJson(raw, opts) {
       creates: [],
       mutationsOnExisting: [],
       changeCount: 0,
+      formatKnown: false,
     };
   }
   return evaluateProductionPlanGate(plan, opts);
+}
+
+const isMain =
+  process.argv[1] && process.argv[1].endsWith("railway-prod-plan-gate.mjs");
+if (isMain) {
+  const file = process.argv[2];
+  if (!file) {
+    console.error("Usage: railway-prod-plan-gate.mjs <plan.json>");
+    process.exit(2);
+  }
+  const raw = fs.readFileSync(file, "utf8");
+  const result = evaluateProductionPlanGateFromJson(raw);
+  if (!result.ok) {
+    console.error("FAIL production plan gate:");
+    for (const err of result.errors) {
+      console.error("  - " + err);
+    }
+    process.exit(1);
+  }
+  console.log(
+    "OK production plan gate: creates=" +
+      result.creates.join(",") +
+      " changeCount=" +
+      result.changeCount,
+  );
 }

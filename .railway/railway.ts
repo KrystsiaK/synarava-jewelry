@@ -56,18 +56,25 @@ export const PROD_N8N_POSTGRES_SERVICE_ID =
   "e7f8a122-dfb5-498e-8002-23fb0f50e3ca";
 
 /**
- * Production n8n volume resource name — MUST match live after `config pull`.
- * Plan must show adopt (no create/delete/replace). If pull shows a different
- * name, update this constant before `config plan` (never invent a new volume).
+ * Production n8n volume resource name — exact live name (Kiryl).
+ * Plan must show adopt (no create/delete/replace). Never invent a new volume.
  */
-export const PROD_N8N_VOLUME_NAME = "sku-platform-n8n-data";
+export const PROD_N8N_VOLUME_NAME = "sku-platform-n8n-volume";
 
 /**
- * Pin n8n image; bump only with documented justification.
- * Primary Stage 6 production adopt: keep live tag — if pull shows a different
- * tag than this pin, change the pin to match live (do not upgrade on adopt).
+ * Existing production Postgres volume name (attached to sku-platform-n8n-postgres).
+ * Plan gate forbids create/delete/replace of this volume.
  */
-export const N8N_IMAGE = "n8nio/n8n:2.44.1";
+export const PROD_N8N_POSTGRES_VOLUME_NAME = "postgres-volume";
+
+/** Staging n8n image pin (deliberate; bump only after staging verify). */
+export const STAGING_N8N_IMAGE = "n8nio/n8n:2.44.1";
+
+/**
+ * Production n8n image pin — exact live tag. Stage 6 adopt must NOT upgrade.
+ * Do not share STAGING_N8N_IMAGE with production.
+ */
+export const PROD_N8N_IMAGE = "n8nio/n8n:2.42.7";
 
 /**
  * Exact live staging sku-api watch paths (must stay in IaC).
@@ -159,7 +166,7 @@ function buildStagingResources() {
   });
 
   const n8n = service("n8n", {
-    source: image(N8N_IMAGE, {
+    source: image(STAGING_N8N_IMAGE, {
       autoUpdates: { type: "disabled" },
     }),
     volumeMounts: {
@@ -223,9 +230,9 @@ function buildProductionResources() {
   });
 
   // ADOPT — existing production n8n (service ID documented above).
-  // Image pin must match live; do not upgrade during primary Stage 6 adopt.
+  // Pin PROD_N8N_IMAGE (live 2.42.7) — do NOT upgrade to staging's 2.44.1.
   const n8n = service("sku-platform-n8n", {
-    source: image(N8N_IMAGE, {
+    source: image(PROD_N8N_IMAGE, {
       autoUpdates: { type: "disabled" },
     }),
     volumeMounts: {

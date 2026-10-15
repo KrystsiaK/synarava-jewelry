@@ -62,6 +62,7 @@ jobs:
               - 'docs/wiki/portable-sku-current-status.md'
               - 'docs/testing/portable-sku-staging-matrix.md'
               - 'scripts/sku-platform-*-adopt-check.sh'
+              - 'scripts/sku-platform-production-plan-check.sh'
               - 'scripts/lib/railway-*.mjs'
 
   quality:

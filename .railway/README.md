@@ -14,7 +14,7 @@ Canonical docs: [Infrastructure as Code](https://docs.railway.com/infrastructure
 - **Railway project:** `portable-sku-platform` (ID `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`).
 - **IaC guards:** immutable **project ID**; staging by name; production by name **and** environment ID `d8cb7dd8-5c26-4255-a8c5-7795f1993de6`; refuses `synarava-shop`.
 - **Staging:** adopt `sku-api` / `sku-postgres`; manage staging `n8n` + `n8n-postgres` + `n8n-data-v2`.
-- **Production (Stage 6):** adopt `sku-platform-n8n` / `sku-platform-n8n-postgres` / volumes; **create only** `sku-api` + `sku-postgres`.
+- **Production (Stage 6):** adopt `sku-platform-n8n` / `sku-platform-n8n-postgres` / `sku-platform-n8n-volume` (+ existing `postgres-volume`); **create only** `sku-api` + `sku-postgres`. Image pin `PROD_N8N_IMAGE=n8nio/n8n:2.42.7` (not staging `2.44.1`).
 - **Synarava** (`synarava-shop`): HTTPS client only.
 
 Staging plan: `docs/runbooks/portable-sku-platform-railway.md`.
@@ -26,7 +26,7 @@ n8n staging steps: `docs/runbooks/sku-catalog-audit-staging.md`.
 | Env | Helper |
 | --- | --- |
 | staging | [`scripts/sku-platform-staging-adopt-check.sh`](../scripts/sku-platform-staging-adopt-check.sh) |
-| production | [`scripts/sku-platform-production-adopt-check.sh`](../scripts/sku-platform-production-adopt-check.sh) |
+| production | [`scripts/sku-platform-production-adopt-check.sh`](../scripts/sku-platform-production-adopt-check.sh) → wired [`sku-platform-production-plan-check.sh`](../scripts/sku-platform-production-plan-check.sh) |
 
 CLI: [railway config](https://docs.railway.com/cli/config) — `pull`, `partials`, `plan`, `apply`.
 
@@ -44,9 +44,9 @@ pnpm install --frozen-lockfile && railway config plan
 ```bash
 railway link --project portable-sku-platform --environment production
 ./scripts/sku-platform-production-adopt-check.sh
-pnpm install --frozen-lockfile && railway config plan
+# Runs plan+gate via sku-platform-production-plan-check.sh (HARD FAIL if gate fails)
 # Plan must create ONLY sku-api + sku-postgres
-# ZERO create/delete/replace of sku-platform-n8n* / volumes
+# ZERO create/delete/replace of sku-platform-n8n* / sku-platform-n8n-volume / postgres-volume
 # apply ONLY after Business Owner + Kiryl explicit go
 ```
 

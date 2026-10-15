@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Safe adoption check for portable-sku-platform / production (Stage 6).
-# Exact sequence BEFORE railway config plan (and long before apply).
+# Exact sequence: status → pull → partials → plan+gate (wired).
 # Docs: docs/runbooks/portable-sku-platform-production.md
 # https://docs.railway.com/cli/config
 #
@@ -19,8 +19,11 @@ readonly LOCAL_DIR="${ROOT}/.railway/local"
 readonly PULL_JSON="${LOCAL_DIR}/sku-platform-production.pull.json"
 readonly PROD_N8N_NAME="sku-platform-n8n"
 readonly PROD_N8N_PG_NAME="sku-platform-n8n-postgres"
+readonly PROD_N8N_VOLUME_NAME="sku-platform-n8n-volume"
+readonly PROD_N8N_PG_VOLUME_NAME="postgres-volume"
 readonly PROD_N8N_SERVICE_ID="04d32fed-eae9-4219-8ebb-cc6cbc403c37"
 readonly PROD_N8N_PG_SERVICE_ID="e7f8a122-dfb5-498e-8002-23fb0f50e3ca"
+readonly PLAN_CHECK="${ROOT}/scripts/sku-platform-production-plan-check.sh"
 
 abort() {
   echo "ERROR: $*" >&2
@@ -42,6 +45,7 @@ fi
 
 command -v railway >/dev/null || abort "railway CLI not found"
 command -v node >/dev/null || abort "node is required to verify railway status --json"
+[[ -x "${PLAN_CHECK}" || -f "${PLAN_CHECK}" ]] || abort "missing plan-check script: ${PLAN_CHECK}"
 
 mkdir -p "${LOCAL_DIR}"
 
@@ -67,9 +71,10 @@ echo "    wrote ${PULL_JSON} (ignored via .railway/local ignore file)"
 echo "    Confirm existing:"
 echo "      - ${PROD_N8N_NAME} (id ${PROD_N8N_SERVICE_ID})"
 echo "      - ${PROD_N8N_PG_NAME} (id ${PROD_N8N_PG_SERVICE_ID})"
-echo "      - volume name matches PROD_N8N_VOLUME_NAME in .railway/railway.ts"
+echo "      - volume ${PROD_N8N_VOLUME_NAME} (exact live name)"
+echo "      - volume ${PROD_N8N_PG_VOLUME_NAME} (existing postgres volume — must not recreate)"
 echo "    Confirm ABSENT (expected creates on plan): sku-api, sku-postgres"
-echo "    If volume name differs, update PROD_N8N_VOLUME_NAME before plan (do not create a new volume)."
+echo "    Confirm production n8n image is n8nio/n8n:2.42.7 (IaC PROD_N8N_IMAGE; no upgrade)."
 
 echo "==> 3) config partials list (ownership check)"
 railway config partials list
@@ -84,13 +89,17 @@ echo "==> 4) Authoring file"
 echo "    Keep committed .railway/railway.ts as source of truth."
 echo "    Production branch must declare:"
 echo "      CREATE: service('sku-api') + postgres('sku-postgres')"
-echo "      ADOPT:  service('${PROD_N8N_NAME}') + postgres('${PROD_N8N_PG_NAME}') + volume(PROD_N8N_VOLUME_NAME)"
+echo "      ADOPT:  service('${PROD_N8N_NAME}') + postgres('${PROD_N8N_PG_NAME}') + volume('${PROD_N8N_VOLUME_NAME}')"
+echo "      IMAGE:  PROD_N8N_IMAGE=n8nio/n8n:2.42.7 (not staging 2.44.1)"
 
-echo "==> 5) NEXT (manual): pnpm install --frozen-lockfile && railway config plan"
-echo "    Plan gate (ABORT unless all true):"
-echo "      - creates ONLY sku-api + sku-postgres"
-echo "      - ZERO create/delete/replace of ${PROD_N8N_NAME} / ${PROD_N8N_PG_NAME} / volumes"
-echo "      - no image/version bump on ${PROD_N8N_NAME} without documented justification"
-echo "      - optional env updates to wire SKU_API_URL to new sku-api are allowed"
-echo "    Do NOT railway config apply until Business Owner + Kiryl explicit go."
-echo "    Do NOT import production n8n workflows from this script."
+SKIP_PLAN="${SKU_PLATFORM_SKIP_PLAN:-0}"
+if [[ "${SKIP_PLAN}" == "1" ]]; then
+  echo "==> 5) SKIP plan+gate (SKU_PLATFORM_SKIP_PLAN=1) — NOT for go-live"
+  echo "    Run ./scripts/sku-platform-production-plan-check.sh before any apply."
+  exit 0
+fi
+
+echo "==> 5) Plan + hard gate (required; wired)"
+pnpm install --frozen-lockfile
+bash "${PLAN_CHECK}"
+echo "==> Adopt-check complete: plan gate PASS. Still do NOT apply without Business Owner + Kiryl go."

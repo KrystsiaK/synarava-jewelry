@@ -27,8 +27,9 @@
 ## Stage 6 prep (not executed)
 
 - Runbook: [`docs/runbooks/portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md)
-- Adopt-check: `scripts/sku-platform-production-adopt-check.sh` (`status` → `pull` → `partials` → then manual `plan`)
-- Plan gate: creates **only** production `sku-api` + `sku-postgres`; zero create/delete/replace of `sku-platform-n8n*` / volumes
+- Adopt-check: `scripts/sku-platform-production-adopt-check.sh` (`status` → `pull` → `partials` → **wired** `sku-platform-production-plan-check.sh`)
+- Plan gate (hard): exactly creates `sku-api` + `sku-postgres`; unknown/empty plan → fail; zero create/delete/replace of `sku-platform-n8n*` / `sku-platform-n8n-volume` / `postgres-volume`
+- Images: staging `n8nio/n8n:2.44.1`; production adopt `n8nio/n8n:2.42.7` (no upgrade)
 - Production workflow artifact (import instructions only): [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy/n8n/sku-catalog-audit.workflow.production.json) — header **`🔴 PRODUCTION · SKU AUDIT`**
 - Kill switch: unset production web `SKU_API_URL` / `SKU_API_TOKEN`
 - Pilot: exactly one new **draft** Shopify product + Business Owner manual confirmation

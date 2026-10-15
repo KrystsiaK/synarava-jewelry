@@ -27,7 +27,10 @@ This runbook’s IaC PR should target **`staging`**. Production `sku-api` GitHub
 | Immutable production environment ID | **`d8cb7dd8-5c26-4255-a8c5-7795f1993de6`** |
 | Existing n8n | **`sku-platform-n8n`** (service ID `04d32fed-eae9-4219-8ebb-cc6cbc403c37`) |
 | Existing n8n Postgres | **`sku-platform-n8n-postgres`** (service ID `e7f8a122-dfb5-498e-8002-23fb0f50e3ca`) |
-| Existing volumes | Adopt only — **never** create / delete / replace |
+| Existing n8n volume | **`sku-platform-n8n-volume`** (`PROD_N8N_VOLUME_NAME` — exact live name) |
+| Existing n8n Postgres volume | **`postgres-volume`** — must not create/delete/replace |
+| Production n8n image | **`n8nio/n8n:2.42.7`** (`PROD_N8N_IMAGE`) — **not** staging `2.44.1` |
+| Staging n8n image | **`n8nio/n8n:2.44.1`** (`STAGING_N8N_IMAGE`) — separate pin |
 | Expected **new** resources | **`sku-api`**, **`sku-postgres`** only |
 
 ## Exact expected Railway plan
@@ -36,16 +39,38 @@ This runbook’s IaC PR should target **`staging`**. Production `sku-api` GitHub
 | --- | --- | --- |
 | **create** | `sku-postgres` | Isolated production SKU DB |
 | **create** | `sku-api` | Isolated production API (branch `staging` until #148) |
-| **adopt / no structural change** | `sku-platform-n8n` | Zero create/delete/replace; no image bump without justification |
+| **adopt / no structural change** | `sku-platform-n8n` | Zero create/delete/replace; image stays `2.42.7` |
 | **adopt / no structural change** | `sku-platform-n8n-postgres` | Zero create/delete/replace |
-| **adopt / no structural change** | volume named `PROD_N8N_VOLUME_NAME` (default `sku-platform-n8n-data`) | If pull shows another name, update constant — do not create |
+| **adopt / no structural change** | `sku-platform-n8n-volume` | Exact live volume name |
+| **adopt / no structural change** | `postgres-volume` | Existing n8n-postgres volume — never recreate |
 | **allowed update** | env on `sku-platform-n8n` | e.g. `SKU_API_URL` → private `:8080` of new `sku-api` |
 
-Unit gate: [`scripts/lib/railway-prod-plan-gate.mjs`](../../scripts/lib/railway-prod-plan-gate.mjs).
+## Plan gate (wired — not optional)
 
-## Safe adoption sequence (status → pull → partials → plan)
+Gate module: [`scripts/lib/railway-prod-plan-gate.mjs`](../../scripts/lib/railway-prod-plan-gate.mjs)  
+Plan check script: [`scripts/sku-platform-production-plan-check.sh`](../../scripts/sku-platform-production-plan-check.sh)
 
-Helper: [`scripts/sku-platform-production-adopt-check.sh`](../../scripts/sku-platform-production-adopt-check.sh)
+Hard fail when any of:
+
+- Unknown plan format (no `changes` / `diff` / `operations` / `steps` array)
+- Zero recognized changes
+- Missing either create of `sku-api` or `sku-postgres`
+- Any create other than those two
+- Any delete/replace of any resource
+- Create/delete/replace of `sku-platform-n8n`, `sku-platform-n8n-postgres`, `sku-platform-n8n-volume`, or `postgres-volume`
+
+```bash
+# Gate an existing plan JSON:
+node scripts/lib/railway-prod-plan-gate.mjs .railway/local/sku-platform-production.plan.json
+
+# Or run plan + gate together (wired):
+./scripts/sku-platform-production-plan-check.sh
+```
+
+## Safe adoption sequence (status → pull → partials → plan+gate)
+
+Helper: [`scripts/sku-platform-production-adopt-check.sh`](../../scripts/sku-platform-production-adopt-check.sh)  
+Runs status → pull → partials, then **invokes** `sku-platform-production-plan-check.sh` (hard gate). Set `SKU_PLATFORM_SKIP_PLAN=1` only for pull inspection — **not** for go-live.
 
 ```bash
 railway login
@@ -53,21 +78,19 @@ railway login
 # 1) link + status (project ID + production env ID)
 # 2) config pull --json → .railway/local/sku-platform-production.pull.json
 # 3) config partials list
-# then:
-pnpm install --frozen-lockfile
-railway config plan
-# optional: save plan JSON and evaluate with railway-prod-plan-gate
+# 4) pnpm install + ./scripts/sku-platform-production-plan-check.sh (HARD GATE)
 ```
 
-### Plan gate — abort unless all true
+### Plan gate checklist — abort unless all true
 
 - [ ] Environment is **production** and environment ID is `d8cb7dd8-5c26-4255-a8c5-7795f1993de6`
 - [ ] Project ID is `6d7d5885-43eb-4283-b4a4-e552fc6dba7b`
-- [ ] **Creates only** `sku-api` and `sku-postgres`
+- [ ] **Exactly two creates:** `sku-api` and `sku-postgres`
 - [ ] **No** create / delete / replace of `sku-platform-n8n`
 - [ ] **No** create / delete / replace of `sku-platform-n8n-postgres`
-- [ ] **No** create / delete / replace of existing volumes
-- [ ] **No** n8n image/version change unless documented justification (primary: keep live tag)
+- [ ] **No** create / delete / replace of `sku-platform-n8n-volume` or `postgres-volume`
+- [ ] Production n8n image remains **`n8nio/n8n:2.42.7`** (no upgrade to staging `2.44.1`)
+- [ ] `sku-platform-production-plan-check.sh` exited 0
 - [ ] Business Owner + Kiryl explicit go before any `railway config apply`
 
 ```bash
@@ -125,7 +148,7 @@ Artifact: [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy
 ## Limited rollout (one draft product)
 
 1. Feature flag off (web `SKU_API_*` unset) until sku-api healthy.
-2. Apply IaC only after plan gate + explicit go.
+2. Apply IaC only after **wired plan gate PASS** + explicit go.
 3. Bootstrap production credentials + legacy import offline (ops).
 4. Enable web `SKU_API_*` for production.
 5. Create **exactly one** new **draft** Shopify product; assign SKU via Admin; confirm Shopify write-through.
@@ -145,15 +168,14 @@ Artifact: [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy
 ## Ordered manual production steps (human-only)
 
 1. Confirm Business Owner + Kiryl go for Stage 6 apply (this prep does **not** grant it).
-2. Run `./scripts/sku-platform-production-adopt-check.sh` (status → pull → partials).
-3. Verify volume name vs `PROD_N8N_VOLUME_NAME`; adjust IaC if needed (no new volume).
-4. `railway config plan` → plan gate (creates only sku-api + sku-postgres).
-5. `railway config apply` — **only** after explicit go.
-6. Seal production `sku-api` credentials + Synarava web `SKU_API_*`.
-7. Create Telegram credential inside production n8n (Synarava Ops).
-8. Import production workflow JSON; keep inactive until pilot go.
-9. Enable assign for **one draft** product; Business Owner confirms.
-10. Rollback via kill switch if anything fails.
+2. Run `./scripts/sku-platform-production-adopt-check.sh` (status → pull → partials → **plan+gate**).
+3. Confirm gate PASS (exactly creates `sku-api` + `sku-postgres`; volumes/`sku-platform-n8n*` untouched).
+4. `railway config apply` — **only** after explicit go.
+5. Seal production `sku-api` credentials + Synarava web `SKU_API_*`.
+6. Create Telegram credential inside production n8n (Synarava Ops).
+7. Import production workflow JSON; keep inactive until pilot go.
+8. Enable assign for **one draft** product; Business Owner confirms.
+9. Rollback via kill switch if anything fails.
 
 ## Related
 

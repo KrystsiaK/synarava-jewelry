@@ -3,14 +3,16 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
-  N8N_IMAGE,
+  PROD_N8N_IMAGE,
   PROD_N8N_POSTGRES_SERVICE_ID,
+  PROD_N8N_POSTGRES_VOLUME_NAME,
   PROD_N8N_SERVICE_ID,
   PROD_N8N_VOLUME_NAME,
   PROD_SKU_API_GITHUB_BRANCH,
   SKU_API_WATCH_PATTERNS,
   SKU_PLATFORM_PRODUCTION_ENV_ID,
   SKU_PLATFORM_PROJECT_ID,
+  STAGING_N8N_IMAGE,
 } from "../../.railway/railway.ts";
 
 /**
@@ -84,16 +86,28 @@ describe("Stage 6 production Railway IaC guards + adopt", () => {
   it("adopts production n8n + postgres by live names (not staging names)", () => {
     expect(railwayTs).toMatch(/service\("sku-platform-n8n"/);
     expect(railwayTs).toMatch(/postgres\("sku-platform-n8n-postgres"\)/);
-    expect(railwayTs).toContain(`volume(${"PROD_N8N_VOLUME_NAME"}`);
-    expect(PROD_N8N_VOLUME_NAME).toBe("sku-platform-n8n-data");
+    expect(railwayTs).toContain("volume(PROD_N8N_VOLUME_NAME");
+    expect(PROD_N8N_VOLUME_NAME).toBe("sku-platform-n8n-volume");
+    expect(PROD_N8N_POSTGRES_VOLUME_NAME).toBe("postgres-volume");
     expect(PROD_N8N_SERVICE_ID).toBe("04d32fed-eae9-4219-8ebb-cc6cbc403c37");
     expect(PROD_N8N_POSTGRES_SERVICE_ID).toBe(
       "e7f8a122-dfb5-498e-8002-23fb0f50e3ca",
     );
   });
 
-  it("documents production image pin and safe github branch", () => {
-    expect(N8N_IMAGE).toBe("n8nio/n8n:2.44.1");
+  it("pins separate staging vs production n8n images (no shared upgrade)", () => {
+    expect(STAGING_N8N_IMAGE).toBe("n8nio/n8n:2.44.1");
+    expect(PROD_N8N_IMAGE).toBe("n8nio/n8n:2.42.7");
+    expect(STAGING_N8N_IMAGE).not.toBe(PROD_N8N_IMAGE);
+    expect(railwayTs).toContain("STAGING_N8N_IMAGE");
+    expect(railwayTs).toContain("PROD_N8N_IMAGE");
+    expect(railwayTs).toMatch(/image\(STAGING_N8N_IMAGE/);
+    expect(railwayTs).toMatch(/image\(PROD_N8N_IMAGE/);
+    // No shared N8N_IMAGE constant for both envs.
+    expect(railwayTs).not.toMatch(/export const N8N_IMAGE\s*=/);
+  });
+
+  it("documents production safe github branch", () => {
     expect(PROD_SKU_API_GITHUB_BRANCH).toBe("staging");
     expect(railwayTs).toContain("PROD_SKU_API_GITHUB_BRANCH");
     expect(railwayTs).toMatch(/autoUpdates:\s*\{\s*type:\s*"disabled"/);
