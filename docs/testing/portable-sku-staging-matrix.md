@@ -1,8 +1,8 @@
 # Portable SKU — Shopify staging matrix (Этап 4)
 
-**Status:** M1 Pass · M2 Pass (Kiryl 2026-10-13) · M3/M4/M5/M7/M8/M12 Pass (auto)  
+**Status:** M1 Pass · M2 Pass (Kiryl 2026-10-13) · M3/M4/M5/M7/M8/M12 Pass (auto) · **Этап 5 n8n smoke Pass** (Kiryl — first schedule notified, later silent)  
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
-**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4  
+**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4–5  
 **Wiki:** [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
 
 Production rollout remains **out of scope**. Do not merge SKU work to `main` via PR #148. Platform Railway: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md). Catalog audit: [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
@@ -48,7 +48,7 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 | # | Scenario | Steps | Expected | Result | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | M1 | **Unlinked** reserve → Push → confirm | Create draft → Inventory Preview/Confirm assign → Push | SKU in Shopify; pending cleared; ledger assignment active | Pass (Kiryl 2026-10-13) | Этап 3 check |
-| M2 | **Linked** assign | Product already linked → Inventory Confirm assign | Family/Preview/Confirm visible for empty/`SHOPIFY-*`; then reserve→write→confirm | **Pass** (Kiryl 2026-10-13, staging tip `0d67f70` / Fix² #155) | Manual staging: linked variant assigned via Family→Preview→Confirm; SKU wrote through to Shopify. Auto: `m2-linked-empty-sku.test.ts` + `product-sku-assign-panel.test.tsx`. |
+| M2 | **Linked** assign | Product already linked → Inventory Confirm assign | Family/Preview/Confirm visible for empty/`SHOPIFY-*`; then reserve→write→confirm | **Pass** (Kiryl 2026-10-13, staging tip `0d67f70` / Fix² #155) | Invent `SHOPIFY-16079211397451-58824796668235` → variant `gid://shopify/ProductVariant/58824796668235`, assigned `JW-NECK-001`. Auto: `m2-linked-empty-sku.test.ts` + `product-sku-assign-panel.test.tsx`. |
 | M3 | **Idempotent retry** after pending | Force pending (e.g. interrupt confirm) → **Retry confirm** | No new reservation; same SKU confirmed; ledger ok | **Pass (auto)** | `staging-matrix-automation.test.ts` → `M3: Retry confirm / resume does not create a second reserve` (`reserve` not called; `resumed: true`) |
 | M4 | Double Confirm assign (same family) | Assign succeeds → Confirm assign again | Blocked: “already has SKU…”; no second sequence | **Pass (auto)** | `M4: second Confirm assign after success is blocked` — error matches `/already has SKU/i`; `reserve` not called |
 | M5 | Same idempotency key | Two rapid Confirm assign (same variant+family) before first finishes | One SKU; sku-api returns same reservation | **Pass (auto)** | `M5: parallel Confirm with same idempotency key yields one SKU` — both `JW-NECK-001`, single key `sku-assign:p1:var-1:jewelry.necklace`; ledger: `allocator.test.ts` / pg `concurrent identical idempotency keys` |
@@ -73,4 +73,12 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 - Production n8n / production rollout / feature flag  
 - Merge to `main`
 
-Этап 5 catalog audit (Slice A API + Slice B staging n8n) lives outside this matrix — see [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
+## Этап 5 — catalog audit smoke (Slice B)
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Staging n8n schedule (`0 3 * * *` UTC) | **Pass** (Kiryl) | First active run notified; later scheduled runs silent (`shouldNotify: false`) |
+| `CATALOG_ITEMS_JSON` (non-secret copy-paste) | Documented | `[{"externalVariantId":"gid://shopify/ProductVariant/58824796668235","sku":"JW-NECK-001"}]` — M2 variant; see [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) §3 |
+| IaC private URL | Follow-up | `SKU_API_URL=http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` + `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` (no Railway apply until Kiryl) |
+
+Full runbook: [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).

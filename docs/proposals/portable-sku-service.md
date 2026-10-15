@@ -322,17 +322,18 @@ Delivery flow: feature branch → path-aware CI → merge в `staging` → не�
 
 ### Этап 5 — n8n audit automation
 
-**Статус реализации (2026-10-14):** Slice A shipped; Slice B workflow JSON shipped; **platform Railway architecture** supersedes “n8n inside synarava-shop”. IaC apply gated on Kiryl confirmation.
+**Статус реализации (2026-10-15):** Slice A + Slice B on **portable-sku-platform / staging**. **Stage 5 smoke Pass** (Kiryl): first scheduled run notified; subsequent scheduled runs silent.
 
 - read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit`
 - batching (max 100), digest checkpoint, `shouldNotify`, `llmEnabled: false`
 - Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog`
-- Workflow: [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — host on **SKU platform** project (HTTPS → sku-api), not synarava-shop
+- Workflow: [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — host on **SKU platform** project (private URL → sku-api `:8080`), not synarava-shop
 - Platform runbook: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
+- Smoke catalog row (M2): `gid://shopify/ProductVariant/58824796668235` / `JW-NECK-001`
 
-**Ещё не в Этапе 5:** staging n8n host cutover after confirm; mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue; production changes.
+**Ещё не в Этапе 5:** mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue; production changes. IaC follow-ups (`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, literal `:8080`) — apply only after Kiryl confirms plan.
 
-**Выход:** workflow/API не создаёт SKU и не владеет ledger-состоянием; повторный активный запуск с тем же digest не создаёт нового notify.
+**Выход:** workflow/API не создаёт SKU и не владеет ledger-состоянием; повторный активный запуск с тем же digest не создаёт нового notify — **verified on staging smoke**.
 
 ### Этап 6 — ограниченный production rollout
 

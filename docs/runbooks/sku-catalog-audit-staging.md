@@ -26,7 +26,7 @@ Read-only catalog audit against the sku-api ledger. No SKU creation. LLM off.
 | Workflow JSON | [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) |
 | Workflow contract test | `lib/sku/__tests__/n8n-catalog-audit-workflow.test.ts` |
 
-**Current fact:** staging may not have n8n Online yet. **Этап 5 target** is to create it in `portable-sku-platform` / staging (not in `synarava-shop`, not by touching prod).
+**Stage 5 staging smoke (Kiryl):** **Pass** — first scheduled run notified; subsequent scheduled runs succeeded silently (checkpoint / `shouldNotify: false`).
 
 **Not in Slice B:** production n8n edits, recovery-queue workflow, `EXTERNAL_CHANGE_DETECTED` writes, merge to `main`.
 
@@ -132,9 +132,10 @@ In Railway → **portable-sku-platform** → **staging** → service **`n8n`**:
 | `N8N_BASIC_AUTH_PASSWORD` | strong password (sealed) |
 | `N8N_ENCRYPTION_KEY` | random ≥32 chars (sealed; **do not rotate casually**) |
 | `SKU_API_TOKEN` | staging Bearer token (sealed) |
-| `SKU_API_URL` | already `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:${{sku-api.PORT}}` from IaC |
+| `SKU_API_URL` | IaC: `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` (literal `:8080` — `${{sku-api.PORT}}` resolves empty) |
+| `N8N_BLOCK_ENV_ACCESS_IN_NODE` | `false` (IaC — Code nodes need `$env.CATALOG_ITEMS_JSON`) |
 | `SKU_API_WORKSPACE` | `synarava-shop` |
-| `CATALOG_ITEMS_JSON` | JSON array (see step 3) |
+| `CATALOG_ITEMS_JSON` | JSON array (see step 3 — copy-paste M2 row) |
 | `NOTIFY_WEBHOOK_URL` | staging webhook (e.g. Slack incoming / webhook.site for first smoke) |
 | `DB_*` | wired from `n8n-postgres` via IaC |
 
@@ -143,16 +144,26 @@ In Railway → **portable-sku-platform** → **staging** → service **`n8n`**:
 
 ### 3. Set `CATALOG_ITEMS_JSON`
 
-Staging window only (≤100). Example (replace with real Shopify GIDs/SKUs from M2):
+Staging window only (≤100). **Copy-paste (non-secret) — real M2 Shopify variant** from Kiryl invent `SHOPIFY-16079211397451-58824796668235` (product `16079211397451` / variant `58824796668235`). `sku` is the ledger/Shopify value after M2 Confirm assign (family `jewelry.necklace` → `JW-NECK-001`). If Settings → Assignments shows a different SKU for this variant, replace `sku` only.
+
+Pretty:
 
 ```json
 [
-  {"externalVariantId":"gid://shopify/ProductVariant/…","sku":"JW-NECK-001"},
-  {"externalVariantId":"gid://shopify/ProductVariant/…","sku":""}
+  {
+    "externalVariantId": "gid://shopify/ProductVariant/58824796668235",
+    "sku": "JW-NECK-001"
+  }
 ]
 ```
 
-Paste as a **single-line** Railway env value (or minified JSON). Redeploy or “Update variables” as Railway requires.
+Single-line (Railway Variables):
+
+```text
+[{"externalVariantId":"gid://shopify/ProductVariant/58824796668235","sku":"JW-NECK-001"}]
+```
+
+Redeploy or “Update variables” as Railway requires. Audit is read-only vs the sku-api ledger — Shopify Admin need not still list this GID.
 
 ### 4. Import workflow
 
@@ -182,17 +193,17 @@ Paste as a **single-line** Railway env value (or minified JSON). Redeploy or “
 3. After one successful active run with deviations: webhook fires once.
 4. Leave catalog unchanged → next active run: **no** webhook (`shouldNotify: false`).
 
-### 7. Pass criteria (Kiryl)
+### 7. Pass criteria (Kiryl) — **met (Stage 5 smoke)**
 
-| Check | Expected |
-| --- | --- |
-| Railway staging `n8n` + `n8n-postgres` + volume | Running in **portable-sku-platform / staging** only |
-| Prod `sku-platform-n8n*` | Untouched |
-| Workflow active | Cron `0 3 * * *` UTC |
-| Notify | Only when audit `shouldNotify: true` |
-| Checkpoint | Identical active re-run does not notify again |
-| Ledger | No new SKUs / assignment mutations from the workflow |
-| Scope | PR #148 still open / no main merge / no Railway apply without confirm |
+| Check | Expected | Result |
+| --- | --- | --- |
+| Railway staging `n8n` + `n8n-postgres` + volume | Running in **portable-sku-platform / staging** only | Pass |
+| Prod `sku-platform-n8n*` | Untouched | Pass |
+| Workflow active | Cron `0 3 * * *` UTC | Pass |
+| Notify | Only when audit `shouldNotify: true` | Pass — first scheduled run notified |
+| Checkpoint | Identical active re-run does not notify again | Pass — later scheduled runs silent |
+| Ledger | No new SKUs / assignment mutations from the workflow | Pass |
+| Scope | PR #148 still open / no main merge / no Railway apply without confirm | Held |
 
 ### Rollback
 
