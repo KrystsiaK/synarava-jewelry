@@ -28,6 +28,7 @@ PR #169 must first merge into **`staging`**. Then PR #148 must merge the complet
 | Existing n8n | **`sku-platform-n8n`** (service ID `04d32fed-eae9-4219-8ebb-cc6cbc403c37`) |
 | Existing n8n Postgres | **`sku-platform-n8n-postgres`** (service ID `e7f8a122-dfb5-498e-8002-23fb0f50e3ca`) |
 | Existing n8n volume | **`sku-platform-n8n-volume`** (`PROD_N8N_VOLUME_NAME` — exact live name) |
+| Existing n8n volume size | **5000 MB** — adoption must preserve it; shrinking is forbidden |
 | Existing n8n Postgres volume | **`postgres-volume`** — must not create/delete/replace |
 | Production n8n image | **`n8nio/n8n:2.42.7`** (`PROD_N8N_IMAGE`) — **not** staging `2.44.1` |
 | Staging n8n image | **`n8nio/n8n:2.44.1`** (`STAGING_N8N_IMAGE`) — separate pin |

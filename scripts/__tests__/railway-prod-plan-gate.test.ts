@@ -74,6 +74,66 @@ describe("Stage 6 production Railway plan gate", () => {
     expect(result.errors.some((e) => /ZERO recognized/i.test(e))).toBe(true);
   });
 
+  it("parses current Railway changeSet format", () => {
+    const result = evaluateProductionPlanGate({
+      changeSet: {
+        changes: [
+          {
+            summary: "Create database sku-postgres",
+            severity: "safe",
+            kind: "resource.create",
+          },
+          {
+            summary: "Create service sku-api",
+            severity: "safe",
+            kind: "resource.create",
+          },
+          {
+            summary: "Set variable sku-platform-n8n.SKU_API_URL",
+            severity: "safe",
+            kind: "variable.set",
+          },
+        ],
+      },
+    });
+    expect(result.ok).toBe(true);
+    expect(result.creates).toEqual(["sku-postgres", "sku-api"]);
+  });
+
+  it("rejects destructive and structural updates in current Railway format", () => {
+    const result = evaluateProductionPlanGate({
+      changeSet: {
+        changes: [
+          {
+            summary: "Create database sku-postgres",
+            severity: "safe",
+            kind: "resource.create",
+          },
+          {
+            summary: "Create service sku-api",
+            severity: "safe",
+            kind: "resource.create",
+          },
+          {
+            summary: "Update sku-platform-n8n-volume config.sizeMB",
+            severity: "destructive",
+            kind: "resource.update",
+          },
+          {
+            summary: "Delete variable sku-platform-n8n.TZ",
+            severity: "destructive",
+            kind: "variable.delete",
+          },
+        ],
+      },
+    });
+    expect(result.ok).toBe(false);
+    expect(result.errors.some((e) => e.includes("destructive"))).toBe(true);
+    expect(result.errors.some((e) => e.includes("structural update"))).toBe(
+      true,
+    );
+  });
+
   it("hard-fails when expected create is missing", () => {
     const result = evaluateProductionPlanGate({
       changes: [{ action: "create", name: "sku-api" }],

@@ -226,15 +226,14 @@ function buildProductionResources() {
   // ADOPT — existing volume (name must match pull; never create anew).
   const n8nData = volume(PROD_N8N_VOLUME_NAME, {
     region: "europe-west4-drams3a",
-    sizeMB: 1024,
+    // Match the adopted live volume exactly. Never shrink production storage.
+    sizeMB: 5000,
   });
 
   // ADOPT — existing production n8n (service ID documented above).
   // Pin PROD_N8N_IMAGE (live 2.42.7) — do NOT upgrade to staging's 2.44.1.
   const n8n = service("sku-platform-n8n", {
-    source: image(PROD_N8N_IMAGE, {
-      autoUpdates: { type: "disabled" },
-    }),
+    source: image(PROD_N8N_IMAGE),
     volumeMounts: {
       "/home/node/.n8n": n8nData,
     },
@@ -258,6 +257,11 @@ function buildProductionResources() {
       DB_POSTGRESDB_USER: n8nPostgres.env.PGUSER,
       DB_POSTGRESDB_PASSWORD: n8nPostgres.env.PGPASSWORD,
       N8N_BLOCK_ENV_ACCESS_IN_NODE: "false",
+      // Preserve existing production runtime hardening/runner settings.
+      N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: preserve(),
+      N8N_PROXY_HOPS: preserve(),
+      N8N_RUNNERS_ENABLED: preserve(),
+      TZ: preserve(),
       // Wire to NEW production sku-api (allowed env update; not create/replace).
       SKU_API_URL: "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080",
       SKU_API_TOKEN: preserve(),
