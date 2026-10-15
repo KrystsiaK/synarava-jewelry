@@ -1,0 +1,20 @@
+{
+  "changes": [
+    {
+      "action": "create",
+      "name": "sku-api"
+    },
+    {
+      "action": "create",
+      "name": "sku-postgres"
+    },
+    {
+      "action": "replace",
+      "name": "sku-platform-n8n"
+    },
+    {
+      "action": "create",
+      "name": "sku-platform-n8n-volume"
+    }
+  ]
+}

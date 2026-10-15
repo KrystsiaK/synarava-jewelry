@@ -10,10 +10,10 @@
 
 | | Staging (`portable-sku-platform`) | Production |
 | --- | --- | --- |
-| **Target** | `sku-api`, `sku-postgres`, **staging `n8n`**, **`n8n-postgres`**, **`n8n-data`** | Out of scope for this IaC |
-| **Current fact (Kiryl)** | `sku-api` + `sku-postgres` Online; **no n8n yet** | May include `sku-platform-n8n` / `sku-platform-n8n-postgres` — **do not change** |
+| **Target** | `sku-api`, `sku-postgres`, **staging `n8n`**, **`n8n-postgres`**, **`n8n-data-v2`** | Adopt `sku-platform-n8n*` + volumes; **create** `sku-api` + `sku-postgres` |
+| **Current fact** | Staging n8n path per Stage 5 smoke | `sku-platform-n8n` + `sku-platform-n8n-postgres` exist; **no** prod `sku-api` / `sku-postgres` yet |
 
-Current state ≠ Этап 5 target. IaC creates staging n8n + separate persistence; it adopts existing sku-api/sku-postgres.
+Staging IaC adopts existing sku-api/sku-postgres and manages staging n8n*. **Production Stage 6** is a separate runbook: [`portable-sku-platform-production.md`](portable-sku-platform-production.md) (same `.railway/railway.ts`, production branch + env-ID guard).
 
 ## Identity
 
@@ -115,15 +115,9 @@ Authored in `.railway/railway.ts` (`build.watchPatterns` + `source.checkSuites: 
 | Platform `sku-api` | `services/sku-api/**`, `packages/sku-core/**`, `packages/sku-contract/**`, lockfile/workspace (exact live list — no `.railway/**`) |
 | Shop web | storefront paths; **omit** sku packages |
 
-## Production (read-only)
+## Production
 
-Confirm in UI without changing:
-
-- [ ] `sku-platform-n8n`
-- [ ] `sku-platform-n8n-postgres`
-- [ ] Whether prod `sku-api` / `sku-postgres` share the project
-
-**Do not edit prod from this runbook or IaC partial.**
+Stage 6 production adopt/create is documented in [`portable-sku-platform-production.md`](portable-sku-platform-production.md) (hard guards on project ID + production environment ID). **Do not apply production from this staging runbook.**
 
 ## Rollback
 

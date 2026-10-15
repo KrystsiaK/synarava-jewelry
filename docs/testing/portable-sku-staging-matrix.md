@@ -1,8 +1,8 @@
 # Portable SKU — Shopify staging matrix (Этап 4)
 
-**Status:** M1 Pass · M2 Pass (Kiryl 2026-10-13) · M3/M4/M5/M7/M8/M12 Pass (auto) · **Этап 5 n8n smoke Pass** (Kiryl — first schedule notified, later silent)  
-**ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)  
-**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4–5  
+**Status:** M1 Pass · M2 Pass (Kiryl 2026-10-13) · M3/M4/M5/M7/M8/M12 Pass (auto) · **Этап 5 n8n smoke Pass** (Kiryl — first schedule notified, later silent)
+**ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)
+**Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md) § Этап 4–5
 **Wiki:** [`docs/wiki/portable-sku-service.md`](../wiki/portable-sku-service.md)
 
 Production rollout remains **out of scope**. Do not merge SKU work to `main` via PR #148. Platform Railway: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md). Catalog audit: [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).
@@ -68,9 +68,9 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 - Pending storage: `Product.details.skuAssignmentPendings[variantId]` (legacy `skuAssignmentPending` still readable).
 - Push gate helpers: `lib/sku/push-sku-gate.ts` (`assertSkuAssignableBeforePush`, `requireSkuClientForPendingConfirm`).
 
-## Out of scope (this matrix / Этап 6)
+## Out of scope (this matrix)
 
-- Production n8n / production rollout / feature flag  
+- Production apply / n8n import / live rollout — see [`portable-sku-platform-production.md`](../runbooks/portable-sku-platform-production.md) (Stage 6 prep; gated)
 - Merge to `main`
 
 ## Этап 5 — catalog audit smoke (Slice B)

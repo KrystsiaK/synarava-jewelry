@@ -23,7 +23,7 @@ There is intentionally **no** requirement for `synarava-shop - sku-api`.
 | Railway project | ID | Staging target | Does not own |
 | --- | --- | --- | --- |
 | `synarava-shop` | `fe392310-…` | Storefront / Admin | sku-api, sku-postgres, platform n8n |
-| `portable-sku-platform` | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | `sku-api`, `sku-postgres`, staging `n8n`, `n8n-postgres`, `n8n-data` | Synarava web; prod `sku-platform-n8n*` |
+| `portable-sku-platform` | `6d7d5885-43eb-4283-b4a4-e552fc6dba7b` | staging: `sku-api`, `sku-postgres`, `n8n`, `n8n-postgres`, `n8n-data-v2`; production Stage 6: adopt `sku-platform-n8n*` + create `sku-api`/`sku-postgres` | Synarava web (`synarava-shop`) |
 
 **Current fact:** staging may only have `sku-api` + `sku-postgres` Online. Target adds staging n8n + separate persistence.
 
@@ -56,7 +56,7 @@ railway config plan
 # Apply ONLY after Kiryl confirmation + apply gate (no recreate of existing sku-api/sku-postgres)
 ```
 
-Guard: immutable project ID; refuses `synarava-shop` and production.
+Guard: immutable project ID; refuses `synarava-shop`. Production Stage 6 uses the same IaC file with an environment-ID hard guard — see [`portable-sku-platform-production.md`](portable-sku-platform-production.md).
 
 Rate limits on `sku-api`: `SKU_API_PRE_AUTH_RATE_LIMIT_PER_MIN` (workspace + Railway `X-Real-IP`, before scrypt; ignore client `X-Forwarded-For`) then `SKU_API_RATE_LIMIT_PER_MIN` (post-auth credential fingerprint).
 
@@ -87,4 +87,4 @@ Expect `ready: true` with `store: "postgres"` on staging.
 
 ## Production
 
-Out of scope. Do not modify `sku-platform-n8n` / `sku-platform-n8n-postgres`.
+See [`portable-sku-platform-production.md`](portable-sku-platform-production.md). Do not apply production from this staging runbook.

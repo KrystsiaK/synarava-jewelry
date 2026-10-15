@@ -1,0 +1,7 @@
+{
+  "changes": [
+    { "action": "create", "name": "sku-api" },
+    { "action": "create", "name": "sku-postgres" },
+    { "action": "update", "name": "sku-platform-n8n" }
+  ]
+}
