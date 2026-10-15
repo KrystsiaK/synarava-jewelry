@@ -27,6 +27,34 @@ function Harness() {
 }
 
 describe("AdminSectionTabs", () => {
+  it("keeps a well node for the cool fill (panel corners round via CSS radius)", () => {
+    render(<Harness />);
+    const well = document.querySelector(".adm-section-tabs__well");
+    expect(well).toBeInstanceOf(HTMLElement);
+    expect(well).toHaveTextContent("Well body for a");
+  });
+
+  it("marks embedded strips so the well can inherit panel inner radius", () => {
+    function Embedded() {
+      const [active, setActive] = useState("a");
+      return (
+        <AdminSectionTabs
+          items={ITEMS}
+          groups={[...GROUPS]}
+          active={active}
+          onChange={setActive}
+          embedded
+        >
+          <div>Embedded well</div>
+        </AdminSectionTabs>
+      );
+    }
+    render(<Embedded />);
+    const root = document.querySelector(".adm-section-tabs");
+    expect(root).toHaveAttribute("data-embedded", "true");
+    expect(document.querySelector(".adm-section-tabs__well")).toHaveTextContent("Embedded well");
+  });
+
   it("exposes issue and conflict tones with selected state", async () => {
     const user = userEvent.setup();
     render(<Harness />);

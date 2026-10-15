@@ -244,6 +244,7 @@ import { AdminPanel } from "@/components/synarava-cms";
 ```
 
 - Rounded container (`--adm-panel-radius`, default `0.875rem`). Overflow stays **visible** so sticky pins to `.admin-content`.
+- Because the root cannot clip, painted fills that reach the floor (notably `.adm-section-tabs__well`) use `--adm-panel-inner-radius` (`outer − border`, 3px on locale frames) on their bottom corners so the fill tracks the gold border — never a square “broken” corner.
 - Soft refresh after save (`refreshPreservingScroll` in `lib/admin/preserve-scroll.ts`) must keep `.admin-content` scroll — do not call bare `router.refresh()` on stay-on-page saves. Navigation (`push` after create/delete) may reset scroll intentionally.
 - Sticky header `top: calc(stickyAbove - radius)` — header **occupies** the rounded top; it is not inset below the crescents.
 - Sticky headers automatically get `.adm-band` + `.adm-band--sticky-radius`: `padding-top = band-pad-y + radius` so optical vertical padding stays equal after the −radius lift.
@@ -367,7 +368,9 @@ import { AdminSectionTabs } from "@/components/synarava-cms";
 </AdminSectionTabs>
 ```
 
-The well owns the bottom border and radius when the strip is **not** `embedded`.
+The well always owns the **bottom fill radius** (`--adm-panel-inner-radius`) so
+corners track the panel border while the panel root stays `overflow: visible`.
+When the strip is **not** `embedded`, the well also owns the bottom border.
 Children must not add a second `border` / `rounded-b-*` — that stacks two gold
 edges at the corners (outer well curve + inner panel line). Use `adm-inset-x`
 for horizontal inset only, same as the product edit shell.
