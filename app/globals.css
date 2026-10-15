@@ -1333,24 +1333,25 @@ html[data-theme="dark"] .archive-record-dim {
 }
 
 html[data-theme="light"] .product-media-scrim {
-  /* Warm ivory → champagne mist; short, airy lift — never charcoal */
+  /* Warm ivory → champagne mist; opaque in the type band so dark photos
+     never mix into a muddy mid-gray. Top stays clear for photography. */
   background-image: linear-gradient(
     to top,
-    rgb(252 250 247 / 0.94) 0%,
-    rgb(248 242 234 / 0.78) 28%,
-    rgb(245 238 230 / 0.38) 48%,
-    rgb(247 247 245 / 0.06) 66%,
-    transparent 100%
+    rgb(252 250 247 / 0.97) 0%,
+    rgb(250 246 240 / 0.9) 18%,
+    rgb(248 242 234 / 0.72) 36%,
+    rgb(247 247 245 / 0.22) 54%,
+    transparent 72%
   );
 }
 
 html[data-theme="light"] .product-media-scrim--rail {
   background-image: linear-gradient(
     to top,
-    rgb(252 250 247 / 0.92) 0%,
-    rgb(248 242 234 / 0.7) 36%,
-    rgb(247 247 245 / 0.08) 68%,
-    transparent 100%
+    rgb(252 250 247 / 0.96) 0%,
+    rgb(250 246 240 / 0.86) 28%,
+    rgb(248 242 234 / 0.45) 52%,
+    transparent 78%
   );
 }
 
