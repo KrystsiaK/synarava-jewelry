@@ -396,7 +396,7 @@ function NextCollectionTeaser({
           src={collection.heroImage}
           fill
           sizes="100vw"
-          className="scale-110 object-cover grayscale"
+          className="scale-110 object-cover md:grayscale"
         />
         <div className="absolute inset-0 bg-background/75" />
       </motion.div>

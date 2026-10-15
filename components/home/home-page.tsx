@@ -336,7 +336,7 @@ function ParallaxImage({ src, alt, clipPath }: { src: string; alt: string; clipP
           alt={alt}
           fill
           sizes="(max-width: 768px) 100vw, 55vw"
-          className="h-full w-full object-cover grayscale brightness-[0.7] transition-[filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:grayscale-0 group-hover:brightness-95"
+          className="h-full w-full object-cover md:grayscale md:brightness-[0.7] transition-[filter] duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] md:group-hover:grayscale-0 group-hover:brightness-95"
         />
       </motion.div>
     </div>
@@ -920,7 +920,7 @@ function MaterialPlate({
             alt={material.imageAlt}
             fill
             sizes="(max-width: 768px) 100vw, 45vw"
-            className="object-cover grayscale contrast-125 brightness-[0.62]"
+            className="object-cover md:grayscale md:contrast-125 md:brightness-[0.62]"
           />
         </motion.div>
         <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(166,25,46,0.2),transparent_42%,rgba(0,0,0,0.65))]" />
@@ -1420,7 +1420,7 @@ function CompactFinalCTA({
                   alt=""
                   fill
                   sizes="72vw"
-                  className="object-cover grayscale contrast-125 brightness-[0.68]"
+                  className="object-cover md:grayscale md:contrast-125 md:brightness-[0.68]"
                 />
                 <div className="absolute inset-[6%] border border-linen/25 [clip-path:polygon(8%_0,100%_8%,89%_100%,0_82%)]" />
               </motion.div>
@@ -1442,7 +1442,7 @@ function CompactFinalCTA({
                     alt=""
                     fill
                     sizes="62vw"
-                    className="object-cover grayscale contrast-125 brightness-[0.58]"
+                    className="object-cover md:grayscale md:contrast-125 md:brightness-[0.58]"
                   />
                   <div className="absolute inset-0 bg-[linear-gradient(145deg,transparent_35%,rgba(166,25,46,0.28))]" />
                 </motion.div>
@@ -1656,7 +1656,7 @@ function DesktopFinalCTA({
             style={{ x: mainX, y: mainY, rotate: mainRotate, opacity: shardOpacity }}
             className="absolute left-[8%] top-0 h-[74%] w-[58%] overflow-hidden bg-[#111] [clip-path:polygon(12%_0,100%_8%,88%_100%,0_82%)]"
           >
-            <Image src={images[0].image} alt="" fill sizes="(max-width: 768px) 62vw, 38vw" className="object-cover grayscale contrast-125 brightness-[0.68]" />
+            <Image src={images[0].image} alt="" fill sizes="(max-width: 768px) 62vw, 38vw" className="object-cover md:grayscale md:contrast-125 md:brightness-[0.68]" />
             <div className="absolute inset-[6%] border border-linen/20 [clip-path:polygon(8%_0,100%_8%,89%_100%,0_82%)]" />
           </motion.div>
 
@@ -1664,7 +1664,7 @@ function DesktopFinalCTA({
             style={{ x: rightX, y: rightY, rotate: rightRotate, opacity: shardOpacity }}
             className="absolute right-0 top-[13%] h-[58%] w-[48%] overflow-hidden bg-[#111] [clip-path:polygon(18%_8%,100%_0,92%_88%,0_100%)]"
           >
-            <Image src={images[1].image} alt="" fill sizes="(max-width: 768px) 52vw, 31vw" className="object-cover grayscale contrast-125 brightness-[0.58]" />
+            <Image src={images[1].image} alt="" fill sizes="(max-width: 768px) 52vw, 31vw" className="object-cover md:grayscale md:contrast-125 md:brightness-[0.58]" />
             <div className="absolute inset-0 bg-[linear-gradient(145deg,transparent_35%,rgba(166,25,46,0.28))]" />
           </motion.div>
 
@@ -1672,14 +1672,14 @@ function DesktopFinalCTA({
             style={{ x: lowerLeftX, y: lowerLeftY, rotate: lowerLeftRotate, opacity: shardOpacity }}
             className="absolute bottom-0 left-0 h-[43%] w-[49%] overflow-hidden bg-[#111] [clip-path:polygon(0_18%,86%_0,100%_86%,14%_100%)]"
           >
-            <Image src={images[2].image} alt="" fill sizes="(max-width: 768px) 54vw, 31vw" className="object-cover grayscale contrast-125 brightness-[0.62]" />
+            <Image src={images[2].image} alt="" fill sizes="(max-width: 768px) 54vw, 31vw" className="object-cover md:grayscale md:contrast-125 md:brightness-[0.62]" />
           </motion.div>
 
           <motion.div
             style={{ x: lowerRightX, y: lowerRightY, rotate: lowerRightRotate, opacity: shardOpacity }}
             className="absolute bottom-[2%] right-[7%] h-[39%] w-[43%] overflow-hidden bg-[#111] [clip-path:polygon(10%_0,100%_17%,82%_100%,0_76%)]"
           >
-            <Image src={images[3].image} alt="" fill sizes="(max-width: 768px) 47vw, 27vw" className="object-cover grayscale contrast-125 brightness-[0.7]" />
+            <Image src={images[3].image} alt="" fill sizes="(max-width: 768px) 47vw, 27vw" className="object-cover md:grayscale md:contrast-125 md:brightness-[0.7]" />
           </motion.div>
 
         </div>
