@@ -1,4 +1,14 @@
+import * as Sentry from "@sentry/nextjs";
 import type { Instrumentation } from "next";
+
+export async function register() {
+  if (process.env.NEXT_RUNTIME === "nodejs") {
+    await import("./sentry.server.config");
+  }
+  if (process.env.NEXT_RUNTIME === "edge") {
+    await import("./sentry.edge.config");
+  }
+}
 
 export const onRequestError: Instrumentation.onRequestError = async (
   error,
@@ -24,4 +34,6 @@ export const onRequestError: Instrumentation.onRequestError = async (
   // Structured output is collected by the deployment platform. Deliberately
   // omit request URLs, headers, error messages, and stacks to avoid leaking PII.
   console.error(JSON.stringify(entry));
+
+  await Sentry.captureRequestError(error, request, context);
 };
