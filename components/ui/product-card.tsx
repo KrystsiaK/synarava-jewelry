@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { motion, useInView } from "motion/react";
+import { useState } from "react";
+import { motion } from "motion/react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { RichText } from "@/components/content/rich-text";
+import { useCanHover } from "@/lib/hooks/use-can-hover";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
@@ -21,21 +22,6 @@ interface ProductCardProps {
   offsetClass?: string;
 }
 
-function useCanHover() {
-  // Desktop-first: avoid a one-frame center-color flash on pointer devices.
-  const [canHover, setCanHover] = useState(true);
-
-  useEffect(() => {
-    const media = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const update = () => setCanHover(media.matches);
-    update();
-    media.addEventListener("change", update);
-    return () => media.removeEventListener("change", update);
-  }, []);
-
-  return canHover;
-}
-
 export function ProductCard({
   product,
   index,
@@ -45,14 +31,9 @@ export function ProductCard({
 }: ProductCardProps) {
   const { t, locale } = useTranslations();
   const [imgError, setImgError] = useState(false);
-  const mediaRef = useRef<HTMLDivElement>(null);
   const canHover = useCanHover();
-  // Middle ~30% of the viewport: color when the card sits in the screen center.
-  const isCentered = useInView(mediaRef, {
-    margin: "-35% 0px -35% 0px",
-    amount: 0.4,
-  });
-  const showColor = canHover ? false : isCentered;
+  // Touch: always full color (no hover). Desktop: grayscale until hover.
+  const showColor = !canHover;
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
   const discount = discountPercent(product.priceAmount, product.compareAtAmount);
 
@@ -65,7 +46,6 @@ export function ProductCard({
     >
       <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
         <motion.div
-          ref={mediaRef}
           className={`relative mb-5 overflow-hidden bg-stone-beige ${aspectClass}`}
           initial="rest"
           whileHover={canHover ? "hover" : undefined}
@@ -100,9 +80,17 @@ export function ProductCard({
               className="relative h-full w-full will-change-transform"
               variants={{
                 rest: { scale: 1, filter: "grayscale(1) brightness(0.84)" },
-                hover: { scale: 1.06, filter: "grayscale(0) brightness(0.92)" },
+                hover: {
+                  scale: canHover ? 1.06 : 1,
+                  filter: "grayscale(0) brightness(0.92)",
+                },
               }}
-              transition={{ type: "spring", stiffness: 250, damping: 30 }}
+              // Instant color on touch; spring only for desktop hover.
+              transition={
+                canHover
+                  ? { type: "spring", stiffness: 250, damping: 30 }
+                  : { duration: 0 }
+              }
             >
               <Image
                 alt={product.title}

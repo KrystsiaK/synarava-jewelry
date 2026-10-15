@@ -687,6 +687,15 @@ html[data-backdrop-filter-url="true"] .site-nav-mobile-glass {
   filter: grayscale(0) brightness(0.92);
 }
 
+/* Phones have no hover — keep storefront media full color. */
+@media (max-width: 767px) {
+  .artifact-hover-image,
+  .artifact-hover-image-wrap:hover .artifact-hover-image,
+  .artifact-hover-image:hover {
+    filter: none;
+  }
+}
+
 .artifact-footer {
   position: relative;
   overflow: hidden;
@@ -1008,6 +1017,14 @@ html[data-theme="dark"] .shop-hero-image-overlay {
 @media (max-width: 767px) {
   .shop-hero-image {
     filter: saturate(0.82) contrast(1.08) brightness(0.88);
+  }
+
+  /* Dark theme heroes: drop mobile grayscale so product/site photos stay colorful. */
+  html[data-theme="dark"] .shop-hero-image,
+  html[data-theme="dark"] .home-hero-media,
+  html[data-theme="dark"] .collections-hero-media,
+  html[data-theme="dark"] .collection-detail-hero-media {
+    filter: saturate(0.9) contrast(1.06) brightness(0.94);
   }
 
   .shop-hero-image-overlay {
