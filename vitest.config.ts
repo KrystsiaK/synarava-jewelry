@@ -48,6 +48,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "."),
+      "@synarava/sku-contract": resolve(
+        __dirname,
+        "packages/sku-contract/src/index.ts",
+      ),
       "server-only": resolve(__dirname, "test/server-only.ts"),
     },
   },

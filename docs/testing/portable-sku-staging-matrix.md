@@ -78,7 +78,7 @@ Fill **Result** / **Evidence** after each run (screenshot, assignment id, Shopif
 | Check | Result | Evidence |
 | --- | --- | --- |
 | Staging n8n schedule (`0 3 * * *` UTC) | **Pass** (Kiryl) | First active run → **Notify Telegram · SKU** (🟡 STAGING + SKU Audit link); later scheduled runs silent (`shouldNotify: false`) |
-| `CATALOG_ITEMS_JSON` (non-secret copy-paste) | Documented | `[{"externalVariantId":"gid://shopify/ProductVariant/58824796668235","sku":"JW-NECK-001"}]` — M2 variant; see [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) §3 |
+| Live Shopify catalog source | Automated contract | Protected Synarava endpoint paginates all variants and returns a complete normalized snapshot; no hand-maintained JSON |
 | IaC private URL | Follow-up | `SKU_API_URL=http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` + `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` (no Railway apply until Kiryl) |
 
 Full runbook: [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md).

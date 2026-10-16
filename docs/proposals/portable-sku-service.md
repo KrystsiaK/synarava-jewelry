@@ -325,11 +325,10 @@ Delivery flow: feature branch → path-aware CI → merge в `staging` → не�
 **Статус реализации (2026-10-15):** Slice A + Slice B on **portable-sku-platform / staging**. **Stage 5 smoke Pass** (Kiryl): first scheduled run notified; subsequent scheduled runs silent. Live staging notify = **Telegram** (`Notify Telegram · SKU`); monorepo workflow JSON synced (no temporary webhook).
 
 - read-only catalog audit: `POST /v1/workspaces/{key}/audit/catalog` + `runCatalogAudit`
-- batching (max 100), digest checkpoint, `shouldNotify`, `llmEnabled: false`
+- full-catalog batch (max 5,000), digest checkpoint, `shouldNotify`, `llmEnabled: false`
 - Dry-run CLI: `pnpm --filter @synarava/sku-api audit:catalog`
-- Workflow: [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — host on **SKU platform** project (private URL → sku-api `:8080`), not synarava-shop; notify via Telegram Send Message (**🟡 STAGING** + SKU Audit link); `TELEGRAM_CHAT_ID` env + n8n `telegramApi` credential (no tokens in git)
+- Workflow: [`deploy/n8n/sku-catalog-audit.workflow.json`](../../deploy/n8n/sku-catalog-audit.workflow.json) — protected Synarava endpoint reads the complete live Shopify variant/SKU catalog, then n8n calls the private sku-api (`:8080`); Shopify credentials stay in Synarava web. Notify via Telegram Send Message (**🟡 STAGING** + SKU Audit link); `TELEGRAM_CHAT_ID` env + n8n `telegramApi` credential (no tokens in git)
 - Platform runbook: [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
-- Smoke catalog row (M2): `gid://shopify/ProductVariant/58824796668235` / `JW-NECK-001`
 
 **Ещё не в Этапе 5:** mark `EXTERNAL_CHANGE_DETECTED`; recovery-queue; production changes. IaC follow-ups (`N8N_BLOCK_ENV_ACCESS_IN_NODE=false`, literal `:8080`) — apply only after Kiryl confirms plan.
 

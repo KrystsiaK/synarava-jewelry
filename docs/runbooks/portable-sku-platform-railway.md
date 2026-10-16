@@ -102,9 +102,11 @@ CLI reference: [railway config](https://docs.railway.com/cli/config) (`pull`, `p
 | Variable | Value |
 | --- | --- |
 | `SKU_API_URL` | `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` — **literal `:8080`** (`${{sku-api.PORT}}` resolves empty) |
-| `N8N_BLOCK_ENV_ACCESS_IN_NODE` | `false` so Code nodes can read `$env.CATALOG_ITEMS_JSON` |
-| `CATALOG_ITEMS_JSON` | See [`sku-catalog-audit-staging.md`](sku-catalog-audit-staging.md) §3 (M2 copy-paste) |
+| `N8N_BLOCK_ENV_ACCESS_IN_NODE` | `false` so Code nodes can read workspace/chat runtime settings |
 | `TELEGRAM_CHAT_ID` | Staging ops chat for **Notify Telegram · SKU** (sealed; bot token in n8n credential only) |
+
+Catalog rows are loaded live from Shopify through the protected Synarava endpoint; catalog JSON is no longer an operational input.
+IaC temporarily preserves any legacy `CATALOG_ITEMS_JSON` value so a routine apply cannot delete existing state; the workflow does not read it.
 
 ## Watch paths / CI
 

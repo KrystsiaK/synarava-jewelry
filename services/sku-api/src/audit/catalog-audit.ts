@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { CATALOG_AUDIT_MAX_BATCH } from "@synarava/sku-contract";
 import {
   fail,
   validateSkuFormat,
@@ -7,8 +8,7 @@ import {
 import { domainError } from "../registry/errors.js";
 import type { AssignmentRecord, SkuRegistryStore } from "../registry/types.js";
 
-/** Bounded batch size for audit clients (proposal §10). */
-export const CATALOG_AUDIT_MAX_BATCH = 100;
+export { CATALOG_AUDIT_MAX_BATCH } from "@synarava/sku-contract";
 
 export type CatalogAuditDeviationCode =
   | "MISSING_ASSIGNMENT"

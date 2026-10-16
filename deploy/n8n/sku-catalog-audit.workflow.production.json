@@ -37,15 +37,44 @@
     },
     {
       "parameters": {
+        "url": "https://shop.synarava.com/api/ops/sku-catalog",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Accept", "value": "application/json" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": { "neverError": false, "responseFormat": "json" }
+          }
+        }
+      },
+      "id": "a1b2c3d4-0009-4000-8000-000000000009",
+      "name": "GET live Shopify SKU catalog",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [520, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "SKU_API_BEARER_PRODUCTION",
+          "name": "sku-api Bearer (production)"
+        }
+      }
+    },
+    {
+      "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const previousDigest = $('Load checkpoint').first().json.previousDigest ?? null;\nconst raw = $env.CATALOG_ITEMS_JSON;\nif (!raw || String(raw).trim() === '') {\n  throw new Error('CATALOG_ITEMS_JSON env is empty. Set a JSON array of { externalVariantId, sku } (max 100).');\n}\nlet items;\ntry {\n  items = JSON.parse(String(raw));\n} catch (error) {\n  throw new Error('CATALOG_ITEMS_JSON is not valid JSON');\n}\nif (!Array.isArray(items) || items.length === 0) {\n  throw new Error('CATALOG_ITEMS_JSON must be a non-empty array');\n}\nif (items.length > 100) {\n  throw new Error('CATALOG_ITEMS_JSON exceeds max batch 100');\n}\nconst workspaceKey = $env.SKU_API_WORKSPACE || 'synarava-shop';\nconst correlationId = `n8n-catalog-audit-${Date.now()}`;\nreturn [{\n  json: {\n    workspaceKey,\n    previousDigest,\n    correlationId,\n    body: {\n      items: items.map((row) => ({\n        externalVariantId: String(row.externalVariantId || ''),\n        sku: row.sku == null ? '' : String(row.sku),\n      })),\n      previousDigest,\n      correlationId,\n    },\n  },\n}];"
+        "jsCode": "const previousDigest = $('Load checkpoint').first().json.previousDigest ?? null;\nconst snapshot = $('GET live Shopify SKU catalog').first().json;\nif (!snapshot || snapshot.source !== 'shopify' || snapshot.complete !== true || !Array.isArray(snapshot.items)) {\n  throw new Error('Shopify catalog endpoint did not return a complete snapshot');\n}\nif (snapshot.itemCount !== snapshot.items.length) {\n  throw new Error('Shopify catalog itemCount does not match items');\n}\nif (snapshot.items.length > 5000) {\n  throw new Error('Shopify catalog exceeds max audit batch 5000');\n}\nconst items = snapshot.items.map((row) => ({\n  externalVariantId: String(row.externalVariantId || ''),\n  sku: row.sku == null ? '' : String(row.sku),\n}));\nif (items.some((row) => !row.externalVariantId)) {\n  throw new Error('Shopify catalog contains a variant without an ID');\n}\nconst workspaceKey = $env.SKU_API_WORKSPACE || 'synarava-shop';\nconst correlationId = `n8n-catalog-audit-${Date.now()}`;\nreturn [{ json: { workspaceKey, previousDigest, correlationId, body: { items, previousDigest, correlationId } } }];"
       },
       "id": "a1b2c3d4-0003-4000-8000-000000000003",
       "name": "Build audit payload",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        520,
+        780,
         0
       ]
     },
@@ -81,7 +110,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        780,
+        1040,
         0
       ],
       "credentials": {
@@ -121,14 +150,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
       "position": [
-        1040,
+        1300,
         0
       ]
     },
     {
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
-        "text": "=\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://synarava-shop-app-production.up.railway.app/admin/settings#shared-sku-policy",
+        "text": "=\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://shop.synarava.com/admin/settings#shared-sku-policy",
         "additionalFields": {
           "appendAttribution": false
         }
@@ -138,7 +167,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        1300,
+        1560,
         -120
       ],
       "credentials": {
@@ -158,7 +187,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1560,
+        1820,
         -120
       ]
     },
@@ -172,7 +201,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1300,
+        1560,
         120
       ]
     }
@@ -190,6 +219,17 @@
       ]
     },
     "Load checkpoint": {
+      "main": [
+        [
+          {
+            "node": "GET live Shopify SKU catalog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET live Shopify SKU catalog": {
       "main": [
         [
           {
