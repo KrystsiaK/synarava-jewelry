@@ -63,12 +63,18 @@ export function classifyCatalogItem(params: {
   readonly assignment: AssignmentRecord | undefined;
   readonly allowedCharacters: string;
 }): CatalogAuditDeviation | null {
-  const observedSku = params.item.sku.trim();
+  const observedSku = params.item.sku;
   const ledgerSku = params.assignment?.sku ?? null;
   const codes: CatalogAuditDeviationCode[] = [];
 
-  if (observedSku.length > 0) {
-    if (!validateSkuFormat(observedSku, params.allowedCharacters).ok) {
+  if (observedSku.trim().length > 0) {
+    const isMatchingLegacyException =
+      params.assignment?.source === "LEGACY_V0" &&
+      params.assignment.sku === observedSku;
+    if (
+      !isMatchingLegacyException &&
+      !validateSkuFormat(observedSku, params.allowedCharacters).ok
+    ) {
       codes.push("INVALID_FORMAT");
     }
     if (!params.assignment) {

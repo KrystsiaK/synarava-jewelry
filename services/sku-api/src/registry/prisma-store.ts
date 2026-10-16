@@ -604,13 +604,11 @@ export function createPrismaSkuRegistryStore(
 
         for (const row of rows) {
           const parsed = parseSku(row.sku, profile.config);
-          if (!parsed.ok) throw domainError(parsed);
-
           const existing = await tx.assignment.findUnique({
             where: {
               workspaceId_sku: {
                 workspaceId: workspace.id,
-                sku: parsed.value.sku,
+                sku: row.sku,
               },
             },
           });
@@ -620,11 +618,12 @@ export function createPrismaSkuRegistryStore(
             continue;
           }
 
+          const collisionSku = parsed.ok ? parsed.value.sku : row.sku;
           const held = await tx.reservation.findUnique({
             where: {
               workspaceId_sku: {
                 workspaceId: workspace.id,
-                sku: parsed.value.sku,
+                sku: collisionSku,
               },
             },
           });
@@ -632,12 +631,12 @@ export function createPrismaSkuRegistryStore(
             throw domainError(
               fail(
                 "ASSIGNMENT_CONFLICT",
-                `sku ${parsed.value.sku} already reserved`,
+                `sku ${row.sku} already reserved`,
               ),
             );
           }
 
-          if (!held) {
+          if (parsed.ok && !held) {
             await tx.reservation.create({
               data: {
                 workspaceId: workspace.id,
@@ -656,7 +655,7 @@ export function createPrismaSkuRegistryStore(
           const assignment = await tx.assignment.create({
             data: {
               workspaceId: workspace.id,
-              sku: parsed.value.sku,
+              sku: row.sku,
               policyVersion: profile.version,
               source: "LEGACY_V0",
               status: "ACTIVE",
@@ -669,29 +668,31 @@ export function createPrismaSkuRegistryStore(
             },
           });
 
-          const cursor = await tx.sequenceCursor.findUnique({
-            where: {
-              workspaceId_stem: {
-                workspaceId: workspace.id,
-                stem: parsed.value.stem,
-              },
-            },
-          });
-          if (!cursor || cursor.lastAllocated < parsed.value.sequence) {
-            await tx.sequenceCursor.upsert({
+          if (parsed.ok) {
+            const cursor = await tx.sequenceCursor.findUnique({
               where: {
                 workspaceId_stem: {
                   workspaceId: workspace.id,
                   stem: parsed.value.stem,
                 },
               },
-              create: {
-                workspaceId: workspace.id,
-                stem: parsed.value.stem,
-                lastAllocated: parsed.value.sequence,
-              },
-              update: { lastAllocated: parsed.value.sequence },
             });
+            if (!cursor || cursor.lastAllocated < parsed.value.sequence) {
+              await tx.sequenceCursor.upsert({
+                where: {
+                  workspaceId_stem: {
+                    workspaceId: workspace.id,
+                    stem: parsed.value.stem,
+                  },
+                },
+                create: {
+                  workspaceId: workspace.id,
+                  stem: parsed.value.stem,
+                  lastAllocated: parsed.value.sequence,
+                },
+                update: { lastAllocated: parsed.value.sequence },
+              });
+            }
           }
 
           created += 1;

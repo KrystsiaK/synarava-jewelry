@@ -31,6 +31,7 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 - `GET /health` — ready when credentials configured **and** DB reachable (Postgres mode); body includes `store`
 - `POST /v1/workspaces/{key}/skus/preview|validate`
 - `POST /v1/workspaces/{key}/audit/catalog` — read-only batch compare (Этап 5 Slice A); staging n8n schedule (Slice B) in [`sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md) — **smoke Pass** (first **Telegram** notify, later silent)
+- `POST /v1/workspaces/{key}/legacy-backfill` — authenticated, digest-gated cutover of pre-existing Shopify SKU values. `dry-run` reports create/existing/conflict counts and a stable digest; `apply` requires that reviewed digest. Existing SKU strings are stored verbatim as `LEGACY_V0` exceptions and are not validated against policy v1.
 - `POST /v1/workspaces/{key}/reservations` (+ `Idempotency-Key`)
 - `POST /v1/workspaces/{key}/assignments/confirm`
 - `POST /v1/workspaces/{key}/assignments/{id}/lock`
@@ -55,6 +56,15 @@ Synarava server env (never expose to browser): `SKU_API_URL` (**HTTPS** public s
 
 On start (unless `SKU_BOOTSTRAP=0`): idempotent ensure of workspace `synarava-shop` + published profile v1.
 **Do not** use `SKU_SEED_EXAMPLE` on staging/production (removed from the runtime path).
+
+## Legacy cutover invariant
+
+Every non-empty SKU that already exists in Shopify at cutover is preserved
+verbatim as a `LEGACY_V0` assignment. It is not renamed, normalized, or rejected
+by the current policy. If its suffix can be parsed, the corresponding sequence is
+tombstoned so the allocator cannot reissue it. Matching legacy assignments are
+also exempt from `INVALID_FORMAT` audit deviations. Only SKUs created after the
+cutover use the published allocation policy.
 
 ## Admin UI
 

@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { LegacyImportRow, SkuRegistryStore } from "./registry/types.js";
 
 const legacyRowSchema = z.object({
-  sku: z.string().min(1),
+  sku: z.string().refine((value) => value.trim().length > 0, "sku is required"),
   externalSystem: z.string().min(1).default("shopify"),
   externalShop: z.string().nullable().optional(),
   externalProductId: z.string().nullable().optional(),
