@@ -68,6 +68,7 @@ function cspFor(nonce: string) {
     "https://www.google-analytics.com",
     "https://region1.google-analytics.com",
     "https://www.facebook.com",
+    "https://*.clarity.ms",
     ...(checkoutOrigin ? [checkoutOrigin] : []),
     ...storage,
   ].join(" ");
@@ -77,6 +78,7 @@ function cspFor(nonce: string) {
     "'strict-dynamic'",
     "https://www.googletagmanager.com",
     "https://connect.facebook.net",
+    "https://www.clarity.ms",
     ...(process.env.NODE_ENV === "production" ? [] : ["'unsafe-eval'"]),
   ].join(" ");
   return [
