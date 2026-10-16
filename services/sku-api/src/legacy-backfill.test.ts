@@ -106,4 +106,66 @@ describe("legacy Shopify SKU backfill", () => {
     });
     expect(repeated).toMatchObject({ created: 0, skipped: 1 });
   });
+
+  it("blocks duplicate input and conflicts with the existing ledger", async () => {
+    const store = await setup();
+    await store.importLegacyAssignments(
+      "synarava-shop",
+      [
+        {
+          sku: "EXISTING-001",
+          externalSystem: "shopify",
+          externalVariantId: "gid://shopify/ProductVariant/existing",
+        },
+      ],
+      "existing-conflict-fixture",
+      "test",
+    );
+    const input = {
+      store,
+      workspaceKey: "synarava-shop",
+      items: [
+        {
+          externalVariantId: "gid://shopify/ProductVariant/duplicate-variant",
+          sku: "A-001",
+        },
+        {
+          externalVariantId: "gid://shopify/ProductVariant/duplicate-variant",
+          sku: "B-001",
+        },
+        {
+          externalVariantId: "gid://shopify/ProductVariant/duplicate-sku-a",
+          sku: "DUP-001",
+        },
+        {
+          externalVariantId: "gid://shopify/ProductVariant/duplicate-sku-b",
+          sku: "DUP-001",
+        },
+        {
+          externalVariantId: "gid://shopify/ProductVariant/existing",
+          sku: "CHANGED-001",
+        },
+        {
+          externalVariantId: "gid://shopify/ProductVariant/other",
+          sku: "EXISTING-001",
+        },
+      ],
+    };
+
+    const plan = await planLegacyBackfill(input);
+    expect(plan.conflicts.map((conflict) => conflict.code).toSorted()).toEqual([
+      "INPUT_SKU_CONFLICT",
+      "INPUT_VARIANT_CONFLICT",
+      "SKU_ALREADY_ASSIGNED",
+      "VARIANT_ALREADY_ASSIGNED",
+    ]);
+    await expect(
+      applyLegacyBackfill({
+        ...input,
+        expectedDigest: plan.digest,
+        correlationId: "legacy-backfill-conflict",
+        actor: "test",
+      }),
+    ).rejects.toThrow("unresolved conflicts");
+  });
 });

@@ -23,6 +23,11 @@ must be reviewed as a dry-run and may be applied only with the identical digest.
 - GREEN: `pnpm --filter @synarava/sku-api test` — 41/41 tests passed.
 - GREEN: `pnpm --filter @synarava/sku-contract test` — 7/7 tests passed.
 - GREEN: both package typechecks passed.
+- GREEN: mandatory repository gate `pnpm test:run` passed: root 2015/2015,
+  sku-core 15/15, sku-contract 7/7, and sku-api 41/41.
+- COVERAGE: focused V8 run reports `legacy-backfill.ts` at 99.16% statements,
+  96.29% branches, and 100% functions; `legacy-import.ts` at 100% statements;
+  `catalog-audit.ts` at 97.97% statements.
 
 PostgreSQL integration remains environment-dependent and must run in CI or an
 approved database-backed environment before merge. No production mutation is
