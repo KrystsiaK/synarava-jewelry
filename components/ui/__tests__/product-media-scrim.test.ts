@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 
 /**
  * Light-theme product media overlays must not use a muddy black veil.
- * Dark keeps the cinematic charcoal lift; light uses porcelain/champagne mist + ink text.
+ * Dark keeps the cinematic charcoal lift; light uses rose-burgundy mist + ivory text.
  */
 describe("Product media scrim", () => {
   const cardSource = readFileSync(
@@ -43,7 +43,7 @@ describe("Product media scrim", () => {
     );
   });
 
-  it("defines light champagne-depth mist and dark charcoal materials", () => {
+  it("defines light rose-burgundy mist and dark charcoal materials", () => {
     expect(cssSource).toMatch(
       /\.product-media-scrim\s*\{\s*background-image:\s*linear-gradient/,
     );
@@ -54,13 +54,14 @@ describe("Product media scrim", () => {
       /html\[data-theme="light"\]\s*\.product-media-scrim\s*\{[^}]*\}/s,
     )?.[0];
     expect(typeof lightBlock).toBe("string");
-    // Warm champagne with chroma in the type band (not cool porcelain white).
-    expect(lightBlock).toMatch(/228\s+204\s+168\s*\/\s*0\.94/);
-    expect(lightBlock).toMatch(/218\s+184\s+136\s*\/\s*0\.52/);
+    // Couture-red family (#a6192e → 166 25 46), soft darken — not black, not champagne.
+    expect(lightBlock).toMatch(/92\s+28\s+38\s*\/\s*0\.86/);
+    expect(lightBlock).toMatch(/166\s+25\s+46\s*\/\s*0\.38/);
+    expect(lightBlock).not.toMatch(/228\s+204\s+168/);
     expect(lightBlock).not.toMatch(/252\s+250\s+247/);
     expect(lightBlock).not.toMatch(/0\s+0\s+0\s*\/\s*0\.[6-9]/);
     expect(cssSource).toMatch(
-      /html\[data-theme="light"\]\s*\.product-media-scrim__title\s*\{\s*color:\s*var\(--color-foreground\)/,
+      /html\[data-theme="light"\]\s*\.product-media-scrim__title\s*\{\s*color:\s*#f6efe9/,
     );
   });
 });
