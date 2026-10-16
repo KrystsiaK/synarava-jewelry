@@ -3,6 +3,7 @@ import {
   CATALOG_AUDIT_MAX_BATCH,
   catalogAuditRequestSchema,
   catalogAuditResponseSchema,
+  legacyBackfillRequestSchema,
   previewRequestSchema,
   shopifyCatalogSnapshotResponseSchema,
   workspaceKeySchema,
@@ -83,5 +84,30 @@ describe("sku-contract v1", () => {
         items: [{ externalVariantId: "gid://shopify/ProductVariant/1", sku: "EY-ACC-001" }],
       }),
     ).toThrow();
+  });
+
+  it("requires a reviewed digest before applying a legacy backfill", () => {
+    const base = {
+      items: [
+        {
+          externalVariantId: "gid://shopify/ProductVariant/1",
+          sku: "Legacy SKU / Keep Verbatim",
+        },
+      ],
+      correlationId: "corr-legacy-backfill",
+    };
+    expect(
+      legacyBackfillRequestSchema.parse({ ...base, mode: "dry-run" }),
+    ).toMatchObject({ mode: "dry-run" });
+    expect(() =>
+      legacyBackfillRequestSchema.parse({ ...base, mode: "apply" }),
+    ).toThrow();
+    expect(
+      legacyBackfillRequestSchema.parse({
+        ...base,
+        mode: "apply",
+        expectedDigest: "a".repeat(64),
+      }),
+    ).toMatchObject({ mode: "apply", expectedDigest: "a".repeat(64) });
   });
 });
