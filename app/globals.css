@@ -1333,25 +1333,26 @@ html[data-theme="dark"] .archive-record-dim {
 }
 
 html[data-theme="light"] .product-media-scrim {
-  /* Champagne depth: warm parchment type band → living mid mist → clear photo.
-     Hue stays in the champagne family (no cool gray fog, no charcoal). */
+  /* Champagne depth: warm parchment type band with enough chroma to stay
+     alive over pale jewelry photos → living mid mist → clear photography.
+     No cool porcelain fog, no charcoal dirt. */
   background-image: linear-gradient(
     to top,
-    rgb(244 232 216 / 0.94) 0%,
-    rgb(248 236 220 / 0.86) 14%,
-    rgb(236 216 188 / 0.52) 32%,
-    rgb(250 240 226 / 0.26) 48%,
-    transparent 68%
+    rgb(228 204 168 / 0.94) 0%,
+    rgb(236 214 178 / 0.86) 11%,
+    rgb(218 184 136 / 0.52) 28%,
+    rgb(246 232 204 / 0.26) 46%,
+    transparent 64%
   );
 }
 
 html[data-theme="light"] .product-media-scrim--rail {
   background-image: linear-gradient(
     to top,
-    rgb(244 232 216 / 0.92) 0%,
-    rgb(248 236 220 / 0.78) 24%,
-    rgb(236 216 188 / 0.38) 48%,
-    transparent 74%
+    rgb(228 204 168 / 0.92) 0%,
+    rgb(236 214 178 / 0.76) 22%,
+    rgb(218 184 136 / 0.38) 46%,
+    transparent 72%
   );
 }
 
