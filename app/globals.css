@@ -1304,8 +1304,8 @@ html[data-theme="dark"] .archive-record-dim {
 
 /*
  * Product media text scrim (ProductCard, discovery/related rails).
- * Light: champagne-depth mist — warm presence without a muddy black veil
- *   or a flat porcelain wash. Dark: cinematic charcoal lift for white type.
+ * Light: soft rose-burgundy mist from couture red (#a6192e) — intentional
+ *   brand darken, never muddy black or bleached champagne. Dark: charcoal lift.
  */
 .product-media-scrim {
   background-image: linear-gradient(
@@ -1333,35 +1333,39 @@ html[data-theme="dark"] .archive-record-dim {
 }
 
 html[data-theme="light"] .product-media-scrim {
-  /* Champagne depth: warm parchment type band with enough chroma to stay
-     alive over pale jewelry photos → living mid mist → clear photography.
-     No cool porcelain fog, no charcoal dirt. */
+  /* Rose-ink darken: couture-red family (#a6192e / archive frost kin).
+     Soft burgundy type band → living rose mid → clear photo. */
   background-image: linear-gradient(
     to top,
-    rgb(228 204 168 / 0.94) 0%,
-    rgb(236 214 178 / 0.86) 11%,
-    rgb(218 184 136 / 0.52) 28%,
-    rgb(246 232 204 / 0.26) 46%,
-    transparent 64%
+    rgb(92 28 38 / 0.86) 0%,
+    rgb(130 36 48 / 0.64) 14%,
+    rgb(166 25 46 / 0.38) 32%,
+    rgb(196 100 112 / 0.16) 48%,
+    transparent 66%
   );
 }
 
 html[data-theme="light"] .product-media-scrim--rail {
   background-image: linear-gradient(
     to top,
-    rgb(228 204 168 / 0.92) 0%,
-    rgb(236 214 178 / 0.76) 22%,
-    rgb(218 184 136 / 0.38) 46%,
-    transparent 72%
+    rgb(92 28 38 / 0.82) 0%,
+    rgb(130 36 48 / 0.52) 24%,
+    rgb(166 25 46 / 0.28) 48%,
+    transparent 74%
   );
 }
 
+/* Ivory type on the rose mist — ink would fail contrast on the darkened band. */
 html[data-theme="light"] .product-media-scrim__title {
-  color: var(--color-foreground);
+  color: #f6efe9;
 }
 
 html[data-theme="light"] .product-media-scrim__meta {
-  color: var(--color-muted-ink);
+  color: rgb(246 239 233 / 0.78);
+}
+
+html[data-theme="light"] .product-media-scrim .text-couture-red {
+  color: #f0d8d4;
 }
 
 .final-sigil {
