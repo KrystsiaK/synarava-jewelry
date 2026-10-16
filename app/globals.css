@@ -1304,8 +1304,8 @@ html[data-theme="dark"] .archive-record-dim {
 
 /*
  * Product media text scrim (ProductCard, discovery/related rails).
- * Light: soft porcelain / champagne mist — readable ink without a muddy black veil.
- * Dark: keeps the cinematic charcoal lift for white title/meta.
+ * Light: champagne-depth mist — warm presence without a muddy black veil
+ *   or a flat porcelain wash. Dark: cinematic charcoal lift for white type.
  */
 .product-media-scrim {
   background-image: linear-gradient(
@@ -1333,25 +1333,25 @@ html[data-theme="dark"] .archive-record-dim {
 }
 
 html[data-theme="light"] .product-media-scrim {
-  /* Warm ivory → champagne mist; opaque in the type band so dark photos
-     never mix into a muddy mid-gray. Top stays clear for photography. */
+  /* Champagne depth: warm parchment type band → living mid mist → clear photo.
+     Hue stays in the champagne family (no cool gray fog, no charcoal). */
   background-image: linear-gradient(
     to top,
-    rgb(252 250 247 / 0.97) 0%,
-    rgb(250 246 240 / 0.9) 18%,
-    rgb(248 242 234 / 0.72) 36%,
-    rgb(247 247 245 / 0.22) 54%,
-    transparent 72%
+    rgb(244 232 216 / 0.94) 0%,
+    rgb(248 236 220 / 0.86) 14%,
+    rgb(236 216 188 / 0.52) 32%,
+    rgb(250 240 226 / 0.26) 48%,
+    transparent 68%
   );
 }
 
 html[data-theme="light"] .product-media-scrim--rail {
   background-image: linear-gradient(
     to top,
-    rgb(252 250 247 / 0.96) 0%,
-    rgb(250 246 240 / 0.86) 28%,
-    rgb(248 242 234 / 0.45) 52%,
-    transparent 78%
+    rgb(244 232 216 / 0.92) 0%,
+    rgb(248 236 220 / 0.78) 24%,
+    rgb(236 216 188 / 0.38) 48%,
+    transparent 74%
   );
 }
 

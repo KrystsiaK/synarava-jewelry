@@ -43,7 +43,7 @@ describe("Product media scrim", () => {
     );
   });
 
-  it("defines light porcelain mist and dark charcoal materials", () => {
+  it("defines light champagne-depth mist and dark charcoal materials", () => {
     expect(cssSource).toMatch(
       /\.product-media-scrim\s*\{\s*background-image:\s*linear-gradient/,
     );
@@ -54,7 +54,10 @@ describe("Product media scrim", () => {
       /html\[data-theme="light"\]\s*\.product-media-scrim\s*\{[^}]*\}/s,
     )?.[0];
     expect(typeof lightBlock).toBe("string");
-    expect(lightBlock).toMatch(/252\s+250\s+247\s*\/\s*0\.97/);
+    // Warm champagne parchment in the type band (not cool porcelain white).
+    expect(lightBlock).toMatch(/244\s+232\s+216\s*\/\s*0\.94/);
+    expect(lightBlock).toMatch(/236\s+216\s+188\s*\/\s*0\.52/);
+    expect(lightBlock).not.toMatch(/252\s+250\s+247/);
     expect(lightBlock).not.toMatch(/0\s+0\s+0\s*\/\s*0\.[6-9]/);
     expect(cssSource).toMatch(
       /html\[data-theme="light"\]\s*\.product-media-scrim__title\s*\{\s*color:\s*var\(--color-foreground\)/,
