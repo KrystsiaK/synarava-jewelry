@@ -3,6 +3,10 @@ import * as Sentry from "@sentry/nextjs";
 Sentry.init({
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
 
+  // Only report from real deployments; dev/sandbox runs must not pollute the project.
+  enabled: process.env.NODE_ENV === "production",
+  environment: process.env.NODE_ENV,
+
   // ponytail: sample rate 0.1 in prod; raise to 1 only for debugging a specific issue
   tracesSampleRate: process.env.NODE_ENV === "production" ? 0.1 : 1,
 

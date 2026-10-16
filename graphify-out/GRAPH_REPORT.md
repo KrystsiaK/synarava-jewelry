@@ -1,16 +1,16 @@
-# Graph Report - prod-plan  (2026-10-16)
+# Graph Report - synarava-jewelry  (2026-10-16)
 
 ## Corpus Check
-- 2287 files · ~1,613,263 words
+- 2298 files · ~1,618,731 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 49507 nodes · 82956 edges · 2700 communities (2516 shown, 184 thin omitted)
+- 49716 nodes · 83201 edges · 2747 communities (2561 shown, 186 thin omitted)
 - Extraction: 97% EXTRACTED · 3% INFERRED · 0% AMBIGUOUS · INFERRED: 2430 edges (avg confidence: 0.86)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `06e3c02e`
+- Built from commit: `223930da`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -2635,6 +2635,7 @@
 - [[_COMMUNITY_Community 2643|Community 2643]]
 - [[_COMMUNITY_Community 2644|Community 2644]]
 - [[_COMMUNITY_Community 2645|Community 2645]]
+- [[_COMMUNITY_Community 2647|Community 2647]]
 - [[_COMMUNITY_Community 2648|Community 2648]]
 - [[_COMMUNITY_Community 2649|Community 2649]]
 - [[_COMMUNITY_Community 2650|Community 2650]]
@@ -2660,6 +2661,50 @@
 - [[_COMMUNITY_Community 2694|Community 2694]]
 - [[_COMMUNITY_Community 2695|Community 2695]]
 - [[_COMMUNITY_Community 2696|Community 2696]]
+- [[_COMMUNITY_Community 2700|Community 2700]]
+- [[_COMMUNITY_Community 2701|Community 2701]]
+- [[_COMMUNITY_Community 2702|Community 2702]]
+- [[_COMMUNITY_Community 2703|Community 2703]]
+- [[_COMMUNITY_Community 2704|Community 2704]]
+- [[_COMMUNITY_Community 2705|Community 2705]]
+- [[_COMMUNITY_Community 2706|Community 2706]]
+- [[_COMMUNITY_Community 2707|Community 2707]]
+- [[_COMMUNITY_Community 2708|Community 2708]]
+- [[_COMMUNITY_Community 2709|Community 2709]]
+- [[_COMMUNITY_Community 2710|Community 2710]]
+- [[_COMMUNITY_Community 2711|Community 2711]]
+- [[_COMMUNITY_Community 2712|Community 2712]]
+- [[_COMMUNITY_Community 2713|Community 2713]]
+- [[_COMMUNITY_Community 2714|Community 2714]]
+- [[_COMMUNITY_Community 2715|Community 2715]]
+- [[_COMMUNITY_Community 2716|Community 2716]]
+- [[_COMMUNITY_Community 2717|Community 2717]]
+- [[_COMMUNITY_Community 2718|Community 2718]]
+- [[_COMMUNITY_Community 2719|Community 2719]]
+- [[_COMMUNITY_Community 2720|Community 2720]]
+- [[_COMMUNITY_Community 2721|Community 2721]]
+- [[_COMMUNITY_Community 2722|Community 2722]]
+- [[_COMMUNITY_Community 2723|Community 2723]]
+- [[_COMMUNITY_Community 2724|Community 2724]]
+- [[_COMMUNITY_Community 2725|Community 2725]]
+- [[_COMMUNITY_Community 2726|Community 2726]]
+- [[_COMMUNITY_Community 2727|Community 2727]]
+- [[_COMMUNITY_Community 2728|Community 2728]]
+- [[_COMMUNITY_Community 2729|Community 2729]]
+- [[_COMMUNITY_Community 2730|Community 2730]]
+- [[_COMMUNITY_Community 2731|Community 2731]]
+- [[_COMMUNITY_Community 2732|Community 2732]]
+- [[_COMMUNITY_Community 2733|Community 2733]]
+- [[_COMMUNITY_Community 2734|Community 2734]]
+- [[_COMMUNITY_Community 2735|Community 2735]]
+- [[_COMMUNITY_Community 2736|Community 2736]]
+- [[_COMMUNITY_Community 2738|Community 2738]]
+- [[_COMMUNITY_Community 2739|Community 2739]]
+- [[_COMMUNITY_Community 2740|Community 2740]]
+- [[_COMMUNITY_Community 2741|Community 2741]]
+- [[_COMMUNITY_Community 2742|Community 2742]]
+- [[_COMMUNITY_Community 2743|Community 2743]]
+- [[_COMMUNITY_Community 2744|Community 2744]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `vitest` - 266 edges
@@ -2676,10 +2721,10 @@
 ## Surprising Connections (you probably didn't know these)
 - `The `cn` utility function` --references--> `cn()`  [INFERRED]
   .agents/skills/building-components/references/styling.mdx → lib/ui.ts
+- `Adding a new language` --references--> `TranslatableResourceType`  [INFERRED]
+  docs/translation-operations.md → lib/shopify/translations.ts
 - `Что реализовано` --references--> `FilterBar()`  [INFERRED]
   tasks/shop-ux-handoff.md → components/shop/filter-bar.tsx
-- `17.2 COL-09 — removing a collection's hero image → **always blocked**` --references--> `validateCollectionInput()`  [INFERRED]
-  docs/admin/test-cases-playwright-en.md → lib/admin/collection-form-validation.ts
 - `Existing contract` --references--> `ImageFileField()`  [INFERRED]
   tasks/admin-page-hero-images.md → components/admin/shared/image-file-field.tsx
 - `Server Functions` --references--> `headers()`  [INFERRED]
@@ -2690,19 +2735,19 @@
 - **Shared Characteristic Workflow** — synarava_enrichment_layer, shopify_product_metafields, bidirectional_metafield_mirroring [EXTRACTED 1.00]
 - **Three-layer Synchronization Boundary** — shopify_standard_fields, shopify_product_metafields, synarava_editorial_content [EXTRACTED 1.00]
 
-## Communities (2700 total, 184 thin omitted)
+## Communities (2747 total, 186 thin omitted)
 
 ### Community 0 - "live-browser.js"
 Cohesion: 0.03
-Nodes (148): addManualContextText(), applyGlobalBarLabelState(), applyPlaceholderSizingStyles(), averageRgb01(), bindEditBadgeProxy(), bufferToBase64(), buildCollapsible(), buildColorModels() (+140 more)
+Nodes (152): addManualContextText(), applyGlobalBarLabelState(), applyPlaceholderSizingStyles(), bindEditBadgeProxy(), bufferToBase64(), buildCollapsible(), buildColorModels(), buildDesignHeader() (+144 more)
 
 ### Community 1 - "filter-bar.tsx"
 Cohesion: 0.03
-Nodes (98): CollectionProductsCatalogProps, ease, shopComplianceOptions(), FilterBar(), catalogHref(), urlQuery(), FilterBarProps, labelOf() (+90 more)
+Nodes (83): shopComplianceOptions(), FilterBarProps, labelOf(), MobileFilterSheet(), MobileFilterSheetProps, AllActive, categories, collections (+75 more)
 
 ### Community 2 - "product-edit-form.tsx"
 Cohesion: 0.02
-Nodes (164): ProductActionState, ProductMediaActionState, SavedProductPayload, updateProductMediaAltAction(), updateWorkingSnapshotMediaAltAction(), SavedTagPayload, issues/page.tsx, AdminIssuesPage() (+156 more)
+Nodes (166): ProductActionState, SavedProductPayload, inspectProductSyncAction(), SavedTagPayload, actions/taxonomy.ts, getShopifyCategoryAttributesAction(), searchShopifyTaxonomyCategoriesAction(), ShopifyTaxonomyAttributesResult (+158 more)
 
 ### Community 3 - "test_parse_instinct.py"
 Cohesion: 0.01
@@ -2710,11 +2755,22 @@ Nodes (260): contextlib, _append_observations(), _assign_unique_slugs(), _cluste
 
 ### Community 4 - "catalog.ts"
 Cohesion: 0.03
-Nodes (105): (admin)/page.tsx, AdminDashboardPage(), catalog/products/route.ts, dynamic, GET(), products/__tests__/route.test.ts, mocks, Page / Home / About / Legal (+97 more)
+Nodes (132): (admin)/page.tsx, AdminDashboardPage(), catalog/products/route.ts, dynamic, GET(), products/__tests__/route.test.ts, mocks, generateMetadata() (+124 more)
 
 ### Community 5 - "install-executor.js"
-Cohesion: 0.05
-Nodes (80): path, toCursorAgentFileName(), toCursorAgentRelativePath(), addCursorAgentDataScaffoldOperations(), addFileCopyOperation(), addJsonMergeOperation(), addMatchingRuleOperations(), addRecursiveCopyOperations() (+72 more)
+Cohesion: 0.03
+Nodes (118): addCursorAgentDataScaffoldOperations(), addFileCopyOperation(), addJsonMergeOperation(), addMatchingRuleOperations(), addRecursiveCopyOperations(), {
+  buildCopyFileOperation,
+  createManifestInstallPlan,
+  createStatePreview,
+  dedupeCopyFileOperations,
+  getManifestVersion,
+  getPackageVersion,
+  getRepoCommit,
+  getSourceRoot,
+  listFilesRecursive,
+  readJsonObject,
+}, createLegacyCompatInstallPlan(), createLegacyInstallPlan() (+110 more)
 
 ### Community 6 - "pt"
 Cohesion: 0.14
@@ -2722,14 +2778,14 @@ Nodes (15): pt(), Definition of done, Key risks and safeguards, Non-goals, Shopi
 
 ### Community 7 - "session-cost-snapshot.js"
 Cohesion: 0.04
-Nodes (97): {
+Nodes (94): {
   appendSessionCostRow,
   warnSessionCostSnapshotFailure
-}, { ensureDir, getClaudeDir }, fs, getRates(), isSonnet5(), normalizeUsageTotals(), os, path (+89 more)
+}, { ensureDir, getClaudeDir }, fs, getRates(), isSonnet5(), normalizeUsageTotals(), os, path (+86 more)
 
 ### Community 8 - "install-lifecycle.js"
-Cohesion: 0.05
-Nodes (97): metadataPathFor(), cursor_scripts_lib_install_claude_settings_acquiresettingslock, assertClaudeSettingsPath(), getClaudeSettingsPath(), {
+Cohesion: 0.04
+Nodes (106): assertOpenCodeLeaseCoverage(), getOpenCodeInstallRoots(), cursor_scripts_lib_install_claude_settings_acquiresettingslock, assertClaudeSettingsPath(), getClaudeSettingsPath(), isCodexUserConfig(), {
   acquireSettingsLock,
   assertClaudeSettingsPath,
   getClaudeSettingsPath,
@@ -2739,7 +2795,7 @@ Nodes (97): metadataPathFor(), cursor_scripts_lib_install_claude_settings_acquir
   uninstallManagedHooks,
   updateSettingsAtomic,
   validateManagedHooks,
-}, { adaptAntigravityAgent }, analyzeRecord(), areFilesEqual() (+89 more)
+}, { adaptAntigravityAgent } (+98 more)
 
 ### Community 9 - "Synarava Jewelry — Мобильное приложение (iOS & Android)"
 Cohesion: 0.08
@@ -2751,53 +2807,53 @@ Nodes (14): Already in place, Build-versus-buy rule, Consent and privacy, Curren
 
 ### Community 11 - "resumeSession"
 Cohesion: 0.06
-Nodes (82): applyParamDefaults(), applyParamValue(), applyPlaceholderDimensions(), applySavedSessionMeta(), clampVariantIndex(), clearHandled(), clearSession(), closedClipPath() (+74 more)
+Nodes (82): applyParamDefaults(), applyParamValue(), applySavedSessionMeta(), buildParamsPanel(), checkpointPayload(), clampVariantIndex(), closedClipPath(), commitAcceptedVariantToDom() (+74 more)
 
 ### Community 12 - "collections.ts"
-Cohesion: 0.05
-Nodes (64): SavedCollectionPayload, CollectionConflictViewScope, CreateCollectionForm(), formAction(), updateDraft(), DeleteCollectionForm(), handleDelete(), EditCollectionForm() (+56 more)
+Cohesion: 0.06
+Nodes (66): actions/site-seo.ts, saveSiteSeoAction(), SiteSeoActionState, CollectionFields(), CollectionLocaleContext, CollectionLocaleContextValue, CollectionLocaleTabs(), DEFAULT_TRANSLATION_LOCALES (+58 more)
 
 ### Community 13 - "helpers.js"
-Cohesion: 0.04
-Nodes (81): cursor_scripts_lib_hooks_config_metadata_filename, { createInstallTargetAdapter }, {
+Cohesion: 0.03
+Nodes (97): path, { spawnSync }, path, toCursorAgentFileName(), toCursorAgentRelativePath(), cursor_scripts_lib_hooks_config_metadata_filename, { createInstallTargetAdapter }, {
   createFlatRuleOperations,
   createInstallTargetAdapter,
   createManagedOperation,
   createManagedScaffoldOperation,
   normalizeRelativePath,
-}, path, planOperations(), SUPPORTED_SOURCE_PREFIXES, supportsAntigravitySourcePath(), getClaudeManagedDestinationPath() (+73 more)
+} (+89 more)
 
 ### Community 14 - "catalog-presence-server.ts"
-Cohesion: 0.03
-Nodes (126): cn(), HomeLexiconMaterialFields(), AdminAlertProps, AdminAlertTone, TONE_CLASS, AdminCheckboxControl(), AdminCheckboxControlProps, AdminCheckboxField() (+118 more)
+Cohesion: 0.01
+Nodes (318): AccountOrdersSettingsEditor(), AccountPageEditor(), CollectionActionState, SavedCollectionPayload, PageActionState, SavedPagePayload, ProductActionState, CreateCollectionForm() (+310 more)
 
 ### Community 15 - "product-sync.ts"
-Cohesion: 0.01
-Nodes (322): finishProductMediaMutation(), getSavedProductPayload(), moveProductMediaAction(), removeProductMediaAction(), setPrimaryProductMediaAction(), applyCatalogConflictResolutionAction(), applyCollectionConflictResolutionAction(), assertConfiguredShopifyStore() (+314 more)
+Cohesion: 0.03
+Nodes (127): applyCatalogConflictResolutionAction(), applyCollectionConflictResolutionAction(), assertConfiguredShopifyStore(), buildOurCommerceStoreAction(), checkCatalogConflictsAction(), checkCollectionConflictsAction(), checkOneCollectionConflictsAction(), checkProductConflictsAction() (+119 more)
 
 ### Community 16 - "useTranslations"
 Cohesion: 0.02
-Nodes (175): ProductReviewActionState, Page(), AboutCopy(), AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory() (+167 more)
+Nodes (231): AboutCopy(), AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory(), CraftSection(), ease (+223 more)
 
 ### Community 17 - "collection-conflict-workspace.tsx"
-Cohesion: 0.04
-Nodes (73): CollectionActionState, CollectionConflictViewScope, CreateCollectionForm(), initialState, DeleteCollectionForm(), EditCollectionForm(), EMPTY_SIGNALS, ENTITY_NOUN (+65 more)
+Cohesion: 0.25
+Nodes (6): { container }, createdCollection, heroImageInput, mocks, onCreated, user
 
 ### Community 18 - "vitest"
-Cohesion: 0.02
-Nodes (73): AdminError(), checkout/__tests__/page.test.tsx, mocks, profile/__tests__/page.test.tsx, mocks, LOCALES, mocks, mocks (+65 more)
+Cohesion: 0.03
+Nodes (53): health/route.ts, checkDatabase(), dynamic, GET(), health/__tests__/route.test.ts, { state }, privacy/__tests__/page.test.tsx, locales (+45 more)
 
 ### Community 19 - "admin/storefront-href.ts"
-Cohesion: 0.19
-Nodes (29): admin/storefront-href.ts, assembleHrefSearchResult(), buildCustomPathHit(), EXTRA_STATIC_ROUTE_HITS, filterHitsByQuery(), findExactHrefHit(), flattenHrefHits(), formatHrefDetail() (+21 more)
+Cohesion: 0.18
+Nodes (29): admin/storefront-href.ts, assembleHrefSearchResult(), EXTRA_STATIC_ROUTE_HITS, filterHitsByQuery(), findExactHrefHit(), flattenHrefHits(), formatHrefDetail(), hasExactHrefMatch() (+21 more)
 
 ### Community 20 - "issues.ts"
-Cohesion: 0.09
-Nodes (21): account/actions.ts, AccountActionState, updateAdminCredentialsAction(), 0. How to use this catalog, 11. Pages (`e2e/admin-pages.spec.ts`), 12. Videos (`e2e/admin-videos.spec.ts`), 13. Issues / QA scan (`e2e/admin-issues.spec.ts`), 14. Account (`e2e/admin-account.spec.ts`) (+13 more)
+Cohesion: 0.05
+Nodes (71): CatalogConflictDirection, listShopifyCollectionWindowsForCommerceStore(), ShopifyCollectionNode, buildCollectionWindowFromColumns(), collectionCommerceInputFromWindow(), CollectionCommerceWindow, CollectionLocalCommercePatch, collectionWindowFromShopifyRemote() (+63 more)
 
 ### Community 21 - "apply.js"
-Cohesion: 0.05
-Nodes (90): adaptAntigravityAgent(), MODEL_NAMES, normalizeToolNames(), splitFrontmatter(), TOOL_NAMES, activationIsInactive(), { adaptAntigravityAgent }, applyInstallPlan() (+82 more)
+Cohesion: 0.04
+Nodes (98): adaptAntigravityAgent(), MODEL_NAMES, normalizeToolNames(), splitFrontmatter(), TOOL_NAMES, activationIsInactive(), { adaptAntigravityAgent }, applyInstallPlan() (+90 more)
 
 ### Community 22 - "gauge.tsx"
 Cohesion: 0.07
@@ -2805,23 +2861,23 @@ Nodes (59): chartCenterContainerClassName, chartCenterLabelClassName, chartCente
 
 ### Community 23 - "[permalink]/route.ts"
 Cohesion: 0.04
-Nodes (44): appendOrderedItem(), moveOrderedItem(), moveOrderedItemDown(), moveOrderedItemUp(), removeOrderedItem(), DEFAULT_FOOTER_CONTACT_EMAIL, CharacteristicDraft, HiddenPassportTextOverlayFields() (+36 more)
+Nodes (57): sans, serif, siteUrl, viewport, next/headers, SUPPORTED_LOCALES, LanguageSwitcher(), MobileNavDrawer() (+49 more)
 
 ### Community 24 - "bar-chart.tsx"
-Cohesion: 0.07
-Nodes (55): BarChart(), BarChartProps, BarOrientation, ChartCore, ChartInner(), ChartInnerProps, DEFAULT_MARGIN, extractBarConfigs() (+47 more)
+Cohesion: 0.05
+Nodes (75): BarChart(), BarChartProps, BarOrientation, ChartCore, ChartInner(), ChartInnerProps, DEFAULT_MARGIN, extractBarConfigs() (+67 more)
 
 ### Community 25 - "shopify-projection-diff.ts"
 Cohesion: 0.03
-Nodes (155): listCustomProductMetafieldDefinitionsAction(), ALWAYS_FROM_CURRENT, buildScopedProductFormData(), copyEntry(), DETAILS_LOCALE, DETAILS_LOCALE_PREFIXES, DETAILS_SHARED, DETAILS_SHARED_PREFIXES (+147 more)
+Nodes (148): createProductMetafieldDefinitionAction(), listCustomProductMetafieldDefinitionsAction(), ALWAYS_FROM_CURRENT, buildScopedProductFormData(), copyEntry(), DETAILS_LOCALE, DETAILS_LOCALE_PREFIXES, DETAILS_SHARED (+140 more)
 
 ### Community 26 - "gateguard-fact-force.js"
 Cohesion: 0.06
-Nodes (61): allowWithStateWarning(), batchSiblingWarning(), BIDI_EMBEDDINGS, BIDI_ISOLATES, BIDI_MARKS, C1_CONTROLS, { classifyPowerShellDestructiveCommand }, condensedGateMsg() (+53 more)
+Nodes (58): allowWithStateWarning(), batchSiblingWarning(), BIDI_EMBEDDINGS, BIDI_ISOLATES, BIDI_MARKS, C1_CONTROLS, { classifyPowerShellDestructiveCommand }, condensedGateMsg() (+50 more)
 
 ### Community 27 - "admin-session.ts"
-Cohesion: 0.03
-Nodes (106): account/page.tsx, AdminAccountPage(), media/route.ts, POST(), runtime, media/__tests__/route.test.ts, mocks, apply/route.ts (+98 more)
+Cohesion: 0.04
+Nodes (90): login/actions.ts, adminLoginAction(), AdminLoginActionState, adminLogoutAction(), getClientIp(), loginSchema, admin/login/page.tsx, AdminLoginPage() (+82 more)
 
 ### Community 28 - "mobile/package.json"
 Cohesion: 0.11
@@ -2832,20 +2888,20 @@ Cohesion: 0.07
 Nodes (51): AdminToastProvider(), renderWishlist(), announceToast(), emptySubscribe(), EPHEMERAL_TOAST_EVENT, EphemeralToastCard(), EphemeralToastContext, EphemeralToastContextValue (+43 more)
 
 ### Community 30 - "setLiveState"
-Cohesion: 0.10
-Nodes (63): abortSvelteComponentInjection(), applyEditing(), beginNewLiveConfiguration(), cancelEditing(), cancelEditingToPicking(), cancelInsertConfigure(), cleanup(), cleanupAcceptedSession() (+55 more)
+Cohesion: 0.07
+Nodes (81): abandonForeignSession(), abortSvelteComponentInjection(), applyEditing(), beginNewLiveConfiguration(), buildPickedAnchorSnapshot(), cancelEditing(), cancelEditingToPicking(), cancelInsertConfigure() (+73 more)
 
 ### Community 31 - "chart-tooltip.tsx"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (44): ChartConfigContext, ChartConfigProviderProps, ChartConfigValue, DEFAULT_CHART_CONFIG, resolveTooltipBoxMotion(), SpringConfig, useChartConfig(), chartCssVars (+36 more)
 
 ### Community 32 - ".key"
 Cohesion: 0.09
-Nodes (24): hashValue(), { canonicalJson, hashValue }, createReplayer(), envelope, FixtureStore, fs, path, ReplayError (+16 more)
+Nodes (23): { canonicalJson, hashValue }, createReplayer(), envelope, FixtureStore, fs, path, ReplayError, motion-patterns/SKILL.md (+15 more)
 
 ### Community 33 - "el"
-Cohesion: 0.06
-Nodes (69): actionLabel(), agentHasWorkInFlight(), agentStatusText(), applyConfigureBarChrome(), barPaletteForTheme(), bindConfigureCountPillTooltip(), bindConfigureInlineControlHover(), bindConfigureModifierPillHover() (+61 more)
+Cohesion: 0.07
+Nodes (55): actionLabel(), applyConfigureBarChrome(), bindConfigureCountPillTooltip(), bindConfigureInlineControlHover(), bindConfigureModifierPillHover(), buildConfigureActionControl(), buildConfigureCountControl(), buildConfigureRow() (+47 more)
 
 ### Community 34 - "Принятые архитектурные решения"
 Cohesion: 0.29
@@ -2856,49 +2912,49 @@ Cohesion: 0.18
 Nodes (11): Admin UI kit extension, Collection detail, Collections index, Design intent, Foundation tokens, Implementation rule, Manifesto and home, Product detail (+3 more)
 
 ### Community 36 - "initPageChat"
-Cohesion: 0.08
-Nodes (52): armPageChatForTyping(), attachSteerFocusDebug(), attachSteerFocusGuard(), clearSteerAwaitTimer(), clearSteerFocusRecoverTimer(), collapsePageChat(), configureVoiceContext(), expandPageChat() (+44 more)
+Cohesion: 0.07
+Nodes (55): agentHasWorkInFlight(), armPageChatForTyping(), attachSteerFocusDebug(), attachSteerFocusGuard(), buildSteerProcessingDots(), buildSteerQueueHint(), clearSteerAwaitTimer(), clearSteerFocusRecoverTimer() (+47 more)
 
 ### Community 37 - "utils.js"
-Cohesion: 0.03
-Nodes (151): EXCLUDED_PATTERNS, fs, { isGitRepo, getGitModifiedFiles, readFile, log }, passThroughAndExit(), fs, {
+Cohesion: 0.06
+Nodes (67): EXCLUDED_PATTERNS, fs, { isGitRepo, getGitModifiedFiles, readFile, log }, passThroughAndExit(), fs, {
   getLearnedSkillsDir,
   ensureDir,
   readFile,
   countInFile,
   log
-}, main(), path (+143 more)
+}, main(), path (+59 more)
 
 ### Community 38 - "y-domain-utils.ts"
-Cohesion: 0.09
-Nodes (35): ChartContextValue, ChartHoverContext, ChartHoverContextValue, ChartStableContext, ChartStableContextValue, defaultScatterColors, ScaleBand, ScaleLinear (+27 more)
+Cohesion: 0.15
+Nodes (24): Grid(), GridProps, hideEdgeTicks(), resolveRowTickValues(), lerpDomain(), snapDomains(), tweenDomains(), useAnimatedYDomains() (+16 more)
 
 ### Community 39 - "new-work.md"
-Cohesion: 0.05
-Nodes (42): Assess Adaptation Challenge, Implement & Verify, Recommended Actions, Recommended Actions, Craft (deprecated alias), Craft floor, Refuse, Verify (+34 more)
+Cohesion: 0.04
+Nodes (54): Assess Adaptation Challenge, Implement & Verify, Recommended Actions, Recommended Actions, Apply at system scale, Audit before choosing, Choose a strategy, Contrast and perception (+46 more)
 
 ### Community 40 - "glueTextChildren"
 Cohesion: 0.02
-Nodes (117): CatalogViewAnchor, CatalogViewSnapshot, clearCatalogViewCacheForTests(), getMemoryView(), getPersistedView(), isFresh(), memoryCache, openDb() (+109 more)
+Nodes (174): RelatedProductCard(), CatalogViewAnchor, CatalogViewSnapshot, clearCatalogViewCacheForTests(), getMemoryView(), getPersistedView(), isFresh(), memoryCache (+166 more)
 
 ### Community 41 - "rich-text.ts"
-Cohesion: 0.09
-Nodes (35): linkKindHint(), RichTextLinkPanel(), apply(), RichTextModalEditor(), LegalActionLink(), legalUrlTransform(), markdownComponents, isLegalActionHref() (+27 more)
+Cohesion: 0.08
+Nodes (40): linkKindHint(), RichTextLinkPanel(), apply(), RichTextModalEditor(), LegalActionLink(), LegalSectionBody(), legalUrlTransform(), markdownComponents (+32 more)
 
 ### Community 42 - "product-detail.tsx"
 Cohesion: 0.62
 Nodes (5): lastWhitespaceIndex(), peelWeakTrailingWords(), significantCharCount(), trimTrailingSeparators(), truncateText()
 
 ### Community 43 - "context-profile-support.js"
-Cohesion: 0.07
-Nodes (70): adapterDigest(), { compileContextProfile }, copyDescriptors(), crypto, {
+Cohesion: 0.06
+Nodes (87): adapterDigest(), { compileContextProfile }, copyDescriptors(), crypto, {
   DEFAULT_REPO_ROOT, createSourceReader, digestObject, stableStringify,
   validateRelativePath, validateSchema,
-}, generatedManifest(), INPUT_KEYS, LAYOUTS (+62 more)
+}, generatedManifest(), INPUT_KEYS, LAYOUTS (+79 more)
 
 ### Community 44 - "products.ts"
 Cohesion: 0.02
-Nodes (178): actions/product-reviews.ts, ProductReviewField, ProductReviewNotice, publicAuthorName(), reviewHandle(), reviewSchema, submitProductReviewAction(), actions/__tests__/product-reviews.test.ts (+170 more)
+Nodes (183): account/actions.ts, AccountActionState, updateAdminCredentialsAction(), CollectionOrderActionState, reorderCollectionProductAction(), reorderSchema, getSavedCategoryPayload(), SavedCategoryPayload (+175 more)
 
 ### Community 45 - "Connect / platforms"
 Cohesion: 0.12
@@ -2914,43 +2970,43 @@ Nodes (45): framer-motion/SKILL.md, 1. Forgetting AnimatePresence for Exit Anima
 
 ### Community 48 - "products-cms.tsx"
 Cohesion: 0.03
-Nodes (124): getAdminRecordHistoryAction(), PageActionState, SavedPagePayload, AdminRecordHistoryItem, [collectionId]/page.tsx, EditCollectionPage(), collections/new/page.tsx, NewCollectionPage() (+116 more)
+Nodes (169): CollectionActionState, SavedCollectionPayload, getAdminRecordHistoryAction(), PageActionState, SavedPagePayload, AdminRecordHistoryItem, [collectionId]/page.tsx, EditCollectionPage() (+161 more)
 
 ### Community 49 - "UI/UX Pro Max - Design Intelligence"
 Cohesion: 0.05
 Nodes (42): ui-ux-pro-max/SKILL.md, 1. Accessibility (CRITICAL), 2. Touch & Interaction (CRITICAL), 3. Performance (HIGH), 4. Layout & Responsive (HIGH), 5. Typography & Color (MEDIUM), 6. Animation (MEDIUM), 7. Style Selection (MEDIUM) (+34 more)
 
 ### Community 50 - "skill-evolution/health.js"
-Cohesion: 0.06
-Nodes (66): bucketByDay(), formatPercent(), getTrendArrow(), groupRecordsBySkill(), health, horizontalBar(), panelBox(), renderAmendmentPanel() (+58 more)
+Cohesion: 0.08
+Nodes (49): bucketByDay(), formatPercent(), getTrendArrow(), groupRecordsBySkill(), health, horizontalBar(), panelBox(), renderAmendmentPanel() (+41 more)
 
 ### Community 51 - "infrastructure-charts.tsx"
-Cohesion: 0.03
-Nodes (87): CatalogPageResponse, CatalogState, ease, EmptyState(), EmptyStateProps, fetchCatalogPage(), fingerprintOf(), labelOf() (+79 more)
+Cohesion: 0.08
+Nodes (25): CustomerSignInLink(), ContactCta(), ContactCtaProps, ArtifactButton(), artifactButtonClasses(), ArtifactLink(), ButtonContent(), ButtonProps (+17 more)
 
 ### Community 52 - "bar-squares.tsx"
-Cohesion: 0.07
-Nodes (49): Axes and grid, Chart Composition, Correct, Data shape, Docs, Incorrect, Multi-series charts, Root + children (+41 more)
+Cohesion: 0.05
+Nodes (61): Axes and grid, Chart Composition, Correct, Data shape, Docs, Incorrect, Multi-series charts, Root + children (+53 more)
 
 ### Community 53 - "storefront-copy-fields.ts"
-Cohesion: 0.04
-Nodes (91): actions/storefront-copy.ts, readContactEmails(), readFooterColumn(), readFooterLinksPayload(), readHeaderNavPayload(), readJsonField(), saveStorefrontCopyAction(), StorefrontCopyActionState (+83 more)
+Cohesion: 0.02
+Nodes (163): actions/storefront-copy.ts, readContactEmails(), readFooterColumn(), readFooterLinksPayload(), readHeaderNavPayload(), readJsonField(), saveStorefrontCopyAction(), StorefrontCopyActionState (+155 more)
 
 ### Community 54 - "ref_fs"
 Cohesion: 0.05
-Nodes (56): contextDirPath, projects, resolved, resolved, cargo, claudeMd, gitConfig, goMod (+48 more)
+Nodes (61): describeMissingDependencyError(), fs, path, RUNTIME_DEPENDENCY_VERSIONS, TRACKED_DEPENDENCIES, contextDirPath, projects, resolved (+53 more)
 
 ### Community 55 - "init"
-Cohesion: 0.05
-Nodes (42): cursorForInsertAxis(), ensureInsertLine(), handleMouseMove(), hideHighlightTagTooltip(), init(), initHighlight(), setPageInteractionCursor(), shouldShowHighlightTagTooltip() (+34 more)
+Cohesion: 0.09
+Nodes (36): agentStatusText(), barPaletteForTheme(), brandMarkSvg(), designPanelCss(), detectPageTheme(), ensureAgentPollTooltip(), hideAgentPollTooltip(), init() (+28 more)
 
 ### Community 56 - "modern-screenshot.umd.js"
 Cohesion: 0.03
-Nodes (90): applyCatalogConflictResolution(), CatalogConflictApplyEntryInput, CatalogConflictApplyEntryResult, CatalogConflictApplyOutcome, CatalogConflictApplyScope, CatalogConflictPreview, ExcludedCatalogConflictEntry, isEmptyValue() (+82 more)
+Nodes (89): applyCatalogConflictResolution(), CatalogConflictApplyEntryInput, CatalogConflictApplyEntryResult, CatalogConflictApplyOutcome, CatalogConflictApplyScope, CatalogConflictPreview, ExcludedCatalogConflictEntry, isEmptyValue() (+81 more)
 
 ### Community 57 - "shopify-category-field.tsx"
-Cohesion: 0.09
-Nodes (36): actions/taxonomy.ts, getShopifyCategoryAttributesAction(), searchShopifyTaxonomyCategoriesAction(), ShopifyTaxonomyAttributesResult, ShopifyTaxonomySearchResult, actions/__tests__/taxonomy.test.ts, mocks, ShopifyCategoryAttributes() (+28 more)
+Cohesion: 0.05
+Nodes (68): Media tab, applyCatalogConflictResolution(), CatalogConflictApplyEntryInput, CatalogConflictApplyEntryResult, CatalogConflictApplyOutcome, CatalogConflictPreview, ExcludedCatalogConflictEntry, isEmptyValue() (+60 more)
 
 ### Community 58 - "store.js"
 Cohesion: 0.11
@@ -2981,40 +3037,40 @@ Cohesion: 0.07
 Nodes (30): Acceptance test matrix, Application changes, Application changes (cancel / return), Buy again, Buy-again failure policy, Cancel items, Current state, Definition of done (+22 more)
 
 ### Community 65 - "header-nav.ts"
-Cohesion: 0.04
-Nodes (146): generateMetadata(), Page(), generateMetadata(), mocks, generateMetadata(), Props, Props, generateMetadata() (+138 more)
+Cohesion: 0.03
+Nodes (160): generateMetadata(), Page(), mocks, generateMetadata(), Props, generateMetadata(), Props, CarePage() (+152 more)
 
 ### Community 66 - "accessibility.mdx"
 Cohesion: 0.06
 Nodes (33): 1. Semantic HTML First, 2. Keyboard Navigation, 3. Screen Reader Support, 4. Visual Accessibility, ARIA Patterns, Color and Contrast, Color Independence, Common ARIA Attributes (+25 more)
 
 ### Community 67 - "app/layout.tsx"
-Cohesion: 0.03
-Nodes (83): app/layout.tsx, RootLayout(), sans, serif, siteUrl, viewport, [locale]/layout.tsx, dynamic (+75 more)
+Cohesion: 0.09
+Nodes (18): robots(), sitemap(), withLocales(), allowNonProductionAnalytics(), DeploymentEnvironmentSource, isProductionDeployment(), buildOrganizationJsonLd(), ORGANIZATION_DESCRIPTION (+10 more)
 
 ### Community 68 - "Design Engineering"
 Cohesion: 0.05
-Nodes (39): emil-design-eng/SKILL.md, 1. Should this animate at all?, 2. What is the purpose?, 3. What easing should it use?, 3D transforms for depth, 4. How fast should it be?, Accessibility, Asymmetric enter/exit timing (+31 more)
+Nodes (41): emil-design-eng/SKILL.md, Accessibility, Animate enter states with @starting-style, Asymmetric enter/exit timing, Beauty is leverage, Buttons must feel responsive, Cohesion matters, Component Building Principles (+33 more)
 
 ### Community 69 - "memory-vault.js"
 Cohesion: 0.08
 Nodes (62): assertMemoryDirectorySafe(), assertMemoryMatchesLocation(), assertMemoryRootSafe(), { assertWithinTrustedRoot, realpathNearestExisting }, buildExcerpt(), countOccurrences(), crypto, DEFAULT_RECALL_SCOPES (+54 more)
 
 ### Community 70 - "resolveLiveInjectionAnchor"
-Cohesion: 0.04
-Nodes (93): saveProductAction(), isShopifyOwnedCharacteristicKey(), SHOPIFY_OWNED_CHARACTERISTIC_KEYS, ALWAYS_FROM_CURRENT, buildScopedProductFormData(), copyEntry(), DETAILS_LOCALE, DETAILS_LOCALE_PREFIXES (+85 more)
+Cohesion: 0.02
+Nodes (176): saveProductAction(), BOOLEAN_LABELS, buildProductSearchDocument(), CHARACTERISTIC_GROUP_LABEL_TRANSLATIONS, CHARACTERISTIC_LABEL_TRANSLATIONS, CHARACTERISTIC_UNIT_TRANSLATIONS, characteristicDisplayValue(), characteristicGroupLabel() (+168 more)
 
 ### Community 71 - "privacy-consent-manager.tsx"
-Cohesion: 0.11
-Nodes (35): CookieSettingsPage(), ConsentToggle(), CookiePreferencesForm(), CookiePreferencesFormProps, CookieSettingsView(), save(), ConsentDestinations(), consentFromShopify() (+27 more)
+Cohesion: 0.07
+Nodes (61): CookieSettingsPage(), ConsentToggle(), CookiePreferencesForm(), CookiePreferencesFormProps, CookieSettingsView(), save(), ConsentDestinations(), consentFromShopify() (+53 more)
 
 ### Community 72 - "definitions.mdx"
 Cohesion: 0.06
 Nodes (31): 1.1 Primitive, 1.2 Component, 1.3 Pattern, 1.4 Block, 1.5 Page, 1.6 Template, 1.7 Utility (Non-visual), 1. Artifact Taxonomy (+23 more)
 
 ### Community 73 - "ownership-guard.js"
-Cohesion: 0.06
-Nodes (82): AccountActionState, updateAdminCredentialsAction(), getSavedProductPayload(), moveProductMediaAction(), assignProductSkuAction(), externalShopDomain(), loadProductForSku(), loadSkuAssignContext() (+74 more)
+Cohesion: 0.07
+Nodes (66): actions/__tests__/translation-sync.test.ts, mocks, actions/translation-sync.ts, resolveSyncTargetLocale(), retryTranslationSyncAction(), syncCollection(), syncProductNativeTranslation(), syncStorefrontLocalesAction() (+58 more)
 
 ### Community 74 - "re"
 Cohesion: 0.08
@@ -3022,15 +3078,15 @@ Nodes (52): .agents/skills/agent-self-evaluation/scripts/evaluate.py, AxisScore,
 
 ### Community 75 - "context-profile-native.js"
 Cohesion: 0.11
-Nodes (50): checkpoint(), command(), CONTROLS, crypto, currentStore(), { digestObject, stableStringify, validateSchema }, { discoverSync }, environment() (+42 more)
+Nodes (51): checkpoint(), command(), CONTROLS, crypto, currentStore(), { digestObject, stableStringify, validateSchema }, { discoverSync }, environment() (+43 more)
 
 ### Community 76 - "editorial-translation-sync.ts"
-Cohesion: 0.12
-Nodes (29): HomeLexiconMaterialFields, HomeLexiconSectionFields, lexiconMaterialAppearsOnStorefront(), lexiconMaterialStorefrontCaption(), optionalTrimmed(), ResolvedLexiconMaterial, resolveLexiconMaterials(), resolveLexiconNoteLabel() (+21 more)
+Cohesion: 0.17
+Nodes (22): mergeLocalizedLegalSections(), blankUntranslatedShopPageCopy(), hasContent(), pages/localization.ts, blankUntranslatedCatalogHeading(), blankUntranslatedCollectionsCopy(), CATALOG_HEADING_KEYS, COLLECTIONS_DICTIONARY_FALLBACK_KEYS (+14 more)
 
 ### Community 77 - "commerce-field-apply.ts"
-Cohesion: 0.02
-Nodes (121): AccountPageActionState, saveAccountPageAction(), CommerceCopyActionState, saveCommerceCopyAction(), AdminCommercePage(), getAccountOrdersSettings, ACCOUNT_PAGE_AREAS, ACCOUNT_PAGE_GROUPS (+113 more)
+Cohesion: 0.05
+Nodes (60): AccountPageActionState, saveAccountPageAction(), CommerceCopyActionState, AdminCommercePage(), ACCOUNT_PAGE_AREAS, ACCOUNT_PAGE_GROUPS, ACCOUNT_PAGE_KEYS, ACCOUNT_PAGE_RICH_TEXT_KEYS (+52 more)
 
 ### Community 78 - "polymorphism.mdx"
 Cohesion: 0.07
@@ -3038,19 +3094,19 @@ Nodes (29): 1. Default to Semantic Elements, 1. Semantic HTML Flexibility, 2. Co
 
 ### Community 79 - "adapt.md"
 Cohesion: 0.02
-Nodes (172): CollectionOrderActionState, reorderCollectionProductAction(), reorderSchema, getSavedCategoryPayload(), SavedCategoryPayload, autosaveCollectionDraftAction(), collectionFieldsSchema, deleteCollectionAction() (+164 more)
+Nodes (156): CollectionOrderActionState, reorderCollectionProductAction(), reorderSchema, getSavedCategoryPayload(), SavedCategoryPayload, autosaveCollectionDraftAction(), collectionFieldsSchema, deleteCollectionAction() (+148 more)
 
 ### Community 80 - "capsule.js"
-Cohesion: 0.06
-Nodes (48): assignVariantSku(), AssignVariantSkuDeps, AssignVariantSkuInput, AssignVariantSkuResult, ConfirmPendingAfterPushInput, confirmPendingSkuAfterShopifyWrite(), confirmReservation(), pickVariant() (+40 more)
+Cohesion: 0.04
+Nodes (84): assignProductSkuAction(), externalShopDomain(), loadProductForSku(), loadSkuAssignContext(), previewProductSkuAction(), resumePendingSkuAction(), rewriteShopifyInventPlaceholders(), scheduleSkuAssignConflictCheck() (+76 more)
 
 ### Community 81 - "product-editor-scope.ts"
-Cohesion: 0.02
-Nodes (140): removeWorkingSnapshotMediaAction(), displayNamesFromCategoryReference(), extractSimpleTextCharacteristicSeeds(), COLLECTION_TRANSLATION_KEYS, collectionTranslationSnapshot(), fetchCollectionTranslation(), fetchCollectionTranslationIndex(), ShopifyCollectionTranslationCopy (+132 more)
+Cohesion: 0.08
+Nodes (41): COLLECTION_TRANSLATION_KEYS, collectionTranslationSnapshot(), fetchCollectionTranslation(), fetchCollectionTranslationIndex(), registerCollectionTranslation(), ShopifyCollectionTranslationCopy, ShopifyCollectionTranslationSnapshot, fetchPageTranslation() (+33 more)
 
 ### Community 82 - "footer-links-fields.ts"
 Cohesion: 0.04
-Nodes (85): mocks, request, mocks, request, mocks, equalSecret(), GET(), loginError() (+77 more)
+Nodes (92): mocks, request, mocks, request, mocks, mocks, equalSecret(), GET() (+84 more)
 
 ### Community 83 - "scripts"
 Cohesion: 0.07
@@ -3062,7 +3118,7 @@ Nodes (110): ComplianceResult, ComplianceSpec, int, ObservationEvent, str, Compl
 
 ### Community 85 - "dependencies"
 Cohesion: 0.07
-Nodes (28): dependencies, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, clsx, d3-array, d3-shape, lucide-react, motion (+20 more)
+Nodes (29): dependencies, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, clsx, d3-array, d3-shape, lucide-react, motion (+21 more)
 
 ### Community 86 - "github-coordination/actions.js"
 Cohesion: 0.15
@@ -3095,15 +3151,15 @@ Nodes (49): .agents/skills/security-review/SKILL.md, 10. Dependency Security, 1.
 
 ### Community 91 - "admin-nav-config.ts"
 Cohesion: 0.06
-Nodes (68): (admin)/layout.tsx, AdminLayout(), adminHrefMatches(), adminHrefUnder(), AdminNavBadgeConfig, AdminNavChildConfig, AdminNavItemConfig, AdminNavPageRef (+60 more)
+Nodes (65): (admin)/layout.tsx, AdminLayout(), adminHrefMatches(), adminHrefUnder(), AdminNavBadgeConfig, AdminNavChildConfig, AdminNavItemConfig, AdminNavPageRef (+57 more)
 
 ### Community 92 - "charts/client.ts"
-Cohesion: 0.03
-Nodes (54): CustomerSignInLink(), cmsImageAltOrFallback(), resolveCmsImageAlt(), ServicePage(), ServicePageProps, ServiceSection, ContactCta(), ContactCtaProps (+46 more)
+Cohesion: 0.02
+Nodes (94): LookbookSection(), AuthShell(), AuthShellProps, AuthSubmitButton(), AuthSubmitButtonProps, CustomerSignInLink(), cmsImageAltOrFallback(), resolveCmsImageAlt() (+86 more)
 
 ### Community 93 - "locales.ts"
 Cohesion: 0.02
-Nodes (120): ACTIONS, ADOPTABLE_SESSION_PHASES, annotLastPinClick, annotState, apply(), applyGlobalBarLabelState(), applyPlaceholderDimensions(), applyPlaceholderSizingStyles() (+112 more)
+Nodes (117): ACTIONS, ADOPTABLE_SESSION_PHASES, annotLastPinClick, annotState, apply(), applyPlaceholderDimensions(), applyPlaceholderSizingStyles(), averageRgb01() (+109 more)
 
 ### Community 94 - "Security Checklist"
 Cohesion: 0.04
@@ -3118,16 +3174,16 @@ Cohesion: 0.08
 Nodes (24): 10. Отсутствует Content-Security-Policy, 11. XSS через JSON-LD, 12. Смена пароля админа не инвалидирует сессии, 13. Rate-limit хранится в памяти процесса, 14. Прочее, 1. Токен сброса пароля отдаётся тому, кто его запросил → полный захват любого аккаунта, 2. Заказ помечается «оплаченным» без реальной проверки платежа, 3. Первый зарегистрированный пользователь автоматически становится админом (+16 more)
 
 ### Community 97 - "live.md"
-Cohesion: 0.08
-Nodes (22): Apply at system scale, Audit before choosing, Choose a strategy, Contrast and perception, Live-mode signature params, Verify, Visitor mode, Cleanup (+14 more)
+Cohesion: 0.06
+Nodes (46): BUILT_IN_SITEMAP_SLUGS, RouteEntry, POST(), appendBuyAgainNoticeCookie(), appendBuyAgainReplayCookie(), buyAgainCookieOptions(), BuyAgainNotice, BuyAgainOutcomeCode (+38 more)
 
 ### Community 98 - "context-selection.js"
-Cohesion: 0.09
-Nodes (34): loadSkillTriggers(), isolatedEnvironment(), launchTaskContext(), path, { resolveTaskContext }, { spawnSync }, addFeature(), buildRetrievalIndex() (+26 more)
+Cohesion: 0.31
+Nodes (12): addFeature(), buildRetrievalIndex(), denseVector(), dot(), FIELD_WEIGHTS, fieldTokens(), hash32(), normalizedName() (+4 more)
 
 ### Community 99 - "factories.ts"
-Cohesion: 0.14
-Nodes (10): Фаза 1 — инфраструктура e2e ✅ **выполнено 2026-09-08**, ADMIN_STORAGE_STATE_PATH, loginAsAdmin(), suppressPrivacyBanner(), support/env.ts, adminCredentials, hasShopifySandbox(), readEnvValue() (+2 more)
+Cohesion: 0.32
+Nodes (10): Фаза 1 — инфраструктура e2e ✅ **выполнено 2026-09-08**, ADMIN_STORAGE_STATE_PATH, hasAdminCredentials(), loginAsAdmin(), suppressPrivacyBanner(), support/env.ts, adminCredentials, hasShopifySandbox() (+2 more)
 
 ### Community 100 - "Python Development Patterns"
 Cohesion: 0.04
@@ -3154,8 +3210,8 @@ Cohesion: 0.04
 Nodes (48): .agents/skills/git-workflow/SKILL.md, Anti-Patterns, Branch Cleanup, Branch Management, Branching Strategies, Changelog Generation, Code Review Checklist, Commit Message Template (+40 more)
 
 ### Community 107 - "refreshPreservingScroll"
-Cohesion: 0.08
-Nodes (45): resolveHookConsentFlags(), addSyntheticSkillComponents(), assertKnownModuleIds(), COMPONENT_FAMILY_PREFIXES, dedupeStrings(), DEFAULT_REPO_ROOT, expandComponentIdsToModuleIds(), fs (+37 more)
+Cohesion: 0.04
+Nodes (47): formatCollectionEyebrow(), SHIPPED_COLLECTION_LABEL, shippedCollectionEyebrowLabel(), a11y, skip, cookieSettings, backToPrivacy, metaDescription (+39 more)
 
 ### Community 108 - "Git Workflow Patterns"
 Cohesion: 0.04
@@ -3166,8 +3222,8 @@ Cohesion: 0.17
 Nodes (18): LegalContentsSection, LegalSectionScroll(), onHashChange(), scrollToHash(), prefersReducedMotion(), rootFontSizePx(), scrollMarginTopPx(), activeLegalSectionId() (+10 more)
 
 ### Community 110 - "meta-health.ts"
-Cohesion: 0.03
-Nodes (113): actions/site-seo.ts, saveSiteSeoAction(), SiteSeoActionState, meta/page.tsx, AdminMetaPage(), CheckRow(), CoverageCard(), ImageAltCoverageCard() (+105 more)
+Cohesion: 0.11
+Nodes (33): meta/page.tsx, AdminMetaPage(), CheckRow(), CoverageCard(), ImageAltCoverageCard(), MetaHealthPanel(), TONE_ICON, TONE_LABEL (+25 more)
 
 ### Community 111 - "Apple Design"
 Cohesion: 0.09
@@ -3178,8 +3234,8 @@ Cohesion: 0.09
 Nodes (22): ux-research-designer/SKILL.md, Interview Question Types, Journey Map Quality, Knowledge Base, Persona Confidence Levels, persona_generator.py, Persona Quality, Quick Reference Tables (+14 more)
 
 ### Community 113 - "content/site-seo.ts"
-Cohesion: 0.07
-Nodes (41): buy-again-notice/route.ts, dynamic, POST(), runtime, [permalink]/route.ts, cartRedirect(), dynamic, GET() (+33 more)
+Cohesion: 0.08
+Nodes (37): buy-again-notice/route.ts, dynamic, POST(), runtime, CartPage(), [permalink]/route.ts, cartRedirect(), dynamic (+29 more)
 
 ### Community 114 - "Тест-кейсы для ручного тестирования админ-панели Synarava"
 Cohesion: 0.10
@@ -3190,15 +3246,15 @@ Cohesion: 0.10
 Nodes (20): Benefits of Component Marketplaces, Built-in Audience, Challenges of Marketplaces, Community Feedback, Competition and Visibility, Curated Discovery, Discovery Paradox, Distribution Without Infrastructure (+12 more)
 
 ### Community 116 - "@playwright/test"
-Cohesion: 0.02
-Nodes (142): readContactEmails(), readFooterColumn(), readFooterLinksPayload(), readHeaderNavPayload(), readJsonField(), saveStorefrontCopyAction(), StorefrontCopyActionState, normalizeCustomerCareContent() (+134 more)
+Cohesion: 0.03
+Nodes (94): readContactEmails(), readFooterColumn(), readFooterLinksPayload(), readHeaderNavPayload(), readJsonField(), saveStorefrontCopyAction(), StorefrontCopyActionState, resolveCollectionEyebrowLabel() (+86 more)
 
 ### Community 117 - "bash-hook-dispatcher.js"
-Cohesion: 0.04
-Nodes (77): path, run(), { spawnSync }, {
+Cohesion: 0.07
+Nodes (37): path, run(), { spawnSync }, {
   buildPreToolUseAdditionalContext,
   combineAdditionalContext,
-}, { isHookEnabled }, main(), normalizeHookResult(), POST_BASH_HOOKS (+69 more)
+}, { isHookEnabled }, main(), normalizeHookResult(), POST_BASH_HOOKS (+29 more)
 
 ### Community 118 - "Operate mode depth (and Read notes)"
 Cohesion: 0.22
@@ -3221,8 +3277,8 @@ Cohesion: 0.02
 Nodes (138): .agents/skills/delivery-gate/hooks/quality-gate.py, check_disk(), check_stale_libs(), count_edits(), get_project_memory_dir(), main(), check_disk(), check_stale_libs() (+130 more)
 
 ### Community 123 - "product-form-fields.tsx"
-Cohesion: 0.01
-Nodes (399): Content Structure, Root Components, Checklist before shipping admin form UI, Component map, Hard rules, Meaning of “общий / shared / library control”, Migration / “apply shared control” workflow, synarava-cms (+391 more)
+Cohesion: 0.02
+Nodes (224): Content Structure, Informational Components, Interactive Elements, Naming Conventions, Root Components, Checklist before shipping admin form UI, Component map, Hard rules (+216 more)
 
 ### Community 124 - "loading-sweep.tsx"
 Cohesion: 0.17
@@ -3233,28 +3289,28 @@ Cohesion: 0.10
 Nodes (20): Cleanup results (post-execute), Data integrity, Infrastructure audit — Postgres + Railway Bucket, M10 — `uploads/pages/`, M1 — `MediaAsset` without primary / ProductMedia / hero / cover, M2 / M3 / M4 — bucket ↔ DB alignment, M5 — Product / variant / collection URLs, M5a — Product (+12 more)
 
 ### Community 126 - "AGENTS.md"
-Cohesion: 0.10
-Nodes (20): Design and performance, Documentation hygiene, ECC (Everything Claude Code), Filesystem boundary, graphify, Protected environment files, Ship finished work (staging → main), Shopify commerce model (+12 more)
+Cohesion: 0.09
+Nodes (21): Design and performance, Documentation hygiene, ECC (Everything Claude Code), Filesystem boundary, graphify, Protected environment files, Ship finished work (staging → main), Shopify commerce model (+13 more)
 
 ### Community 127 - "Component identification with data-slot"
 Cohesion: 0.10
 Nodes (19): Benefits of data-slot, Benefits of this approach, Combined approach, Common state patterns, Component identification with data-slot, `data-slot` use cases, `data-state` use cases, Global CSS with data-slot (+11 more)
 
 ### Community 128 - "headers"
-Cohesion: 0.11
-Nodes (18): append-arrays, append-string, Config drift, Consent prompt (use this phrasing), CSP detection (first-time only), Troubleshooting, Write the config, Basic Usage (+10 more)
+Cohesion: 0.07
+Nodes (29): append-arrays, append-string, Config drift, Consent prompt (use this phrasing), CSP detection (first-time only), Troubleshooting, Write the config, Basic Usage (+21 more)
 
 ### Community 129 - "ShopifyAdminError"
-Cohesion: 0.03
-Nodes (145): actions/product-organization.ts, KINDS, listShopifyProductOrganizationAction(), ShopifyProductOrganizationResult, AdminTextFieldProps, ShopifyOrganizationSuggestField(), content/product-reviews.ts, getCustomerProductReviews() (+137 more)
+Cohesion: 0.05
+Nodes (71): AccessTokenResponse, AdminResponse, CachedAccessToken, EDITORIAL_METAOBJECT_SCOPES, getShopifyAdminAccessToken(), getShopifyAdminConfig(), GraphQLError, LOCALE_READ_SCOPES (+63 more)
 
 ### Community 130 - "ref_node_crypto"
-Cohesion: 0.08
-Nodes (53): cancelled/route.ts, POST(), runtime, paid/route.ts, POST(), runtime, paid/__tests__/route.test.ts, mocks (+45 more)
+Cohesion: 0.06
+Nodes (62): cancelled/route.ts, POST(), runtime, paid/route.ts, POST(), runtime, paid/__tests__/route.test.ts, mocks (+54 more)
 
 ### Community 131 - "stop-format-typecheck.js"
-Cohesion: 0.05
-Nodes (51): CRITICAL — Security, CRITICAL — Security, CRITICAL -- Security, { execFileSync, spawnSync }, { findProjectRoot, detectFormatter, resolveFormatterBin }, path, run(), exec() (+43 more)
+Cohesion: 0.04
+Nodes (68): CRITICAL — Security, CRITICAL — Security, CRITICAL -- Security, { execFileSync, spawnSync }, { findProjectRoot, detectFormatter, resolveFormatterBin }, path, run(), { execFileSync } (+60 more)
 
 ### Community 132 - "Руководство по админ-панели Synarava"
 Cohesion: 0.10
@@ -3270,7 +3326,7 @@ Nodes (45): .cursor/.agents/skills/tdd-workflow/SKILL.md, 1. Tests BEFORE Code, 
 
 ### Community 135 - "Better Auth Integration Guide"
 Cohesion: 0.11
-Nodes (18): better-auth-best-practices/SKILL.md, Better Auth Integration Guide, CLI Commands, Client, Common Gotchas, Core Config Options, Database, Email Flows (+10 more)
+Nodes (19): better-auth-best-practices/SKILL.md, Better Auth Integration Guide, CLI Commands, Client, Common Gotchas, Core Config Options, Database, Email Flows (+11 more)
 
 ### Community 136 - "Natural Transitions"
 Cohesion: 0.11
@@ -3281,16 +3337,16 @@ Cohesion: 0.11
 Nodes (18): Avoid Duplicate Fetches, Basic OG Image, Custom Fonts, Dynamic Metadata, Dynamic OG Image, File Naming, Important Rules, Important: Server Components Only (+10 more)
 
 ### Community 138 - "translations.ts"
-Cohesion: 0.16
-Nodes (13): updateActiveTranslation(), locale(), signInHref(), FailedSave, meta, Story, SuccessfulSave, WishlistDemo() (+5 more)
+Cohesion: 0.29
+Nodes (7): FailedSave, meta, Story, SuccessfulSave, WishlistDemo(), WishlistHeartButton(), handleClick()
 
 ### Community 139 - "components.json"
-Cohesion: 0.06
-Nodes (39): buildSvelteExpressionTextMap(), buildSveltePropValuesFromLiveElement(), buildSveltePropValuesV2(), cloneWithoutElements(), collectTextNodes(), collectVisibleTexts(), cssEscapeIdent(), elementMatchesOriginalMarkup() (+31 more)
+Cohesion: 0.09
+Nodes (21): cssEscapeIdent(), maybeWarnConditionalAncestor(), aliases, components, hooks, lib, ui, utils (+13 more)
 
 ### Community 140 - "product-facts.ts"
-Cohesion: 0.03
-Nodes (143): AccountPageEditor(), ProductActionState, ProductMediaActionState, SavedProductPayload, publishSkuPolicyAction(), saveSkuPolicyDraftAction(), SkuPolicyActionState, SkuPolicyEditorPayload (+135 more)
+Cohesion: 0.02
+Nodes (166): SavedTagPayload, parseProductDetails(), conflictLocalesFromCommerce(), conflictSectionsFromDifferences(), productEditorSectionForCommerceDiff(), productEditorSectionForConflictField(), ALL_SECTIONS, EditProductForm() (+158 more)
 
 ### Community 141 - "adapter.js"
 Cohesion: 0.08
@@ -3301,8 +3357,8 @@ Cohesion: 0.08
 Nodes (22): tasks/plan.md, Capability map и порядок сборки, Definition of Done, Open questions — решено 2026-09-19, Persistence и миграция, Pull и конфликты, Shopify resource mapping, Storefront verification (+14 more)
 
 ### Community 143 - "assertWithinTrustedRoot"
-Cohesion: 0.05
-Nodes (80): { assertWithinTrustedRoot }, cleanupLegacyAntigravityInstall(), cleanupResult(), crypto, fs, getExpectedLegacyDestination(), getLegacyAntigravityLocation(), getLegacyLocationForPlan() (+72 more)
+Cohesion: 0.04
+Nodes (92): crypto, fs, path, { assertWithinTrustedRoot }, cleanupLegacyAntigravityInstall(), cleanupResult(), crypto, fs (+84 more)
 
 ### Community 144 - "compilerOptions"
 Cohesion: 0.11
@@ -3317,8 +3373,8 @@ Cohesion: 0.21
 Nodes (15): createLiveBrowserSessionState(), clearHandled(), clearScrollY(), clearSession(), isHandled(), loadSession(), markHandled(), nextCheckpointRevision() (+7 more)
 
 ### Community 147 - "s3.ts"
-Cohesion: 0.10
-Nodes (34): createSkuStoreRuntime(), SkuStoreRuntime, assertProfileConfig(), isDomainError(), createMemorySkuRegistryStore(), MutableCursor, MutableProfile, MutableWorkspace (+26 more)
+Cohesion: 0.09
+Nodes (37): createSkuStoreRuntime(), SkuStoreRuntime, assertProfileConfig(), isDomainError(), createMemorySkuRegistryStore(), MutableCursor, MutableProfile, MutableWorkspace (+29 more)
 
 ### Community 148 - "[locale]/layout.tsx"
 Cohesion: 0.22
@@ -3329,22 +3385,22 @@ Cohesion: 0.11
 Nodes (18): taste-design/SKILL.md, 1. Define the Atmosphere, 2. Map the Color Palette, 3. Establish Typography Rules, 4. Define the Hero Section, 5. Describe Component Stylings, 6. Define Layout Principles, 8. Encode Motion Philosophy (+10 more)
 
 ### Community 150 - "telemetry/client.ts"
-Cohesion: 0.03
-Nodes (126): main(), content, EXCLUDED_PATTERNS, files, fs, { isGitRepo, getGitModifiedFiles, readFile, log }, fs, {
+Cohesion: 0.05
+Nodes (62): content, EXCLUDED_PATTERNS, files, fs, { isGitRepo, getGitModifiedFiles, readFile, log }, fs, {
   getLearnedSkillsDir,
   ensureDir,
   readFile,
   countInFile,
   log
-} (+118 more)
+}, main() (+54 more)
 
 ### Community 151 - "block-no-verify.js"
-Cohesion: 0.08
-Nodes (53): assignmentValues(), basename(), checkCommand(), enqueue(), inspectOpaque(), checkGitWords(), commandRole(), COMMIT_OPTIONS_WITH_INLINE_VALUE (+45 more)
+Cohesion: 0.10
+Nodes (41): assignmentValues(), basename(), checkCommand(), enqueue(), inspectOpaque(), checkGitWords(), commandRole(), COMMIT_OPTIONS_WITH_INLINE_VALUE (+33 more)
 
 ### Community 152 - "posttooluse-dispatcher.js"
-Cohesion: 0.05
-Nodes (60): buildWarning(), CHECKLIST, detectSignals(), fs, GENERIC_SIGNALS, getFilePaths(), path, readContent() (+52 more)
+Cohesion: 0.09
+Nodes (32): appendLine(), ASYNC_HOOKS, buildDryRunPreview(), cli(), extractToolName(), getPluginRoot(), isEnabled(), { isHookEnabled } (+24 more)
 
 ### Community 153 - "registry.mdx"
 Cohesion: 0.12
@@ -3352,7 +3408,7 @@ Nodes (16): 1. Components, 1. Source Code Distribution, 2. A public endpoint, 2.
 
 ### Community 154 - "Handle `generate`"
 Cohesion: 0.03
-Nodes (115): SavedCollectionPayload, AdminDashboardPage(), AdminScrollSnapshot, cancelPreserveScrollTimers(), captureAdminScroll(), getAdminScrollRoot(), refreshPreservingScroll(), restoreAdminScroll() (+107 more)
+Nodes (145): AccountActionState, updateAdminCredentialsAction(), saveCollectionAction(), saveCommerceCopyAction(), SavedProductPayload, applyCatalogConflictResolutionAction(), applyCollectionConflictResolutionAction(), assertConfiguredShopifyStore() (+137 more)
 
 ### Community 155 - "SKILL: Industrial Brutalism & Tactical Telemetry UI"
 Cohesion: 0.12
@@ -3367,8 +3423,8 @@ Cohesion: 0.12
 Nodes (17): vercel-composition-patterns/AGENTS.md, 1.1 Avoid Boolean Prop Proliferation, 1.2 Use Compound Components, 1. Component Architecture, 2.1 Decouple State Management from UI, 2.2 Define Generic Context Interfaces for Dependency Injection, 2.3 Lift State into Provider Components, 2. State Management (+9 more)
 
 ### Community 158 - "control-pane/state.js"
-Cohesion: 0.12
-Nodes (43): control-pane/state.js, { buildControlPaneActions }, buildControlPaneSnapshot(), classifyAssignee(), connectorStatus(), deepMerge(), DEFAULT_STATE_STORE_RELATIVE_PATH, defaultConfigPaths() (+35 more)
+Cohesion: 0.13
+Nodes (42): control-pane/state.js, { buildControlPaneActions }, buildControlPaneSnapshot(), classifyAssignee(), connectorStatus(), deepMerge(), DEFAULT_STATE_STORE_RELATIVE_PATH, defaultConfigPaths() (+34 more)
 
 ### Community 159 - "Findings"
 Cohesion: 0.12
@@ -3379,8 +3435,8 @@ Cohesion: 0.15
 Nodes (17): ArrowIcon(), CloseIcon(), GalleryArrow(), galleryMedia(), GalleryProduct, ProductMediaGallery(), move(), select() (+9 more)
 
 ### Community 161 - "ChartTooltip"
-Cohesion: 0.05
-Nodes (40): Common peer dependencies, Docs, Import path, Install a chart, Installation, Prerequisites, Registry namespace, Verify project context (+32 more)
+Cohesion: 0.04
+Nodes (47): Animation, Correct, Defaults, Inspiration, Live charts, Performance, Reduced motion, Replay enter animations (+39 more)
 
 ### Community 162 - "Coding Standards & Best Practices"
 Cohesion: 0.05
@@ -3419,8 +3475,8 @@ Cohesion: 0.05
 Nodes (42): kotlin-testing/SKILL.md, Argument Capture, Basic Mocking, BeforeTest / AfterTest, BehaviorSpec (BDD Style), Best Practices, Core Matchers, Coroutine Mocking (+34 more)
 
 ### Community 171 - "Next.js Best Practices"
-Cohesion: 0.12
-Nodes (16): Bundling, Data Patterns, Debug Tricks, Directives, File Conventions, Font Optimization, Hydration Errors, Image Optimization (+8 more)
+Cohesion: 0.10
+Nodes (29): Server Actions: Navigation API Gotcha, Navigation Hooks (Client), Bundling, Data Patterns, Debug Tricks, Directives, Error Handling, File Conventions (+21 more)
 
 ### Community 172 - "Vue.js Patterns and Best Practices"
 Cohesion: 0.05
@@ -3450,7 +3506,7 @@ Nodes (16): Admin and Shopify catalog refactor — September 2026, Admin compone
 
 ### Community 177 - "building-components/SKILL.md"
 Cohesion: 0.13
-Nodes (13): Accessible by Default, Composability and Reusability, Customizability and Theming, Lightweight and Performant, Transparency and Code Ownership, Well-documented and DX-Friendly, Controlled State, Merging states (+5 more)
+Nodes (13): 1. Root Component, 2. Item Component, 3. Trigger Component, 4. Content Component, 5. Putting it all together, Making a component composable, Controlled State, Merging states (+5 more)
 
 ### Community 178 - "Content Strategy"
 Cohesion: 0.13
@@ -3485,12 +3541,12 @@ Nodes (39): {
 }, openFailure(), projectCanonicalInstallState(), reconcileCanonicalInstallStates(), withStateStore(), applyMultiHarnessPlan(), applyPreflightedManagedPlan(), assertInstallStateUnchanged() (+31 more)
 
 ### Community 185 - "ui/index.ts"
-Cohesion: 0.19
-Nodes (9): charts/animation.ts, clipRevealTransition(), DEFAULT_ANIMATION_DURATION_MS, DEFAULT_ANIMATION_EASING, DEFAULT_CHART_ENTER_TRANSITION, ChartRevealClip(), ChartRevealClipMode, ChartRevealClipProps (+1 more)
+Cohesion: 0.24
+Nodes (8): charts/animation.ts, clipRevealTransition(), DEFAULT_ANIMATION_DURATION_MS, DEFAULT_ANIMATION_EASING, DEFAULT_CHART_ENTER_TRANSITION, ChartRevealClip(), ChartRevealClipMode, ChartRevealClipProps
 
 ### Community 186 - "cart.ts"
 Cohesion: 0.04
-Nodes (81): Page(), LegacyArtifactRedirect(), cart/actions.ts, addToCartAction(), addToCartSchema, CartItemActionState, cartItemSchema, currentLineQuantity() (+73 more)
+Nodes (80): items/route.ts, POST(), cart/actions.ts, addToCartAction(), addToCartSchema, CartItemActionState, cartItemSchema, currentLineQuantity() (+72 more)
 
 ### Community 187 - "Deploy Checklist — Synarava Jewelry"
 Cohesion: 0.13
@@ -3549,27 +3605,24 @@ Cohesion: 0.05
 Nodes (39): .cursor/.agents/skills/ecc-conventions/SKILL.md, Add Cross Harness Skill Copies, Add Language Rules, Add New Agent, Add New Skill, Add New Workflow Surface, Add Or Update Hook, Address Review Feedback (+31 more)
 
 ### Community 201 - "order-status.ts"
-Cohesion: 0.03
-Nodes (96): {
-  appendSessionCostRow,
-  warnSessionCostSnapshotFailure
-}, { ensureDir, getClaudeDir }, fs, getRates(), harnessCost, isSonnet5(), metricsDir, normalizeUsageTotals() (+88 more)
+Cohesion: 0.06
+Nodes (44): costWarningsEnabled(), crypto, detectLoop(), evaluateConditions(), fs, getWarnPath(), isEnabledEnv(), os (+36 more)
 
 ### Community 202 - "session-activity-tracker.js"
-Cohesion: 0.12
-Nodes (37): actionForFileKey(), {
+Cohesion: 0.11
+Nodes (38): actionForFileKey(), {
   appendFile,
   getClaudeDir,
   stripAnsi,
-}, buildActivityRow(), buildCreationPreview(), buildDiffPreviewFromPatchPreview(), buildPatchPreviewFromContent(), buildPatchPreviewFromReplacement(), buildReplacementPreview() (+29 more)
+}, buildActivityRow(), buildCreationPreview(), buildDiffPreviewFromPatchPreview(), buildPatchPreviewFromContent(), buildPatchPreviewFromReplacement(), buildReplacementPreview() (+30 more)
 
 ### Community 203 - "document.md"
-Cohesion: 0.15
-Nodes (13): Component translation rules, Narrative mapping, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Step 1: Find the design assets, Step 2: Auto-extract what can be auto-extracted, Step 2b: Stage the frontmatter, Step 3: Ask the user for qualitative language (+5 more)
+Cohesion: 0.08
+Nodes (23): Component translation rules, Narrative mapping, Pitfalls, Scan mode (approach C: auto-extract, then confirm descriptive language), Schema, Seed mode, Step 1: Find the design assets, Step 1: Route through new-work's workshop (+15 more)
 
 ### Community 204 - "opencode-install-lock.js"
-Cohesion: 0.11
-Nodes (35): acquiredLockIdentities, acquireSettingsLock(), createSettingsLock(), crypto, fs, getSettingsLockIdentity(), inspectSettingsLock(), path (+27 more)
+Cohesion: 0.10
+Nodes (36): acquiredLockIdentities, acquireSettingsLock(), createSettingsLock(), crypto, fs, getSettingsLockIdentity(), inspectSettingsLock(), path (+28 more)
 
 ### Community 205 - "Security best practices"
 Cohesion: 0.15
@@ -3580,16 +3633,16 @@ Cohesion: 0.17
 Nodes (11): Accessibility Resilience, Assess Hardening Needs, Edge Cases & Boundary Conditions, Error Handling, Hardening Dimensions, Input Validation & Sanitization, Internationalization (i18n), Performance Resilience (+3 more)
 
 ### Community 207 - "footer-contact.ts"
-Cohesion: 0.05
-Nodes (81): offer/page.tsx, OfferPage(), privacy/page.tsx, PrivacyPage(), enFlat, mocks, ruFlat, privacy/__tests__/page.test.tsx (+73 more)
+Cohesion: 0.13
+Nodes (20): defaultFooter, defaultHeaderNav, EN_PT_LOCALES, mocks, CUSTOMER_CARE_EMAIL, normalizeCustomerCareContent(), replaceLegacyCustomerCareEmail(), cleanFooterContactEmails() (+12 more)
 
 ### Community 208 - "queries.js"
 Cohesion: 0.09
 Nodes (28): ACTIVE_SESSION_STATES, { assertValidEntity }, ATTENTION_WORK_ITEM_STATUSES, classifyOutcome(), classifyWorkItemStatus(), CLOSED_WORK_ITEM_STATUSES, createQueryApi(), getSessionById() (+20 more)
 
 ### Community 209 - "ref_server_only"
-Cohesion: 0.02
-Nodes (211): actions/__tests__/translation-sync.test.ts, mocks, actions/translation-sync.ts, resolveSyncTargetLocale(), retryTranslationSyncAction(), syncCollection(), syncProductNativeTranslation(), TranslationOverviewEntity (+203 more)
+Cohesion: 0.06
+Nodes (68): collections/localization.ts, collectionLocaleReadiness(), CollectionLocalizedCopy, CollectionTranslationRecord, findCollectionTranslation(), LocalizableCollection, resolveCollectionCopy(), sourceCopy() (+60 more)
 
 ### Community 210 - "Contributor Covenant Code of Conduct"
 Cohesion: 0.15
@@ -3597,7 +3650,7 @@ Nodes (12): 1. Correction, 2. Warning, 3. Temporary Ban, 4. Permanent Ban, Attri
 
 ### Community 211 - "Making a component composable"
 Cohesion: 0.03
-Nodes (79): { createInstallTargetAdapter }, {
+Nodes (82): { createInstallTargetAdapter }, {
   createFlatRuleOperations,
   createInstallTargetAdapter,
   createManagedOperation,
@@ -3610,7 +3663,7 @@ Nodes (79): { createInstallTargetAdapter }, {
   isForeignPlatformPath,
   normalizeRelativePath,
   planClaudeHooksOperations,
-}, path (+71 more)
+}, path (+74 more)
 
 ### Community 212 - "Essential Documentation Sections"
 Cohesion: 0.17
@@ -3661,8 +3714,8 @@ Cohesion: 0.04
 Nodes (89): buildOurCommerceStore(), compareCommerceStores(), compareEntityMap(), fetchShopifyCommerceStore(), patchOurCollectionWindow(), patchOurProductWindow(), persistComparedCommerceStores(), refreshCommerceSyncStore() (+81 more)
 
 ### Community 224 - "deploy"
-Cohesion: 0.07
-Nodes (27): el, el, { container }, items, richItems, el, glueTextChildren(), BodyLead() (+19 more)
+Cohesion: 0.02
+Nodes (100): appendOrderedItem(), moveOrderedItem(), moveOrderedItemDown(), moveOrderedItemUp(), removeOrderedItem(), react-dom, AdminFieldShell(), AdminFieldShellProps (+92 more)
 
 ### Community 225 - "CMS Engine Expert"
 Cohesion: 0.18
@@ -3677,8 +3730,8 @@ Cohesion: 0.05
 Nodes (39): 10. Help and Documentation, 1. Impatient Power User: "Alex", 1. The Wall of Options, 1. Visibility of System Status, 2. Confused First-Timer: "Jordan", 2. Match Between System and Real World, 2. The Memory Bridge, 3. Accessibility-Dependent User: "Sam" (+31 more)
 
 ### Community 228 - "sync.ts"
-Cohesion: 0.10
-Nodes (33): firstProductFieldError(), PRODUCT_FIELD_MESSAGES, ProductFieldErrors, readProductFormValidationInput(), validateProductInput(), InventoryLevelRow, InventoryShippingFacts, inventoryShippingFactsFromProduct() (+25 more)
+Cohesion: 0.06
+Nodes (31): AdminError(), alignDocumentSectionsToEnglish(), documentSectionsFromCopy(), draftFromCopy(), emptyDocumentSection(), emptyMaterial(), materialsFromCopy(), nextMaterialId() (+23 more)
 
 ### Community 229 - "PRP Plan"
 Cohesion: 0.05
@@ -3693,12 +3746,12 @@ Cohesion: 0.18
 Nodes (10): Assess Current State, Color Refinement, Composition Refinement, Motion Reduction, Plan Refinement, Refine the Design, Simplification, Verify Quality (+2 more)
 
 ### Community 232 - "showToast"
-Cohesion: 0.08
-Nodes (37): abandonForeignSession(), applyOriginalAttrsToSvelteAnchor(), buildCyclingRow(), captureAndEmit(), checkpointPayload(), commitAcceptedSvelteComponentToDom(), compileShader(), componentModuleCandidates() (+29 more)
+Cohesion: 0.16
+Nodes (22): applyOriginalAttrsToSvelteAnchor(), commitAcceptedSvelteComponentToDom(), componentModuleCandidates(), describeMountFailure(), detectDevServerBase(), elementMatchesOriginalMarkup(), findInsertAnchorInDom(), findLiveElementForOriginalMarkup() (+14 more)
 
 ### Community 233 - "Error Handling"
-Cohesion: 0.09
-Nodes (21): Auth Errors, Error Boundaries, Error Handling, Error Hierarchy, `error.tsx`, `global-error.tsx`, Not Found, `not-found.tsx` (+13 more)
+Cohesion: 0.18
+Nodes (10): Auth Errors, Error Boundaries, Error Handling, Error Hierarchy, `error.tsx`, `global-error.tsx`, Not Found, `not-found.tsx` (+2 more)
 
 ### Community 234 - "International SEO & Localization"
 Cohesion: 0.12
@@ -3725,16 +3778,16 @@ Cohesion: 0.11
 Nodes (37): buildGithubChecks(), buildProviderChecks(), buildReport(), CATEGORIES, collectProviderChecks(), compareVersionDesc(), countFiles(), detectTargetMode() (+29 more)
 
 ### Community 240 - "plugin-hook-bootstrap.js"
-Cohesion: 0.06
-Nodes (52): readStdinRaw(), resolveMaxStdin(), { StringDecoder }, cli(), exitAfterFlush(), fs, main(), { normalizePluginRootForPlatform } (+44 more)
+Cohesion: 0.08
+Nodes (33): readStdinRaw(), resolveMaxStdin(), { StringDecoder }, cli(), exitAfterFlush(), fs, main(), { normalizePluginRootForPlatform } (+25 more)
 
 ### Community 241 - "install-manifests.js"
-Cohesion: 0.08
-Nodes (34): Bucket, clientIpFromRequest(), createFixedWindowRateLimiter(), fingerprintCredential(), postAuthRateLimitKey(), preAuthRateLimitKey(), RateLimitResult, RateLimitStore (+26 more)
+Cohesion: 0.07
+Nodes (42): Bucket, clientIpFromRequest(), createFixedWindowRateLimiter(), fingerprintCredential(), postAuthRateLimitKey(), preAuthRateLimitKey(), RateLimitResult, RateLimitStore (+34 more)
 
 ### Community 242 - "plan-canvas/server.js"
 Cohesion: 0.08
-Nodes (38): toListItem(), mergeLocalizedLegalSections(), blankUntranslatedShopPageCopy(), contentCompleteness(), hasContent(), resolveLocalizedContent(), resolved, blankUntranslatedCatalogHeading() (+30 more)
+Nodes (37): collectionLocaleReadiness(), CollectionLocalizedCopy, CollectionTranslationRecord, findCollectionTranslation(), LocalizableCollection, resolveCollectionCopy(), resolveCollectionName(), sourceCopy() (+29 more)
 
 ### Community 243 - "Generating Python Installer (Commercial-Grade)"
 Cohesion: 0.05
@@ -3770,7 +3823,7 @@ Nodes (9): Always Use next/image, Blur Placeholder, Common Mistakes, Image Optim
 
 ### Community 251 - "versioning.js"
 Cohesion: 0.10
-Nodes (27): getShopifyCategoryAttributesAction(), searchShopifyTaxonomyCategoriesAction(), ShopifyTaxonomyAttributesResult, ShopifyTaxonomySearchResult, mocks, mocks, ShopifyCategoryAttributes(), ShopifyCategoryContext (+19 more)
+Nodes (28): getShopifyCategoryAttributesAction(), searchShopifyTaxonomyCategoriesAction(), ShopifyTaxonomyAttributesResult, ShopifyTaxonomySearchResult, mocks, mocks, ShopifyCategoryAttributes(), ShopifyCategoryContext (+20 more)
 
 ### Community 252 - "Payments"
 Cohesion: 0.20
@@ -3789,12 +3842,12 @@ Cohesion: 0.20
 Nodes (16): allSkipped, already, collectJsxRoots(), dry, edits, findComponentRoots(), isIntrinsicTag(), isPascalCase() (+8 more)
 
 ### Community 256 - "admin.ts"
-Cohesion: 0.03
-Nodes (103): videos/route.ts, deleteReleasedSiteVideos(), isVideoSlot(), maxDuration, POST(), removeFlagName(), revalidateStorefront(), runtime (+95 more)
+Cohesion: 0.05
+Nodes (66): displayNamesFromCategoryReference(), moneyToCents(), resolveSingleVariantPair(), ShopifyInventoryLevel, shopifyAmountToCents(), findOnlineStorePublication(), isPublishedToOnlineStore(), publishedPublicationNames() (+58 more)
 
 ### Community 257 - "product-editor-tabs.tsx"
 Cohesion: 0.04
-Nodes (91): assertClaudeSettingsPath(), getClaudeSettingsPath(), createInstallPlanFromRequest(), {
+Nodes (90): assertClaudeSettingsPath(), getClaudeSettingsPath(), {
   acquireSettingsLock,
   assertClaudeSettingsPath,
   getClaudeSettingsPath,
@@ -3804,7 +3857,7 @@ Nodes (91): assertClaudeSettingsPath(), getClaudeSettingsPath(), createInstallPl
   uninstallManagedHooks,
   updateSettingsAtomic,
   validateManagedHooks,
-}, { adaptAntigravityAgent }, analyzeRecord(), areFilesEqual(), assertClaudeSettingsDestination() (+83 more)
+}, { adaptAntigravityAgent }, analyzeRecord(), areFilesEqual(), assertClaudeSettingsDestination(), { assertNoNewUserOwnedFile, prepareUserOwnedFileGuard } (+82 more)
 
 ### Community 258 - "Go Development Patterns"
 Cohesion: 0.05
@@ -3816,27 +3869,27 @@ Nodes (9): 1. Visual Theme & Atmosphere, 2. Color Palette & Roles, 3. Typography
 
 ### Community 260 - "package.json"
 Cohesion: 0.13
-Nodes (34): SkuClientConfig, SkuClientResult, SkuApiErrorCode, SkuErrorBody, skuErrorBodySchema, skuErrorCodeSchema, catalogAuditDeviationCodeSchema, catalogAuditDeviationSchema (+26 more)
+Nodes (35): createSkuClient(), SkuClientConfig, SkuClientResult, SkuApiErrorCode, SkuErrorBody, skuErrorBodySchema, skuErrorCodeSchema, catalogAuditDeviationCodeSchema (+27 more)
 
 ### Community 261 - "admin-login-form.tsx"
-Cohesion: 0.04
-Nodes (72): createPrivacyConsent(), hasAnalyticsConsent(), hasMarketingConsent(), isBoolean(), parsePrivacyConsent(), clearKnownOptionalCookies(), DEFAULT_PRIVACY_CHOICES, OPTIONAL_COOKIE_PREFIXES (+64 more)
+Cohesion: 0.03
+Nodes (86): CommerceEcommerce, CommerceEvent, CommerceEventDetail, CommerceItem, trackCommerceEvent(), AddToCartButton(), AddToCartButtonProps, CartSummaryPanel() (+78 more)
 
 ### Community 262 - "Common Cognitive Load Violations"
-Cohesion: 0.10
-Nodes (33): mocks, getCustomerProductReviews(), listReviewProductLinks(), accountSections, generateMetadata(), Props, buildProductReviewInput(), ensureStandardProductReviewDefinition() (+25 more)
+Cohesion: 0.06
+Nodes (47): ProductReviewActionState, ProductReviewField, ProductReviewNotice, publicAuthorName(), reviewHandle(), reviewSchema, submitProductReviewAction(), getCustomerProductReviews() (+39 more)
 
 ### Community 263 - "iOS platform"
 Cohesion: 0.03
-Nodes (93): CollectionConflictWorkspace(), CollectionSummary, directionCopy, fieldMatchesCollectionViewLocale(), filterSignalsForView(), isCollectionScoped(), normalizeLocaleCode(), orderedConflictFields() (+85 more)
+Nodes (87): CollectionConflictViewScope, CollectionConflictWorkspace(), CollectionSummary, directionCopy, fieldMatchesCollectionViewLocale(), filterSignalsForView(), isCollectionScoped(), normalizeLocaleCode() (+79 more)
 
 ### Community 264 - "Shape"
 Cohesion: 0.22
 Nodes (8): Cadence, Confirm and stop, Phase 1: Discovery interview, Phase 2: Resolve the design direction, Phase 3: Write the brief, Round 1: purpose, people, and outcome, Round 2: material, behavior, and boundaries, Shape
 
 ### Community 265 - "transitions-dev/SKILL.md"
-Cohesion: 0.09
-Nodes (20): CSS, HTML usage, JavaScript orchestration, Panel reveal, Tunable variables, When to use, CSS, HTML usage (+12 more)
+Cohesion: 0.07
+Nodes (26): Card resize, CSS, HTML usage, JavaScript orchestration, Tunable variables, When to use, CSS, HTML usage (+18 more)
 
 ### Community 266 - "Avatar group hover"
 Cohesion: 0.22
@@ -3847,11 +3900,11 @@ Cohesion: 0.22
 Nodes (8): CSS, Error state shake, HTML usage, JavaScript orchestration, Recomputing the keyframe stops, Tunable variables, When to use, Why three classes (`.is-error` on wrap + input, `.is-shaking` on input)
 
 ### Community 268 - "renderDesignVisual"
-Cohesion: 0.03
-Nodes (80): path, run(), { spawnSync }, {
+Cohesion: 0.05
+Nodes (48): path, run(), { spawnSync }, {
   buildPreToolUseAdditionalContext,
   combineAdditionalContext,
-}, { isHookEnabled }, main(), normalizeHookResult(), POST_BASH_HOOKS (+72 more)
+}, { isHookEnabled }, main(), normalizeHookResult(), POST_BASH_HOOKS (+40 more)
 
 ### Community 269 - "suggest-compact.js"
 Cohesion: 0.10
@@ -3864,16 +3917,16 @@ Nodes (34): buildContextSuggestion(), cleanupOldCounters(), fs, getCounterRetent
 }, incrementToolCallCount(), main(), path (+26 more)
 
 ### Community 270 - "Пошаговый план"
-Cohesion: 0.05
+Cohesion: 0.06
 Nodes (60): AdminAccountPage(), Props, adminReturnCookieOptions(), getSafeAdminRedirect(), AdminSession, clearAdminReturnPath(), clearAdminSession(), constantTimeEqual() (+52 more)
 
 ### Community 271 - "Component Building Principles"
-Cohesion: 0.25
-Nodes (8): Animate enter states with @starting-style, Buttons must feel responsive, Component Building Principles, Make popovers origin-aware, Never animate from scale(0), Tooltips: skip delay on subsequent hovers, Use blur to mask imperfect transitions, Use CSS transitions over keyframes for interruptible UI
+Cohesion: 0.07
+Nodes (46): updateActiveTranslation(), locale(), Product locale translations (sync protection), COLLECTION_TRANSLATION_KEYS, collectionTranslationSnapshot(), fetchCollectionTranslation(), fetchCollectionTranslationIndex(), ShopifyCollectionTranslationCopy (+38 more)
 
 ### Community 272 - "shopify/product-organization.ts"
-Cohesion: 0.06
-Nodes (47): Hooks, MEDIUM - Performance, Flags, Implementation, Import Process, Instinct Import Command, Merge Behavior, Output (+39 more)
+Cohesion: 0.09
+Nodes (38): canonicalize(), canonicalJson(), crypto, hashValue(), sha256Hex(), { canonicalJson, hashValue, sha256Hex }, Capsule, CapsuleError (+30 more)
 
 ### Community 273 - "context-profile-store.js"
 Cohesion: 0.19
@@ -3892,24 +3945,24 @@ Cohesion: 0.05
 Nodes (37): rust-patterns/SKILL.md, 1. Ownership and Borrowing, Accept Generics, Return Concrete Types, Anti-Patterns to Avoid, `Arc<Mutex<T>>` for Shared Mutable State, Async with Tokio, Builder Pattern for Complex Construction, Channels for Message Passing (+29 more)
 
 ### Community 277 - "api.ts"
-Cohesion: 0.05
-Nodes (86): callback/route.ts, equalSecret(), GET(), loginError(), returnToFromTransaction(), runtime, safeOAuthError(), transactionSchema (+78 more)
+Cohesion: 0.03
+Nodes (132): actions/product-reviews.ts, ProductReviewActionState, ProductReviewField, ProductReviewNotice, publicAuthorName(), reviewHandle(), reviewSchema, submitProductReviewAction() (+124 more)
 
 ### Community 278 - "mcp-health-check.js"
-Cohesion: 0.13
-Nodes (31): ShopifyAdminError, buildCollectionMembershipSourceCreateInput(), buildCollectionMembershipUpdateInput(), CollectionMembershipInput, formatCollectionMembershipError(), hasCollectionIdentityConflict(), isEmptyConditionSourceError(), isMissingShopifyCollectionError() (+23 more)
+Cohesion: 0.06
+Nodes (42): AdminIssueInlineWarning(), MarkGround(), PRODUCT_EDITOR_TAB_GROUPS, PRODUCT_EDITOR_TABS, ProductEditorTab, ProductEditorTabGroupId, ProductEditorTabs(), ProductSectionGraphic() (+34 more)
 
 ### Community 279 - "canonical-mcp.js"
-Cohesion: 0.06
-Nodes (52): buildContext(), fs, openSessions(), os, path, run(), stateDir(), asNonEmptyString() (+44 more)
+Cohesion: 0.09
+Nodes (32): asNonEmptyString(), asStringArray(), buildFragmentation(), buildInventory(), buildSignature(), isObject(), looksLikeSecretValue(), mergeServers() (+24 more)
 
 ### Community 280 - "@storybook/react"
-Cohesion: 0.14
-Nodes (35): findPreviousManagedHooks(), preflightClaudeSettingsOperations(), {
+Cohesion: 0.15
+Nodes (34): findPreviousManagedHooks(), preflightClaudeSettingsOperations(), {
   acquireSettingsLock,
   runWithSettingsLock,
   sameFileIdentity,
-}, assertSettingsSnapshotUnchanged(), assertUnambiguousMatch(), cloneValue(), entriesMatchingId(), EVENTS_WITHOUT_MATCHER (+27 more)
+}, assertSettingsSnapshotUnchanged(), assertUnambiguousMatch(), cloneValue(), entriesMatchingId(), EVENTS_WITHOUT_MATCHER (+26 more)
 
 ### Community 281 - "run-with-flags.js"
 Cohesion: 0.19
@@ -3920,8 +3973,8 @@ Cohesion: 0.25
 Nodes (8): synarava-redirect/package.json, description, license, name, private, scripts, pack, version
 
 ### Community 283 - "site-footer.test.tsx"
-Cohesion: 0.04
-Nodes (61): saveSiteSeoAction(), SiteSeoActionState, LocalizedHandleEntityType, FIELD_KEYS, SITE_SEO_DEFAULTS, SITE_SEO_FIELD_DEFS, SiteSeoFields, getSiteSeoOverrides() (+53 more)
+Cohesion: 0.06
+Nodes (41): saveSiteSeoAction(), SiteSeoActionState, FIELD_KEYS, SITE_SEO_DEFAULTS, SITE_SEO_FIELD_DEFS, SiteSeoFields, getSiteSeo, getSiteSeoOverrides() (+33 more)
 
 ### Community 284 - "Content Ideation Sources"
 Cohesion: 0.29
@@ -3963,8 +4016,8 @@ Nodes (29): state-store/index.js, { applyMigrations, getAppliedMigrations }, ass
 }, { createQueryApi }, crypto (+21 more)
 
 ### Community 292 - "claude-settings.js"
-Cohesion: 0.05
-Nodes (46): AdminLoginForm(), AdminLoginFormFields(), getRetryMessage(), initialState, useRetryAfterCountdown(), AuthField(), AuthForm(), AuthInput() (+38 more)
+Cohesion: 0.11
+Nodes (25): AdminLoginForm(), AdminLoginFormFields(), getRetryMessage(), initialState, useRetryAfterCountdown(), AuthField(), AuthForm(), AuthInput() (+17 more)
 
 ### Community 293 - "Kotlin Exposed Patterns"
 Cohesion: 0.06
@@ -3987,8 +4040,8 @@ Cohesion: 0.29
 Nodes (6): If jurisdictions are unknown, If the region or tax type isn’t supported, Table of contents, Tax / Stripe Tax, Two-step setup, When tax applies
 
 ### Community 298 - "Card resize"
-Cohesion: 0.29
-Nodes (6): Card resize, CSS, HTML usage, JavaScript orchestration, Tunable variables, When to use
+Cohesion: 0.09
+Nodes (37): videos/route.ts, deleteReleasedSiteVideos(), isVideoSlot(), maxDuration, POST(), removeFlagName(), revalidateStorefront(), runtime (+29 more)
 
 ### Community 299 - "Number pop-in"
 Cohesion: 0.29
@@ -4011,12 +4064,12 @@ Cohesion: 0.29
 Nodes (6): CSS, HTML usage, JavaScript orchestration, Modal open / close, Tunable variables, When to use
 
 ### Community 304 - "Panel reveal"
-Cohesion: 0.04
-Nodes (88): abortSvelteComponentInjection(), applyOriginalAttrsToSvelteAnchor(), applyParamDefaults(), applyParamValue(), applySavedSessionMeta(), clampVariantIndex(), clearHandled(), closedClipPath() (+80 more)
+Cohesion: 0.05
+Nodes (75): abortSvelteComponentInjection(), applyParamDefaults(), applyParamValue(), applySavedSessionMeta(), clampVariantIndex(), clearHandled(), closedClipPath(), commitAcceptedVariantToDom() (+67 more)
 
 ### Community 305 - "Page side-by-side"
-Cohesion: 0.29
-Nodes (6): CSS, HTML usage, JavaScript orchestration, Page side-by-side, Tunable variables, When to use
+Cohesion: 0.07
+Nodes (35): CatalogConflictViewScope, productConflictBadgeCount(), ProductConflictCompareBanner(), productConflictCompareSummary, conflictCount(), ProductLocaleConflictControl(), LOCALE_TABS, formatFileSize() (+27 more)
 
 ### Community 306 - "codex-legacy-sync.js"
 Cohesion: 0.15
@@ -4047,12 +4100,12 @@ Cohesion: 0.29
 Nodes (6): Checks, Entry Atomicity, Impeccable Manual Edit Applier, Input Contract, Output Contract, Workflow
 
 ### Community 313 - "filter-bar.stories.tsx"
-Cohesion: 0.05
-Nodes (75): buildCopyFileOperation(), createManifestInstallPlan(), createStatePreview(), dedupeCopyFileOperations(), { disableUnselectedOpenCodeHooks }, EXCLUDED_GENERATED_SOURCE_SUFFIXES, { execFileSync }, fs (+67 more)
+Cohesion: 0.04
+Nodes (110): resolveHookConsentFlags(), buildCopyFileOperation(), createManifestInstallPlan(), createStatePreview(), dedupeCopyFileOperations(), { disableUnselectedOpenCodeHooks }, EXCLUDED_GENERATED_SOURCE_SUFFIXES, { execFileSync } (+102 more)
 
 ### Community 314 - "🟡 Medium"
 Cohesion: 0.03
-Nodes (71): buildWhere(), compareRows(), CursorPayload, decodeAdminProductCursor(), encodeAdminProductCursor(), fingerprint(), getAdminCatalogListMeta(), listAdminProductsPage() (+63 more)
+Nodes (67): AdminScrollSnapshot, cancelPreserveScrollTimers(), captureAdminScroll(), getAdminScrollRoot(), refreshPreservingScroll(), restoreAdminScroll(), CatalogConflictRowBadges(), CatalogConflictStatus() (+59 more)
 
 ### Community 315 - "Prioritizing Content Ideas"
 Cohesion: 0.33
@@ -4072,11 +4125,11 @@ Nodes (6): Benefits Over Features, Clarity Over Cleverness, Copywriting Principl
 
 ### Community 319 - "План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка"
 Cohesion: 0.04
-Nodes (68): AdminLayout(), adminHrefMatches(), adminHrefUnder(), AdminNavBadgeConfig, AdminNavChildConfig, AdminNavItemConfig, AdminNavPageRef, AdminNavSignal (+60 more)
+Nodes (74): LogoutForm(), adminHrefMatches(), adminHrefUnder(), AdminNavBadgeConfig, AdminNavChildConfig, AdminNavItemConfig, AdminNavPageRef, AdminNavSignal (+66 more)
 
 ### Community 320 - "package-manager.js"
 Cohesion: 0.11
-Nodes (30): { commandExists, getClaudeDir, readFile, writeFile }, detectFromLockFile(), detectFromPackageJson(), DETECTION_PRIORITY, escapeRegex(), fs, getAvailablePackageManagers(), getCommandPattern() (+22 more)
+Nodes (31): { commandExists, getClaudeDir, readFile, writeFile }, detectFromLockFile(), detectFromPackageJson(), DETECTION_PRIORITY, escapeRegex(), fs, getAvailablePackageManagers(), getCommandPattern() (+23 more)
 
 ### Community 321 - "Visualize: Direction Comps & Asset Production"
 Cohesion: 0.06
@@ -4088,7 +4141,7 @@ Nodes (32): main, connections, Build audit payload, GET live Shopify SKU catalog
 
 ### Community 323 - "theme-provider.tsx"
 Cohesion: 0.04
-Nodes (61): ShopifyCustomerProfile, AccountOrdersActionSettings, buildBuyAgainPermalink(), CANCEL_REASON_KEYS, FINANCIAL_KEYS, financialTone(), FULFILLMENT_KEYS, fulfillmentTone() (+53 more)
+Nodes (60): ShopifyCustomerProfile, AccountOrdersActionSettings, buildBuyAgainPermalink(), CANCEL_REASON_KEYS, FINANCIAL_KEYS, financialTone(), FULFILLMENT_KEYS, fulfillmentTone() (+52 more)
 
 ### Community 324 - "Modern Perl Development Patterns"
 Cohesion: 0.06
@@ -4103,8 +4156,8 @@ Cohesion: 0.06
 Nodes (33): perl-testing/SKILL.md, Basic Assertions, Best Practices, Common Pitfalls, Coverage with Devel::Cover, Deep Comparison with Builders, Directory Structure, DO (+25 more)
 
 ### Community 327 - "Test-Driven Development Workflow"
-Cohesion: 0.07
-Nodes (30): .cursor/skills/tdd-workflow/SKILL.md, API Integration Test Pattern, Best Practices, Bun Native Test Pattern (`bun:test`), CI/CD Integration, Common Testing Mistakes to Avoid, Continuous Testing, Coverage Thresholds (+22 more)
+Cohesion: 0.06
+Nodes (33): .cursor/skills/tdd-workflow/SKILL.md, API Integration Test Pattern, Best Practices, Bun Native Test Pattern (`bun:test`), CI/CD Integration, Continuous Testing, Coverage Thresholds, E2E Test Pattern (Playwright) (+25 more)
 
 ### Community 328 - "Sections"
 Cohesion: 0.33
@@ -4119,36 +4172,36 @@ Cohesion: 0.25
 Nodes (4): Customer session retention, Privacy and consent operations, Production configuration, Release checks
 
 ### Community 331 - "React Patterns"
-Cohesion: 0.07
-Nodes (27): 1. Render is a Pure Function of Props and State, 2. Side Effects Outside Render, 3. Composition Over Inheritance, Accessibility-First Composition, Avoiding Render Cascades, Complex forms, Controlled inputs, Core Principles (+19 more)
+Cohesion: 0.06
+Nodes (32): 1. Render is a Pure Function of Props and State, 2. Side Effects Outside Render, 3. Composition Over Inheritance, Accessibility-First Composition, Avoiding Render Cascades, Complex forms, Composition Recipes, Compound components (shared state via Context) (+24 more)
 
 ### Community 332 - "PRP Implement"
 Cohesion: 0.06
 Nodes (31): Archive Plan, Branch Decision, Build Fails, Create Implementation Report, Git State, Handling Deviations, Handling Failures, Integration Test Fails (+23 more)
 
 ### Community 333 - "hooks-config.js"
-Cohesion: 0.25
+Cohesion: 0.26
 Nodes (15): applyHooksMetadata(), assertMetadataAligned(), crypto, eventsOf(), findMetadataMismatches(), fingerprintHookEntry(), fs, mergeHooksMetadata() (+7 more)
 
 ### Community 334 - "adapt.native.md"
-Cohesion: 0.06
-Nodes (31): applyResult, changeSet, changes, command, currentEnvironment, configEtag, environmentId, environmentName (+23 more)
+Cohesion: 0.09
+Nodes (42): products/page.tsx, AdminProductsPage(), api/products/route.ts, dynamic, GET(), runtime, conflictTooltip(), localeIcon() (+34 more)
 
 ### Community 335 - "login/actions.ts"
-Cohesion: 0.05
-Nodes (71): { assertWithinTrustedRoot }, cleanupLegacyAntigravityInstall(), cleanupResult(), crypto, fs, getExpectedLegacyDestination(), getLegacyAntigravityLocation(), getLegacyLocationForPlan() (+63 more)
+Cohesion: 0.07
+Nodes (54): { assertWithinTrustedRoot }, cleanupLegacyAntigravityInstall(), cleanupResult(), crypto, fs, getExpectedLegacyDestination(), getLegacyAntigravityLocation(), getLegacyLocationForPlan() (+46 more)
 
 ### Community 336 - "Shopify payment and checkout verification"
 Cohesion: 0.12
 Nodes (16): Automated repository coverage, Controlled live scenarios, Findings and corrections, Manual execution log, Next action, Official references, Paid webhook evidence, PAY-001 — Product presentation data is not production-ready (+8 more)
 
 ### Community 337 - "infrastructure-status.ts"
-Cohesion: 0.09
-Nodes (31): AdminLoginActionState, admin/login/page.tsx, AdminLoginPage(), metadata, Props, [locale]/login/page.tsx, LoginPage(), Props (+23 more)
+Cohesion: 0.08
+Nodes (32): buildWhere(), compareRows(), CursorPayload, decodeAdminProductCursor(), encodeAdminProductCursor(), fingerprint(), listAdminProductsPage(), ListRow (+24 more)
 
 ### Community 338 - "canonical-session.js"
-Cohesion: 0.04
-Nodes (82): buildAggregates(), DEFAULT_RECORDING_DIR, deriveClaudeWorkerId(), deriveDmuxSessionState(), deriveWorkerHealth(), ensureArrayOfStrings(), ensureBoolean(), ensureInteger() (+74 more)
+Cohesion: 0.12
+Nodes (31): buildAggregates(), DEFAULT_RECORDING_DIR, deriveClaudeWorkerId(), deriveDmuxSessionState(), deriveWorkerHealth(), ensureArrayOfStrings(), ensureBoolean(), ensureInteger() (+23 more)
 
 ### Community 339 - "Go Testing Patterns"
 Cohesion: 0.06
@@ -4159,8 +4212,8 @@ Cohesion: 0.06
 Nodes (32): 1. Render is a Pure Function of Props and State, 2. Side Effects Outside Render, 3. Composition Over Inheritance, Accessibility-First Composition, Avoiding Render Cascades, Complex forms, Composition Recipes, Compound components (shared state via Context) (+24 more)
 
 ### Community 341 - "React Performance"
-Cohesion: 0.07
-Nodes (30): 4. Client-Side Data Fetching (MEDIUM-HIGH), 6. Rendering Performance (MEDIUM), 7. JavaScript Performance (LOW-MEDIUM), 8. Advanced Patterns (LOW), `<Activity>` for show/hide instead of mount/unmount, Animate the wrapper, not the SVG, Attribution, Automated Tools (+22 more)
+Cohesion: 0.08
+Nodes (25): 1. Eliminating Waterfalls (CRITICAL), 4. Client-Side Data Fetching (MEDIUM-HIGH), 7. JavaScript Performance (LOW-MEDIUM), 8. Advanced Patterns (LOW), Attribution, Automated Tools, Cheap conditions before await, Deduplicate global event listeners (+17 more)
 
 ### Community 342 - "synarava-redirect-theme-rules.test.ts"
 Cohesion: 0.09
@@ -4253,12 +4306,12 @@ Cohesion: 0.06
 Nodes (31): django-tdd/SKILL.md, API ViewSet Testing, conftest.py, Coverage, Coverage Configuration, Coverage Goals, Django Testing with TDD, Django View Testing (+23 more)
 
 ### Community 364 - "Product Data Ownership and Synchronization"
-Cohesion: 0.05
-Nodes (51): { execFileSync }, getPluginRoot(), hookEnabled(), path, readStdin(), runExistingHook(), transformToClaude(), claudeInput (+43 more)
+Cohesion: 0.04
+Nodes (57): { execFileSync }, getPluginRoot(), hookEnabled(), path, readStdin(), runExistingHook(), transformToClaude(), claudeInput (+49 more)
 
 ### Community 365 - "meta-health-panel.tsx"
-Cohesion: 0.08
-Nodes (73): beginNewLiveConfiguration(), buildInsertPlaceholderSnapshotFromDom(), buildPickedAnchorSnapshot(), cancelEditing(), cancelEditingToPicking(), cancelInsertConfigure(), cleanup(), cleanupAcceptedSession() (+65 more)
+Cohesion: 0.07
+Nodes (76): beginNewLiveConfiguration(), buildInsertPlaceholderSnapshotFromDom(), buildPickedAnchorSnapshot(), cancelEditing(), cancelEditingToPicking(), cancelInsertConfigure(), cleanup(), cleanupAcceptedSession() (+68 more)
 
 ### Community 366 - "Eval Harness Skill"
 Cohesion: 0.06
@@ -4329,8 +4382,8 @@ Cohesion: 0.83
 Nodes (3): gradlew script, die(), warn()
 
 ### Community 390 - "shopify-gtm-purchase-pixel.js"
-Cohesion: 0.04
-Nodes (56): AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory(), DEFAULT_HOME_EDIT_PRODUCT_TITLES, HomeEditProduct, resolveHomeEditProducts() (+48 more)
+Cohesion: 0.03
+Nodes (66): AboutHero(), AboutPage(), AboutPageProps, ease, MovementStory(), DEFAULT_HOME_EDIT_PRODUCT_TITLES, HomeEditProduct, resolveHomeEditProducts() (+58 more)
 
 ### Community 391 - "90-day delivery plan"
 Cohesion: 0.40
@@ -4349,8 +4402,8 @@ Cohesion: 0.22
 Nodes (8): Как стартовать, Контекст / что уже есть (бэкенд, готово), Открытые вопросы пользователю (до старта аудита), План: UX и категоризация витрины каталога (/shop), Подход, Проблема / гипотеза (требует проверки на живом UI, не на код-ревью), Цель, Явно не входит в эту задачу
 
 ### Community 427 - "actions/storefront-copy.ts"
-Cohesion: 0.04
-Nodes (64): buildWarning(), CHECKLIST, detectSignals(), fs, GENERIC_SIGNALS, getFilePaths(), path, readContent() (+56 more)
+Cohesion: 0.05
+Nodes (54): combineStderr(), findShellBinary(), fs, getPhaseFromHookId(), getPluginRoot(), getTimeoutMs(), OBSERVE_RELATIVE_PATH, output (+46 more)
 
 ### Community 487 - "product-metafields-panel.tsx"
 Cohesion: 0.07
@@ -4361,12 +4414,12 @@ Cohesion: 0.13
 Nodes (25): computeEntryHash(), dataObjectErrors(), DEFAULT_PAYLOAD_ALLOWLIST, EFFECT_CLASSES, ENVELOPE_FIELDS, GENESIS_HASH, { hashValue }, isPlainObject() (+17 more)
 
 ### Community 489 - "actions.test.ts"
-Cohesion: 0.09
-Nodes (33): ChartInnerProps, ChartContextValue, ChartPhase, ChartStatus, LoadingStyle, resolveRestingChartPhase(), extractReferenceAreaConfigs(), getChildComponentName() (+25 more)
+Cohesion: 0.15
+Nodes (20): snapDomains(), tweenDomains(), useAnimatedYDomains(), UseAnimatedYDomainsOptions, buildYScalesForLines(), buildYScalesFromDomains(), getPrimaryYScale(), groupLinesByYAxisId() (+12 more)
 
 ### Community 490 - "claude-skill-migration.js"
-Cohesion: 0.06
-Nodes (38): CollectionFields(), CollectionLocaleContext, CollectionLocaleContextValue, CollectionLocaleTabs(), DEFAULT_TRANSLATION_LOCALES, EMPTY_TRANSLATION, useCollectionLocale(), PageEditor() (+30 more)
+Cohesion: 0.08
+Nodes (19): { container }, email, header, initial, mocks, onUpdated, productOptions, ptTitle (+11 more)
 
 ### Community 491 - "Signal Forms"
 Cohesion: 0.07
@@ -4381,20 +4434,20 @@ Cohesion: 0.07
 Nodes (28): laravel-patterns/SKILL.md, API Resources, Caching, Configuration and Environments, Controllers -> Services -> Actions, Custom Casts and Value Objects, Eager Loading to Avoid N+1, Eloquent Model Patterns (+20 more)
 
 ### Community 494 - "hook-flags.js"
-Cohesion: 0.05
-Nodes (60): { collectSkillHealth, formatHealthReport }, main(), parseArgs(), { renderDashboard }, requireValue(), showHelp(), bucketByDay(), formatPercent() (+52 more)
+Cohesion: 0.06
+Nodes (42): { collectSkillHealth, formatHealthReport }, main(), parseArgs(), { renderDashboard }, requireValue(), showHelp(), bucketByDay(), formatPercent() (+34 more)
 
 ### Community 495 - "Backend Development Patterns"
 Cohesion: 0.07
 Nodes (27): .cursor/.agents/skills/backend-patterns/SKILL.md, API Design Patterns, Authentication & Authorization, Backend Development Patterns, Background Jobs & Queues, Cache-Aside Pattern, Caching Strategies, Centralized Error Handler (+19 more)
 
 ### Community 496 - "agent-data-home.js"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (25): {
   getCursorSessionEnvPayload,
   resolveAgentDataHome,
   AGENT_DATA_HOME_ENV,
-}, main(), { readStdinJson, log }, cursor_scripts_lib_agent_data_home_agent_data_home_env, { assertWithinTrustedRoot }, DEFAULT_CURSOR_ECC_DIR_SEGMENTS, ensureAgentDataHomeEnv(), expandHomePath() (+17 more)
+}, main(), { readStdinJson, log }, cursor_scripts_lib_agent_data_home_agent_data_home_env, { assertWithinTrustedRoot }, DEFAULT_CURSOR_ECC_DIR_SEGMENTS, expandHomePath(), fs (+17 more)
 
 ### Community 497 - "agent-proximity/index.js"
 Cohesion: 0.07
@@ -4409,16 +4462,16 @@ Cohesion: 0.08
 Nodes (26): .agents/skills/backend-patterns/SKILL.md, API Design Patterns, Authentication & Authorization, Backend Development Patterns, Background Jobs & Queues, Cache-Aside Pattern, Caching Strategies, Centralized Error Handler (+18 more)
 
 ### Community 500 - "admin-href-field.tsx"
-Cohesion: 0.13
-Nodes (24): Checklist, actions/storefront-href.ts, searchStorefrontHrefsAction(), StorefrontHrefSearchActionResult, AdminHrefControl(), bindPortalTarget(), choose(), clear() (+16 more)
+Cohesion: 0.17
+Nodes (17): Checklist, actions/storefront-href.ts, searchStorefrontHrefsAction(), StorefrontHrefSearchActionResult, AdminHrefControl(), bindPortalTarget(), choose(), clear() (+9 more)
 
 ### Community 501 - "Eval Harness Skill"
 Cohesion: 0.08
 Nodes (26): .cursor/.agents/skills/eval-harness/SKILL.md, 1. Code-Based Grader, 1. Define (Before Coding), 2. Implement, 2. Model-Based Grader, 3. Evaluate, 3. Human Grader, 4. Report (+18 more)
 
 ### Community 502 - "admin/README.md"
-Cohesion: 0.08
-Nodes (22): synarava-cms/SKILL.md, synarava-cms (moved), admin/README.md, Главное правило разметки, Документация по админке Synarava, Как это связано, Статус, Требует решения команды (+14 more)
+Cohesion: 0.09
+Nodes (17): synarava-cms/SKILL.md, synarava-cms (moved), admin/README.md, Главное правило разметки, Документация по админке Synarava, Как это связано, Статус, Требует решения команды (+9 more)
 
 ### Community 503 - "Shop UX — handoff и точка восстановления"
 Cohesion: 0.17
@@ -4429,8 +4482,8 @@ Cohesion: 0.08
 Nodes (26): .cursor/.agents/skills/frontend-patterns/SKILL.md, Accessibility Patterns, Animation Patterns, Async Data Fetching Hook, Code Splitting & Lazy Loading, Component Patterns, Composition Over Inheritance, Compound Components (+18 more)
 
 ### Community 505 - "session-manager.js"
-Cohesion: 0.03
-Nodes (89): contextDirPath, projects, resolved, resolved, bullets, cargo, claudeMd, deps (+81 more)
+Cohesion: 0.06
+Nodes (48): contextDirPath, projects, resolved, resolved, enriched, entries, projects, table (+40 more)
 
 ### Community 506 - "Synarava product passport"
 Cohesion: 0.11
@@ -4457,8 +4510,8 @@ Cohesion: 0.07
 Nodes (30): Assess Adaptation Challenge, Breakpoints: Content-Driven, Content Adaptation, Desktop Adaptation (Mobile → Desktop), Detect Input Method, Not Just Screen Size, Email Adaptation (Web → Email), Implement Adaptations, Layout Adaptation Patterns (+22 more)
 
 ### Community 512 - "product-metafields-shared.ts"
-Cohesion: 0.08
-Nodes (59): searchStorefrontHrefsAction(), StorefrontHrefSearchActionResult, assembleHrefSearchResult(), buildCustomPathHit(), EXTRA_STATIC_ROUTE_HITS, filterHitsByQuery(), findExactHrefHit(), flattenHrefHits() (+51 more)
+Cohesion: 0.07
+Nodes (60): searchStorefrontHrefsAction(), StorefrontHrefSearchActionResult, assembleHrefSearchResult(), buildCustomPathHit(), EXTRA_STATIC_ROUTE_HITS, filterHitsByQuery(), findExactHrefHit(), flattenHrefHits() (+52 more)
 
 ### Community 513 - "Review Checklist"
 Cohesion: 0.08
@@ -4473,16 +4526,16 @@ Cohesion: 0.08
 Nodes (24): Add Type Hints, Approval Criteria, Automated Checks Run, Common Fixes, CRITICAL (Must Fix), Django Projects, Example Usage, FastAPI Projects (+16 more)
 
 ### Community 516 - "claude-plugin-setup.js"
-Cohesion: 0.09
-Nodes (61): hasExplicitCommitAttributionPreference(), withCommitAttributionDisabled(), createDryRunClaudeRunner(), assertGitAvailable(), assertNoConflictingEccPlugins(), assertSafeLocalInventory(), buildWindowsCommandLine(), ClaudeSetupError (+53 more)
+Cohesion: 0.07
+Nodes (71): writeFileAtomic(), hasExplicitCommitAttributionPreference(), withCommitAttributionDisabled(), createDryRunClaudeRunner(), assertGitAvailable(), assertNoConflictingEccPlugins(), assertSafeLocalInventory(), buildWindowsCommandLine() (+63 more)
 
 ### Community 517 - "public-metafields.ts"
 Cohesion: 0.05
 Nodes (64): BIDI_EMBEDDINGS, BIDI_ISOLATES, BIDI_MARKS, C1_CONTROLS, { classifyPowerShellDestructiveCommand }, commandBasename(), crypto, DD_LAUNCHER_OPTIONS (+56 more)
 
 ### Community 518 - "codex-worktree.js"
-Cohesion: 0.05
-Nodes (53): announced, first, queued, root, roots, SaveRefreshProbe(), second, third (+45 more)
+Cohesion: 0.17
+Nodes (15): createToastId(), dismissToastFromStore(), emit(), EMPTY, getToastStoreServerSnapshot(), getToastStoreSnapshot(), listeners, PushToastInput (+7 more)
 
 ### Community 519 - "Preset Catalog"
 Cohesion: 0.08
@@ -4498,7 +4551,7 @@ Nodes (24): Accessibility Assertions, Anti-Patterns, Async Patterns, Core Princi
 
 ### Community 522 - "gauge-label-layout.tsx"
 Cohesion: 0.08
-Nodes (64): findManagedClaudeInstalls(), findManualClaudePlugin(), fs, { isWithinRoot, realpathNearestExisting }, LEGACY_PLUGIN_IDS, operationOverlapsPlugin(), os, path (+56 more)
+Nodes (61): findManagedClaudeInstalls(), findManualClaudePlugin(), fs, { isWithinRoot, realpathNearestExisting }, LEGACY_PLUGIN_IDS, os, path, readJsonObject() (+53 more)
 
 ### Community 523 - "React Build Resolver"
 Cohesion: 0.08
@@ -4524,8 +4577,8 @@ Cohesion: 0.17
 Nodes (23): assertOfficialMarketplace(), assertPluginEntries(), CodexPluginSetupError, { execFile: nodeExecFile }, executeFile(), fail(), findEccMarketplace(), findInstalledEccPlugin() (+15 more)
 
 ### Community 528 - "project-detect.js"
-Cohesion: 0.14
-Nodes (21): { detectProjectType }, detectStackKeywords(), fileExists(), fs, hasFileWithExtension(), instinctMatchesStack(), path, tokenize() (+13 more)
+Cohesion: 0.06
+Nodes (61): scripts/hooks/session-start.js, collapseWhitespace(), collectLearnedSkillFiles(), dedupeRecentSessions(), { detectProjectType }, extractFirstParagraph(), extractInstinctAction(), extractMarkdownHeading() (+53 more)
 
 ### Community 529 - "Android Clean Architecture"
 Cohesion: 0.08
@@ -4549,7 +4602,7 @@ Nodes (24): Accessibility Assertions, Anti-Patterns, Async Patterns, Core Princi
 
 ### Community 534 - "gate.js"
 Cohesion: 0.15
-Nodes (20): Local Framework Utilities, sha256Hex(), crypto, DEFAULT_THRESHOLDS, DEFAULT_TRIPWIRES, digestDir(), envelope, fs (+12 more)
+Nodes (19): Local Framework Utilities, crypto, DEFAULT_THRESHOLDS, DEFAULT_TRIPWIRES, digestDir(), envelope, fs, GateError (+11 more)
 
 ### Community 535 - "Translation operations"
 Cohesion: 0.14
@@ -4596,8 +4649,8 @@ Cohesion: 0.15
 Nodes (21): classifyDestructiveCommand(), analyzeForGovernanceEvents(), APPROVAL_COMMANDS, classifyDestructiveCommand(), crypto, detectApprovalRequired(), detectSecrets(), detectSensitivePath() (+13 more)
 
 ### Community 546 - "pre-bash-commit-quality.js"
-Cohesion: 0.20
-Nodes (18): actions/account-orders-settings.ts, AccountOrdersSettingsActionState, saveAccountOrdersSettingsAction(), AccountOrdersSettingsEditor(), formAction(), content/account-orders-settings.ts, lib_content_account_orders_settings_accountorderssettings, FIELD_KEYS (+10 more)
+Cohesion: 0.05
+Nodes (38): eslintConfig, engines, node, name, packageManager, private, version, clsx (+30 more)
 
 ### Community 547 - "check-privacy-config.mjs"
 Cohesion: 0.43
@@ -4644,12 +4697,12 @@ Cohesion: 0.10
 Nodes (21): .agents/skills/frontend-slides/SKILL.md, 1. Detect Mode, 2. Discover Content, 3. Discover Style, 4. Build the Presentation, 5. Enforce Viewport Fit, 6. Validate, 7. Deliver (+13 more)
 
 ### Community 558 - "ref_child_process"
-Cohesion: 0.05
-Nodes (48): extractSummary(), findPowerShell(), findTerminalTTY(), fs, { isMacOS, log }, isUnderMultiplexer(), notifyMacOS(), notifyWindows() (+40 more)
+Cohesion: 0.10
+Nodes (34): extractSummary(), findPowerShell(), findTerminalTTY(), fs, { isMacOS, log }, isUnderMultiplexer(), notifyMacOS(), notifyWindows() (+26 more)
 
 ### Community 559 - "session-adapters/opencode.js"
 Cohesion: 0.07
-Nodes (56): assertMemoryDirectorySafe(), assertMemoryMatchesLocation(), assertMemoryRootSafe(), { assertWithinTrustedRoot, realpathNearestExisting }, buildExcerpt(), crypto, DEFAULT_RECALL_SCOPES, defaultMemoryId() (+48 more)
+Nodes (57): assertMemoryDirectorySafe(), assertMemoryMatchesLocation(), assertMemoryRootSafe(), { assertWithinTrustedRoot, realpathNearestExisting }, buildExcerpt(), crypto, DEFAULT_RECALL_SCOPES, defaultMemoryId() (+49 more)
 
 ### Community 560 - "Contract-First Collaboration"
 Cohesion: 0.10
@@ -4688,8 +4741,8 @@ Cohesion: 0.10
 Nodes (19): 1.1 Prompt Enhancement (MUST execute first), 1.2 Context Retrieval, 1.3 Completeness Check, 1.4 Requirement Alignment, 2.1 Distribute Inputs, 2.2 Cross-Validation, 2.3 (Optional but Recommended) Dual-Model Plan Draft, 2.4 Generate Implementation Plan (Claude Final Version) (+11 more)
 
 ### Community 569 - "hook-consent.js"
-Cohesion: 0.15
-Nodes (18): buildInstallApplyArgs(), deriveRepoRootFromState(), determineInstallCwd(), { discoverInstalledStates }, ECC_PACKAGE_NAMES, fs, { getRecordedHookConsent }, legacyMigrationWarning() (+10 more)
+Cohesion: 0.09
+Nodes (34): buildInstallApplyArgs(), deriveRepoRootFromState(), determineInstallCwd(), { discoverInstalledStates }, ECC_PACKAGE_NAMES, fs, { getRecordedHookConsent }, legacyMigrationWarning() (+26 more)
 
 ### Community 570 - "EphemeralToastProvider"
 Cohesion: 0.06
@@ -4732,8 +4785,8 @@ Cohesion: 0.20
 Nodes (10): 1. Проверить служебные уведомления на тестовом заказе, 2. Определить поддерживаемый путь для headless recovery, 3. Сделать отправку с согласием и защитой от дублей, 4. Проверить сквозной сценарий, Границы ответственности, Источники, Необходимые доступы и решения, План коммуникаций с клиентом Synarava (+2 more)
 
 ### Community 580 - "filter-chips.stories.tsx"
-Cohesion: 0.02
-Nodes (128): ProductReviewActionState, CommerceEcommerce, CommerceEvent, CommerceEventDetail, CommerceItem, trackCommerceEvent(), BUILT_IN_SITEMAP_SLUGS, RouteEntry (+120 more)
+Cohesion: 0.04
+Nodes (66): CraftSection(), ease, ProductDetail(), ProductFooter(), ProductHero(), ProductSpecifications(), RelatedProductsSection(), ShareButton() (+58 more)
 
 ### Community 581 - "pie-context.tsx"
 Cohesion: 0.06
@@ -4760,16 +4813,12 @@ Cohesion: 0.11
 Nodes (18): 5.1 Automatic Audit, 5.2 Integrate and Fix, 5.3 Delivery Confirmation, Core Protocols, Execute - Multi-Model Collaborative Execution, Execution Workflow, Key Rules, Multi-Model Call Specification (+10 more)
 
 ### Community 587 - "useEphemeralToast"
-Cohesion: 0.04
-Nodes (39): AdminIssueInlineWarning(), PRODUCT_EDITOR_TAB_GROUPS, PRODUCT_EDITOR_TABS, ProductEditorTab, ProductEditorTabGroupId, ProductEditorTabs(), SECTION_MARKS, Open (+31 more)
+Cohesion: 0.07
+Nodes (23): AdminSectionTabGroup, AdminSectionTabItem, AdminSectionTabsProps, AdminSectionTabTone, ResolvedGroup, resolveGroups(), ALL_ITEMS, FlatUngrouped (+15 more)
 
 ### Community 588 - "Code Examples"
-Cohesion: 0.05
-Nodes (73): {
-  getCursorSessionEnvPayload,
-  resolveAgentDataHome,
-  AGENT_DATA_HOME_ENV,
-}, { readStdinJson, log }, readStdinRaw(), resolveMaxStdin(), { StringDecoder }, cli(), exitAfterFlush(), fs (+65 more)
+Cohesion: 0.06
+Nodes (51): readStdinRaw(), resolveMaxStdin(), { StringDecoder }, cli(), exitAfterFlush(), fs, main(), { normalizePluginRootForPlatform } (+43 more)
 
 ### Community 590 - "harness-capabilities.js"
 Cohesion: 0.06
@@ -4808,28 +4857,28 @@ Cohesion: 0.10
 Nodes (48): ae(), be(), bt(), Ct(), de(), dt(), _e(), er() (+40 more)
 
 ### Community 599 - "React Performance"
-Cohesion: 0.07
-Nodes (28): 3. Server-Side Performance (HIGH), 4. Client-Side Data Fetching (MEDIUM-HIGH), 7. JavaScript Performance (LOW-MEDIUM), 8. Advanced Patterns (LOW), Attribution, Authenticate Server Actions like API routes, Automated Tools, Avoid duplicate serialization in RSC props (+20 more)
+Cohesion: 0.11
+Nodes (18): 4. Client-Side Data Fetching (MEDIUM-HIGH), 7. JavaScript Performance (LOW-MEDIUM), 8. Advanced Patterns (LOW), Attribution, Automated Tools, Deduplicate global event listeners, Event handler refs, Init once per app load (+10 more)
 
 ### Community 600 - "Translation migration and coverage"
 Cohesion: 0.33
 Nodes (5): Commands, Report semantics, Safe staging procedure, Shopify contract, Translation migration and coverage
 
 ### Community 601 - "next"
-Cohesion: 0.06
-Nodes (108): (admin)/about/page.tsx, home/page.tsx, manifesto/page.tsx, [locale]/about/page.tsx, generateMetadata(), [id]/page.tsx, Props, generateMetadata() (+100 more)
+Cohesion: 0.03
+Nodes (180): (admin)/about/page.tsx, home/page.tsx, generateMetadata(), manifesto/page.tsx, Page(), [locale]/about/page.tsx, generateMetadata(), Page() (+172 more)
 
 ### Community 602 - "taxonomy-value-labels.ts"
 Cohesion: 0.08
 Nodes (40): credentials, fixture, prefix, row, content, footer, sidebar, sidebarScroll (+32 more)
 
 ### Community 603 - "storefront-copy-editor.test.tsx"
-Cohesion: 0.02
-Nodes (176): resolveSyncTargetLocale(), retryTranslationSyncAction(), syncCollection(), syncProductNativeTranslation(), TranslationOverviewEntity, mocks, POST(), requestSchema (+168 more)
+Cohesion: 0.08
+Nodes (35): SHOP_PAGE_COPY_LABELS, ADMIN_FIELD_REGISTRIES, COLLECTION_FIELD_REGISTRY, EntityFieldRegistry, FieldKind, FieldMode, FieldRequiredness, PAGE_FIELD_REGISTRY (+27 more)
 
 ### Community 604 - "lucide-react"
 Cohesion: 0.04
-Nodes (89): AccountPageActionState, saveAccountPageAction(), actions/commerce-copy.ts, CommerceCopyActionState, saveCommerceCopyAction(), emptyKindMaps(), loadTaxonomyLabelsEditorPayload(), TaxonomyLabelsActionState (+81 more)
+Nodes (86): actions/account-orders-settings.ts, AccountOrdersSettingsActionState, saveAccountOrdersSettingsAction(), AccountPageActionState, saveAccountPageAction(), actions/commerce-copy.ts, CommerceCopyActionState, saveCommerceCopyAction() (+78 more)
 
 ### Community 605 - "ecc-a11y-architect.md"
 Cohesion: 0.11
@@ -4928,8 +4977,8 @@ Cohesion: 0.12
 Nodes (16): Code Review, Edge Cases, Local Review Mode, Mode Selection, Phase 1 — FETCH, Phase 1 — GATHER, Phase 2 — CONTEXT, Phase 2 — REVIEW (+8 more)
 
 ### Community 629 - "plan-canvas-pending.js"
-Cohesion: 0.21
-Nodes (16): buildReason(), collectDeliveries(), describeItem(), drainViaFile(), drainViaServer(), fs, http, isInside() (+8 more)
+Cohesion: 0.23
+Nodes (15): buildReason(), collectDeliveries(), describeItem(), drainViaFile(), drainViaServer(), fs, http, isInside() (+7 more)
 
 ### Community 630 - "captureElementToBlob"
 Cohesion: 0.07
@@ -4972,12 +5021,12 @@ Cohesion: 0.12
 Nodes (17): .cursor/skills/production-audit/SKILL.md, Anti-Patterns, Data Integrity, Evidence Checklist, Example, How It Works, Operations, Output Format (+9 more)
 
 ### Community 640 - "Examples"
-Cohesion: 0.12
-Nodes (17): Anti-Patterns, Build Optimization, Client-Side Access, Common Pitfalls, Dependency Pre-Bundling, Dev Does Not Match Build, Docker and Containers, Environment Variables (+9 more)
+Cohesion: 0.22
+Nodes (9): Anti-Patterns, Build Optimization, Dependency Pre-Bundling, Examples, HMR API, Library Mode, Manual Chunks, Server Proxy (+1 more)
 
 ### Community 641 - "storefront-link-health.ts"
 Cohesion: 0.24
-Nodes (16): hrefTargetIssueFromSearch(), hrefTargetWarning(), looksLikePath(), classifyHrefWithoutLookup(), EXTRA_LIVE_STOREFRONT_PATHS, isStorefrontVisibleHealth(), StorefrontHrefHealth, CatalogIndex (+8 more)
+Nodes (18): buildCustomPathHit(), hrefTargetIssueFromSearch(), looksLikePath(), normalizeCommittedHref(), normalizeHrefQuery(), classifyHrefWithoutLookup(), EXTRA_LIVE_STOREFRONT_PATHS, isStorefrontVisibleHealth() (+10 more)
 
 ### Community 642 - "Codebase Onboarding"
 Cohesion: 0.12
@@ -5077,7 +5126,7 @@ Nodes (15): Notes, Output, Purpose, Reviewer A: Claude Agent (always runs), Revi
 
 ### Community 666 - "markdown.js"
 Cohesion: 0.07
-Nodes (57): State Management (CRITICAL), escapeHtml(), artifactSdkJs(), plan-canvas/server.js, { artifactSdkJs }, assetByteLength(), assetReadError(), { buildAllowedHostnames, isAllowedHostHeader, isAllowedOrigin } (+49 more)
+Nodes (58): State Management (CRITICAL), escapeHtml(), artifactSdkJs(), plan-canvas/server.js, { artifactSdkJs }, assetByteLength(), assetReadError(), { buildAllowedHostnames, isAllowedHostHeader, isAllowedOrigin } (+50 more)
 
 ### Community 667 - "session-adapters/registry.js"
 Cohesion: 0.04
@@ -5104,12 +5153,12 @@ Cohesion: 0.12
 Nodes (16): codehealth-mcp/SKILL.md, 1. Connect the MCP server, 2. Call standalone tools only, 3. Interpret scores (1–10), 4. Run the feedback loop, Code Health MCP (CodeScene), Example: AGENTS.md enforcement block, Example: anti-patterns vs correct loop (+8 more)
 
 ### Community 673 - "Inherit Legacy Style"
-Cohesion: 0.12
-Nodes (25): claudeStateFilePath(), copyJsonSnapshot(), createDryRunSandbox(), createSnapshotMappings(), fs, os, path, readSnapshotFile() (+17 more)
+Cohesion: 0.06
+Nodes (46): buildContext(), fs, openSessions(), os, path, run(), stateDir(), appendLine() (+38 more)
 
 ### Community 674 - "5. Re-render Optimization (MEDIUM)"
-Cohesion: 0.17
-Nodes (16): { assertWithinTrustedRoot }, crypto, fs, hasEditedCodexUserConfig(), isCodexUserConfig(), path, readConfigDigest(), assertNoNewUserOwnedFile() (+8 more)
+Cohesion: 0.09
+Nodes (30): { assertWithinTrustedRoot }, crypto, fs, hasEditedCodexUserConfig(), isCodexUserConfig(), path, readConfigDigest(), { assertWithinTrustedRoot } (+22 more)
 
 ### Community 675 - "Strategic Compact Skill"
 Cohesion: 0.12
@@ -5136,8 +5185,8 @@ Cohesion: 0.13
 Nodes (14): Approval Criteria, CRITICAL — Error Handling, CRITICAL — Security, Diagnostic Commands, Framework Checks, HIGH — Async Patterns, HIGH — Code Quality, HIGH — Type Safety (+6 more)
 
 ### Community 681 - "Review Priorities"
-Cohesion: 0.14
-Nodes (25): onRouterTransitionStart(), COMMERCE_EVENT_NAME, CommerceEvent, CommerceEventDetail, CommerceItem, telemetry/client.ts, BLOCKED_COMMERCE_KEYS, captureClientError() (+17 more)
+Cohesion: 0.07
+Nodes (43): files, updatedAt, files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/app/layout.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/privacy/privacy-consent-manager.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/instrumentation.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/proxy.ts (+35 more)
 
 ### Community 682 - "Review Priorities"
 Cohesion: 0.13
@@ -5196,12 +5245,12 @@ Cohesion: 0.04
 Nodes (54): activeCount, activeFilters, all, allAvailability, allCategories, allCollections, allCompliance, allFinishes (+46 more)
 
 ### Community 696 - "proximity.js"
-Cohesion: 0.08
-Nodes (34): BarChart(), BarChartProps, BarOrientation, ChartCore, DEFAULT_MARGIN, extractBarConfigs(), BarChartLoadingProps, EMPTY_DATA (+26 more)
+Cohesion: 0.06
+Nodes (50): BarChartProps, BarOrientation, ChartCore, ChartInnerProps, DEFAULT_MARGIN, extractBarConfigs(), BarChartLoadingProps, EMPTY_DATA (+42 more)
 
 ### Community 697 - "_redact_home_paths"
-Cohesion: 0.08
-Nodes (41): ChartConfigContext, ChartConfigProviderProps, ChartConfigValue, DEFAULT_CHART_CONFIG, resolveTooltipBoxMotion(), SpringConfig, useChartConfig(), chartCssVars (+33 more)
+Cohesion: 0.09
+Nodes (39): ChartConfigContext, ChartConfigProviderProps, ChartConfigValue, DEFAULT_CHART_CONFIG, resolveTooltipBoxMotion(), SpringConfig, useChartConfig(), hmsTimeFmt (+31 more)
 
 ### Community 698 - "C# Testing Patterns"
 Cohesion: 0.13
@@ -5308,8 +5357,8 @@ Cohesion: 0.20
 Nodes (11): ADAPTER_RECORDS, COMPLIANCE_STATES, escapeMarkdownCell(), extractMatrixBlock(), fs, path, renderMarkdownTable(), renderStateTable() (+3 more)
 
 ### Community 724 - "createSessionStore"
-Cohesion: 0.32
-Nodes (12): canonicalizeArtifactPath(), createSessionStore(), addAgentReply(), end(), findByFile(), get(), open(), persist() (+4 more)
+Cohesion: 0.13
+Nodes (25): Example, Plan Canvas Command, Related, What This Command Does, canonicalizeArtifactPath(), chatLineFor(), createSessionStore(), addAgentReply() (+17 more)
 
 ### Community 725 - "Next.js and Turbopack"
 Cohesion: 0.19
@@ -5392,8 +5441,8 @@ Cohesion: 0.15
 Nodes (13): product-capability/SKILL.md, 1. Restate the capability, 2. Resolve capability constraints, 3. Define the implementation-facing contract, 4. Translate into execution, Canonical Artifact, Core Workflow, Good Outcomes (+5 more)
 
 ### Community 745 - "Unified Memory"
-Cohesion: 0.06
-Nodes (48): claudeStateFilePath(), copyJsonSnapshot(), createDryRunSandbox(), createSnapshotMappings(), fs, os, path, readSnapshotFile() (+40 more)
+Cohesion: 0.10
+Nodes (31): applyMultiHarnessPlan(), applyPreflightedManagedPlan(), assertInstallStateUnchanged(), assertManagedDestinationsWritable(), assertMergeDestination(), assertPriorInstallStateMatchesPlan(), { assertSafeInstallOperation }, { assertWithinTrustedRoot, realpathNearestExisting } (+23 more)
 
 ### Community 746 - "Verification Phases"
 Cohesion: 0.15
@@ -5446,7 +5495,7 @@ Nodes (48): 1. Business Context, 1. Content Pillars, 1. Customer Impact (40%), 1
 
 ### Community 756 - "home-final-cta-section.ts"
 Cohesion: 0.12
-Nodes (22): AuthSubmitButton(), AuthSubmitButtonProps, BarXAxis(), BarXAxisInner, BarXAxisLabel(), BarXAxisLabelProps, BarXAxisProps, BarYAxis() (+14 more)
+Nodes (37): resolveSyncTargetLocale(), retryTranslationSyncAction(), syncCollection(), syncProductNativeTranslation(), TranslationOverviewEntity, mocks, pickStorefrontCopyFields(), localizedFields() (+29 more)
 
 ### Community 757 - "2. Advanced CSS Animations"
 Cohesion: 0.15
@@ -5517,8 +5566,8 @@ Cohesion: 0.17
 Nodes (12): 6. Rendering Performance (MEDIUM), `<Activity>` for show/hide instead of mount/unmount, Animate the wrapper, not the SVG, `content-visibility: auto` for long lists, `defer` / `async` on `<script>` tags, Hoist static JSX, Hydration no-flicker via inline script, React DOM resource hints (+4 more)
 
 ### Community 774 - "migrate-local-uploads-to-s3.mjs"
-Cohesion: 0.18
-Nodes (20): ref_node_url, collectUploadKeys(), __dirname, EXECUTE, main(), OUT, resolveS3(), walk() (+12 more)
+Cohesion: 0.36
+Nodes (12): __dirname, listUploadFiles(), main(), mimeByExtension, prisma, publicUrlForKey(), replaceUploadUrls(), requiredEnv() (+4 more)
 
 ### Community 775 - "Database Reviewer"
 Cohesion: 0.17
@@ -5541,8 +5590,8 @@ Cohesion: 0.17
 Nodes (11): Approval Criteria, CRITICAL — Error Handling, CRITICAL — Safety, Diagnostic Commands, HIGH — Code Quality, HIGH — Concurrency, HIGH — Ownership and Lifetimes, MEDIUM — Best Practices (+3 more)
 
 ### Community 780 - "Review Priorities"
-Cohesion: 0.17
-Nodes (11): Approval Criteria, CRITICAL - Error Handling, CRITICAL - Safety, Diagnostic Commands, HIGH - Code Quality, HIGH - Concurrency, HIGH - Memory Management, HIGH - Protocol-Oriented Design (+3 more)
+Cohesion: 0.15
+Nodes (12): Approval Criteria, CRITICAL - Error Handling, CRITICAL - Safety, Diagnostic Commands, HIGH - Code Quality, HIGH - Concurrency, HIGH - Memory Management, HIGH - Protocol-Oriented Design (+4 more)
 
 ### Community 781 - "Agent Introspection Debugging"
 Cohesion: 0.17
@@ -5581,8 +5630,8 @@ Cohesion: 0.17
 Nodes (11): Example Output, Notes, Process, Save Session Command, Session File Format, Step 1: Gather context, Step 2: Create the sessions folder if it doesn't exist, Step 3: Write the session file (+3 more)
 
 ### Community 790 - "desktop-notify.js"
-Cohesion: 0.06
-Nodes (48): updateProductMediaAltAction(), updateWorkingSnapshotMediaAltAction(), collectionSelectOptionLabel(), CollectionSelectSource, collectionWorkflowLabel(), isPublishedCollection(), liveProductRequiresPublishedCollectionMessage(), productLiveInUnpublishedCollection() (+40 more)
+Cohesion: 0.11
+Nodes (29): updateProductMediaAltAction(), updateWorkingSnapshotMediaAltAction(), adminMediaExists(), imageExists(), IssueDraft, localImageExists(), MediaCheck, mediaProxyKey() (+21 more)
 
 ### Community 791 - "Style Presets Reference"
 Cohesion: 0.20
@@ -5593,8 +5642,8 @@ Cohesion: 0.29
 Nodes (9): CONFIG_SCHEMA_PATH, dedupeStrings(), formatValidationErrors(), fs, getValidator(), loadInstallConfig(), path, readJson() (+1 more)
 
 ### Community 793 - "chart-defs.ts"
-Cohesion: 0.07
-Nodes (27): Checkpoint 1: Contract review, Checkpoint 4: Catalog complete, Checkpoint 5: Editorial complete, Checkpoint 7: Trustworthy detection, Checkpoint 8: Human-safe merge UX, Checkpoint 9: Reconciliation feature complete, Phase 1 — Translation contract, Phase 4 — Catalog vertical slices (+19 more)
+Cohesion: 0.04
+Nodes (71): emptyKindMaps(), loadTaxonomyLabelsEditorPayload(), saveTaxonomyLabelsAction(), TaxonomyLabelsActionState, TaxonomyLabelsEditorPayload, SectionId, SECTIONS, save() (+63 more)
 
 ### Community 794 - "Agent Introspection Debugging"
 Cohesion: 0.17
@@ -5653,8 +5702,8 @@ Cohesion: 0.17
 Nodes (12): .cursor/skills/investor-materials/SKILL.md, Accelerator Applications, Asset Guidance, Core Workflow, Financial Model, Golden Rule, Investor Materials, One-Pager / Memo (+4 more)
 
 ### Community 808 - "6. Rendering Performance (MEDIUM)"
-Cohesion: 0.25
-Nodes (15): hasAdminCredentials(), cleanupTestData(), createTestCollection(), CreateTestCollectionInput, createTestPage(), CreateTestPageInput, createTestProduct(), CreateTestProductInput (+7 more)
+Cohesion: 0.26
+Nodes (14): cleanupTestData(), createTestCollection(), CreateTestCollectionInput, createTestPage(), CreateTestPageInput, createTestProduct(), CreateTestProductInput, createTestProductVariant() (+6 more)
 
 ### Community 809 - "path-safety.js"
 Cohesion: 0.08
@@ -5692,12 +5741,12 @@ Cohesion: 0.14
 Nodes (15): docs/tech-debt.md, Acceptance when done, Acceptance when done, Acceptance when done, Code pointers, Official references, Problem, Storefront and integrations tech debt (+7 more)
 
 ### Community 817 - "Font Optimization"
-Cohesion: 0.08
-Nodes (21): Common Mistakes, Display Strategy, Don't Use Manual Font Links, Font in Specific Components, Font Optimization, Font Weights and Styles, Google Fonts, Local Fonts (+13 more)
+Cohesion: 0.07
+Nodes (24): Common Mistakes, Display Strategy, Don't Use Manual Font Links, Font in Specific Components, Font Optimization, Font Weights and Styles, Google Fonts, Local Fonts (+16 more)
 
 ### Community 818 - "ref_node_fs"
-Cohesion: 0.08
-Nodes (33): corruptedImageFixture(), FixtureFile, nonImageFixture(), oversizedImageFixture(), tempDir(), validPngFixture(), ref_node_fs, ref_node_os (+25 more)
+Cohesion: 0.09
+Nodes (28): node:fs/promises, ref_node_fs, sharp, classifyForeignUrl(), __dirname, EXPECTED_PREFIXES, extractKeyFromUrl(), finding() (+20 more)
 
 ### Community 819 - "Практический план на пять дней"
 Cohesion: 0.33
@@ -5708,8 +5757,8 @@ Cohesion: 0.20
 Nodes (10): Account configuration: v2 dimensions, Business model to configuration mapping, Dashboard defaults (important), SaaS vs. Marketplace responsibility defaults, Bool, Any, NSUserActivity, UIUserActivityRestoring (+2 more)
 
 ### Community 821 - "scroll-reveal.stories.tsx"
-Cohesion: 0.03
-Nodes (79): app_globals, Default, meta, Story, EmptySignedIn, meta, Story, WithReviews (+71 more)
+Cohesion: 0.02
+Nodes (65): app_globals, Default, meta, Story, BothThemes, darkVars, lightVars, meta (+57 more)
 
 ### Community 822 - "C++ Build Error Resolver"
 Cohesion: 0.18
@@ -5744,8 +5793,8 @@ Cohesion: 0.18
 Nodes (10): DNS, Guardrails, Layer 1 and 2, Layer 3, Layer Checks, Output Format, Policy And Firewall, Prompt Defense Baseline (+2 more)
 
 ### Community 830 - "ecc-php-reviewer.md"
-Cohesion: 0.12
-Nodes (19): ids, packageRoot, prismaB, sequences, skus, store, storeA, storeB (+11 more)
+Cohesion: 0.22
+Nodes (8): ids, packageRoot, prismaB, sequences, skus, store, storeA, storeB
 
 ### Community 831 - "Raw"
 Cohesion: 0.18
@@ -5784,12 +5833,12 @@ Cohesion: 0.18
 Nodes (10): Analysis Steps, GitHub App Integration, Related Commands, /skill-create - Local Skill Generation, Step 1: Gather Git Data, Step 2: Detect Patterns, Step 3: Generate SKILL.md, Step 4: Generate Instincts (if --instincts) (+2 more)
 
 ### Community 840 - "work-item-mutations.js"
-Cohesion: 0.02
-Nodes (147): GET(), mocks, featuredCollectionPosition(), buildCharacteristicFacetLabelMap(), buyerFacingTagNames(), characteristicFacetLabel(), isBuyerFacingTagName(), JEWELRY_FACET_VALUE_TRANSLATIONS (+139 more)
+Cohesion: 0.03
+Nodes (131): toListItem(), GET(), mocks, Props, featuredCollectionPosition(), buildCharacteristicFacetLabelMap(), buyerFacingTagNames(), characteristicFacetLabel() (+123 more)
 
 ### Community 841 - "github-discussions.js"
-Cohesion: 0.04
-Nodes (77): AuthShell(), AuthShellProps, isLegalActionHref(), LEGAL_ACTION_IDS, LegalActionId, parseLegalActionHref(), resolveLegalActionPath(), ResolvedLegalSection (+69 more)
+Cohesion: 0.19
+Nodes (24): escapeAttr(), escapeHtml(), escapeOrphanAngles(), inlineMarkdownToHtml(), isAllowedRichTextHref(), isExternalHttpHref(), isInternalHref(), isRichTextEmpty() (+16 more)
 
 ### Community 842 - "sessions.js"
 Cohesion: 0.15
@@ -5836,8 +5885,8 @@ Cohesion: 0.04
 Nodes (46): code:block1 (project/), code:`markdown (Start {name} ({port}) and open logs.), code:block11, code:`markdown (Stop {name} ({port}).), code:block13, code:`markdown (Restart {name} ({port}).), code:block15, code:`markdown (View all PM2 logs.) (+38 more)
 
 ### Community 853 - "Examples"
-Cohesion: 0.18
-Nodes (11): references/routing.md, Basic Action Declaration, Dependency Injection, Examples, How It Works, Mode Values, Parameterized Paths, Path Matching Priority (+3 more)
+Cohesion: 0.03
+Nodes (56): references/architecture.md, Action Definition and CLI Invocation, Configuration Access, Core Architecture, Examples, How It Works, Key Abstractions, Minimal Application Initialization (+48 more)
 
 ### Community 854 - "Задачи: единая EN/PT-система переводов"
 Cohesion: 0.09
@@ -5852,8 +5901,8 @@ Cohesion: 0.20
 Nodes (9): 1. Entry Point Discovery, 2. Execution Path Tracing, 3. Architecture Layer Mapping, 4. Pattern Recognition, 5. Dependency Documentation, Analysis Process, Code Explorer Agent, Output Format (+1 more)
 
 ### Community 857 - "onAnnotDown"
-Cohesion: 0.20
-Nodes (17): beginEditPin(), buildAnnotationsForCapture(), buildPinElement(), cancelEditingPin(), clampPlaceholderSize(), finalizeEditingPin(), initAnnotOverlay(), localCoords() (+9 more)
+Cohesion: 0.18
+Nodes (19): applyPlaceholderDimensions(), beginEditPin(), buildAnnotationsForCapture(), buildPinElement(), cancelEditingPin(), finalizeEditingPin(), initAnnotOverlay(), localCoords() (+11 more)
 
 ### Community 858 - "ecc-fastapi-reviewer.md"
 Cohesion: 0.20
@@ -5880,8 +5929,8 @@ Cohesion: 0.20
 Nodes (9): Approval Criteria, Example Session, Flutter Code Review, Prerequisites, Related, Related Commands, Review Areas, What This Command Does (+1 more)
 
 ### Community 864 - "Security Scan Command"
-Cohesion: 0.22
-Nodes (8): Arguments, CI Pattern, Deterministic Engine, Links, Output Contract, Review Checklist, Security Scan Command, Usage
+Cohesion: 0.04
+Nodes (86): account/page.tsx, AdminAccountPage(), apply/route.ts, POST(), requestSchema, runtime, reconcile/route.ts, GET() (+78 more)
 
 ### Community 865 - "Package Manager Setup"
 Cohesion: 0.20
@@ -5948,8 +5997,8 @@ Cohesion: 0.16
 Nodes (21): commandOutput(), evaluate(), findFileIssues(), fs, getExecutableCandidates(), getLinterInvocation(), getPathEnv(), getStagedFileContent() (+13 more)
 
 ### Community 881 - "Examples"
-Cohesion: 0.20
-Nodes (9): 1. Root Component, 2. Item Component, 3. Trigger Component, 4. Content Component, 5. Putting it all together, Informational Components, Interactive Elements, Making a component composable (+1 more)
+Cohesion: 0.05
+Nodes (39): files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/pr169/.railway/railway.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/pr169/scripts/__tests__/sku-api-railway-iac-adopt.test.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/lib/shopify/__tests__/sku-catalog.test.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/lib/sku/ops-auth.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/packages/sku-contract/src/index.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/packages/sku-contract/src/v1.test.ts (+31 more)
 
 ### Community 882 - "context-profile-commands.js"
 Cohesion: 0.29
@@ -5964,8 +6013,8 @@ Cohesion: 0.04
 Nodes (46): Bulk Operations, Caching Strategies, code:block1 (myproject/), code:python (from django.views.decorators.cache import cache_page), code:django ({% load cache %}), code:python (from django.core.cache import cache), code:python (from django.core.cache import cache), code:python (# apps/users/signals.py) (+38 more)
 
 ### Community 885 - "Navigation Hooks (Client)"
-Cohesion: 0.44
-Nodes (9): Navigation Hooks (Client), Functions, Suspense Boundaries, Quick Reference, useParams(), usePathname(), useRouter(), useSearchParams() (+1 more)
+Cohesion: 0.11
+Nodes (36): crypto, fs, path, writeFileAtomic(), appendSessionCostRow(), assertSafeSessionId(), chooseNewerCumulativeRow(), consumeJsonlChunk() (+28 more)
 
 ### Community 886 - "media.ts"
 Cohesion: 0.04
@@ -6116,8 +6165,8 @@ Cohesion: 0.25
 Nodes (7): Arguments, Cross-Session CLI, Loop Status Command, Snapshot Files, Usage, Watch Mode, What to Report
 
 ### Community 923 - "TDD Workflow Steps"
-Cohesion: 0.20
-Nodes (10): Step 0: Detect the Test Runner, Step 1: Write User Journeys, Step 2: Generate Test Cases, Step 3: Run Tests (They Should Fail), Step 4: Implement Code, Step 5: Run Tests Again, Step 6: Refactor, Step 7: Verify Coverage (+2 more)
+Cohesion: 0.10
+Nodes (33): getSettingsLockIdentity(), operationOverlapsPlugin(), acquireOpenCodeInstallLocks(), { acquireSettingsLock, getSettingsLockIdentity, sameFileIdentity }, activeLeases, annotateCleanupFailure(), assertLockLocation(), assertOwnedLock() (+25 more)
 
 ### Community 924 - "control-pane/actions.js"
 Cohesion: 0.04
@@ -6188,20 +6237,20 @@ Cohesion: 0.25
 Nodes (8): 1. Tests BEFORE Code, 2. Coverage Requirements, 3. Test Types, 4. Git Checkpoints, Core Principles, E2E Tests (Playwright), Integration Tests, Unit Tests
 
 ### Community 941 - "tinystruct-patterns/SKILL.md"
-Cohesion: 0.20
-Nodes (9): Don't Put Script in Head, Google Analytics, Google Tag Manager, Inline Scripts Need ID, Loading Strategies, Other Third-Party Scripts, Quick Reference, Scripts (+1 more)
+Cohesion: 0.06
+Nodes (36): files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/artifacts/product-detail.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/auth/admin-login-form.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/ui/display-heading.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/ui/editorial-heading.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/ui/__tests__/display-heading.test.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/ui/__tests__/editorial-heading.test.tsx (+28 more)
 
 ### Community 942 - "tinystruct Database Persistence"
-Cohesion: 0.25
-Nodes (7): CRUD Operations, Examples, Important Rules, Mapping XML Structure, Querying with Conditions, tinystruct Database Persistence, When to Use
+Cohesion: 0.14
+Nodes (13): Architecture, Command, Configuration, CRUD Operations, Examples, How It Works, Important Rules, Key Base Class: `AbstractData` (+5 more)
 
 ### Community 943 - "How It Works"
 Cohesion: 0.10
 Nodes (20): runAnimator(), audit, buildCode, byName, conditions, connections, ifNode, loadCode (+12 more)
 
 ### Community 944 - "Cognitive Load Assessment"
-Cohesion: 0.08
-Nodes (45): resolveHookConsentFlags(), dedupeStrings(), LEGACY_INSTALL_TARGETS, normalizeInstallRequest(), normalizeSkillComponentIds(), parseInstallArgs(), { resolveHookConsentFlags }, { validateInstallModuleIds, LOCALE_ALIAS_TO_COMPONENT_ID, listSupportedLocales } (+37 more)
+Cohesion: 0.11
+Nodes (32): POST(), requestSchema, normalizePageTranslationContent(), applyReconcileChoice(), ApplyRow, bindingFrom(), claimDifference(), fetchRemoteValues() (+24 more)
 
 ### Community 945 - "Impeccable Finish Reviewer"
 Cohesion: 0.04
@@ -6220,8 +6269,8 @@ Cohesion: 0.10
 Nodes (19): code:bash (# Gate an existing plan JSON:), code:bash (railway login), code:bash (# ONLY after explicit go + gate above — NOT part of this pre), Exact expected Railway plan, Identity (hard guards), Limited rollout (one draft product), Ordered manual production steps (human-only), Plan gate checklist — abort unless all true (+11 more)
 
 ### Community 949 - "URL Structure"
-Cohesion: 0.20
-Nodes (15): emptyKindMaps(), loadTaxonomyLabelsEditorPayload(), saveTaxonomyLabelsAction(), TaxonomyLabelsActionState, TaxonomyLabelsEditorPayload, JEWELRY_TAXONOMY_VALUE_TRANSLATIONS, TaxonomyKind, applyShopifyProductTypeLabel() (+7 more)
+Cohesion: 0.09
+Nodes (32): { isHookEnabled }, buildDryRunPreview(), { buildPreToolUseAdditionalContext }, exitWithStdout(), extractTargetContext(), FAIL_CLOSED_ON_TRUNCATION_HOOKS, fs, getPluginRoot() (+24 more)
 
 ### Community 950 - "Technical SEO Audit"
 Cohesion: 0.16
@@ -6236,8 +6285,8 @@ Cohesion: 0.04
 Nodes (45): API Resources, Caching, code:block1 (app/), code:php (protected function budgetCents(): Attribute), code:php ($orders = Order::query()), code:php (final class ProjectQuery), code:php (use Illuminate\Database\Eloquent\SoftDeletes;), code:php (use Illuminate\Database\Eloquent\Builder;) (+37 more)
 
 ### Community 953 - "Synarava Redirect Theme"
-Cohesion: 0.18
-Nodes (11): synarava-redirect/README.md, Build ZIP, Buy again rewrite rules, Hostname, Paths that must NOT redirect away, Production validation matrix, Related docs, Rollback to Horizon (+3 more)
+Cohesion: 0.20
+Nodes (10): Build ZIP, Buy again rewrite rules, Hostname, Paths that must NOT redirect away, Production validation matrix, Related docs, Rollback to Horizon, Synarava Redirect Theme (+2 more)
 
 ### Community 954 - "ecc-gan-planner.md"
 Cohesion: 0.29
@@ -6328,16 +6377,16 @@ Cohesion: 0.04
 Nodes (44): 1. Render is a Pure Function of Props and State, 2. Side Effects Outside Render, 3. Composition Over Inheritance, Accessibility-First Composition, Avoiding Render Cascades, code:tsx (// Good: derive during render), code:tsx (function useDebounce<T>(value: T, delay = 300): T {), code:tsx ("use client";) (+36 more)
 
 ### Community 976 - "Common Testing Mistakes to Avoid"
-Cohesion: 0.15
-Nodes (12): result, clamp(), computeTooltipPosition(), OPPOSITE, Rect, Size, TooltipAlign, TooltipPlacement (+4 more)
+Cohesion: 0.11
+Nodes (22): CatalogPresenceDifference, classifyCatalogPresence(), fingerprint(), localCatalogFingerprint(), LocalCatalogIdentity, MISSING_FINGERPRINT, remoteCatalogFingerprint(), RemoteCatalogIdentity (+14 more)
 
 ### Community 977 - "Examples"
 Cohesion: 0.33
 Nodes (8): fs, isProtectedName(), parseInput(), path, PROTECTED_FILES, PROTECTED_PATTERNS, run(), truncated
 
 ### Community 978 - "proxy.ts"
-Cohesion: 0.02
-Nodes (132): mocks, mocks, atomicCheckAndIncrement(), checkFallbackRateLimit(), checkRateLimit(), clearRateLimit(), hashRateLimitKey(), _rl (+124 more)
+Cohesion: 0.03
+Nodes (92): mocks, mocks, atomicCheckAndIncrement(), checkFallbackRateLimit(), checkRateLimit(), clearRateLimit(), hashRateLimitKey(), _rl (+84 more)
 
 ### Community 979 - "admin-long-text-field.stories.tsx"
 Cohesion: 0.04
@@ -6348,28 +6397,32 @@ Cohesion: 0.33
 Nodes (6): .agents/skills/agent-self-evaluation/examples/low-score-example.md, Agent Output, Evaluation Report, Low-Score Example: Adding Retry Logic, Task, Why This Scores Poorly
 
 ### Community 981 - "Performance Rules"
-Cohesion: 0.33
-Nodes (6): CSS animations beat JS under load, CSS variables are inheritable, Framer Motion hardware acceleration caveat, Only animate transform and opacity, Performance Rules, Use WAAPI for programmatic CSS animations
+Cohesion: 0.16
+Nodes (28): shopify/product-reviews.ts, buildProductReviewInput(), ensureProductReviewWebhookSubscriptions(), ensureStandardProductReviewDefinition(), fetchCachedProductReviewMetaobjects, fetchProductIdsWithStoredReviewAggregate(), fetchProductReviewMetaobjects(), field() (+20 more)
 
 ### Community 982 - "Animation"
-Cohesion: 0.22
-Nodes (8): Animation, Correct, Defaults, Inspiration, Live charts, Performance, Reduced motion, Replay enter animations
+Cohesion: 0.14
+Nodes (21): adminMediaExists(), brokenMediaIssue(), imageExists(), IssueDraft, issueKey(), localImageExists(), MediaCheck, mediaProxyKey() (+13 more)
 
 ### Community 983 - "$impeccable hooks"
 Cohesion: 0.04
 Nodes (44): API ViewSet Testing, code:python (# Step 1: RED - Write failing test), code:python (# tests/test_api.py), code:python (# tests/test_views.py), code:python (# tests/test_email.py), code:python (# tests/test_integration.py), code:bash (# Run tests with coverage), code:ini (# pytest.ini) (+36 more)
 
 ### Community 984 - "Hreflang"
-Cohesion: 0.18
-Nodes (16): { assertWithinTrustedRoot }, crypto, fs, hasEditedCodexUserConfig(), isCodexUserConfig(), path, readConfigDigest(), assertNoNewUserOwnedFile() (+8 more)
+Cohesion: 0.11
+Nodes (21): buildDependencyGraph(), buildDependencyGraphFromSources(), extractRelativeSpecifiers(), fs, isSourceFile(), path, RESOLVE_EXTENSIONS, resolveSpecifier() (+13 more)
 
 ### Community 985 - "Common Issues by Site Type"
-Cohesion: 0.21
-Nodes (16): deepFreeze(), expectedRootForAdapter(), getHarnessCapability(), GUIDED_HARNESS_IDS, HARNESS_CAPABILITIES, listGuidedHarnesses(), listHarnessCapabilities(), { listInstallTargetAdapters } (+8 more)
+Cohesion: 0.12
+Nodes (18): CheckRow(), MetaHealthPanel(), TONE_ICON, TONE_LABEL, toneClass(), ImageAltCoverageCounts, ImageAltCoverage, MetaHealthCheck (+10 more)
 
 ### Community 986 - "videos/route.ts"
-Cohesion: 0.20
-Nodes (10): 3. Server-Side Performance (HIGH), Authenticate Server Actions like API routes, Avoid duplicate serialization in RSC props, Hoist static I/O to module scope, LRU cache for cross-request data, Minimize data passed to Client Components, No mutable module-level state in RSC/SSR, Parallelize nested fetches with Promise.all per item (+2 more)
+Cohesion: 0.15
+Nodes (24): {
+  getCursorSessionEnvPayload,
+  resolveAgentDataHome,
+  AGENT_DATA_HOME_ENV,
+}, main(), { readStdinJson, log }, { assertWithinTrustedRoot }, DEFAULT_CURSOR_ECC_DIR_SEGMENTS, ensureAgentDataHomeEnv(), expandHomePath(), fs (+16 more)
 
 ### Community 987 - "Workflow"
 Cohesion: 0.04
@@ -6496,8 +6549,8 @@ Cohesion: 0.05
 Nodes (40): code:typescript (interface LogContext {), Simple In-Memory Rate Limiter, API Design Patterns, Authentication & Authorization, Backend Development Patterns, Background Jobs & Queues, Cache-Aside Pattern, Caching Strategies (+32 more)
 
 ### Community 1018 - "Impeccable Documenter"
-Cohesion: 0.29
-Nodes (6): { container }, link, mocks, onChange, preview, user
+Cohesion: 0.14
+Nodes (24): fs, isSessionFileTarget(), { normalizeClaudeHistorySession, persistCanonicalSnapshot }, parseClaudeTarget(), path, resolveSessionRecord(), sessionAliases, sessionManager (+16 more)
 
 ### Community 1019 - ".agents/skills/skill-stocktake/scripts/quick-diff.sh"
 Cohesion: 0.60
@@ -6508,8 +6561,8 @@ Cohesion: 0.11
 Nodes (40): buildControlPaneActions(), { buildControlPaneActions }, buildControlPaneSnapshot(), classifyAssignee(), connectorStatus(), deepMerge(), DEFAULT_STATE_STORE_RELATIVE_PATH, defaultConfigPaths() (+32 more)
 
 ### Community 1021 - "Plan Canvas Command"
-Cohesion: 0.29
-Nodes (6): cmd, input, output, pr, { readStdin, hookEnabled }, repo
+Cohesion: 0.14
+Nodes (18): ENTITY_LABEL, LocalHandleRows(), RedirectsVisibilityPanel(), ShopifyStatus(), okReport, LocalizedHandleEntityType, getRedirectsVisibilityReport, isHandleEntityType() (+10 more)
 
 ### Community 1022 - "Projects Command"
 Cohesion: 0.40
@@ -6593,7 +6646,7 @@ Nodes (5): Flags, Instinct Export Command, Output Format, Usage, What to Do
 
 ### Community 1044 - "built-in-pages.ts"
 Cohesion: 0.12
-Nodes (16): abort(), EXPECTED_ENVIRONMENT, EXPECTED_ENVIRONMENT_ID, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, LOCAL_DIR, PARTIAL_NAME, PLAN_CHECK (+8 more)
+Nodes (17): abort(), EXPECTED_ENVIRONMENT, EXPECTED_ENVIRONMENT_ID, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, LOCAL_DIR, PARTIAL_NAME, PLAN_CHECK (+9 more)
 
 ### Community 1045 - "product-reviews.stories.tsx"
 Cohesion: 0.05
@@ -6672,8 +6725,8 @@ Cohesion: 0.50
 Nodes (4): DO, DON'T, Key Rules, Philosophy & Interfaces (P.*, I.*)
 
 ### Community 1064 - "mono-meta.stories.tsx"
-Cohesion: 0.08
-Nodes (42): armPageChatForTyping(), attachSteerFocusDebug(), clearSteerAwaitTimer(), collapsePageChat(), configureVoiceContext(), expandPageChat(), finishVoiceSession(), focusConfigureInput() (+34 more)
+Cohesion: 0.07
+Nodes (47): applyGlobalBarLabelState(), armPageChatForTyping(), attachSteerFocusDebug(), clearSteerAwaitTimer(), collapsePageChat(), configureVoiceContext(), expandPageChat(), finishVoiceSession() (+39 more)
 
 ### Community 1065 - "6. Testing"
 Cohesion: 0.27
@@ -6708,8 +6761,8 @@ Cohesion: 0.05
 Nodes (39): Accessibility Patterns, Animation Patterns, Async Data Fetching Hook, Code Splitting & Lazy Loading, code:typescript (// PASS: GOOD: Component composition), code:typescript (import { useVirtualizer } from '@tanstack/react-virtual'), code:typescript (interface FormData {), code:typescript (interface ErrorBoundaryState {) (+31 more)
 
 ### Community 1073 - "Spring Animations"
-Cohesion: 0.40
-Nodes (5): Interruptibility advantage, Spring Animations, Spring-based mouse interactions, Spring configuration, When to use springs
+Cohesion: 0.14
+Nodes (19): LocalizedFieldDefinition, appType(), EditorialValue, ensureDefinition(), ensureEditorialMetaobject(), MetaobjectDefinition, serializeEditorialFields(), throwOnUserErrors() (+11 more)
 
 ### Community 1074 - "UX: merge workspace как Git merge, но без технического жаргона"
 Cohesion: 0.07
@@ -6760,8 +6813,8 @@ Cohesion: 0.05
 Nodes (39): Build-time vs Runtime, code:js (// next.config.js), code:js (// next.config.js), code:js (// next.config.js), code:js (// lib/image-loader.js), code:js (// Available at build time only (baked into bundle)), code:tsx (// app/api/config/route.ts), code:bash (npx create-sst@latest) (+31 more)
 
 ### Community 1120 - "10. Package/Dependency Review"
-Cohesion: 0.08
-Nodes (32): classifyForeignUrl(), __dirname, EXPECTED_PREFIXES, extractKeyFromUrl(), finding(), getS3PublicUrl(), headSample(), KNOWN_SITE_SETTING_KEYS (+24 more)
+Cohesion: 0.21
+Nodes (16): classifyForeignUrl(), __dirname, EXPECTED_PREFIXES, extractKeyFromUrl(), finding(), getS3PublicUrl(), headSample(), KNOWN_SITE_SETTING_KEYS (+8 more)
 
 ### Community 1121 - "12. Error Handling"
 Cohesion: 0.05
@@ -6821,11 +6874,11 @@ Nodes (35): buildGithubChecks(), buildReport(), CATEGORIES, collectProviderCheck
 
 ### Community 1137 - "Community 1137"
 Cohesion: 0.10
-Nodes (36): actionForFileKey(), {
+Nodes (37): actionForFileKey(), {
   appendFile,
   getClaudeDir,
   stripAnsi,
-}, buildActivityRow(), buildCreationPreview(), buildDiffPreviewFromPatchPreview(), buildPatchPreviewFromContent(), buildPatchPreviewFromReplacement(), buildReplacementPreview() (+28 more)
+}, buildActivityRow(), buildCreationPreview(), buildDiffPreviewFromPatchPreview(), buildPatchPreviewFromContent(), buildPatchPreviewFromReplacement(), buildReplacementPreview() (+29 more)
 
 ### Community 1138 - "Community 1138"
 Cohesion: 0.05
@@ -6868,16 +6921,16 @@ Cohesion: 0.12
 Nodes (16): computedHash, skillPath, source, sourceType, computedHash, skillPath, source, sourceType (+8 more)
 
 ### Community 1148 - "Community 1148"
-Cohesion: 0.03
-Nodes (62): buildSendArgs(), createEccMessageSink(), { execFileSync }, fs, KIND_BY_TYPE, path, resolveEccBin(), main() (+54 more)
+Cohesion: 0.05
+Nodes (34): buildSendArgs(), createEccMessageSink(), { execFileSync }, fs, KIND_BY_TYPE, path, resolveEccBin(), detail (+26 more)
 
 ### Community 1149 - "Community 1149"
 Cohesion: 0.15
 Nodes (35): applyStore(), CARRIER_KEYS, checkCarrier(), checkpoint(), checkSelection(), { createSourceReader, digestObject, stableStringify, validateSchema }, crypto, equal() (+27 more)
 
 ### Community 1150 - "Community 1150"
-Cohesion: 0.09
-Nodes (29): asNonEmptyString(), asStringArray(), buildFragmentation(), buildInventory(), buildSignature(), isObject(), looksLikeSecretValue(), mergeServers() (+21 more)
+Cohesion: 0.06
+Nodes (40): configuredDirectory(), os, path, { resolveInvocationEnvironment }, resolveOpencodeConfigRoot(), asNonEmptyString(), asStringArray(), buildFragmentation() (+32 more)
 
 ### Community 1151 - "Community 1151"
 Cohesion: 0.13
@@ -6916,12 +6969,12 @@ Cohesion: 0.12
 Nodes (34): attemptReconnect(), configPaths(), detectFailureCode(), emitLogs(), envNumber(), extractMcpTarget(), extractMcpTargetFromRaw(), FAILURE_PATTERNS (+26 more)
 
 ### Community 1160 - "Community 1160"
-Cohesion: 0.06
-Nodes (61): {
+Cohesion: 0.08
+Nodes (48): {
   acquireSettingsLock,
   runWithSettingsLock,
   sameFileIdentity,
-}, assertSettingsSnapshotUnchanged(), assertUnambiguousMatch(), cloneValue(), entriesMatchingId(), EVENTS_WITHOUT_MATCHER, fs, inspectManagedHooks() (+53 more)
+}, assertSettingsSnapshotUnchanged(), assertUnambiguousMatch(), cloneValue(), entriesMatchingId(), EVENTS_WITHOUT_MATCHER, fs, inspectManagedHooks() (+40 more)
 
 ### Community 1161 - "Community 1161"
 Cohesion: 0.06
@@ -6944,16 +6997,16 @@ Cohesion: 0.06
 Nodes (33): Artifact Management, CI/CD Integration, code:block1 (tests/), code:typescript (await page.screenshot({ path: 'artifacts/after-login.png' })), code:typescript (await browser.startTracing(page, {), code:typescript (// In playwright.config.ts), code:yaml (# .github/workflows/e2e.yml), code:markdown (# E2E Test Report) (+25 more)
 
 ### Community 1166 - "Community 1166"
-Cohesion: 0.12
-Nodes (34): clearStoredManualApplyState(), fetchPendingCount(), handleManualEditActivity(), hidePendingApplyDock(), initGlobalBar(), makeIconBtn(), loadDetectScript(), manualApplyLoadingText() (+26 more)
+Cohesion: 0.19
+Nodes (24): clearStoredManualApplyState(), fetchPendingCount(), handleManualEditActivity(), hidePendingApplyDock(), manualApplyLoadingText(), manualApplyStateKey(), manualEditEventForCurrentPage(), numberOrNull() (+16 more)
 
 ### Community 1167 - "Community 1167"
 Cohesion: 0.13
 Nodes (14): compilerOptions, esModuleInterop, isolatedModules, lib, module, moduleResolution, noEmit, noUncheckedIndexedAccess (+6 more)
 
 ### Community 1168 - "Community 1168"
-Cohesion: 0.09
-Nodes (39): infrastructure/page.tsx, AdminInfrastructurePage(), ConnectionsGauge(), ConnectionsGaugeProps, GAUGE_GRADIENT, TableSizeBarChart(), TableSizeBarChartProps, formatLatency() (+31 more)
+Cohesion: 0.14
+Nodes (24): collectInfrastructureStatusUncached(), collectPostgresStatus(), collectS3Status(), endpointHost(), errorMessage(), fetchRailwayBucketDetails(), getInfrastructureStatusFresh, InfrastructureProbeFail (+16 more)
 
 ### Community 1169 - "Community 1169"
 Cohesion: 0.06
@@ -7009,7 +7062,7 @@ Nodes (33): abandonForeignSession(), clearStoredManualApplyState(), copyToClipbo
 
 ### Community 1182 - "Community 1182"
 Cohesion: 0.09
-Nodes (33): addManualContextText(), applyEditing(), buildLocatorForLeaf(), canRestoreManualEditElement(), collectManualContextPieces(), contextElementForManualEdit(), copyEditContainerContext(), copyEditLeafContext() (+25 more)
+Nodes (31): addManualContextText(), applyEditing(), buildLocatorForLeaf(), canRestoreManualEditElement(), collectManualContextPieces(), contextElementForManualEdit(), copyEditContainerContext(), copyEditLeafContext() (+23 more)
 
 ### Community 1183 - "Community 1183"
 Cohesion: 0.09
@@ -7017,7 +7070,7 @@ Nodes (33): buildCollapsible(), buildColorModels(), buildDesignHeader(), buildRa
 
 ### Community 1184 - "Community 1184"
 Cohesion: 0.08
-Nodes (20): CHANNEL_LABELS, CHANNEL_ORDER, createProjectionWindow(), pca(), PROJECTION_DEFAULTS, projectPairs(), symmetricEigen(), advisoryEvents() (+12 more)
+Nodes (21): DEFAULTS, CHANNEL_LABELS, CHANNEL_ORDER, createProjectionWindow(), pca(), PROJECTION_DEFAULTS, projectPairs(), symmetricEigen() (+13 more)
 
 ### Community 1185 - "Community 1185"
 Cohesion: 0.06
@@ -7104,8 +7157,8 @@ Cohesion: 0.06
 Nodes (30): ASP.NET Core Integration Tests, Assertions with Unquote, Async Tests, Basic Test Structure, code:fsharp (module OrderServiceTests), code:block10 (tests/), code:bash (# Run all tests), code:fsharp (module OrderValidationTests) (+22 more)
 
 ### Community 1206 - "Community 1206"
-Cohesion: 0.07
-Nodes (47): advise(), agentPriority(), clamp01(), closureRate(), collisionRisk(), DEFAULTS, dependencyRisk(), graphDistance() (+39 more)
+Cohesion: 0.14
+Nodes (25): advise(), agentPriority(), clamp01(), closureRate(), collisionRisk(), dependencyRisk(), graphDistance(), lineRangeOverlap() (+17 more)
 
 ### Community 1207 - "Community 1207"
 Cohesion: 0.14
@@ -7116,8 +7169,8 @@ Cohesion: 0.07
 Nodes (29): 1. Current State Analysis, 1. Modularity & Separation of Concerns, 2. Requirements Gathering, 2. Scalability, 3. Design Proposal, 3. Maintainability, 4. Security, 4. Trade-Off Analysis (+21 more)
 
 ### Community 1209 - "Community 1209"
-Cohesion: 0.08
-Nodes (36): Bar(), BarColumnTrack(), BarSquares(), BarXAxis(), BarXAxisInner, BarXAxisLabel(), BarXAxisLabelProps, BarXAxisProps (+28 more)
+Cohesion: 0.06
+Nodes (37): Bar(), BarChart(), BarColumnTrack(), BarSquares(), BarXAxis(), BarXAxisInner, BarXAxisLabel(), BarXAxisLabelProps (+29 more)
 
 ### Community 1210 - "Community 1210"
 Cohesion: 0.07
@@ -7156,8 +7209,8 @@ Cohesion: 0.07
 Nodes (30): collection, collectionNote, edition, viewCollection, viewCollectionAria, body, eyebrow, title (+22 more)
 
 ### Community 1219 - "Community 1219"
-Cohesion: 0.07
-Nodes (30): scripts, auth:hash, build, build-storybook, check:privacy, check:version, clean, dev (+22 more)
+Cohesion: 0.06
+Nodes (31): scripts, auth:hash, build, build-storybook, check:privacy, check:version, clean, dev (+23 more)
 
 ### Community 1220 - "Community 1220"
 Cohesion: 0.07
@@ -7216,8 +7269,8 @@ Cohesion: 0.07
 Nodes (25): ancientOak, body, email, finalScene, fixedLeftRail, footer, heading, heroShop (+17 more)
 
 ### Community 1234 - "Community 1234"
-Cohesion: 0.09
-Nodes (29): averageRgb01(), captureAndEmit(), captureChromeNodes(), captureElementFromRenderedAncestor(), captureElementToBlob(), checkpointPayload(), collectFontCssText(), compileShader() (+21 more)
+Cohesion: 0.13
+Nodes (21): applyOriginalAttrsToSvelteAnchor(), captureAndEmit(), checkpointPayload(), commitAcceptedSvelteComponentToDom(), componentModuleCandidates(), describeMountFailure(), detectDevServerBase(), findInsertAnchorInDom() (+13 more)
 
 ### Community 1235 - "Community 1235"
 Cohesion: 0.07
@@ -7248,8 +7301,8 @@ Cohesion: 0.07
 Nodes (28): 5. Re-render Optimization (MEDIUM), Avoid memo for simple primitives, code:tsx (// INCORRECT — re-renders every time count changes), code:tsx (// CORRECT — child re-renders only when `items` changes), code:tsx (// INCORRECT — new array each render breaks memo), code:tsx (// INCORRECT — new object identity every render), code:tsx (// INCORRECT — re-renders for any cart change), code:tsx (// INCORRECT) (+20 more)
 
 ### Community 1242 - "Community 1242"
-Cohesion: 0.04
-Nodes (73): mocks, POST(), POST(), envSchema, optionalSecret32, optionalShopDomain, optionalString, optionalUrl (+65 more)
+Cohesion: 0.02
+Nodes (185): mocks, POST(), POST(), lib/env.ts, env, envSchema, optionalSecret32, optionalShopDomain (+177 more)
 
 ### Community 1243 - "Community 1243"
 Cohesion: 0.11
@@ -7292,15 +7345,15 @@ Nodes (28): shipping, accountBody, accountNote, accountOptions, address, address
 
 ### Community 1252 - "Community 1252"
 Cohesion: 0.07
-Nodes (28): dependencies, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, clsx, d3-array, d3-shape, lucide-react, motion (+20 more)
+Nodes (30): dependencies, @aws-sdk/client-s3, @aws-sdk/s3-request-presigner, clsx, d3-array, d3-shape, lucide-react, motion (+22 more)
 
 ### Community 1253 - "Community 1253"
 Cohesion: 0.07
-Nodes (28): devDependencies, @axe-core/playwright, eslint, eslint-config-next, jsdom, @lhci/cli, @playwright/test, prisma (+20 more)
+Nodes (29): devDependencies, @axe-core/playwright, eslint, eslint-config-next, jsdom, @lhci/cli, @playwright/test, prisma (+21 more)
 
 ### Community 1254 - "Community 1254"
 Cohesion: 0.08
-Nodes (37): formatBytes(), collectInfrastructureStatusUncached(), collectPostgresStatus(), collectS3Status(), endpointHost(), errorMessage(), fetchRailwayBucketDetails(), getInfrastructureStatus (+29 more)
+Nodes (34): formatBytes(), collectInfrastructureStatusUncached(), collectPostgresStatus(), collectS3Status(), endpointHost(), errorMessage(), fetchRailwayBucketDetails(), getInfrastructureStatus (+26 more)
 
 ### Community 1255 - "Community 1255"
 Cohesion: 0.07
@@ -7331,22 +7384,22 @@ Cohesion: 0.07
 Nodes (26): 1. Define the Prediction Contract, 2. Lock the Data Contract, 3. Build a Reproducible Pipeline, 4. Evaluate Before Promotion, 5. Package for Serving, 6. Operate the Model, Anti-Patterns, code:text (Goal:) (+18 more)
 
 ### Community 1262 - "Community 1262"
-Cohesion: 0.14
-Nodes (11): alt, distinct, formData, galleryProduct, inputs, mocks, onDeleted, product (+3 more)
+Cohesion: 0.15
+Nodes (22): buildSessionHeader(), buildSummaryBlock(), buildSummarySection(), escapeRegExp(), extractHeaderField(), extractSessionSummary(), fs, { generateSessionSummary, getContextRemainingPct, getContextThreshold } (+14 more)
 
 ### Community 1263 - "Community 1263"
 Cohesion: 0.13
-Nodes (26): main(), buildContextSuggestion(), cleanupOldCounters(), fs, getCounterRetentionDays(), {
+Nodes (25): buildContextSuggestion(), cleanupOldCounters(), fs, getCounterRetentionDays(), {
   getTempDir,
   writeFile,
   readStdinJson,
   log,
   output
-}, incrementToolCallCount(), main() (+18 more)
+}, incrementToolCallCount(), main(), path (+17 more)
 
 ### Community 1264 - "Community 1264"
-Cohesion: 0.03
-Nodes (82): canonicalize(), canonicalJson(), crypto, hashValue(), sha256Hex(), { canonicalJson, hashValue, sha256Hex }, Capsule, CapsuleError (+74 more)
+Cohesion: 0.12
+Nodes (20): { canonicalJson, hashValue, sha256Hex }, Capsule, CapsuleError, crypto, envelope, exportBundle(), fs, maxEffectClass() (+12 more)
 
 ### Community 1265 - "Community 1265"
 Cohesion: 0.07
@@ -7393,12 +7446,12 @@ Cohesion: 0.08
 Nodes (25): installedAt, operations, request, excludeComponents, hookConsent, includeComponents, legacyLanguages, legacyMode (+17 more)
 
 ### Community 1276 - "Community 1276"
-Cohesion: 0.15
-Nodes (11): afterSave, alt, confirmSpy, inputs, mocks, nextProduct, onAltPersistStart, onChange (+3 more)
+Cohesion: 0.14
+Nodes (20): differences, refresh, run, shared, DifferenceFilter, entityTypeLabel(), FILTERS, friendlyKey() (+12 more)
 
 ### Community 1277 - "Community 1277"
-Cohesion: 0.15
-Nodes (23): commandBasename(), ddLauncherCommandIndex(), explodeSubshells(), FIND_EXEC_ACTIONS, FIND_VALUE_PREDICATES, findGitSubcommand(), getExtraDestructiveRegex(), isDestructiveBash() (+15 more)
+Cohesion: 0.13
+Nodes (26): commandBasename(), ddLauncherCommandIndex(), explodeSubshells(), FIND_EXEC_ACTIONS, FIND_VALUE_PREDICATES, findGitSubcommand(), getExtraDestructiveRegex(), isDestructiveBash() (+18 more)
 
 ### Community 1278 - "Community 1278"
 Cohesion: 0.16
@@ -7533,8 +7586,8 @@ Cohesion: 0.14
 Nodes (22): boundedIdentifier(), buildRecord(), deriveOutcome(), extractSkillId(), firstIdentifier(), { recordSkillExecution }, run(), appendRunRecord() (+14 more)
 
 ### Community 1311 - "Community 1311"
-Cohesion: 0.13
-Nodes (21): computeRelevanceBoost(), { detectProjectType }, detectStackKeywords(), fileExists(), fs, hasFileWithExtension(), instinctMatchesStack(), path (+13 more)
+Cohesion: 0.05
+Nodes (61): main(), getSessionMetadata(), collapseWhitespace(), collectLearnedSkillFiles(), dedupeRecentSessions(), { detectProjectType }, extractFirstParagraph(), extractMarkdownHeading() (+53 more)
 
 ### Community 1312 - "Community 1312"
 Cohesion: 0.08
@@ -7637,12 +7690,17 @@ Cohesion: 0.09
 Nodes (21): Best Practices, code:bash (# Start dmux session), code:block2 (Pane 1 (Research): "Research best practices for rate limitin), code:block3 (Pane 1: "Create the database schema and migrations for the b), code:block4 (Pane 1 (Watcher): "Run the test suite in watch mode. When te), code:block5 (Pane 1 (Claude Code): "Review the security of the auth modul), code:block6 (Pane 1: "Review src/api/ for security vulnerabilities"), code:bash (# Create worktrees for isolation) (+13 more)
 
 ### Community 1337 - "Community 1337"
-Cohesion: 0.12
-Nodes (17): listInstallTargetAdapters(), expectedRootForAdapter(), getHarnessCapability(), GUIDED_HARNESS_IDS, HARNESS_CAPABILITIES, keys, listGuidedHarnesses(), { listInstallTargetAdapters } (+9 more)
+Cohesion: 0.14
+Nodes (15): listInstallTargetAdapters(), expectedRootForAdapter(), getHarnessCapability(), GUIDED_HARNESS_IDS, HARNESS_CAPABILITIES, keys, listGuidedHarnesses(), { listInstallTargetAdapters } (+7 more)
 
 ### Community 1338 - "Community 1338"
-Cohesion: 0.16
-Nodes (17): buildSessionRecord(), fs, getAllSessions(), getMatchingSessionCandidates(), getSessionById(), getSessionCandidates(), getSessionContent(), getSessionPath() (+9 more)
+Cohesion: 0.22
+Nodes (17): cleanupAliases(), deleteAlias(), fs, getAliasesForSession(), getAliasesPath(), {
+  getClaudeDir,
+  ensureDir,
+  readFile,
+  log
+}, getDefaultAliases(), listAliases() (+9 more)
 
 ### Community 1339 - "Community 1339"
 Cohesion: 0.09
@@ -7657,8 +7715,8 @@ Cohesion: 0.09
 Nodes (21): 10. Коллекции, 11. Страницы, 12. Видео, 13. Проблемы (QA / Issues), 14. Аккаунт, 15. Сквозные и security-сценарии, 16.1 Дубликат слага/SKU (PROD-C13) — жёсткий отказ, не перезапись, 16.2 Удаление hero-изображения коллекции (COL-09) — блокируется всегда (+13 more)
 
 ### Community 1342 - "Community 1342"
-Cohesion: 0.15
-Nodes (12): buckets, edges, deletedAt, environments, edges, id, name, services (+4 more)
+Cohesion: 0.09
+Nodes (19): bullets, cargo, claudeMd, deps, doNot, gitConfig, goal, goMod (+11 more)
 
 ### Community 1343 - "Community 1343"
 Cohesion: 0.26
@@ -7853,8 +7911,8 @@ Cohesion: 0.31
 Nodes (11): acceptedDomAlreadyClean(), clearHandledWrapperReloadStamp(), deferredRecoverySuperseded(), ensureAcceptedDomClean(), findAcceptedRuntimeWrappers(), handledWrapperReloadKey(), reloadAfterMissingAcceptedDom(), restoreAcceptedDomFromSnapshot() (+3 more)
 
 ### Community 1391 - "Community 1391"
-Cohesion: 0.22
-Nodes (8): baseProps, { container }, MediaFrame(), MediaFrameProps, Default, Story, WithCaption, WithMirror
+Cohesion: 0.13
+Nodes (20): averageRgb01(), captureChromeNodes(), captureElementFromRenderedAncestor(), captureElementToBlob(), compileShader(), cssColorToRgb01(), dominantRgb01(), findBackdropAncestor() (+12 more)
 
 ### Community 1392 - "Community 1392"
 Cohesion: 0.10
@@ -7890,7 +7948,7 @@ Nodes (20): buyAgainFrozenHint, cancelRequestHint, countLabel, empty, estimatedD
 
 ### Community 1400 - "Community 1400"
 Cohesion: 0.05
-Nodes (39): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+31 more)
+Nodes (40): compilerOptions, allowJs, esModuleInterop, incremental, isolatedModules, jsx, lib, module (+32 more)
 
 ### Community 1401 - "Community 1401"
 Cohesion: 0.11
@@ -8005,8 +8063,8 @@ Cohesion: 0.11
 Nodes (19): 1. Forgetting AnimatePresence for Exit Animations, 2. Missing key Prop in Lists, 3. Animating Non-Transform Properties, 4. Overusing Layout Animations, 5. Not Using Variants for Complex Animations, 6. Incorrect Transition Timing, code:jsx (// ❌ Wrong - No AnimatePresence), code:jsx (// ✅ Correct - Wrapped in AnimatePresence) (+11 more)
 
 ### Community 1429 - "Community 1429"
-Cohesion: 0.18
-Nodes (10): Approval Criteria, Diagnostic Commands, Framework Checks, Prompt Defense Baseline, Reference, Review Output Format, load(), Authoring Custom Plugins (+2 more)
+Cohesion: 0.33
+Nodes (5): Approval Criteria, Diagnostic Commands, Prompt Defense Baseline, Reference, Review Output Format
 
 ### Community 1430 - "Community 1430"
 Cohesion: 0.11
@@ -8077,8 +8135,8 @@ Cohesion: 0.11
 Nodes (17): hooks, afterFileEdit, afterMCPExecution, afterShellExecution, afterTabFileEdit, beforeMCPExecution, beforeReadFile, beforeShellExecution (+9 more)
 
 ### Community 1447 - "Community 1447"
-Cohesion: 0.12
-Nodes (22): buildSessionSnapshot(), collectSessionSnapshot(), fs, listTmuxPanes(), listWorkerDirectories(), loadWorkerSnapshots(), parseBullets(), parseSection() (+14 more)
+Cohesion: 0.18
+Nodes (16): buildSessionSnapshot(), collectSessionSnapshot(), fs, listTmuxPanes(), listWorkerDirectories(), loadWorkerSnapshots(), parseBullets(), parseSection() (+8 more)
 
 ### Community 1448 - "Community 1448"
 Cohesion: 0.11
@@ -8105,15 +8163,12 @@ Cohesion: 0.31
 Nodes (18): m, C, be(), _e(), er(), fe(), ht(), jt() (+10 more)
 
 ### Community 1454 - "Community 1454"
-Cohesion: 0.24
-Nodes (10): {
-  buildValidationIssue,
-  createInstallTargetAdapter,
-}, COMPILED_PLUGIN_DIST_DIR, defaultValidateOpencodeHome(), fs, isExpectedType(), MISSING_ARTEFACT_ERROR_CODES, os, path (+2 more)
+Cohesion: 0.10
+Nodes (18): blockers, constraints, context, contextDirPath, contextJsonPath, contextMdPath, decisions, existing (+10 more)
 
 ### Community 1455 - "Community 1455"
-Cohesion: 0.03
-Nodes (74): PageActionState, SavedPagePayload, AdminError(), clearPageEditorDraftSnapshot(), PageEditorDraftSnapshot, storageKey(), takePageEditorDraftSnapshot(), writePageEditorDraftSnapshot() (+66 more)
+Cohesion: 0.16
+Nodes (10): AdminError(), isStaleDeploymentError(), AdminErrorState(), GenericError, StaleDeployment, Story, reload, retry (+2 more)
 
 ### Community 1456 - "Community 1456"
 Cohesion: 0.12
@@ -8208,16 +8263,16 @@ Cohesion: 0.18
 Nodes (15): allowedModes, buildAgentCatalog(), compressToCatalog(), compressToSummary(), extractSummary(), fs, lazyLoadAgent(), loadAgent() (+7 more)
 
 ### Community 1479 - "Community 1479"
-Cohesion: 0.23
-Nodes (15): applyHooksMetadata(), assertMetadataAligned(), crypto, eventsOf(), findMetadataMismatches(), fingerprintHookEntry(), fs, mergeHooksMetadata() (+7 more)
+Cohesion: 0.21
+Nodes (16): applyHooksMetadata(), assertMetadataAligned(), crypto, eventsOf(), findMetadataMismatches(), fingerprintHookEntry(), fs, mergeHooksMetadata() (+8 more)
 
 ### Community 1480 - "Community 1480"
 Cohesion: 0.23
 Nodes (14): applyEmphasis(), buildList(), buildListBlock(), escapeHtml(), isAlignmentRow(), listTag(), renderInline(), renderListItem() (+6 more)
 
 ### Community 1481 - "Community 1481"
-Cohesion: 0.24
-Nodes (9): chatLineFor(), crypto, FEEDBACK_KINDS, fs, normalizeFeedbackItem(), os, path, sanitizeText() (+1 more)
+Cohesion: 0.19
+Nodes (20): { ensureAgentDataHomeEnv }, findBashBinary(), findShellBinary(), isPowerShellBin(), isRawPassthrough(), main(), { normalizePluginRootForPlatform }, passthrough() (+12 more)
 
 ### Community 1482 - "Community 1482"
 Cohesion: 0.12
@@ -8356,8 +8411,8 @@ Cohesion: 0.21
 Nodes (13): buildReason(), collectDeliveries(), drainViaFile(), drainViaServer(), fs, http, os, path (+5 more)
 
 ### Community 1516 - "Community 1516"
-Cohesion: 0.11
-Nodes (24): createClaudeHistoryAdapter(), fs, hydrateSessionFromPath(), isSessionFileTarget(), { normalizeClaudeHistorySession, persistCanonicalSnapshot }, parseClaudeTarget(), path, resolveSessionRecord() (+16 more)
+Cohesion: 0.19
+Nodes (15): createClaudeHistoryAdapter(), createCodexWorktreeAdapter(), createDmuxTmuxAdapter(), createOpencodeAdapter(), buildDefaultAdapterOptions(), coerceTargetValue(), createAdapterRegistry(), { createClaudeHistoryAdapter } (+7 more)
 
 ### Community 1517 - "Community 1517"
 Cohesion: 0.17
@@ -8456,8 +8511,8 @@ Cohesion: 0.13
 Nodes (14): Angular Aria, Angular Developer Guidelines, Anti-Patterns, Components, Creating New Projects, Dependency Injection, Forms, Reactivity and Data Management (+6 more)
 
 ### Community 1541 - "Community 1541"
-Cohesion: 0.16
-Nodes (5): LINE_LOADING_PULSE_EASE, BarLoadingSkeleton(), BarLoadingSkeletonProps, LineLoadingSweepProps, UseGridShimmerOptions
+Cohesion: 0.14
+Nodes (17): crypto, DEFAULT_THRESHOLDS, DEFAULT_TRIPWIRES, digestDir(), envelope, fs, GateError, listFiles() (+9 more)
 
 ### Community 1542 - "Community 1542"
 Cohesion: 0.13
@@ -8480,8 +8535,8 @@ Cohesion: 0.13
 Nodes (14): Analysis Steps, code:bash (/skill-create                    # Analyze current repo), code:bash (# Get recent commits with file changes), code:markdown (---), code:yaml (---), GitHub App Integration, Related Commands, /skill-create - Local Skill Generation (+6 more)
 
 ### Community 1547 - "Community 1547"
-Cohesion: 0.04
-Nodes (57): COLLECTION_FIELD_MESSAGES, CollectionFieldErrors, CollectionFieldName, errorsFromFormData(), FIELD_ORDER, fileFromForm(), formHasHeroImage(), orderFieldErrors() (+49 more)
+Cohesion: 0.18
+Nodes (16): COLLECTION_FIELD_MESSAGES, CollectionFieldErrors, CollectionFieldName, errorsFromFormData(), FIELD_ORDER, fileFromForm(), formHasHeroImage(), orderFieldErrors() (+8 more)
 
 ### Community 1548 - "Community 1548"
 Cohesion: 0.18
@@ -8512,16 +8567,16 @@ Cohesion: 0.13
 Nodes (14): Best Practices, Bun Runtime, code:bash (# Install dependencies (creates/updates bun.lock or bun.lock), code:bash (bun run --env-file=.env dev), code:bash (bun test), code:typescript (// test/example.test.ts), code:typescript (const file = Bun.file("package.json");), Examples (+6 more)
 
 ### Community 1555 - "Community 1555"
-Cohesion: 0.17
-Nodes (9): discoverSync(), { spawn, spawnSync }, { spawnSync }, ref_node_child_process, distDir, root, themeDir, zip (+1 more)
+Cohesion: 0.11
+Nodes (14): isolatedEnvironment(), launchTaskContext(), path, { resolveTaskContext }, { spawnSync }, discoverSync(), { spawn, spawnSync }, { spawnSync } (+6 more)
 
 ### Community 1556 - "Community 1556"
 Cohesion: 0.29
 Nodes (8): buildProductionResources(), buildSkuApi(), buildStagingResources(), SKU_API_WATCH_PATTERNS, image, productionPlanCheck, railwayTs, service
 
 ### Community 1557 - "Community 1557"
-Cohesion: 0.15
-Nodes (9): crypto, FEEDBACK_KINDS, fs, normalizeFeedbackItem(), nowIso(), os, path, sanitizeText() (+1 more)
+Cohesion: 0.05
+Nodes (38): fs, isProtectedName(), parseInput(), path, PROTECTED_FILES, PROTECTED_PATTERNS, result, run() (+30 more)
 
 ### Community 1558 - "Community 1558"
 Cohesion: 0.13
@@ -8576,8 +8631,8 @@ Cohesion: 0.20
 Nodes (9): card, onOpenChange, onRemove, panel, { rerender }, root, trigger, user (+1 more)
 
 ### Community 1571 - "Community 1571"
-Cohesion: 0.20
-Nodes (8): { container }, file, firstSave, onError, saveDraft, savedUnload, TestForm(), unload
+Cohesion: 0.17
+Nodes (21): session-adapters/opencode.js, deriveModelFromMessages(), deriveObjective(), { execFileSync }, findLatestSessionInfo(), findSessionInfoById(), fs, isOpencodeSessionFileTarget() (+13 more)
 
 ### Community 1572 - "Community 1572"
 Cohesion: 0.13
@@ -8609,7 +8664,7 @@ Nodes (12): code:ts (interface ValidationError {), code:ts (// WRONG - This will
 
 ### Community 1579 - "Community 1579"
 Cohesion: 0.30
-Nodes (10): AccountOrdersSettingsEditor(), AccountOrdersSettingsActionState, saveAccountOrdersSettingsAction(), FIELD_KEYS, ACCOUNT_ORDERS_SETTINGS_DEFAULTS, ACCOUNT_ORDERS_SETTINGS_FIELD_DEFS, AccountOrdersSettings, mergeWithDefaults() (+2 more)
+Nodes (9): AccountOrdersSettingsActionState, saveAccountOrdersSettingsAction(), FIELD_KEYS, ACCOUNT_ORDERS_SETTINGS_DEFAULTS, ACCOUNT_ORDERS_SETTINGS_FIELD_DEFS, AccountOrdersSettings, mergeWithDefaults(), parseStored() (+1 more)
 
 ### Community 1580 - "Community 1580"
 Cohesion: 0.14
@@ -8664,16 +8719,16 @@ Cohesion: 0.14
 Nodes (13): Anti-Patterns, Benchmark Methodology, Bias controls, Client positioning brief (establish first), code:block1 (## <Competitor name>), Competitor profile card (output format), How to collect the data, Related Skills (+5 more)
 
 ### Community 1593 - "Community 1593"
-Cohesion: 0.24
-Nodes (9): fs, isProtectedName(), parseInput(), path, PROTECTED_FILES, PROTECTED_PATTERNS, result, run() (+1 more)
+Cohesion: 0.17
+Nodes (14): [...key]/route.ts, GET(), isVideoKey(), Props, runtime, getS3Config(), LOCAL_S3_CONFIG, resolveS3Config() (+6 more)
 
 ### Community 1594 - "Community 1594"
 Cohesion: 0.14
 Nodes (13): Core Rules, First Questions, Platform Guidance, TikTok / Short Video, Content Engine, Deliverables, LinkedIn, Newsletter (+5 more)
 
 ### Community 1595 - "Community 1595"
-Cohesion: 0.21
-Nodes (10): FinalCtaProductMedia, resolveFinalCtaImages(), buildFinalCtaImages(), FinalCtaImage, HomeCollectionMedia, fallback, products, collection (+2 more)
+Cohesion: 0.16
+Nodes (19): buildDryRunPreview(), { buildPreToolUseAdditionalContext }, exitWithStdout(), extractTargetContext(), FAIL_CLOSED_ON_TRUNCATION_HOOKS, fs, getPluginRoot(), { isHookEnabled, isDryRun } (+11 more)
 
 ### Community 1596 - "Community 1596"
 Cohesion: 0.14
@@ -8700,12 +8755,12 @@ Cohesion: 0.24
 Nodes (12): consumeHeredocBodies(), consumeHeredocBody(), { extractCommandSubstitutions }, extractHeredocCommandSubstitutions(), findHeredocs(), hasLineContinuation(), isProvenPassiveHeredocLine(), normalizeUnquotedHeredocLines() (+4 more)
 
 ### Community 1602 - "Community 1602"
-Cohesion: 0.20
-Nodes (9): Examples, How It Works, Parse a JSON Array, Parse a JSON Object, Serialize a List using Builders, Serialize a Single Object, tinystruct Data Handling (JSON), When to Use (+1 more)
+Cohesion: 0.25
+Nodes (18): appendEvolutionRecord(), { appendFile, ensureDir }, createVersion(), ensureSkillExists(), ensureSkillVersioning(), EVOLUTION_LOG_TYPES, fs, getCurrentVersion() (+10 more)
 
 ### Community 1603 - "Community 1603"
 Cohesion: 0.20
-Nodes (9): ActionRegistry Match Testing, Examples, How It Works, HTTP Integration Pattern, HTTP Integration Testing, tinystruct Testing Patterns, Unit Test, Unit Testing Applications (+1 more)
+Nodes (15): infrastructure/page.tsx, AdminInfrastructurePage(), ConnectionsGauge(), ConnectionsGaugeProps, GAUGE_GRADIENT, TableSizeBarChart(), TableSizeBarChartProps, formatLatency() (+7 more)
 
 ### Community 1604 - "Community 1604"
 Cohesion: 0.19
@@ -8861,7 +8916,7 @@ Nodes (12): Ajv, assertValidEntity(), cachedValidators, ENTITY_DEFINITIONS, form
 
 ### Community 1642 - "Community 1642"
 Cohesion: 0.22
-Nodes (9): abort(), EXPECTED_ENVIRONMENT, EXPECTED_ENVIRONMENT_ID, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, GATE_JS, LOCAL_DIR, PLAN_JSON (+1 more)
+Nodes (10): abort(), EXPECTED_ENVIRONMENT, EXPECTED_ENVIRONMENT_ID, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, GATE_JS, LOCAL_DIR, PLAN_JSON (+2 more)
 
 ### Community 1643 - "Community 1643"
 Cohesion: 0.15
@@ -9124,24 +9179,24 @@ Cohesion: 0.17
 Nodes (11): code:bash (# 1. 安装 32 位 Python（和 64 位可以共存）), code:block2 (unittest,test,pytest,_pytest,doctest,pdb,pdbpp,), code:batch (@echo off), code:python ("""), code:bash (python analyze_dlls.py dist/你的软件名.dist), Nuitka 极限优化编译（基于 参考项目经验）, 一、32 位 vs 64 位选择策略, 二、模块排除清单（参考项目验证过的） (+3 more)
 
 ### Community 1708 - "Community 1708"
-Cohesion: 0.22
-Nodes (6): Daily workflow, Failure recovery, Rollback, Shared structure vs localized text, Shopify prerequisites, Translation operations
+Cohesion: 0.11
+Nodes (16): AdminHref, Helpers (`lib/i18n/routing.ts`), Storefront locale URL contract, Collection, Explicitly out of scope (not in the registry), Product, Storefront copy, Taxonomy (merchant-owned labels only) (+8 more)
 
 ### Community 1709 - "Community 1709"
 Cohesion: 0.22
 Nodes (8): Automated coverage (Vitest), code:bash (pnpm exec vitest run lib/sku/__tests__/staging-matrix-automa), Manual staging matrix, Out of scope (this matrix), Portable SKU — Shopify staging matrix (Этап 4), Preconditions, Recovery notes, Этап 5 — catalog audit smoke (Slice B)
 
 ### Community 1710 - "Community 1710"
-Cohesion: 0.17
-Nodes (12): checkout, confirmed, delivery, loadingPayment, payment, paymentFailed, payNow, processing (+4 more)
+Cohesion: 0.08
+Nodes (26): checkout, confirmed, delivery, loadingPayment, payment, paymentFailed, paymentPage, payNow (+18 more)
 
 ### Community 1711 - "Community 1711"
 Cohesion: 0.17
 Nodes (12): password, req, strength, length, lowercase, number, special, uppercase (+4 more)
 
 ### Community 1712 - "Community 1712"
-Cohesion: 0.17
-Nodes (12): checkout, confirmed, delivery, loadingPayment, payment, paymentFailed, payNow, processing (+4 more)
+Cohesion: 0.08
+Nodes (26): checkout, confirmed, delivery, loadingPayment, payment, paymentFailed, paymentPage, payNow (+18 more)
 
 ### Community 1713 - "Community 1713"
 Cohesion: 0.17
@@ -9152,8 +9207,8 @@ Cohesion: 0.17
 Nodes (12): password, req, strength, length, lowercase, number, special, uppercase (+4 more)
 
 ### Community 1715 - "Community 1715"
-Cohesion: 0.42
-Nodes (7): body, result, lastWhitespaceIndex(), peelWeakTrailingWords(), significantCharCount(), trimTrailingSeparators(), truncateText()
+Cohesion: 0.18
+Nodes (14): isLegalActionHref(), LEGAL_ACTION_IDS, LegalActionId, parseLegalActionHref(), resolveLegalActionPath(), LegalActionLink(), LegalSectionBody(), legalUrlTransform() (+6 more)
 
 ### Community 1716 - "Community 1716"
 Cohesion: 0.17
@@ -9276,12 +9331,12 @@ Cohesion: 0.31
 Nodes (10): addFeature(), denseVector(), dot(), FIELD_WEIGHTS, fieldTokens(), hash32(), normalizedName(), searchRetrieval() (+2 more)
 
 ### Community 1746 - "Community 1746"
-Cohesion: 0.25
-Nodes (8): abort(), EXPECTED_ENVIRONMENT, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, LOCAL_DIR, PARTIAL_NAME, PULL_JSON, sku-platform-staging-adopt-check.sh script
+Cohesion: 0.24
+Nodes (9): abort(), EXPECTED_ENVIRONMENT, EXPECTED_PROJECT_ID, EXPECTED_PROJECT_NAME, LOCAL_DIR, PARTIAL_NAME, PULL_JSON, sku-platform-staging-adopt-check.sh script (+1 more)
 
 ### Community 1747 - "Community 1747"
-Cohesion: 0.29
-Nodes (9): CONFIG_SCHEMA_PATH, dedupeStrings(), formatValidationErrors(), fs, getValidator(), loadInstallConfig(), path, readJson() (+1 more)
+Cohesion: 0.19
+Nodes (17): canonicalize(), canonicalJson(), crypto, hashValue(), sha256Hex(), buildReceipt(), { canonicalJson, hashValue, sha256Hex }, capsule (+9 more)
 
 ### Community 1748 - "Community 1748"
 Cohesion: 0.18
@@ -9488,20 +9543,23 @@ Cohesion: 0.20
 Nodes (10): API Integration Test Pattern, Bun Native Test Pattern (`bun:test`), code:bash (bun test              # run once (RED/GREEN gate)), code:typescript (import { NextRequest } from 'next/server'), code:typescript (import { test, expect } from '@playwright/test'), code:typescript (import { render, screen, fireEvent } from '@testing-library/), code:typescript (import { describe, it, expect, mock } from 'bun:test'), E2E Test Pattern (Playwright) (+2 more)
 
 ### Community 1799 - "Community 1799"
-Cohesion: 0.36
-Nodes (7): buildContext(), fs, openSessions(), os, path, run(), stateDir()
+Cohesion: 0.11
+Nodes (19): files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/layout/site-header.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/theme/__tests__/theme-script.test.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/theme/theme-script.tsx, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/components/ui/product-card.tsx, 1418ff0e-9c98-4124-b22e-2957d8715763, cleanAcked (+11 more)
 
 ### Community 1800 - "Community 1800"
-Cohesion: 0.25
-Nodes (8): references/architecture.md, Action Definition and CLI Invocation, Configuration Access, Examples, Minimal Application Initialization, tinystruct Architecture and Configuration, When to Use, tinystruct-patterns/SKILL.md
+Cohesion: 0.14
+Nodes (16): {
+  appendSessionCostRow,
+  warnSessionCostSnapshotFailure
+}, { ensureDir, getClaudeDir }, fs, getRates(), harnessCost, isSonnet5(), metricsDir, normalizeUsageTotals() (+8 more)
 
 ### Community 1801 - "Community 1801"
 Cohesion: 0.27
 Nodes (9): copyDefined(), createSafeItoEnvironment(), createSafeItoInvocationEnvironment(), ECC_ITO_CONTROL_KEYS, getInvocationCommand(), ITO_EVAL_ENVIRONMENT_KEYS, ITO_RUNTIME_COMMANDS, ITO_RUNTIME_ENVIRONMENT_KEYS (+1 more)
 
 ### Community 1802 - "Community 1802"
-Cohesion: 0.25
-Nodes (7): Context and CLI Arguments, How It Works, Outbound Networking, Server-Sent Events (SSE), Session Management, tinystruct System and Usage Reference, When to Use
+Cohesion: 0.29
+Nodes (17): appendEvolutionRecord(), { appendFile, ensureDir }, createVersion(), ensureSkillExists(), ensureSkillVersioning(), EVOLUTION_LOG_TYPES, fs, getCurrentVersion() (+9 more)
 
 ### Community 1803 - "Community 1803"
 Cohesion: 0.20
@@ -9584,12 +9642,12 @@ Cohesion: 0.20
 Nodes (10): confirmNewPassword, currentPassword, emailLogin, eyebrow, newPassword, passwordNote, submit, submitting (+2 more)
 
 ### Community 1823 - "Community 1823"
-Cohesion: 0.20
-Nodes (10): confirmNewPassword, currentPassword, emailLogin, eyebrow, newPassword, passwordNote, submit, submitting (+2 more)
+Cohesion: 0.04
+Nodes (51): confirmNewPassword, currentPassword, emailLogin, eyebrow, newPassword, passwordNote, submit, submitting (+43 more)
 
 ### Community 1824 - "Community 1824"
-Cohesion: 0.20
-Nodes (10): validation, address, cart, city, country, emailInvalid, emailRequired, name (+2 more)
+Cohesion: 0.17
+Nodes (18): buildSvelteExpressionTextMap(), buildSveltePropValuesFromLiveElement(), buildSveltePropValuesV2(), cloneWithoutElements(), collectTextNodes(), cssEscapeIdent(), elementMatchesOriginalMarkup(), escapeRegExp() (+10 more)
 
 ### Community 1825 - "Community 1825"
 Cohesion: 0.20
@@ -9620,8 +9678,8 @@ Cohesion: 0.20
 Nodes (10): confirmNewPassword, currentPassword, emailLogin, eyebrow, newPassword, passwordNote, submit, submitting (+2 more)
 
 ### Community 1832 - "Community 1832"
-Cohesion: 0.20
-Nodes (10): validation, address, cart, city, country, emailInvalid, emailRequired, name (+2 more)
+Cohesion: 0.21
+Nodes (14): actions/product-organization.ts, KINDS, listShopifyProductOrganizationAction(), ShopifyProductOrganizationResult, AdminTextFieldProps, ShopifyOrganizationSuggestField(), shopify/product-organization.ts, KIND_PAGE_SIZE (+6 more)
 
 ### Community 1833 - "Community 1833"
 Cohesion: 0.20
@@ -9861,7 +9919,7 @@ Nodes (9): 1. Автопроверка начинается при открыт�
 
 ### Community 1892 - "Community 1892"
 Cohesion: 0.22
-Nodes (9): Checkpoint A, Checkpoint B, Checkpoint C, Checkpoint D — Release gate, Phase 4 — Scoped writes and recovery, Task 10: Реализовать field-scoped apply, Task 11: Добавить locale controls в editors, Task 12: Partial retry и safe restore (+1 more)
+Nodes (9): Checkpoint A, Checkpoint B, Checkpoint C, Checkpoint D — Release gate, Phase 3 — Human-friendly review, Task 7: Переделать Localization overview, Task 8: Построить merge workspace, Task 9: Добавить impact preview (+1 more)
 
 ### Community 1893 - "Community 1893"
 Cohesion: 0.22
@@ -9880,8 +9938,8 @@ Cohesion: 0.22
 Nodes (9): BehaviorSpec (BDD Style), code:kotlin (class CalculatorTest : StringSpec({), code:kotlin (class UserServiceTest : FunSpec({), code:kotlin (class OrderServiceTest : BehaviorSpec({), code:kotlin (class UserValidatorTest : DescribeSpec({), DescribeSpec (RSpec Style), FunSpec (JUnit-like), Kotest Spec Styles (+1 more)
 
 ### Community 1897 - "Community 1897"
-Cohesion: 0.29
-Nodes (5): getProductPresentation(), JEWELRY_PRIORITY_CHARACTERISTIC_KEYS, ProductBreadcrumb, ProductPresentation, TranslateFn
+Cohesion: 0.17
+Nodes (14): ref_node_url, collectUploadKeys(), __dirname, EXECUTE, main(), OUT, resolveS3(), walk() (+6 more)
 
 ### Community 1898 - "Community 1898"
 Cohesion: 0.22
@@ -9900,16 +9958,16 @@ Cohesion: 0.22
 Nodes (8): language, select, password, strength, fair, good, strong, weak
 
 ### Community 1902 - "Community 1902"
-Cohesion: 0.22
-Nodes (9): register, alreadyRegistered, confirmPassword, eyebrow, name, signIn, submit, submitting (+1 more)
+Cohesion: 0.19
+Nodes (16): createClaudeHistoryAdapter(), createCodexWorktreeAdapter(), createDmuxTmuxAdapter(), createOpencodeAdapter(), session-adapters/registry.js, buildDefaultAdapterOptions(), coerceTargetValue(), createAdapterRegistry() (+8 more)
 
 ### Community 1903 - "Community 1903"
-Cohesion: 0.22
-Nodes (9): resetConfirm, backTo, confirmNewPassword, eyebrow, loginLink, newPassword, submit, submitting (+1 more)
+Cohesion: 0.12
+Nodes (16): inherit-legacy-style/SKILL.md, Anti-Patterns, Best Practices, Branch A — First-time Full-Scan, Branch B — Incremental Sniff, Examples, How It Works, Inherit Legacy Style (+8 more)
 
 ### Community 1904 - "Community 1904"
-Cohesion: 0.22
-Nodes (9): resetRequest, accountEmail, eyebrow, loginLink, previewLink, returnTo, submit, submitting (+1 more)
+Cohesion: 0.18
+Nodes (14): RemoteFieldMetadata, SyncFieldDifference, planReconcile(), projectRemoteTranslation(), projectRemoteTranslationWithMetadata(), ReconcilePlan, reconcileResourceType(), RemoteValue (+6 more)
 
 ### Community 1905 - "Community 1905"
 Cohesion: 0.22
@@ -9944,28 +10002,28 @@ Cohesion: 0.22
 Nodes (8): language, select, password, strength, fair, good, strong, weak
 
 ### Community 1913 - "Community 1913"
-Cohesion: 0.22
-Nodes (9): register, alreadyRegistered, confirmPassword, eyebrow, name, signIn, submit, submitting (+1 more)
+Cohesion: 0.05
+Nodes (41): auth, email, hidePassword, login, password, passwordHint, register, resetConfirm (+33 more)
 
 ### Community 1914 - "Community 1914"
-Cohesion: 0.22
-Nodes (9): resetConfirm, backTo, confirmNewPassword, eyebrow, loginLink, newPassword, submit, submitting (+1 more)
+Cohesion: 0.13
+Nodes (12): enTab, locales, onSelect, onSubmit, outer, ptInput, ptTab, { rerender } (+4 more)
 
 ### Community 1915 - "Community 1915"
-Cohesion: 0.22
-Nodes (9): resetRequest, accountEmail, eyebrow, loginLink, previewLink, returnTo, submit, submitting (+1 more)
+Cohesion: 0.18
+Nodes (10): EphemeralToastContext, EphemeralToastContextValue, EphemeralToastHost(), dismissToast(), enqueueToast(), EphemeralToastItem, EphemeralToastTone, TOAST_DURATION_MS (+2 more)
 
 ### Community 1916 - "Community 1916"
-Cohesion: 0.22
-Nodes (9): register, alreadyRegistered, confirmPassword, eyebrow, name, signIn, submit, submitting (+1 more)
+Cohesion: 0.05
+Nodes (41): auth, email, hidePassword, login, password, passwordHint, register, resetConfirm (+33 more)
 
 ### Community 1917 - "Community 1917"
-Cohesion: 0.22
-Nodes (9): resetConfirm, backTo, confirmNewPassword, eyebrow, loginLink, newPassword, submit, submitting (+1 more)
+Cohesion: 0.23
+Nodes (13): { isHookEnabled }, areHooksEnabled(), fs, getDisabledHookIds(), getHookProfile(), isHookEnabled(), normalizeId(), parseBoolean() (+5 more)
 
 ### Community 1918 - "Community 1918"
-Cohesion: 0.22
-Nodes (9): resetRequest, accountEmail, eyebrow, loginLink, previewLink, returnTo, submit, submitting (+1 more)
+Cohesion: 0.29
+Nodes (12): continuationEnd(), executionRegion(), hasExpansion(), heredocBody(), heredocDelimiter(), heredocLine(), legacyRegion(), scanExpansions() (+4 more)
 
 ### Community 1919 - "Community 1919"
 Cohesion: 0.22
@@ -10016,8 +10074,8 @@ Cohesion: 0.22
 Nodes (9): code:python (# conftest.py — replace the basic `app` fixture with this), code:python (import ctypes, ctypes.wintypes as wt), code:xml (<Configuration>), Prevent hanging tests, Test Isolation & Sandbox, Tier 1 — Filesystem Isolation (default, always use), Tier 2 — Windows Job Object (optional: process-lifetime containment), Tier 3 — Windows Sandbox (CI full-OS isolation) (+1 more)
 
 ### Community 1931 - "Community 1931"
-Cohesion: 0.29
-Nodes (7): 1. Eliminating Waterfalls (CRITICAL), Cheap conditions before await, Defer awaits until used, Partial dependencies — start early, await late, Promise.all for independent work, Server Components: parallel through composition, Suspense for streaming
+Cohesion: 0.13
+Nodes (14): Confirmed implementation state, Current external configuration — verify before relying on it, Exact next step, New requirement: Synarava Ops Event Hub, Portable SKU — current status and agent handoff, Portable SKU stages 1–4, Repository and PR state, Safety boundary (+6 more)
 
 ### Community 1932 - "Community 1932"
 Cohesion: 0.25
@@ -10036,8 +10094,8 @@ Cohesion: 0.25
 Nodes (7): API Design Checklist, API Design Patterns, code:block18 (HTTP/1.1 200 OK), Headers, Rate Limit Tiers, Rate Limiting, When to Activate
 
 ### Community 1936 - "Community 1936"
-Cohesion: 0.25
-Nodes (7): ARIA Patterns, code:css (/* Normal text (< 18pt or < 14pt bold) */), code:tsx (// ❌ Color only), Color and Contrast, Color Independence, Contrast Requirements, Understanding ARIA
+Cohesion: 0.40
+Nodes (5): code:css (/* Normal text (< 18pt or < 14pt bold) */), code:tsx (// ❌ Color only), Color and Contrast, Color Independence, Contrast Requirements
 
 ### Community 1937 - "Community 1937"
 Cohesion: 0.25
@@ -10056,8 +10114,8 @@ Cohesion: 0.25
 Nodes (7): Adaptation Strategies, Assess Adaptation Challenge, Implement & Verify, Orientation & foldables, Phone → Tablet (iPad / large screens), Platform → platform (iOS ↔ Android), Web → native (porting a website or web app)
 
 ### Community 1941 - "Community 1941"
-Cohesion: 0.29
-Nodes (7): Context and CLI Arguments, Event System, Examples, File Uploads, Outbound HTTP, Server-Sent Events (SSE), Session Management
+Cohesion: 0.13
+Nodes (14): 1. Источник торговых данных, 2. Пагинация — keyset/cursor, не `offset`, 3. Состояние пользователя: URL сначала, `sessionStorage` — только для возврата, 4. API boundary, Definition of Done, Данные фильтров и discovery, Контракт данных, Общие типы и нормализация (+6 more)
 
 ### Community 1942 - "Community 1942"
 Cohesion: 0.25
@@ -10236,16 +10294,16 @@ Cohesion: 0.13
 Nodes (14): Bundled Resources, code:jsx (import { useAnimate } from "framer-motion"), code:jsx (const controls = animate(element, { x: 100 })), code:jsx (import { useSpring } from "framer-motion"), code:jsx (import { useInView } from "framer-motion"), Community Resources, Hooks, Motion & Framer Motion (+6 more)
 
 ### Community 1986 - "Community 1986"
-Cohesion: 0.33
-Nodes (5): EmptyPreview, meta, Story, WithContent, WithError
+Cohesion: 0.13
+Nodes (15): Checkpoint: основной пользовательский путь, Checkpoint: серверная выборка, Phase 0 — контракт и измерение, Phase 1 — серверный каталог, Phase 3 — клиентская прокрутка и восстановление, Phase 4 — hardening и выпуск, Task 1: Зафиксировать query/cursor contract, Task 2: Базовые performance-метрики (+7 more)
 
 ### Community 1987 - "Community 1987"
 Cohesion: 0.25
 Nodes (8): login, createOne, eyebrow, forgotPassword, noAccount, submit, submitting, title
 
 ### Community 1988 - "Community 1988"
-Cohesion: 0.25
-Nodes (8): login, createOne, eyebrow, forgotPassword, noAccount, submit, submitting, title
+Cohesion: 0.24
+Nodes (12): collectionSelectOptionLabel(), CollectionSelectSource, collectionWorkflowLabel(), filterCollectionsForProductSelect(), isPublishedCollection(), liveProductRequiresPublishedCollectionMessage(), productLiveInUnpublishedCollection(), archived (+4 more)
 
 ### Community 1989 - "Community 1989"
 Cohesion: 0.25
@@ -10260,16 +10318,16 @@ Cohesion: 0.25
 Nodes (8): login, createOne, eyebrow, forgotPassword, noAccount, submit, submitting, title
 
 ### Community 1992 - "Community 1992"
-Cohesion: 0.25
-Nodes (8): login, createOne, eyebrow, forgotPassword, noAccount, submit, submitting, title
+Cohesion: 0.22
+Nodes (12): combineStderr(), findShellBinary(), fs, getPhaseFromHookId(), getPluginRoot(), getTimeoutMs(), OBSERVE_RELATIVE_PATH, path (+4 more)
 
 ### Community 1993 - "Community 1993"
 Cohesion: 0.25
 Nodes (8): wishlist, one, other, empty, exploreShop, removeAria, saved, title
 
 ### Community 1994 - "Community 1994"
-Cohesion: 0.25
-Nodes (8): login, createOne, eyebrow, forgotPassword, noAccount, submit, submitting, title
+Cohesion: 0.23
+Nodes (13): computeEntryHash(), dataObjectErrors(), DEFAULT_PAYLOAD_ALLOWLIST, ENVELOPE_FIELDS, GENESIS_HASH, { hashValue }, isPlainObject(), matchesPayloadType() (+5 more)
 
 ### Community 1995 - "Community 1995"
 Cohesion: 0.25
@@ -10416,8 +10474,8 @@ Cohesion: 0.48
 Nodes (5): matchesScope(), normalizeIgnoreRule(), normalizeIgnoreValue(), pageCandidates(), resolveDetectIgnores()
 
 ### Community 2031 - "Community 2031"
-Cohesion: 0.33
-Nodes (6): Architecture, Command, Configuration, How It Works, Key Base Class: `AbstractData`, POJO Generation (CLI)
+Cohesion: 0.15
+Nodes (9): EFFECT_CLASSES, LINEAGES, capsule, groupCapsules(), { hashValue }, identity(), { LINEAGES, EFFECT_CLASSES }, RetrospectiveError (+1 more)
 
 ### Community 2032 - "Community 2032"
 Cohesion: 0.33
@@ -10464,8 +10522,8 @@ Cohesion: 0.29
 Nodes (6): code:typescript (// app/api/og/route.tsx), code:typescript (// app/api/og/route.tsx), code:typescript (// app/api/og/route.tsx), code:typescript (import fs from 'node:fs/promises'), code:typescript (import fs from 'node:fs/promises'), Hoist Static I/O to Module Level
 
 ### Community 2043 - "Community 2043"
-Cohesion: 0.33
-Nodes (4): notable, PATHS, rejectOptional, @axe-core/playwright
+Cohesion: 0.12
+Nodes (5): notable, PATHS, rejectOptional, @axe-core/playwright, @playwright/test
 
 ### Community 2045 - "Community 2045"
 Cohesion: 0.29
@@ -10808,8 +10866,8 @@ Cohesion: 0.29
 Nodes (7): code:python (@pytest.fixture), code:python (@pytest.fixture), code:python (class TestCalculator:), Common Patterns, Testing API Endpoints (FastAPI/Flask), Testing Class Methods, Testing Database Operations
 
 ### Community 2130 - "Community 2130"
-Cohesion: 0.29
-Nodes (7): Cognitive Load Assessment, Cognitive Load Checklist, Extraneous Load: Bad Design, Germane Load: Learning Effort, Intrinsic Load: The Task Itself, The Working Memory Rule, Three Types of Cognitive Load
+Cohesion: 0.18
+Nodes (11): Cognitive Load Assessment, Cognitive Load Checklist, Extraneous Load: Bad Design, Germane Load: Learning Effort, Heuristics Scoring Guide, Intrinsic Load: The Task Itself, Issue Severity (P0–P3), Reference Material (+3 more)
 
 ### Community 2131 - "Community 2131"
 Cohesion: 0.29
@@ -10898,6 +10956,10 @@ Nodes (6): Code Review Checklist, code:block11 (<type>(<scope>): <description>),
 ### Community 2152 - "Community 2152"
 Cohesion: 0.33
 Nodes (4): captured, CapturedEvent, events, productLink
+
+### Community 2153 - "Community 2153"
+Cohesion: 0.21
+Nodes (10): createGitRunner(), defaultRunImpl(), hermeticGitEnv(), INHERITED_GIT_ENV, { spawnSync }, analyzeWorktree(), buildLifecycleReport(), classifyWorktree() (+2 more)
 
 ### Community 2154 - "Community 2154"
 Cohesion: 0.33
@@ -11184,8 +11246,8 @@ Cohesion: 0.33
 Nodes (6): req, length, lowercase, number, special, uppercase
 
 ### Community 2226 - "Community 2226"
-Cohesion: 0.33
-Nodes (6): auth, email, hidePassword, password, passwordHint, showPassword
+Cohesion: 0.22
+Nodes (11): main(), CK_HOME, CURRENT_SESSION, daysAgo(), extractClaudeMdGoal(), gitLogSince(), parts, PROJECTS_FILE (+3 more)
 
 ### Community 2227 - "Community 2227"
 Cohesion: 0.33
@@ -11212,8 +11274,8 @@ Cohesion: 0.33
 Nodes (6): req, length, lowercase, number, special, uppercase
 
 ### Community 2233 - "Community 2233"
-Cohesion: 0.33
-Nodes (6): auth, email, hidePassword, password, passwordHint, showPassword
+Cohesion: 0.17
+Nodes (12): files, updatedAt, files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.railway/railway.ts, sessions, 01a130c1-6ea3-7c82-b955-07766a38cc62, 8a0aa148-29a3-47d7-87d5-a4178867109e (+4 more)
 
 ### Community 2234 - "Community 2234"
 Cohesion: 0.33
@@ -11224,8 +11286,8 @@ Cohesion: 0.33
 Nodes (6): archiveGhost, collections, eyebrow, story, title, footerCta
 
 ### Community 2236 - "Community 2236"
-Cohesion: 0.33
-Nodes (6): auth, email, hidePassword, password, passwordHint, showPassword
+Cohesion: 0.15
+Nodes (13): files, updatedAt, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/lib/i18n/admin-field-registry.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/lib/i18n/__tests__/admin-field-registry.test.ts, /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/vitest.config.ts, cf4cb2fa-bb52-401c-b8a8-4cf059e5fca1, editCount, findings (+5 more)
 
 ### Community 2237 - "Community 2237"
 Cohesion: 0.33
@@ -11348,8 +11410,8 @@ Cohesion: 0.40
 Nodes (4): Legacy v1 Treasury, Table of contents, Treasury / Financial Accounts, v2 Financial Accounts API
 
 ### Community 2267 - "Community 2267"
-Cohesion: 0.40
-Nodes (5): Composition Recipes, Compound components (shared state via Context), Named slots, Render prop / function-as-child, Slot via `children`
+Cohesion: 0.15
+Nodes (12): buckets, edges, deletedAt, environments, edges, id, name, services (+4 more)
 
 ### Community 2268 - "Community 2268"
 Cohesion: 0.40
@@ -11508,8 +11570,8 @@ Cohesion: 0.40
 Nodes (5): code:bash (<coverage>), code:json ({), Coverage Thresholds, Run Coverage Report, Test Coverage Verification
 
 ### Community 2308 - "Community 2308"
-Cohesion: 0.40
-Nodes (4): EmptyPreview, Story, WithError, WithLink
+Cohesion: 0.17
+Nodes (10): announced, first, queued, root, roots, second, third, toast (+2 more)
 
 ### Community 2309 - "Community 2309"
 Cohesion: 0.40
@@ -11528,8 +11590,8 @@ Cohesion: 0.40
 Nodes (5): code:block14 (src/), code:block15 (components/Button.tsx          # PascalCase for components), File Naming, File Organization, Project Structure
 
 ### Community 2313 - "Community 2313"
-Cohesion: 0.22
-Nodes (8): code:typescript (// PASS: GOOD: Explain WHY, not WHAT), code:typescript (/**), Coding Standards & Best Practices, Comments & Documentation, JSDoc for Public APIs, Scope Boundaries, When to Activate, When to Comment
+Cohesion: 0.40
+Nodes (5): code:typescript (// PASS: GOOD: Explain WHY, not WHAT), code:typescript (/**), Comments & Documentation, JSDoc for Public APIs, When to Comment
 
 ### Community 2314 - "Community 2314"
 Cohesion: 0.40
@@ -11552,8 +11614,8 @@ Cohesion: 0.40
 Nodes (5): code:bash (<coverage>), code:json ({), Coverage Thresholds, Run Coverage Report, Test Coverage Verification
 
 ### Community 2319 - "Community 2319"
-Cohesion: 0.40
-Nodes (4): Example, Plan Canvas Command, Related, What This Command Does
+Cohesion: 0.17
+Nodes (12): 6. Rendering Performance (MEDIUM), `<Activity>` for show/hide instead of mount/unmount, Animate the wrapper, not the SVG, `content-visibility: auto` for long lists, `defer` / `async` on `<script>` tags, Hoist static JSX, Hydration no-flicker via inline script, React DOM resource hints (+4 more)
 
 ### Community 2320 - "Community 2320"
 Cohesion: 0.40
@@ -11848,8 +11910,8 @@ Cohesion: 0.40
 Nodes (5): code:tsx (// Polite announcement (waits for screen reader to finish)), code:tsx (function ProgressBar({ value, max = 100 }) {), Live Regions, Progress Indicators, Status Messages
 
 ### Community 2393 - "Community 2393"
-Cohesion: 0.40
-Nodes (5): code:css (/* Minimum 44x44px for iOS, 48x48dp for Android */), code:html (<!-- ✅ Allows zooming -->), Mobile Accessibility, Touch Targets, Viewport and Zoom
+Cohesion: 0.25
+Nodes (7): ARIA Patterns, code:css (/* Minimum 44x44px for iOS, 48x48dp for Android */), code:html (<!-- ✅ Allows zooming -->), Mobile Accessibility, Touch Targets, Understanding ARIA, Viewport and Zoom
 
 ### Community 2394 - "Community 2394"
 Cohesion: 0.40
@@ -11972,8 +12034,8 @@ Cohesion: 0.40
 Nodes (5): computedHash, skillPath, source, sourceType, next-best-practices
 
 ### Community 2424 - "Community 2424"
-Cohesion: 0.40
-Nodes (5): Core Architecture, How It Works, Key Abstractions, Package Map, Template Behavior and Dispatch Flow
+Cohesion: 0.22
+Nodes (10): SaveRefreshProbe(), ToastProbe(), SaveWithToast(), AdminSurface, SaveThenRefreshProbe(), Storefront, Story, SurvivesRemount (+2 more)
 
 ### Community 2425 - "Community 2425"
 Cohesion: 0.40
@@ -12052,7 +12114,7 @@ Cohesion: 0.50
 Nodes (3): Command guidance, No-argument routing: the context-aware menu, Workflow questions
 
 ### Community 2444 - "Community 2444"
-Cohesion: 0.50
+Cohesion: 0.67
 Nodes (3): adapt, argumentHint, description
 
 ### Community 2445 - "Community 2445"
@@ -12360,12 +12422,12 @@ Cohesion: 0.50
 Nodes (4): code:php (// database/factories/UserFactory.php), code:php ($user = User::factory()->create();), Model Factories, Using Factories
 
 ### Community 2527 - "Community 2527"
-Cohesion: 0.50
-Nodes (4): paymentPage, description, eyebrow, title
+Cohesion: 0.22
+Nodes (7): Props, ScrollReveal(), Left, meta, Story, Up, MockObserver
 
 ### Community 2528 - "Community 2528"
-Cohesion: 0.50
-Nodes (4): paymentPage, description, eyebrow, title
+Cohesion: 0.25
+Nodes (10): buildWarning(), CHECKLIST, detectSignals(), fs, GENERIC_SIGNALS, getFilePaths(), path, readContent() (+2 more)
 
 ### Community 2529 - "Community 2529"
 Cohesion: 0.50
@@ -12380,8 +12442,8 @@ Cohesion: 0.50
 Nodes (4): code:erb (<%# Turbo Frame: clicking Edit replaces only this frame %>), code:erb (<%# Turbo Stream: app/views/comments/create.turbo_stream.erb), code:javascript (// app/javascript/controllers/copy_to_clipboard_controller.j), Hotwire
 
 ### Community 2532 - "Community 2532"
-Cohesion: 0.50
-Nodes (4): Heuristics Scoring Guide, Issue Severity (P0–P3), Reference Material, Score Summary
+Cohesion: 0.33
+Nodes (10): discussionNeedsAcceptedAnswer(), discussionNeedsMaintainerTouch(), emptyDiscussionSummary(), fetchDiscussionSummary(), MAINTAINER_ASSOCIATIONS, runCommand(), runGhJson(), { spawnSync } (+2 more)
 
 ### Community 2533 - "Community 2533"
 Cohesion: 0.50
@@ -12608,7 +12670,7 @@ Cohesion: 0.67
 Nodes (3): live, argumentHint, description
 
 ### Community 2617 - "Community 2617"
-Cohesion: 0.67
+Cohesion: 0.50
 Nodes (3): onboard, argumentHint, description
 
 ### Community 2618 - "Community 2618"
@@ -12680,40 +12742,208 @@ Cohesion: 0.40
 Nodes (4): 5.9 Split Combined Hook Computations, code:tsx (const sortedProducts = useMemo(() => {), code:tsx (useEffect(() => {), code:tsx (useEffect(() => {)
 
 ### Community 2689 - "Community 2689"
-Cohesion: 0.50
-Nodes (3): alert, { container }, status
+Cohesion: 0.25
+Nodes (7): emptyDiscussionSummary(), fetchDiscussionSummary(), MAINTAINER_ASSOCIATIONS, runCommand(), runGhJson(), { spawnSync }, splitRepo()
 
 ### Community 2690 - "Community 2690"
 Cohesion: 0.50
 Nodes (4): Basic Config, Conditional Config, Config Structure, Key Config Options
 
 ### Community 2691 - "Community 2691"
-Cohesion: 0.50
-Nodes (4): Phase 3 — Human-friendly review, Task 7: Переделать Localization overview, Task 8: Построить merge workspace, Task 9: Добавить impact preview
+Cohesion: 0.20
+Nodes (8): clearAdminPageSaveCache(), initial, mocks, productOptions, { rerender }, saved, { unmount }, user
 
 ### Community 2692 - "Community 2692"
 Cohesion: 0.50
 Nodes (3): destination, serviceRoot, source
 
+### Community 2700 - "Community 2700"
+Cohesion: 0.24
+Nodes (7): MediaFrame(), MediaFrameProps, Default, meta, Story, WithCaption, WithMirror
+
+### Community 2701 - "Community 2701"
+Cohesion: 0.20
+Nodes (8): adminSurface, { container }, onClick, save, showPopover, tooltip, trigger, resetTooltipWarmth()
+
+### Community 2702 - "Community 2702"
+Cohesion: 0.20
+Nodes (9): Flags, Implementation, Import Process, Instinct Import Command, Merge Behavior, Output, Source Tracking, Usage (+1 more)
+
+### Community 2703 - "Community 2703"
+Cohesion: 0.33
+Nodes (9): buildWarning(), CHECKLIST, detectSignals(), fs, GENERIC_SIGNALS, getFilePaths(), path, readContent() (+1 more)
+
+### Community 2704 - "Community 2704"
+Cohesion: 0.27
+Nodes (9): fs, hydrateSessionFromPath(), isSessionFileTarget(), { normalizeClaudeHistorySession, persistCanonicalSnapshot }, parseClaudeTarget(), path, resolveSessionRecord(), sessionAliases (+1 more)
+
+### Community 2705 - "Community 2705"
+Cohesion: 0.22
+Nodes (9): 3. Server-Side Performance (HIGH), Authenticate Server Actions like API routes, Avoid duplicate serialization in RSC props, Hoist static I/O to module scope, LRU cache for cross-request data, Minimize data passed to Client Components, Parallelize nested fetches with Promise.all per item, `React.cache()` for per-request deduplication (+1 more)
+
+### Community 2706 - "Community 2706"
+Cohesion: 0.46
+Nodes (6): clearPageEditorDraftSnapshot(), PageEditorDraftSnapshot, storageKey(), takePageEditorDraftSnapshot(), writePageEditorDraftSnapshot(), taken
+
+### Community 2707 - "Community 2707"
+Cohesion: 0.36
+Nodes (7): collectUploadKeys(), __dirname, EXECUTE, main(), OUT, resolveS3(), walk()
+
+### Community 2708 - "Community 2708"
+Cohesion: 0.43
+Nodes (6): getChartChildComponentName(), isChartDefsComponent(), isGradientDefComponent(), isPatternDefComponent(), partitionChartDefNodes(), VISX_PATTERN_COMPONENT_NAMES
+
+### Community 2709 - "Community 2709"
+Cohesion: 0.25
+Nodes (7): description, enabledMcpjsonServers, hooks, PostToolUse, Stop, permissions, allow
+
+### Community 2710 - "Community 2710"
+Cohesion: 0.25
+Nodes (5): fetchMock, initialLookup, navigation, user, EphemeralToastProvider()
+
+### Community 2711 - "Community 2711"
+Cohesion: 0.25
+Nodes (5): { canonicalJson, hashValue }, envelope, fs, path, ReplayError
+
+### Community 2712 - "Community 2712"
+Cohesion: 0.29
+Nodes (6): buildSourceTarget(), { collectSessionSnapshot }, fs, isPlanFileTarget(), { normalizeDmuxSnapshot, persistCanonicalSnapshot }, path
+
+### Community 2713 - "Community 2713"
+Cohesion: 0.29
+Nodes (6): buildSourceTarget(), { collectSessionSnapshot }, fs, isPlanFileTarget(), { normalizeDmuxSnapshot, persistCanonicalSnapshot }, path
+
+### Community 2714 - "Community 2714"
+Cohesion: 0.39
+Nodes (7): corruptedImageFixture(), FixtureFile, nonImageFixture(), oversizedImageFixture(), tempDir(), validPngFixture(), ref_node_os
+
+### Community 2715 - "Community 2715"
+Cohesion: 0.36
+Nodes (6): assertPageResult(), ShopifyPageInput, toShopifyPagePayload(), upsertShopifyPage(), UserError, mocks
+
+### Community 2716 - "Community 2716"
+Cohesion: 0.29
+Nodes (6): Accessible by Default, Composability and Reusability, Customizability and Theming, Lightweight and Performant, Transparency and Code Ownership, Well-documented and DX-Friendly
+
+### Community 2717 - "Community 2717"
+Cohesion: 0.29
+Nodes (6): Detection, Edge Runtime, Node.js Runtime (Default), Runtime Selection, Use Node.js Runtime by Default, When to Use Each
+
+### Community 2718 - "Community 2718"
+Cohesion: 0.29
+Nodes (6): CSS, HTML usage, Icon swap, JavaScript orchestration, Tunable variables, When to use
+
+### Community 2719 - "Community 2719"
+Cohesion: 0.48
+Nodes (4): GET(), isVideoKey(), Props, isSafeUploadKey()
+
+### Community 2720 - "Community 2720"
+Cohesion: 0.29
+Nodes (7): nuxt4-patterns/SKILL.md, Data Fetching, Hydration Safety, Lazy Loading and Performance, Nuxt 4 Patterns, Review Checklist, When to Activate
+
+### Community 2721 - "Community 2721"
+Cohesion: 0.29
+Nodes (7): Common Testing Mistakes to Avoid, FAIL: WRONG: Brittle Selectors, FAIL: WRONG: No Test Isolation, FAIL: WRONG: Testing Implementation Details, PASS: CORRECT: Independent Tests, PASS: CORRECT: Semantic Selectors, PASS: CORRECT: Test User-Visible Behavior
+
+### Community 2722 - "Community 2722"
+Cohesion: 0.29
+Nodes (6): SENTRY_AUTH_TOKEN, SENTRY_ORG, SENTRY_PROJECT, npx, @sentry/mcp-server, sentry
+
+### Community 2724 - "Community 2724"
+Cohesion: 0.38
+Nodes (5): EXTENSION_MIME, MIME_ALIASES, resolveSiteVideoMimeType(), SiteVideoMimeType, stripMimeParams()
+
+### Community 2725 - "Community 2725"
+Cohesion: 0.57
+Nodes (5): frameFromMediaNode(), isPlainObject(), mediaFramesFromProductSnapshots(), mediaFramesFromWorkingSnapshot(), WorkingSnapshotMediaFrame
+
+### Community 2726 - "Community 2726"
+Cohesion: 0.52
+Nodes (5): frameFromMediaNode(), isPlainObject(), mediaFramesFromProductSnapshots(), mediaFramesFromWorkingSnapshot(), WorkingSnapshotMediaFrame
+
+### Community 2727 - "Community 2727"
+Cohesion: 0.33
+Nodes (6): 1. Should this animate at all?, 2. What is the purpose?, 3. What easing should it use?, 4. How fast should it be?, Perceived performance, The Animation Decision Framework
+
+### Community 2728 - "Community 2728"
+Cohesion: 0.33
+Nodes (6): Damping at boundaries, Friction instead of hard stops, Gesture and Drag Interactions, Momentum-based dismissal, Multi-touch protection, Pointer capture for drag
+
+### Community 2729 - "Community 2729"
+Cohesion: 0.40
+Nodes (5): 3D transforms for depth, CSS Transform Mastery, scale() scales children too, transform-origin, translateY with percentages
+
+### Community 2730 - "Community 2730"
+Cohesion: 0.40
+Nodes (4): cardSource, cssSource, detailSource, discoverySource
+
+### Community 2731 - "Community 2731"
+Cohesion: 0.40
+Nodes (5): Framework Checks, load(), Authoring Custom Plugins, Essential Plugins, Plugins
+
+### Community 2732 - "Community 2732"
+Cohesion: 0.40
+Nodes (5): Common Pitfalls, Dev Does Not Match Build, Docker and Containers, Monorepo File Access, Stale Chunks After Deployment
+
+### Community 2733 - "Community 2733"
+Cohesion: 0.50
+Nodes (3): Coding Standards & Best Practices, Scope Boundaries, When to Activate
+
+### Community 2734 - "Community 2734"
+Cohesion: 0.50
+Nodes (4): Phase 4 — Scoped writes and recovery, Task 10: Реализовать field-scoped apply, Task 11: Добавить locale controls в editors, Task 12: Partial retry и safe restore
+
+### Community 2736 - "Community 2736"
+Cohesion: 0.50
+Nodes (3): project, name, resources
+
+### Community 2738 - "Community 2738"
+Cohesion: 0.67
+Nodes (3): Client-Side Access, Environment Variables, Using Env in Config
+
+### Community 2739 - "Community 2739"
+Cohesion: 0.67
+Nodes (3): /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/app/api/ops/sku-catalog/route.ts, editCount, findings
+
+### Community 2740 - "Community 2740"
+Cohesion: 0.67
+Nodes (3): /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/app/api/ops/sku-catalog/__tests__/route.test.ts, editCount, findings
+
+### Community 2741 - "Community 2741"
+Cohesion: 0.67
+Nodes (3): /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/lib/shopify/sku-catalog.ts, editCount, findings
+
+### Community 2742 - "Community 2742"
+Cohesion: 0.67
+Nodes (3): /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/lib/sku/__tests__/n8n-catalog-audit-workflow.test.ts, editCount, findings
+
+### Community 2743 - "Community 2743"
+Cohesion: 0.67
+Nodes (3): /Users/kirylkrystsia/WebstormProjects/synarava-jewelry/.codex-tmp/prod-plan/lib/sku/__tests__/ops-auth.test.ts, editCount, findings
+
+### Community 2744 - "Community 2744"
+Cohesion: 0.67
+Nodes (3): documentSectionsFromCopy(), draftFromCopy(), materialsFromCopy()
+
 ## Knowledge Gaps
-- **24343 isolated node(s):** `version`, `source`, `sourceType`, `skillPath`, `computedHash` (+24338 more)
+- **24463 isolated node(s):** `version`, `source`, `sourceType`, `skillPath`, `computedHash` (+24458 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **184 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **186 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `vitest` connect `vitest` to `admin.ts`, `filter-bar.tsx`, `ref_node_crypto`, `product-edit-form.tsx`, `catalog.ts`, `ShopifyAdminError`, `collections.ts`, `product-sync.ts`, `useTranslations`, `Community 1168`, `admin/storefront-href.ts`, `api.ts`, `shopify-projection-diff.ts`, `admin-session.ts`, `ephemeral-toast.tsx`, `product-media-gallery.tsx`, `pre-bash-commit-quality.js`, `Review Priorities`, `rich-text.ts`, `products.ts`, `products-cms.tsx`, `ref_node_fs`, `use-fit-display-text.ts`, `translation-coverage.mjs`, `storefront-copy-fields.ts`, `shopify-category-field.tsx`, `cart.ts`, `shopify-profile-shell.tsx`, `refresh.ts`, `app/layout.tsx`, `privacy-consent-manager.tsx`, `editorial-translation-sync.ts`, `footer-contact.ts`, `adapt.md`, `ref_server_only`, `infrastructure-status.ts`, `next`, `admin-nav-config.ts`, `lucide-react`, `Community 1897`, `Community 2153`, `legal-section-scroll.tsx`, `meta-health.ts`, `content/site-seo.ts`, `home-final-cta-section.ts`, `Community 1140`, `product-form-fields.tsx`?**
-  _High betweenness centrality (0.063) - this node is a cross-community bridge._
-- **Why does `db` connect `products.ts` to `admin.ts`, `product-metafields-shared.ts`, `product-edit-form.tsx`, `ref_node_crypto`, `catalog.ts`, `ShopifyAdminError`, `Common Cognitive Load Violations`, `storefront-link-health.ts`, `iOS platform`, `product-facts.ts`, `Пошаговый план`, `product-sync.ts`, `Community 1168`, `admin/storefront-href.ts`, `api.ts`, `desktop-notify.js`, `mcp-health-check.js`, `Handle `generate``, `admin-session.ts`, `site-footer.test.tsx`, `pre-bash-commit-quality.js`, `Community 1579`, `products-cms.tsx`, `URL Structure`, `storefront-copy-fields.ts`, `modern-screenshot.umd.js`, `🟡 Medium`, `cart.ts`, `План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка`, `refresh.ts`, `app/layout.tsx`, `filter-chips.stories.tsx`, `work-item-mutations.js`, `ownership-guard.js`, `commerce-field-apply.ts`, `adapt.md`, `ref_server_only`, `proxy.ts`, `footer-links-fields.ts`, `product-editor-scope.ts`, `next`, `Community 1242`, `admin-nav-config.ts`, `storefront-copy-editor.test.tsx`, `lucide-react`, `3. Фазы`, `Community 1254`, `meta-health.ts`, `@playwright/test`?**
+- **Why does `vitest` connect `vitest` to `admin.ts`, `filter-bar.tsx`, `product-edit-form.tsx`, `ref_node_crypto`, `catalog.ts`, `ShopifyAdminError`, `collections.ts`, `product-sync.ts`, `useTranslations`, `Community 1168`, `Component Building Principles`, `admin/storefront-href.ts`, `issues.ts`, `api.ts`, `mcp-health-check.js`, `shopify-projection-diff.ts`, `chart-defs.ts`, `admin-session.ts`, `ephemeral-toast.tsx`, `product-media-gallery.tsx`, `pre-bash-commit-quality.js`, `Community 2724`, `Community 2725`, `Community 1832`, `rich-text.ts`, `Card resize`, `products.ts`, `products-cms.tsx`, `Page side-by-side`, `ref_node_fs`, `infrastructure-charts.tsx`, `use-fit-display-text.ts`, `storefront-copy-fields.ts`, `translation-coverage.mjs`, `Community 1593`, `cart.ts`, `shopify-profile-shell.tsx`, `shopify-category-field.tsx`, `refresh.ts`, `app/layout.tsx`, `Community 1603`, `privacy-consent-manager.tsx`, `ownership-guard.js`, `editorial-translation-sync.ts`, `adapt.native.md`, `footer-contact.ts`, `Common Testing Mistakes to Avoid`, `ref_server_only`, `Performance Rules`, `Animation`, `next`, `admin-nav-config.ts`, `lucide-react`, `Security Scan Command`, `sync.ts`, `legal-section-scroll.tsx`, `meta-health.ts`, `content/site-seo.ts`, `Community 1140`, `product-form-fields.tsx`, `Community 1276`, `Plan Canvas Command`?**
   _High betweenness centrality (0.061) - this node is a cross-community bridge._
-- **Why does `cn()` connect `catalog-presence-server.ts` to `product-metafields-shared.ts`, `filter-bar.tsx`, `admin-login-form.tsx`, `codex-worktree.js`, `translations.ts`, `product-facts.ts`, `Community 1294`, `product-sync.ts`, `useTranslations`, `vitest`, `gauge.tsx`, `[permalink]/route.ts`, `bar-chart.tsx`, `site-footer.test.tsx`, `ephemeral-toast.tsx`, `chart-tooltip.tsx`, `claude-settings.js`, `glueTextChildren`, `infrastructure-charts.tsx`, `scroll-reveal.stories.tsx`, `proximity.js`, `Community 1209`, `EphemeralToastProvider`, `shopify-category-field.tsx`, `_redact_home_paths`, `styling.mdx`, `План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка`, `header-nav.ts`, `app/layout.tsx`, `filter-chips.stories.tsx`, `theme-provider.tsx`, `github-discussions.js`, `useEphemeralToast`, `footer-contact.ts`, `Common Testing Mistakes to Avoid`, `infrastructure-status.ts`, `next`, `admin-nav-config.ts`, `charts/client.ts`, `deploy`, `claude-skill-migration.js`, `legal-section-scroll.tsx`, `meta-health.ts`, `Community 1391`, `admin-href-field.tsx`, `home-final-cta-section.ts`, `product-form-fields.tsx`?**
-  _High betweenness centrality (0.034) - this node is a cross-community bridge._
+- **Why does `db` connect `adapt.md` to `product-metafields-shared.ts`, `storefront-link-health.ts`, `ref_node_crypto`, `ShopifyAdminError`, `catalog.ts`, `admin.ts`, `Common Cognitive Load Violations`, `iOS platform`, `collections.ts`, `Пошаговый план`, `product-sync.ts`, `Community 1168`, `vitest`, `admin/storefront-href.ts`, `issues.ts`, `api.ts`, `desktop-notify.js`, `chart-defs.ts`, `Handle `generate``, `admin-session.ts`, `site-footer.test.tsx`, `Card resize`, `Community 1579`, `products.ts`, `products-cms.tsx`, `Cognitive Load Assessment`, `storefront-copy-fields.ts`, `modern-screenshot.umd.js`, `shopify-category-field.tsx`, `cart.ts`, `shopify-profile-shell.tsx`, `План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка`, `refresh.ts`, `header-nav.ts`, `app/layout.tsx`, `work-item-mutations.js`, `ownership-guard.js`, `commerce-field-apply.ts`, `adapt.native.md`, `footer-contact.ts`, `capsule.js`, `infrastructure-status.ts`, `proxy.ts`, `Common Testing Mistakes to Avoid`, `footer-links-fields.ts`, `ref_server_only`, `Animation`, `next`, `Community 1242`, `admin-nav-config.ts`, `lucide-react`, `Common Issues by Site Type`, `3. Фазы`, `Security Scan Command`, `live.md`, `Community 1254`, `meta-health.ts`, `Community 1904`, `home-final-cta-section.ts`, `@playwright/test`, `Plan Canvas Command`?**
+  _High betweenness centrality (0.060) - this node is a cross-community bridge._
+- **Why does `cn()` connect `product-form-fields.tsx` to `product-metafields-shared.ts`, `filter-bar.tsx`, `admin-login-form.tsx`, `translations.ts`, `collections.ts`, `Community 2700`, `catalog-presence-server.ts`, `Community 1294`, `useTranslations`, `product-sync.ts`, `mcp-health-check.js`, `gauge.tsx`, `bar-chart.tsx`, `[permalink]/route.ts`, `admin-session.ts`, `ephemeral-toast.tsx`, `chart-tooltip.tsx`, `claude-settings.js`, `glueTextChildren`, `products-cms.tsx`, `Page side-by-side`, `infrastructure-charts.tsx`, `bar-squares.tsx`, `storefront-copy-fields.ts`, `proximity.js`, `Community 1209`, `EphemeralToastProvider`, `_redact_home_paths`, `styling.mdx`, `План реализации: серверный каталог, курсорная пагинация и бесконечная прокрутка`, `header-nav.ts`, `github-discussions.js`, `useEphemeralToast`, `Common Issues by Site Type`, `next`, `admin-nav-config.ts`, `charts/client.ts`, `deploy`, `legal-section-scroll.tsx`, `meta-health.ts`, `admin-href-field.tsx`, `Community 1915`?**
+  _High betweenness centrality (0.030) - this node is a cross-community bridge._
 - **What connects `version`, `source`, `sourceType` to the rest of the system?**
-  _24754 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _24874 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `live-browser.js` be split into smaller, more focused modules?**
-  _Cohesion score 0.02784327952113187 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.026917784657722738 - nodes in this community are weakly interconnected._
 - **Should `filter-bar.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.033156498673740056 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.03345255628024406 - nodes in this community are weakly interconnected._
 - **Should `product-edit-form.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.024968608132908337 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.023557528166609765 - nodes in this community are weakly interconnected._
