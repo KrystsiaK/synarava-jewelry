@@ -369,6 +369,76 @@ describe("sku-api http", () => {
     });
   });
 
+  it("dry-runs and digest-gates the legacy Shopify SKU backfill", async () => {
+    const headers = {
+      authorization: `Bearer ${token}`,
+      "content-type": "application/json",
+    };
+    const items = [
+      {
+        externalVariantId: "gid://shopify/ProductVariant/http-legacy",
+        sku: "Legacy HTTP SKU / Keep Verbatim",
+      },
+    ];
+    const dryRun = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/legacy-backfill`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          items,
+          mode: "dry-run",
+          correlationId: "corr-http-legacy-dry-run",
+        }),
+      },
+    );
+    expect(dryRun.status).toBe(200);
+    const plan = (await dryRun.json()) as { digest: string };
+    expect(plan).toMatchObject({
+      ok: true,
+      mode: "dry-run",
+      createCount: 1,
+      existingCount: 0,
+      conflictCount: 0,
+    });
+
+    const apply = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/legacy-backfill`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          items,
+          mode: "apply",
+          expectedDigest: plan.digest,
+          correlationId: "corr-http-legacy-apply",
+        }),
+      },
+    );
+    expect(apply.status).toBe(200);
+    await expect(apply.json()).resolves.toMatchObject({
+      ok: true,
+      mode: "apply",
+      created: 1,
+      skipped: 0,
+      conflictCount: 0,
+    });
+
+    const audit = await fetch(
+      `${baseUrl}/v1/workspaces/synarava-shop/audit/catalog`,
+      {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          items,
+          correlationId: "corr-http-legacy-audit",
+        }),
+      },
+    );
+    expect(audit.status).toBe(200);
+    await expect(audit.json()).resolves.toMatchObject({ deviationCount: 0 });
+  });
+
   it("draft and publish profile versions", async () => {
     const headers = {
       authorization: `Bearer ${token}`,
