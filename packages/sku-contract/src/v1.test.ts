@@ -4,6 +4,7 @@ import {
   catalogAuditRequestSchema,
   catalogAuditResponseSchema,
   previewRequestSchema,
+  shopifyCatalogSnapshotResponseSchema,
   workspaceKeySchema,
 } from "./v1";
 
@@ -61,5 +62,26 @@ describe("sku-contract v1", () => {
         correlationId: "corr-audit-resp",
       }),
     ).toMatchObject({ llmEnabled: false, shouldNotify: false });
+  });
+
+  it("parses a complete Shopify catalog snapshot", () => {
+    expect(
+      shopifyCatalogSnapshotResponseSchema.parse({
+        ok: true,
+        source: "shopify",
+        complete: true,
+        itemCount: 1,
+        items: [{ externalVariantId: "gid://shopify/ProductVariant/1", sku: "EY-ACC-001" }],
+      }),
+    ).toMatchObject({ complete: true, itemCount: 1 });
+    expect(() =>
+      shopifyCatalogSnapshotResponseSchema.parse({
+        ok: true,
+        source: "shopify",
+        complete: true,
+        itemCount: 2,
+        items: [{ externalVariantId: "gid://shopify/ProductVariant/1", sku: "EY-ACC-001" }],
+      }),
+    ).toThrow();
   });
 });

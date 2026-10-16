@@ -19,7 +19,8 @@
       }
     ],
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./*"],
+      "@synarava/sku-contract": ["./packages/sku-contract/src/index.ts"]
     }
   },
   "include": [

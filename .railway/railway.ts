@@ -195,6 +195,8 @@ function buildStagingResources() {
       SKU_API_URL: "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080",
       SKU_API_TOKEN: preserve(),
       SKU_API_WORKSPACE: "synarava-shop",
+      // Legacy value is unused by the live-Shopify workflow; preserve it until
+      // post-deploy cleanup so an unrelated IaC apply never deletes runtime state.
       CATALOG_ITEMS_JSON: preserve(),
       TELEGRAM_CHAT_ID: preserve(),
     },
@@ -266,6 +268,7 @@ function buildProductionResources() {
       SKU_API_URL: "http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080",
       SKU_API_TOKEN: preserve(),
       SKU_API_WORKSPACE: "synarava-shop",
+      // Unused compatibility value; remove manually only after workflow verification.
       CATALOG_ITEMS_JSON: preserve(),
       // Shared Synarava Ops channel — chat ID sealed; bot token in n8n credential only.
       TELEGRAM_CHAT_ID: preserve(),
