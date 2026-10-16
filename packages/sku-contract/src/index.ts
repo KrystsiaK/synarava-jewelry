@@ -25,6 +25,7 @@ export {
   previewResponseSchema,
   reserveRequestSchema,
   reserveResponseSchema,
+  shopifyCatalogSnapshotResponseSchema,
   validateRequestSchema,
   validateResponseSchema,
   workspaceKeySchema,
@@ -36,6 +37,7 @@ export {
   type PreviewResponse,
   type ReserveRequest,
   type ReserveResponse,
+  type ShopifyCatalogSnapshotResponse,
   type ValidateRequest,
   type ValidateResponse,
 } from "./v1";

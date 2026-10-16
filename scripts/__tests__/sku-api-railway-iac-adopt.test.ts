@@ -59,8 +59,9 @@ describe("sku-api Railway IaC adopt fields", () => {
     expect(railwayTs).not.toContain("${{sku-api.PORT}}");
   });
 
-  it("allows n8n Code nodes to read $env (CATALOG_ITEMS_JSON)", () => {
+  it("allows n8n nodes to read runtime settings and preserves legacy state", () => {
     expect(railwayTs).toMatch(/N8N_BLOCK_ENV_ACCESS_IN_NODE:\s*"false"/);
+    expect(railwayTs).toContain("CATALOG_ITEMS_JSON: preserve()");
   });
 });
 

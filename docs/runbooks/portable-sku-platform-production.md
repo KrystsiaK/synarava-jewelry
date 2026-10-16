@@ -120,7 +120,6 @@ railway login
 | `SKU_API_URL` | Private `http://${{sku-api.RAILWAY_PRIVATE_DOMAIN}}:8080` |
 | `SKU_API_TOKEN` | Production Bearer (sealed) |
 | `SKU_API_WORKSPACE` | `synarava-shop` |
-| `CATALOG_ITEMS_JSON` | Audit batch JSON (sealed / ops-managed) |
 | `TELEGRAM_CHAT_ID` | Shared **Synarava Ops** chat (sealed) |
 | `N8N_*` / `DB_POSTGRESDB_*` / auth / encryption | Existing sealed vars — preserve |
 
@@ -142,11 +141,13 @@ Artifact: [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy
 
 1. Open production n8n (`sku-platform-n8n`) UI.
 2. Create Telegram credential for shared channel **Synarava Ops** (token not in git).
-3. Create Header Auth credential for production `sku-api` Bearer.
+3. Create Header Auth credential for production `sku-api` Bearer; use it on both **GET live Shopify SKU catalog** and **POST audit/catalog**.
 4. Import the production workflow JSON.
 5. Map credentials; confirm message header is exactly **`🔴 PRODUCTION · SKU AUDIT`**.
 6. Keep workflow **inactive** until Business Owner go for the single draft-product pilot.
-7. Set `TELEGRAM_CHAT_ID` / `CATALOG_ITEMS_JSON` as Railway env (names only in git).
+7. Confirm `TELEGRAM_CHAT_ID` in Railway. Catalog rows come live from Shopify; there is no manually maintained catalog variable.
+
+An old `CATALOG_ITEMS_JSON` value may remain preserved in Railway during rollout to avoid an unrelated IaC deletion. The new workflow never reads it; remove it only after the live-Shopify workflow is verified.
 
 ## Limited rollout (one draft product)
 

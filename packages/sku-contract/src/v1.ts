@@ -79,11 +79,23 @@ export const confirmAssignmentResponseSchema = z.object({
   correlationId: correlationIdSchema,
 });
 
-export const CATALOG_AUDIT_MAX_BATCH = 100;
+/** A bounded full-catalog audit payload. Shopify is fetched with pagination. */
+export const CATALOG_AUDIT_MAX_BATCH = 5_000;
 
 export const catalogAuditItemSchema = z.object({
   externalVariantId: z.string().min(1).max(256),
   sku: z.string().max(128),
+});
+
+export const shopifyCatalogSnapshotResponseSchema = z.object({
+  ok: z.literal(true),
+  source: z.literal("shopify"),
+  complete: z.literal(true),
+  itemCount: z.number().int().nonnegative().max(CATALOG_AUDIT_MAX_BATCH),
+  items: z.array(catalogAuditItemSchema).max(CATALOG_AUDIT_MAX_BATCH),
+}).refine((snapshot) => snapshot.itemCount === snapshot.items.length, {
+  message: "itemCount must match items length",
+  path: ["itemCount"],
 });
 
 export const catalogAuditRequestSchema = z.object({
@@ -133,3 +145,6 @@ export type ConfirmAssignmentResponse = z.infer<
 >;
 export type CatalogAuditRequest = z.infer<typeof catalogAuditRequestSchema>;
 export type CatalogAuditResponse = z.infer<typeof catalogAuditResponseSchema>;
+export type ShopifyCatalogSnapshotResponse = z.infer<
+  typeof shopifyCatalogSnapshotResponseSchema
+>;

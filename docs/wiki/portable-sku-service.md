@@ -1,6 +1,6 @@
 # Portable SKU service
 
-**Status:** Этап 1–5 code on staging · **platform** Railway `portable-sku-platform` (ID `6d7d5885-…`; staging target: sku-api+sku-postgres+n8n+n8n-postgres) · Этап 6 **prep** (IaC/runbook; no production apply/import until Business Owner go)
+**Status:** Этап 1–5 shipped · production platform healthy · controlled Draft-product SKU pilot passed · production n8n remains inactive until the live-Shopify audit workflow is verified
 **ADR:** [`docs/adr/0004-portable-sku-service-boundary.md`](../adr/0004-portable-sku-service-boundary.md)
 **Plan:** [`docs/proposals/portable-sku-service.md`](../proposals/portable-sku-service.md)
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)
@@ -38,6 +38,8 @@ Factory: `createSkuStoreRuntime()` in `services/sku-api/src/registry/create-stor
 - `GET|POST /v1/workspaces/{key}/profiles` · `POST …/profiles/{version}/publish`
 
 Auth: `Authorization: Bearer <token>` scoped to path workspace.
+
+Synarava web also exposes protected `GET /api/ops/sku-catalog` to the audit workflow. It uses the same service Bearer, paginates the live Shopify Admin `productVariants` connection, and returns a complete normalized `{ externalVariantId, sku }` snapshot (max 5,000). Shopify credentials never leave Synarava web; any incomplete upstream read fails the workflow instead of auditing a partial catalog.
 
 ```bash
 node services/sku-api/scripts/generate-credentials.mjs synarava-shop
