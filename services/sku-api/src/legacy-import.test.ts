@@ -11,6 +11,58 @@ import { createAllocator } from "./allocator.js";
 const FIXTURE = join(import.meta.dirname, "../fixtures/legacy-v0-sample.json");
 
 describe("legacy importer", () => {
+  it("preserves pre-cutover Shopify SKUs verbatim even when policy v1 cannot parse them", async () => {
+    const store = createMemorySkuRegistryStore();
+    await store.ensureWorkspace("synarava-shop");
+    await publishExampleProfile(store, SYNARAVA_SHOP_PROFILE_V1_EXAMPLE);
+
+    const imported = await importLegacyFixture(
+      store,
+      {
+        workspaceKey: "synarava-shop",
+        rows: [
+          {
+            sku: "Legacy SKU / Do Not Rewrite",
+            externalSystem: "shopify",
+            externalVariantId: "gid://shopify/ProductVariant/legacy-exception",
+          },
+        ],
+      },
+      {
+        correlationId: "legacy-exception-import",
+        actor: "importer",
+      },
+    );
+
+    expect(imported.created).toBe(1);
+    expect(imported.assignments[0]).toMatchObject({
+      sku: "Legacy SKU / Do Not Rewrite",
+      source: "LEGACY_V0",
+      externalVariantId: "gid://shopify/ProductVariant/legacy-exception",
+    });
+
+    const repeated = await importLegacyFixture(
+      store,
+      {
+        workspaceKey: "synarava-shop",
+        rows: [
+          {
+            sku: "Legacy SKU / Do Not Rewrite",
+            externalSystem: "shopify",
+            externalVariantId: "gid://shopify/ProductVariant/legacy-exception",
+          },
+        ],
+      },
+      {
+        correlationId: "legacy-exception-import-repeat",
+        actor: "importer",
+      },
+    );
+
+    expect(repeated.created).toBe(0);
+    expect(repeated.skipped).toBe(1);
+  });
+
   it("imports fixtures idempotently without Shopify writes", async () => {
     const store = createMemorySkuRegistryStore();
     const file = await loadLegacyFixture(FIXTURE);

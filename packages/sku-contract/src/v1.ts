@@ -104,6 +104,23 @@ export const catalogAuditRequestSchema = z.object({
   correlationId: correlationIdSchema,
 });
 
+export const legacyBackfillRequestSchema = z
+  .object({
+    items: z.array(catalogAuditItemSchema).max(CATALOG_AUDIT_MAX_BATCH),
+    mode: z.enum(["dry-run", "apply"]),
+    expectedDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(),
+    correlationId: correlationIdSchema,
+  })
+  .superRefine((request, context) => {
+    if (request.mode === "apply" && !request.expectedDigest) {
+      context.addIssue({
+        code: "custom",
+        path: ["expectedDigest"],
+        message: "expectedDigest is required in apply mode",
+      });
+    }
+  });
+
 export const catalogAuditDeviationCodeSchema = z.enum([
   "MISSING_ASSIGNMENT",
   "SKU_MISMATCH",
@@ -145,6 +162,7 @@ export type ConfirmAssignmentResponse = z.infer<
 >;
 export type CatalogAuditRequest = z.infer<typeof catalogAuditRequestSchema>;
 export type CatalogAuditResponse = z.infer<typeof catalogAuditResponseSchema>;
+export type LegacyBackfillRequest = z.infer<typeof legacyBackfillRequestSchema>;
 export type ShopifyCatalogSnapshotResponse = z.infer<
   typeof shopifyCatalogSnapshotResponseSchema
 >;

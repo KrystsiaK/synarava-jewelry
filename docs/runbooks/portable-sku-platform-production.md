@@ -149,11 +149,32 @@ Artifact: [`deploy/n8n/sku-catalog-audit.workflow.production.json`](../../deploy
 
 An old `CATALOG_ITEMS_JSON` value may remain preserved in Railway during rollout to avoid an unrelated IaC deletion. The new workflow never reads it; remove it only after the live-Shopify workflow is verified.
 
+## Mandatory legacy SKU backfill gate
+
+Run this before publishing the production audit workflow. Use the complete
+`items` array returned by **GET live Shopify SKU catalog** and the existing
+production Header Auth credential.
+
+1. `POST /v1/workspaces/synarava-shop/legacy-backfill` with `mode: "dry-run"`,
+   the complete `items` array, and a fresh `correlationId`.
+2. Stop unless the response is exactly the reviewed catalog shape: all
+   non-empty items are accounted for, `conflictCount` is `0`, and the sum of
+   `createCount + existingCount` equals `nonEmptyItemCount`.
+3. Copy the returned 64-character `digest`. Send the identical `items` array
+   again with `mode: "apply"` and `expectedDigest` set to that value. A changed
+   snapshot is rejected.
+4. Repeat `dry-run`: require `createCount: 0`, all rows in `existingCount`, and
+   `conflictCount: 0`.
+5. Run `POST audit/catalog`: require `deviationCount: 0` before publishing n8n.
+
+The operation never writes Shopify. It records every pre-cutover SKU verbatim as
+a `LEGACY_V0` exception. Policy v1 applies only to newly allocated SKU values.
+
 ## Limited rollout (one draft product)
 
 1. Feature flag off (web `SKU_API_*` unset) until sku-api healthy.
 2. Apply IaC only after **wired plan gate PASS** + explicit go.
-3. Bootstrap production credentials + legacy import offline (ops).
+3. Bootstrap production credentials + complete the digest-gated legacy backfill above.
 4. Enable web `SKU_API_*` for production.
 5. Create **exactly one** new **draft** Shopify product; assign SKU via Admin; confirm Shopify write-through.
 6. Business Owner **manual confirmation** recorded (who / when / product handle).

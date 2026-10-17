@@ -35,7 +35,7 @@
 
 **Runbooks** — [deploy](runbooks/deploy.md) · [staging](runbooks/staging.md) · [portable-sku current status](runbooks/portable-sku-current-status.md) · [portable-sku-platform-railway](runbooks/portable-sku-platform-railway.md) · [portable-sku-platform-production](runbooks/portable-sku-platform-production.md) · [sku-api-railway-staging](runbooks/sku-api-railway-staging.md) · [sku-catalog-audit-staging](runbooks/sku-catalog-audit-staging.md) · [post-purchase-ops](runbooks/post-purchase-ops.md) · [translation-operations](runbooks/translation-operations.md) · [translation-migration](runbooks/translation-migration.md) · [admin-guide-ru](runbooks/admin-guide-ru.md) · [shopify-automation-playbook](runbooks/shopify-automation-playbook.md)
 
-**Testing** — [обзор](testing/README.md) · [admin manual (RU)](testing/admin-test-cases-manual-ru.md) · [admin Playwright (EN)](testing/admin-test-cases-playwright-en.md) · [payment/checkout matrix](testing/payment-checkout-test-matrix.md) · [portable SKU staging matrix](testing/portable-sku-staging-matrix.md)
+**Testing** — [обзор](testing/README.md) · [admin manual (RU)](testing/admin-test-cases-manual-ru.md) · [admin Playwright (EN)](testing/admin-test-cases-playwright-en.md) · [payment/checkout matrix](testing/payment-checkout-test-matrix.md) · [portable SKU staging matrix](testing/portable-sku-staging-matrix.md) · [legacy SKU backfill evidence](testing/legacy-sku-backfill.md)
 
 **ADR** — [индекс](adr/README.md)
 

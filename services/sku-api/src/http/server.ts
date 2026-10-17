@@ -1,6 +1,7 @@
 import {
   catalogAuditRequestSchema,
   confirmAssignmentRequestSchema,
+  legacyBackfillRequestSchema,
   previewRequestSchema,
   reserveRequestSchema,
   validateRequestSchema,
@@ -11,6 +12,10 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 import { z } from "zod";
 import { runCatalogAudit } from "../audit/catalog-audit.js";
 import { createAllocator } from "../allocator.js";
+import {
+  applyLegacyBackfill,
+  planLegacyBackfill,
+} from "../legacy-backfill.js";
 import {
   authenticateRequest,
   type WorkspaceCredential,
@@ -340,6 +345,63 @@ export function createSkuHttpServer(app: SkuHttpApp) {
               res,
               400,
               errorBody(error.code, error.message, body.correlationId),
+            );
+          }
+          throw error;
+        }
+      }
+
+      if (method === "POST" && rest === "/legacy-backfill") {
+        const body = legacyBackfillRequestSchema.parse(await readJson(req));
+        const plan = await planLegacyBackfill({
+          store: app.store,
+          workspaceKey,
+          items: body.items,
+        });
+        if (body.mode === "dry-run") {
+          return sendJson(res, 200, {
+            ok: true,
+            mode: "dry-run",
+            ...plan,
+            correlationId: body.correlationId,
+          });
+        }
+        try {
+          const applied = await applyLegacyBackfill({
+            store: app.store,
+            workspaceKey,
+            items: body.items,
+            expectedDigest: body.expectedDigest!,
+            correlationId: body.correlationId,
+            actor: "http.legacy-backfill",
+          });
+          return sendJson(res, 200, {
+            ok: true,
+            mode: "apply",
+            itemCount: applied.plan.itemCount,
+            nonEmptyItemCount: applied.plan.nonEmptyItemCount,
+            createCount: applied.plan.createCount,
+            existingCount: applied.plan.existingCount,
+            conflictCount: applied.plan.conflictCount,
+            conflicts: applied.plan.conflicts,
+            digest: applied.plan.digest,
+            created: applied.created,
+            skipped: applied.skipped,
+            correlationId: body.correlationId,
+          });
+        } catch (error) {
+          if (isDomainError(error)) {
+            return sendJson(
+              res,
+              409,
+              errorBody(error.code, error.message, body.correlationId),
+            );
+          }
+          if (error instanceof Error) {
+            return sendJson(
+              res,
+              409,
+              errorBody("ASSIGNMENT_CONFLICT", error.message, body.correlationId),
             );
           }
           throw error;

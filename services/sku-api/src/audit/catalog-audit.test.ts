@@ -103,6 +103,32 @@ describe("catalog audit (Этап 5 Slice A)", () => {
         allowedCharacters: allowed,
       }),
     ).toBeNull();
+
+    expect(
+      classifyCatalogItem({
+        item: {
+          externalVariantId: "v-legacy",
+          sku: "Legacy SKU / Keep Verbatim",
+        },
+        assignment: {
+          id: "legacy-a1",
+          workspaceId: "w",
+          sku: "Legacy SKU / Keep Verbatim",
+          policyVersion: 1,
+          source: "LEGACY_V0",
+          status: "ACTIVE",
+          lockState: "NONE",
+          externalSystem: "shopify",
+          externalShop: "s",
+          externalProductId: "p",
+          externalVariantId: "v-legacy",
+          reservationId: null,
+          correlationId: "c",
+          createdAt: new Date(),
+        },
+        allowedCharacters: allowed,
+      }),
+    ).toBeNull();
   });
 
   it("digest is stable; identical re-run does not notify again", async () => {
