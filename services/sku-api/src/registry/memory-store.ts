@@ -370,11 +370,7 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
 
         for (const row of rows) {
           const parsed = parseSku(row.sku, profile.config);
-          if (!parsed.ok) {
-            throw domainError(parsed);
-          }
-
-          const aKey = assignmentKey(workspace.id, parsed.value.sku);
+          const aKey = assignmentKey(workspace.id, row.sku);
           const existing = assignments.get(aKey);
           if (existing) {
             skipped += 1;
@@ -382,11 +378,14 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
             continue;
           }
 
-          if (reservationsBySku.has(aKey)) {
+          const collisionKey = parsed.ok
+            ? assignmentKey(workspace.id, parsed.value.sku)
+            : aKey;
+          if (reservationsBySku.has(collisionKey)) {
             throw domainError(
               fail(
                 "ASSIGNMENT_CONFLICT",
-                `sku ${parsed.value.sku} already reserved`,
+                `sku ${row.sku} already reserved`,
               ),
             );
           }
@@ -394,7 +393,7 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
           const assignment: AssignmentRecord = {
             id: randomUUID(),
             workspaceId: workspace.id,
-            sku: parsed.value.sku,
+            sku: row.sku,
             policyVersion: profile.version,
             source: "LEGACY_V0",
             status: "ACTIVE",
@@ -408,31 +407,35 @@ export function createMemorySkuRegistryStore(): SkuRegistryStore {
             createdAt: new Date(),
           };
 
-          // Tombstone reservation so sequence cannot be re-issued.
-          const tombstone: ReservationRecord = {
-            id: randomUUID(),
-            workspaceId: workspace.id,
-            sku: parsed.value.sku,
-            stem: parsed.value.stem,
-            sequence: parsed.value.sequence,
-            familyKey: "legacy.import",
-            policyVersion: profile.version,
-            status: "TOMBSTONE",
-            idempotencyKey: `legacy:${parsed.value.sku}`,
-            correlationId,
-            createdAt: new Date(),
-          };
-          reservationsBySku.set(aKey, tombstone);
-          reservationsById.set(tombstone.id, tombstone);
-          reservationsByIdempotency.set(
-            `${workspace.id}::${tombstone.idempotencyKey}`,
-            tombstone.id,
-          );
+          // A parseable legacy SKU occupies its canonical policy sequence so the
+          // allocator cannot re-issue it. An unparseable legacy exception is
+          // still preserved verbatim; no policy validation is applied to it.
+          if (parsed.ok) {
+            const tombstone: ReservationRecord = {
+              id: randomUUID(),
+              workspaceId: workspace.id,
+              sku: parsed.value.sku,
+              stem: parsed.value.stem,
+              sequence: parsed.value.sequence,
+              familyKey: "legacy.import",
+              policyVersion: profile.version,
+              status: "TOMBSTONE",
+              idempotencyKey: `legacy:${parsed.value.sku}`,
+              correlationId,
+              createdAt: new Date(),
+            };
+            reservationsBySku.set(collisionKey, tombstone);
+            reservationsById.set(tombstone.id, tombstone);
+            reservationsByIdempotency.set(
+              `${workspace.id}::${tombstone.idempotencyKey}`,
+              tombstone.id,
+            );
 
-          const cKey = cursorKey(workspace.id, parsed.value.stem);
-          const cursor = cursors.get(cKey);
-          if (!cursor || cursor.lastAllocated < parsed.value.sequence) {
-            cursors.set(cKey, { lastAllocated: parsed.value.sequence });
+            const cKey = cursorKey(workspace.id, parsed.value.stem);
+            const cursor = cursors.get(cKey);
+            if (!cursor || cursor.lastAllocated < parsed.value.sequence) {
+              cursors.set(cKey, { lastAllocated: parsed.value.sequence });
+            }
           }
 
           assignments.set(aKey, assignment);
