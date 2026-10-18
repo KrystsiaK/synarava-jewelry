@@ -24,20 +24,30 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
   - `gh` token (`cursor[bot]`) cannot list org packages (`[]`) / clone private package sources; npm.pkg.github.com with that token → `permission_denied`.
 - [2026-10-17T21:14:30Z] **STOP per §0.** Cannot install `@synarava/wiring-engine@0.2.0` / `@synarava/shell-kit@0.1.3` without registry auth or forking/copying package code (forbidden). No stub/fork/copy written. Requested Cloud Agent secret `NODE_AUTH_TOKEN` + owner confirmation of package publish location.
 
-**Stage 1 status:** blocked — not green (no widget render, no build/type proof yet).
+### Owner answers (binding) — resumed 2026-10-18
 
----
+1. Scope `@synarava`, registry `https://npm.pkg.github.com` (org `synarava`).
+2. Published packages only — **no** vendoring/fork/copy.
+3. Peers: install `zustand`. For `framer-motion` peer: do **not** add a second direct package — project has `motion@12`; pin peer via pnpm override (see note below).
+4. Update `deploy.md`: remove «no private registry»; document `@synarava` + `NODE_AUTH_TOKEN`.
 
-## ⚠️ ВОПРОСЫ
+### Resume evidence
 
-1. **GitHub Packages token:** Please add a PAT (or GitHub App token) with `read:packages` for the publisher of `@synarava/wiring-engine` / `@synarava/shell-kit` as Cloud Agent secret **`NODE_AUTH_TOKEN`**, so Stage 1 can `pnpm add` without copying package source.
-2. **Publisher scope:** Are `wiring-engine@0.2.0` and `shell-kit@0.1.3` published under org **`synarava`**, under user **`KrystsiaK`**, or another owner? (Plan says GitHub Packages `@synarava`; confirm exact registry owner for `.npmrc`.)
-3. **Plan vs repo fact:** Plan §1 says reuse the registry «как уже сделано для `@synarava/sku-contract`», but `sku-contract` is local `workspace:*`, not GitHub Packages. Confirm Stage 1 must pull **published** packages (not vendoring sources into `packages/`).
-4. **Peer deps:** After install, may we add exact peers **`framer-motion`** and **`zustand`** (plan lists them; not currently in `package.json`)? Budget §0 treats `@synarava/*` peers as reuse, not the one new runtime dep (`@xyflow/react` is Stage 3). Confirm OK to add those two peers on Stage 1.
-5. **Deploy note:** After packages are private-registry deps, `docs/runbooks/deploy.md` (no private registry) will need an update — OK as part of Stage 1 PR docs hygiene?
+- [2026-10-18T22:18:00Z] Re-read ADR-0005 + plan §0 / Stage 1 DoD. `NODE_AUTH_TOKEN` present in Cloud Agent env.
+- [2026-10-18T22:20:00Z] GitHub Packages **200** for `@synarava/wiring-engine@0.2.0` and `@synarava/shell-kit@0.1.3` (and `@synarava/liquid-glass` transitive).
+- [2026-10-18T22:22:00Z] pnpm does **not** expand `${NODE_AUTH_TOKEN}` from committed project `.npmrc`. Added:
+  - `.npmrc` — `@synarava:registry=https://npm.pkg.github.com` only
+  - `scripts/ensure-github-packages-auth.mjs` + `scripts/pnpm-install-with-github-packages.mjs`
+  - CI steps + `deploy.md` docs for local / Actions / Railway (`RAILPACK_INSTALL_CMD`)
+- [2026-10-18T22:24:00Z] Installed pinned packages + `zustand@^4.5.7`. **framer-motion peer:** did **not** add a direct dependency. `motion@12.40.0` already depends on `framer-motion@12`; pnpm override pins `framer-motion: 12.40.0`. Package-name alias `framer-motion` → `motion` would break `motion/react` (re-exports real `framer-motion`).
+- [2026-10-18T22:25:00Z] Stage 1 UI: `/admin/mission-control` renders one `defineWidget` probe inside `BaseShell` / `BaseWidget` (`MissionControlStage1Demo`). Nav entry `MC`.
+- [2026-10-18T22:25:30Z] Unit tests: `lib/mission-control/__tests__/stage1-probe.test.ts` — 3 passed (ports contract + defineWidget registration + invalid direction rejection).
+- [2026-10-18T22:26:00Z] `pnpm exec tsc --noEmit` green. `pnpm build` green (route list includes `/admin/mission-control`).
+
+**Stage 1 status:** done (packages published-only, probe widget in shell, types + build + unit test green).
 
 ---
 
 ## Later stages
 
-Not started (waiting for Stage 1 go).
+Not started. Next: **Этап 2 — Схема состояния + контракт статуса**.

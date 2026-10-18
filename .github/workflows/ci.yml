@@ -92,6 +92,8 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
       APP_URL: http://localhost:3000
+      # GitHub Packages (@synarava/wiring-engine, shell-kit). See deploy.md.
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
 
     steps:
       - name: Checkout
@@ -106,11 +108,15 @@ jobs:
           node-version: 22
           cache: pnpm
 
+      - name: Auth GitHub Packages (@synarava)
+        run: node scripts/ensure-github-packages-auth.mjs
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Check release version
         run: pnpm check:version
+
 
       - name: Typecheck
         run: pnpm exec tsc --noEmit
@@ -156,6 +162,7 @@ jobs:
       NEXT_TELEMETRY_DISABLED: 1
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
       APP_URL: http://localhost:3000
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
       - uses: pnpm/action-setup@v6
@@ -163,8 +170,10 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+      - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:push
+
       # Build before smoke so Playwright starts `next start` (fast, deterministic)
       # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
       - run: pnpm build

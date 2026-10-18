@@ -309,7 +309,14 @@ export function buildAdminNavItems({
       badge: syncBadge(sync.total),
     },
     { id: "infrastructure", href: "/admin/infrastructure", label: "Infrastructure", code: "INF" },
+    {
+      id: "mission-control",
+      href: "/admin/mission-control",
+      label: "Mission Control",
+      code: "MC",
+    },
     { id: "account", href: "/admin/account", label: "Account", code: "ACC" },
+
   ];
 }
 
