@@ -43,8 +43,9 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-18T22:25:00Z] Stage 1 UI: `/admin/mission-control` renders one `defineWidget` probe inside `BaseShell` / `BaseWidget` (`MissionControlStage1Demo`). Nav entry `MC`.
 - [2026-10-18T22:25:30Z] Unit tests: `lib/mission-control/__tests__/stage1-probe.test.ts` — 3 passed (ports contract + defineWidget registration + invalid direction rejection).
 - [2026-10-18T22:26:00Z] `pnpm exec tsc --noEmit` green. `pnpm build` green (route list includes `/admin/mission-control`).
+- [2026-10-18T22:35:00Z] Screenshot to store `media/mission-control-stage1-widget.png` **skipped** — this Cloud Agent VM has no `ADMIN_*` / `DATABASE_URL` in the process env (cannot login to `/admin/mission-control`). Build + route registration remain the render proof; owner can capture the PNG after staging deploy.
 
-**Stage 1 status:** done (packages published-only, probe widget in shell, types + build + unit test green).
+**Stage 1 status:** done (packages published-only, probe widget in shell, types + build + unit test green; live PNG optional / env-blocked here).
 
 ---
 
