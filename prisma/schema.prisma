@@ -961,3 +961,36 @@ enum AdminIssueStatus {
   RESOLVED
   IGNORED
 }
+
+/// Mission Control node health (Stage 2). Key = WidgetDefinition.key.
+/// Exactly two status tables — no history/audit (plan §0 / Stage 2).
+enum ServiceStatusLevel {
+  ok
+  warn
+  down
+  unknown
+}
+
+model ServiceNodeStatus {
+  nodeKey   String             @id
+  level     ServiceStatusLevel
+  message   String?
+  counters  Json?
+  href      String?
+  checkedAt DateTime
+  updatedAt DateTime           @updatedAt
+
+  @@index([level])
+  @@index([checkedAt])
+}
+
+/// Mission Control edge / bus flow freshness. Key = SystemBinding.busKey.
+model ServiceFlowStatus {
+  busKey     String             @id
+  lastFlowAt DateTime?
+  level      ServiceStatusLevel
+  updatedAt  DateTime           @updatedAt
+
+  @@index([level])
+  @@index([lastFlowAt])
+}
