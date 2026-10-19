@@ -1,9 +1,9 @@
 import type { WidgetPortManifest } from "@synarava/wiring-engine";
 
 /**
- * Stage 3 display manifests for patch-bay nodes.
- * Stage 4 will replace stubs with real `defineWidget` registrations;
- * until then the canvas reads labels/colors from this catalog + WiringConfig.
+ * Display manifests for patch-bay nodes (labels/colors for the canvas).
+ * Stage 4 computes live status for site-health / shopify-sync / orders;
+ * sentry (and later Clarity/Meta/TikTok) stay placeholders.
  */
 export const MISSION_CONTROL_NODE_CATALOG: readonly WidgetPortManifest[] = [
   {

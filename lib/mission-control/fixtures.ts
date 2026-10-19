@@ -7,8 +7,10 @@ const CHECKED_AT = new Date("2026-10-19T21:00:00.000Z");
 const UPDATED_AT = new Date("2026-10-19T21:00:01.000Z");
 
 /**
- * Stage 3 local/render fixtures — no database.
- * Collector (Stage 5) will replace these with real `status.ts` reads.
+ * Placeholder / demo node statuses for nodes not yet live.
+ * Stage 4 live keys (`site-health`, `shopify-sync`, `orders`) are ignored by
+ * `placeholderNodeStatusesFromFixtures` — kept here only for canvas unit tests.
+ * Collector persistence remains Stage 5.
  */
 export const MISSION_CONTROL_NODE_STATUS_FIXTURES: ServiceNodeStatusRecord[] = [
   {
@@ -16,14 +18,14 @@ export const MISSION_CONTROL_NODE_STATUS_FIXTURES: ServiceNodeStatusRecord[] = [
     level: "ok",
     message: "pong",
     counters: { latencyMs: 18 },
-    href: "/health",
+    href: "/api/health",
     checkedAt: CHECKED_AT,
     updatedAt: UPDATED_AT,
   },
   {
     nodeKey: "db",
-    level: "ok",
-    message: "reachable",
+    level: "unknown",
+    message: "placeholder — not wired",
     counters: null,
     href: null,
     checkedAt: CHECKED_AT,
@@ -40,8 +42,8 @@ export const MISSION_CONTROL_NODE_STATUS_FIXTURES: ServiceNodeStatusRecord[] = [
   },
   {
     nodeKey: "products",
-    level: "ok",
-    message: null,
+    level: "unknown",
+    message: "placeholder — not wired",
     counters: null,
     href: "/admin/products",
     checkedAt: CHECKED_AT,
@@ -58,8 +60,8 @@ export const MISSION_CONTROL_NODE_STATUS_FIXTURES: ServiceNodeStatusRecord[] = [
   },
   {
     nodeKey: "sentry",
-    level: "down",
-    message: "not connected",
+    level: "unknown",
+    message: "placeholder — connect later",
     counters: null,
     href: "https://sentry.io",
     checkedAt: CHECKED_AT,
@@ -86,7 +88,7 @@ export const MISSION_CONTROL_FLOW_STATUS_FIXTURES: ServiceFlowStatusRecord[] = [
   {
     busKey: "site_to_sentry",
     lastFlowAt: null,
-    level: "down",
+    level: "unknown",
     updatedAt: UPDATED_AT,
   },
 ];

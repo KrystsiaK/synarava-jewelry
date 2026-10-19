@@ -1,9 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import {
-  MISSION_CONTROL_FIXTURE_NOTICE,
+  MISSION_CONTROL_PLACEHOLDER_NOTICE,
   MissionControlHub,
 } from "@/components/admin/mission-control/mission-control-hub";
+import type { ServiceNodeStatusRecord } from "@/lib/mission-control/status";
 
 vi.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: unknown }) => children,
@@ -11,13 +12,55 @@ vi.mock("@xyflow/react", () => ({
   Background: () => null,
 }));
 
-describe("MissionControlHub fixture notice", () => {
-  it("renders a visible notice that statuses are demo fixtures", () => {
-    render(<MissionControlHub />);
+const NOW = new Date("2026-10-19T22:00:00.000Z");
+
+const liveNode: ServiceNodeStatusRecord = {
+  nodeKey: "site-health",
+  level: "ok",
+  message: "pong",
+  counters: { latencyMs: 1 },
+  href: "/api/health",
+  checkedAt: NOW,
+  updatedAt: NOW,
+};
+
+const placeholderNode: ServiceNodeStatusRecord = {
+  nodeKey: "sentry",
+  level: "unknown",
+  message: "not connected",
+  counters: null,
+  href: "https://sentry.io",
+  checkedAt: NOW,
+  updatedAt: NOW,
+};
+
+describe("MissionControlHub placeholder notice", () => {
+  it("renders the notice while placeholder nodes remain", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[liveNode, placeholderNode]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        showPlaceholderNotice
+      />,
+    );
 
     const notice = screen.getByTestId("mc-fixture-notice");
     expect(notice).toBeInTheDocument();
-    expect(notice).toHaveTextContent(MISSION_CONTROL_FIXTURE_NOTICE);
+    expect(notice).toHaveTextContent(MISSION_CONTROL_PLACEHOLDER_NOTICE);
     expect(notice).toHaveAttribute("role", "status");
+  });
+
+  it("hides the notice when only live nodes are shown", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[liveNode]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        showPlaceholderNotice={false}
+      />,
+    );
+
+    expect(screen.queryByTestId("mc-fixture-notice")).not.toBeInTheDocument();
   });
 });

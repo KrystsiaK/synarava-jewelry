@@ -65,9 +65,12 @@ describe("MissionControlCanvas render", () => {
     expect(warn).toHaveAttribute("data-level", "warn");
     expect(warn).toHaveAttribute("data-accent", statusLevelColor("warn"));
 
-    const down = screen.getByTestId("mc-node-sentry");
-    expect(down).toHaveAttribute("data-level", "down");
-    expect(down).toHaveAttribute("data-accent", statusLevelColor("down"));
+    const placeholder = screen.getByTestId("mc-node-sentry");
+    expect(placeholder).toHaveAttribute("data-level", "unknown");
+    expect(placeholder).toHaveAttribute(
+      "data-accent",
+      statusLevelColor("unknown"),
+    );
   });
 
   it("marks fresh edges animated and stale edges idle", () => {
@@ -94,7 +97,7 @@ describe("MissionControlCanvas render", () => {
     );
     expect(screen.getByTestId("mc-list-node-sentry")).toHaveAttribute(
       "data-level",
-      "down",
+      "unknown",
     );
 
     fireEvent.click(screen.getByTestId("mc-mobile-list-toggle"));

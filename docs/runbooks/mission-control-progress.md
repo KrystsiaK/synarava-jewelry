@@ -88,6 +88,27 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Этап 4 — Первые живые узлы
+
+- [2026-10-19T22:00:00Z] Re-read plan §0 (Simplicity + Database rules), Stage 4 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging`, merged `origin/cursor/mission-control-stage3-canvas-6397` (PR #197 still open) so canvas + fixture notice exist.
+- [2026-10-19T22:05:00Z] **No migrate/push/execute; no status-table writes.** Live `shopify-sync` / `orders` use read-only Prisma queries on existing tables; `site-health` uses HTTP to `/api/health`. Unit tests mock Prisma + `fetch` (no real DB). Persistence of `ServiceNodeStatus` / `ServiceFlowStatus` remains Stage 5.
+- [2026-10-19T22:10:00Z] Three live providers only:
+  - `site-health` — HTTP GET `{APP_URL}/api/health` (`lib/mission-control/providers/site-health.ts`)
+  - `shopify-sync` — age of latest `ProductSyncEvent` with `status=SUCCEEDED` (`shopify-sync.ts`)
+  - `orders` — counters from `ShopifyWebhookDelivery` (`orders.ts`)
+  - Orchestrator: `lib/mission-control/live-snapshot.ts` merges live + fixture placeholders (`db`, `products`, `sentry`).
+- [2026-10-19T22:12:00Z] Hub notice: shown only while placeholders remain (`MISSION_CONTROL_PLACEHOLDER_NOTICE`); hidden when only live nodes. Sentry stays gray `unknown` placeholder; no Clarity/Meta/TikTok code.
+- [2026-10-19T22:15:00Z] Tests (mocked Prisma/fetch, no DB):
+  - providers: ok / warn / down / unknown each (12)
+  - live-snapshot merge + placeholder filter (3)
+  - hub notice show/hide (2)
+  - Stage 3 canvas tests updated for sentry=`unknown`
+- [2026-10-19T22:20:00Z] `pnpm exec vitest run lib/mission-control components/admin/mission-control` — **28 passed**. `pnpm exec tsc --noEmit` green. `APP_URL=http://localhost:3000 pnpm build` green (`/admin/mission-control` dynamic). Forbidden: no new deps, tables, action buttons, background jobs.
+
+**Stage 4 status:** live providers + page wiring in PR → `staging` (not merged). Waiting owner: continue Stage 5?
+
+---
+
 ## Later stages
 
-Next after Stage 3 lands: **Этап 4 — Первые 3–4 живых узла**.
+Next after Stage 4 lands: **Этап 5 — Коллектор + супербот (крон-воркер)**.
