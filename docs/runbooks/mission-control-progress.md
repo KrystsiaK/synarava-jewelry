@@ -122,7 +122,9 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-19T22:52:00Z] Railway owner doc (settings only, no secret values): [mission-control-collector-railway.md](mission-control-collector-railway.md). **No Railway apply.**
 - [2026-10-19T22:55:00Z] Unit tests (mocked Prisma + fetch): ok→down alerts once; down→down / ok→ok no alert; Telegram failure does not crash; upserts called. Forbidden: fix/restart ability, new deps, new tables.
 
-**Stage 5 status:** collector worker + tests + Railway runbook in PR → `staging` (not merged). Waiting owner: continue Stage 6?
+- [2026-10-19T23:05:00Z] CI green on HEAD `4340e6e7` (Quality Gates + Storefront smoke, push + pull_request). PR #202 marked ready for review (not merged).
+
+**Stage 5 status:** collector worker + tests + Railway runbook in PR #202 → `staging`, ready for review (not merged). Waiting owner: continue Stage 6?
 
 ---
 
