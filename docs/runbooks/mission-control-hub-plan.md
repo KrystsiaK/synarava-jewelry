@@ -51,6 +51,23 @@
 **Каждый PR этапа обязан пройти `/ponytail-review`** (или объяснить в описании,
 почему диф минимален). Нетривиальная логика оставляет один запускаемый тест.
 
+**Database rules for agents (read before touching Prisma or any database):**
+- Never run `prisma migrate dev`, `migrate reset`, `db push`, `db execute` or any
+  `--shadow-database-url` against anything except a local throwaway database.
+  Prisma wipes a shadow database; pointing it at a real one destroyed production
+  on 2026-10-19.
+- Agents hold read-only credentials only (`PROD_RO_DATABASE_URL`). Never ask for,
+  create or use a write-capable URL, and never copy a URL from one variable into
+  another to make a command work.
+- To create a migration, do not connect to any database. Diff two schema files:
+  `git show HEAD:prisma/schema.prisma > /tmp/old.prisma`, then
+  `pnpm exec prisma migrate diff --from-schema-datamodel /tmp/old.prisma --to-schema-datamodel prisma/schema.prisma --script`,
+  and save the SQL as a new folder in `prisma/migrations/`.
+- Never apply a migration by hand. Migrations reach staging and production only
+  through the normal pipeline (PR, CI, merge, Railway pre-deploy `migrate deploy`),
+  staging first.
+- If a command needs a database you do not have, stop and ask the owner.
+
 ---
 
 ## 1. Карта: что переиспользуем, что строим
@@ -88,8 +105,10 @@
 
 ### Этап 2 — Схема состояния + контракт статуса
 - **Цель:** есть куда писать и откуда читать состояние.
-- **Готово =** миграция Prisma с двумя таблицами применена на staging; описан
-  TypeScript-тип статуса узла; один unit-тест на чтение/запись.
+- **Готово =** SQL migration for the two tables generated without any database
+  connection (see "Database rules for agents" in §0), committed in a PR, and
+  applied to staging only by the normal pre-deploy after merge; TypeScript type
+  for the node status; one unit test for read/write.
 - **Данные (черновик полей, уточнить при реализации):**
   - `ServiceNodeStatus`: `nodeKey` (string, = `WidgetDefinition.key`), `level`
     (`ok|warn|down|unknown`), `message` (string?), `counters` (json?),
