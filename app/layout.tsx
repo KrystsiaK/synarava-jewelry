@@ -3,7 +3,7 @@ import { cookies, headers } from "next/headers";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
-import { Hanken_Grotesk, Playfair_Display } from "next/font/google";
+import { Cormorant_Garamond, Hanken_Grotesk } from "next/font/google";
 import { MotionConfig } from "motion/react";
 
 import { SiteFooter } from "@/components/layout/site-footer";
@@ -40,8 +40,8 @@ import {
 
 import "./globals.css";
 
-// Variable files + explicit subsets: RU/IE need cyrillic & latin-ext; static
-// weight lists used to pull 8 Playfair files (4 weights × normal/italic).
+// Variable files + explicit subsets: RU/IE need cyrillic & latin-ext.
+// Both families are self-hosted by next/font, so browsers never call Google.
 // https://nextjs.org/docs/app/api-reference/components/font
 const sans = Hanken_Grotesk({
   variable: "--font-hanken",
@@ -49,9 +49,9 @@ const sans = Hanken_Grotesk({
   display: "swap",
 });
 
-const serif = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin", "latin-ext", "cyrillic"],
+const serif = Cormorant_Garamond({
+  variable: "--font-cormorant",
+  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
   display: "swap",
   style: ["normal", "italic"],
 });

@@ -26,7 +26,7 @@
   --color-stroke: rgba(25, 21, 18, 0.12);
 
   --font-sans: var(--font-hanken), sans-serif;
-  --font-serif: var(--font-playfair), serif;
+  --font-serif: var(--font-cormorant), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
 
   --spacing-gutter: 1.5rem;
   --spacing-section: 7rem;
@@ -213,7 +213,7 @@ html[data-theme="light"] {
   --color-stroke: rgba(25, 21, 18, 0.12);
   --site-nav-shadow: 0 10px 24px rgba(25, 24, 23, 0.1);
   --font-sans: var(--font-hanken), sans-serif;
-  --font-serif: var(--font-playfair), serif;
+  --font-serif: var(--font-cormorant), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
 }
 
 html[data-theme="dark"] {
@@ -380,7 +380,7 @@ select {
 }
 
 /*
- * Display serif (Playfair). Cyrillic У/у, р, д, ц, щ, ф and accents paint
+ * Display serif (Cormorant Garamond). Cyrillic glyphs and accents can paint
  * outside a line box tighter than 1. Padding keeps that ink inside the
  * border box; negative margin keeps the tight leading. The reveal mask
  * (.type-reveal) is the only overflow clip, and it is taller than the
@@ -3976,9 +3976,9 @@ select.adm-field option {
 }
 
 .adm-help__glyph {
-  font-family: var(--font-playfair, "Iowan Old Style"), "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+  font-family: var(--font-serif);
   /*
-   * Drawn italic, not a skewed roman. Playfair italic has its own cut and dot.
+   * Drawn italic, not a skewed roman. Cormorant Garamond includes a true italic cut.
    * https://developer.mozilla.org/en-US/docs/Web/CSS/font-style
    */
   font-style: italic;
