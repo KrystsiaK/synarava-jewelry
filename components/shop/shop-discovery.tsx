@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 
 import { DisplayHeading } from "@/components/ui/display-heading";
+import { ProductGalleryMedia } from "@/components/ui/product-gallery-media";
 import { RichText } from "@/components/content/rich-text";
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { useTranslations } from "@/lib/i18n/context";
@@ -24,25 +25,22 @@ function DiscoveryProductCard({ product }: { product: ShopListingProduct }) {
   return (
     <Link
       href={localePath(locale, `/products/${product.slug}`)}
-      className="group block w-[min(76vw,19rem)] shrink-0 snap-start md:w-[21rem]"
+      className="group block w-[min(76vw,19rem)] shrink-0 snap-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground/40 md:w-[21rem]"
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-stone-beige">
-        <Image
-          src={product.image}
-          alt={product.title}
-          fill
-          sizes="(max-width: 767px) 76vw, 336px"
-          className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.035]"
-        />
-        <div className="product-media-scrim product-media-scrim--rail absolute inset-x-0 bottom-0 px-5 pb-5 pt-16">
-          <p className="product-media-scrim__title font-serif text-2xl leading-tight">
-            {formatDisplayTitle(product.title)}
-          </p>
-          <p className="product-media-scrim__meta mt-2 text-xs font-semibold uppercase tracking-[0.14em]">
-            {product.price}
-          </p>
-        </div>
-      </div>
+      <ProductGalleryMedia
+        src={product.image}
+        alt={product.title}
+        sizes="(max-width: 767px) 76vw, 336px"
+        aspectClassName="aspect-[4/5]"
+        rail
+      >
+        <p className="product-media-scrim__title font-serif text-2xl leading-tight">
+          {formatDisplayTitle(product.title)}
+        </p>
+        <p className="product-media-scrim__meta mt-2 text-xs font-semibold uppercase tracking-[0.14em]">
+          {product.price}
+        </p>
+      </ProductGalleryMedia>
     </Link>
   );
 }

@@ -49,6 +49,21 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Этап 2 — Схема состояния + контракт статуса
+
+- [2026-10-19T21:00:00Z] Re-read plan §0 (Simplicity contract + Database rules for agents), Stage 2 DoD, and ADR-0005 in full before any schema/code. Fresh branch from `origin/staging`. Earlier unpushed Stage 2 branch (`cursor/mission-control-stage2-status-schema-4047`) not present — implementing fresh.
+- [2026-10-19T21:01:00Z] **No database used.** Migration SQL generated with schema-only diff:
+  `git show HEAD:prisma/schema.prisma > /tmp/old.prisma` → edit schema →
+  `pnpm exec prisma migrate diff --from-schema-datamodel /tmp/old.prisma --to-schema-datamodel prisma/schema.prisma --script`.
+  Never ran `migrate dev` / `reset` / `db push` / `db execute` / `--shadow-database-url`. Migration **not applied**.
+- [2026-10-19T21:02:00Z] Schema: exactly 2 models — `ServiceNodeStatus` (`nodeKey` PK, `level`, `message?`, `counters?`, `href?`, `checkedAt`, `updatedAt`) and `ServiceFlowStatus` (`busKey` PK, `lastFlowAt?`, `level`, `updatedAt`) + enum `ServiceStatusLevel` (`ok|warn|down|unknown`). No third/history table.
+- [2026-10-19T21:02:30Z] Migration folder: `prisma/migrations/20261019143000_mission_control_status/migration.sql` (diff output only).
+- [2026-10-19T21:03:00Z] TS contract: `lib/mission-control/status.ts` (`ServiceStatusLevel` + read/write helpers). Unit test (mocked Prisma, no DB): `lib/mission-control/__tests__/status.test.ts` — **1 passed**.
+
+**Stage 2 status:** schema + migration SQL + status type + mocked unit test in PR → `staging` (not applied; not merged). Waiting owner: continue Stage 3?
+
+---
+
 ## Later stages
 
-Not started. Next: **Этап 2 — Схема состояния + контракт статуса**.
+Next after Stage 2 lands: **Этап 3 — Канва-граф (patch bay)**.

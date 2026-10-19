@@ -1,12 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import { motion } from "motion/react";
-import Image from "next/image";
 import Link from "next/link";
+
 import type { ShopListingProduct } from "@/lib/content/shop-listing";
 import { RichText } from "@/components/content/rich-text";
-import { useCanHover } from "@/lib/hooks/use-can-hover";
+import { ProductGalleryMedia } from "@/components/ui/product-gallery-media";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
@@ -29,11 +28,7 @@ export function ProductCard({
   isParentInView,
   offsetClass,
 }: ProductCardProps) {
-  const { t, locale } = useTranslations();
-  const [imgError, setImgError] = useState(false);
-  const canHover = useCanHover();
-  // Touch: always full color (no hover). Desktop: grayscale until hover.
-  const showColor = !canHover;
+  const { locale } = useTranslations();
   const aspectClass = isFeatured ? "aspect-[16/9]" : "aspect-[3/4]";
   const discount = discountPercent(product.priceAmount, product.compareAtAmount);
 
@@ -44,154 +39,74 @@ export function ProductCard({
       animate={isParentInView ? { opacity: 1, y: 0 } : {}}
       transition={{ duration: 0.9, ease, delay: Math.min(index, 5) * 0.11 + 0.06 }}
     >
-      <Link href={localePath(locale, `/products/${product.slug}`)} className="group block cursor-pointer">
-        <motion.div
-          className={`relative mb-5 overflow-hidden bg-stone-beige ${aspectClass}`}
-          initial="rest"
-          whileHover={canHover ? "hover" : undefined}
-          animate={showColor ? "hover" : "rest"}
-        >
-          {discount != null ? (
-            <span className="absolute left-3 top-3 z-20 bg-couture-red px-2 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
-              −{discount}%
-            </span>
-          ) : null}
-          {imgError ? (
-            /* ── Broken image fallback ─────────────────────────────── */
-            <div
-              className="flex h-full w-full flex-col items-center justify-center gap-3 bg-stone-beige/60"
-              role="img"
-              aria-label={t("product.imageUnavailable")}
-            >
-              <svg
-                viewBox="0 0 48 48"
-                fill="none"
-                className="size-10 text-foreground/15"
-                aria-hidden="true"
-              >
-                <rect x="6" y="10" width="36" height="28" rx="1" stroke="currentColor" strokeWidth="1.5" />
-                <circle cx="18" cy="20" r="4" stroke="currentColor" strokeWidth="1.5" />
-                <path d="M6 32l10-8 8 6 6-5 12 9" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round" />
-              </svg>
-              <span className="label-mono text-[0.65rem] text-foreground/55">{t("product.imageUnavailable")}</span>
-            </div>
-          ) : (
-            <motion.div
-              className="relative h-full w-full will-change-transform"
-              variants={{
-                rest: { scale: 1, filter: "grayscale(1) brightness(0.84)" },
-                hover: {
-                  scale: canHover ? 1.06 : 1,
-                  filter: "grayscale(0) brightness(0.92)",
-                },
-              }}
-              // Instant color on touch; spring only for desktop hover.
-              transition={
-                canHover
-                  ? { type: "spring", stiffness: 250, damping: 30 }
-                  : { duration: 0 }
-              }
-            >
-              <Image
-                alt={product.title}
-                src={product.image}
-                fill
-                sizes={isFeatured ? "(max-width: 768px) 100vw, 66vw" : "(max-width: 768px) 100vw, 33vw"}
-                className="object-cover"
-                onError={() => setImgError(true)}
-              />
-            </motion.div>
-          )}
-
-          {/* Overlay slide-up — theme scrim: soft porcelain in light, charcoal in dark */}
-          <motion.div
-            className="product-media-scrim absolute inset-0 flex flex-col justify-end p-5"
-            variants={{
-              rest: { opacity: 0, y: "30%" },
-              hover: { opacity: 1, y: "0%" },
-            }}
-            transition={{ type: "spring", stiffness: 360, damping: 28 }}
-          >
-            <p className="product-media-scrim__meta label-mono mb-1 text-[0.65rem]">
-              {product.series}
-            </p>
-            <div className="flex items-end justify-between gap-2">
-              <p
-                className="product-media-scrim__title font-serif leading-tight"
-                style={{ fontSize: isFeatured ? "clamp(1.2rem,2vw,1.6rem)" : "clamp(1rem,1.4vw,1.2rem)" }}
-              >
-                {formatDisplayTitle(product.title)}
-              </p>
-              <span className="label-mono shrink-0 text-[0.68rem] text-couture-red">
-                {product.price}
+      <Link
+        href={localePath(locale, `/products/${product.slug}`)}
+        className="group block cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground/40"
+      >
+        <ProductGalleryMedia
+          src={product.image}
+          alt={product.title}
+          sizes={isFeatured ? "(max-width: 768px) 100vw, 66vw" : "(max-width: 768px) 100vw, 33vw"}
+          aspectClassName={`${aspectClass} mb-5`}
+          badge={
+            discount != null ? (
+              <span className="absolute left-3 top-3 z-20 bg-couture-red px-2 py-1 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
+                −{discount}%
               </span>
-            </div>
-          </motion.div>
-
-          {/* Bottom sweep */}
-          <motion.div
-            className="absolute bottom-0 left-0 h-0.5 bg-couture-red"
-            variants={{ rest: { width: "0%" }, hover: { width: "100%" } }}
-            transition={{ duration: 0.38, ease: [0.22, 1, 0.36, 1] }}
-          />
-        </motion.div>
-
-        {/* Meta */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <span className="label-mono mb-1 block text-[0.72rem] text-muted-ink">
-              {product.series}
-            </span>
+            ) : null
+          }
+        >
+          <p className="product-media-scrim__meta label-mono mb-1 text-[0.65rem]">
+            {product.series}
+          </p>
+          <div className="flex items-end justify-between gap-2">
             <h3
-              className="font-serif transition-colors duration-300 group-hover:text-couture-red"
-              style={{
-                fontSize: isFeatured
-                  ? "clamp(1.3rem,2vw,1.7rem)"
-                  : "clamp(1.1rem,1.5vw,1.4rem)",
-              }}
+              className="product-media-scrim__title font-serif leading-tight"
+              style={{ fontSize: isFeatured ? "clamp(1.2rem,2vw,1.6rem)" : "clamp(1rem,1.4vw,1.2rem)" }}
             >
               {formatDisplayTitle(product.title)}
             </h3>
-            {isFeatured && product.shortDescription && (
-              <RichText
-                content={product.shortDescription}
-                className="mt-2 hidden max-w-md text-sm leading-[1.85] text-foreground/60 md:block md:text-base"
-              />
-            )}
-          </div>
-          <span className="flex shrink-0 flex-col items-end pt-0.5">
-            <span className="label-mono text-muted-ink transition-colors duration-300 group-hover:text-couture-red">
-              {product.price}
-            </span>
-            {discount != null ? (
-              <span className="label-mono text-[0.65rem] text-muted-ink/50 line-through">
-                {product.compareAtPrice}
+            <span className="flex shrink-0 flex-col items-end">
+              <span className="product-media-scrim__meta label-mono text-[0.68rem]">
+                {product.price}
               </span>
-            ) : null}
-          </span>
-        </div>
+              {discount != null ? (
+                <span className="product-media-scrim__meta label-mono text-[0.65rem] line-through opacity-70">
+                  {product.compareAtPrice}
+                </span>
+              ) : null}
+            </span>
+          </div>
+        </ProductGalleryMedia>
+
+        {isFeatured && product.shortDescription ? (
+          <RichText
+            content={product.shortDescription}
+            className="mt-2 hidden max-w-md text-sm leading-[1.85] text-foreground/60 md:block md:text-base"
+          />
+        ) : null}
 
         {/* Locale chips: category + product type + material (not raw Shopify SEO tags). */}
         <div className="mt-3 flex flex-wrap gap-1.5">
           {product.categoryName && (
-            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
+            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50">
               {product.categoryName}
             </span>
           )}
           {product.productTypeLabel && product.productTypeLabel !== product.categoryName && (
-            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
+            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50">
               {product.productTypeLabel}
             </span>
           )}
           {product.materialLabel && (
-            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70">
+            <span className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50">
               {product.materialLabel}
             </span>
           )}
           {product.tagNames.slice(0, 1).map((tag) => (
             <span
               key={tag}
-              className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50 transition-colors duration-300 group-hover:border-couture-red/30 group-hover:text-couture-red/70"
+              className="border border-foreground/[0.08] px-2 py-1 font-sans text-[0.6875rem] uppercase tracking-[0.12em] text-foreground/50"
             >
               {tag}
             </span>
