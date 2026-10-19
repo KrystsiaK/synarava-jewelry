@@ -1,0 +1,30 @@
+{
+  "shellId": "mission-control",
+  "systemBindings": [
+    {
+      "busKey": "site_to_db",
+      "label": "Site → DB",
+      "source": { "widgetKey": "site-health", "portKey": "status_out" },
+      "sinks": [{ "widgetKey": "db", "portKey": "status_in" }]
+    },
+    {
+      "busKey": "shopify_to_products",
+      "label": "Shopify → Products",
+      "source": { "widgetKey": "shopify-sync", "portKey": "status_out" },
+      "sinks": [{ "widgetKey": "products", "portKey": "status_in" }]
+    },
+    {
+      "busKey": "site_to_sentry",
+      "label": "Site → Sentry",
+      "source": { "widgetKey": "site-health", "portKey": "status_out" },
+      "sinks": [{ "widgetKey": "sentry", "portKey": "events_in" }]
+    },
+    {
+      "busKey": "orders_pulse",
+      "label": "Orders pulse",
+      "source": { "widgetKey": "orders", "portKey": "status_out" },
+      "sinks": []
+    }
+  ],
+  "userConnections": []
+}
