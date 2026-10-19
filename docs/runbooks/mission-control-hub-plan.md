@@ -1,7 +1,7 @@
 # Mission Control — план постройки и контракт простоты
 
-**Status:** proposed — Stage 1 done (packages + probe widget); later stages not started
-**Last updated:** 2026-10-18 (Europe/Lisbon)
+**Status:** proposed — Stage 1 done; Stage 2 (schema + status contract) in PR → staging (migration not applied)
+**Last updated:** 2026-10-19 (Europe/Lisbon)
 
 **Решение:** [ADR-0005](../adr/0005-mission-control-hub.md)
 **Связанные:** [ADR-0004 (SKU-сервис)](../adr/0004-portable-sku-service-boundary.md), [runbook SKU](portable-sku-current-status.md)
