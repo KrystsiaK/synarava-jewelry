@@ -1,3 +1,4 @@
+import { createElement, type ComponentType, type ReactNode } from "react";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MissionControlCanvas } from "@/components/admin/mission-control/mission-control-canvas";
@@ -11,44 +12,38 @@ import {
 } from "@/lib/mission-control/fixtures";
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
-vi.mock("@xyflow/react", () => {
-  const React = require("react") as typeof import("react");
-  return {
-    ReactFlowProvider: ({ children }: { children: React.ReactNode }) =>
-      React.createElement("div", { "data-testid": "rf-provider" }, children),
-    ReactFlow: ({
-      nodes,
-      edges,
-      nodeTypes,
-    }: {
-      nodes: Array<{ id: string; type?: string; data: Record<string, unknown> }>;
-      edges: Array<{ id: string; animated?: boolean; data?: { busKey?: string } }>;
-      nodeTypes?: Record<
-        string,
-        React.ComponentType<{ data: Record<string, unknown> }>
-      >;
-    }) => {
-      const NodeComp = nodeTypes?.missionControl;
-      return React.createElement(
-        "div",
-        { "data-testid": "rf-mock" },
-        nodes.map((node) =>
-          NodeComp
-            ? React.createElement(NodeComp, { key: node.id, data: node.data, id: node.id })
-            : null,
-        ),
-        edges.map((edge) =>
-          React.createElement("div", {
-            key: edge.id,
-            "data-testid": `rf-edge-${edge.id}`,
-            "data-animated": edge.animated ? "true" : "false",
-          }),
-        ),
-      );
-    },
-    Background: () => null,
-  };
-});
+vi.mock("@xyflow/react", () => ({
+  ReactFlowProvider: ({ children }: { children: ReactNode }) =>
+    createElement("div", { "data-testid": "rf-provider" }, children),
+  ReactFlow: ({
+    nodes,
+    edges,
+    nodeTypes,
+  }: {
+    nodes: Array<{ id: string; type?: string; data: Record<string, unknown> }>;
+    edges: Array<{ id: string; animated?: boolean; data?: { busKey?: string } }>;
+    nodeTypes?: Record<string, ComponentType<{ data: Record<string, unknown> }>>;
+  }) => {
+    const NodeComp = nodeTypes?.missionControl;
+    return createElement(
+      "div",
+      { "data-testid": "rf-mock" },
+      nodes.map((node) =>
+        NodeComp
+          ? createElement(NodeComp, { key: node.id, data: node.data, id: node.id })
+          : null,
+      ),
+      edges.map((edge) =>
+        createElement("div", {
+          key: edge.id,
+          "data-testid": `rf-edge-${edge.id}`,
+          "data-animated": edge.animated ? "true" : "false",
+        }),
+      ),
+    );
+  },
+  Background: () => null,
+}));
 
 const sharedProps = {
   config: getMissionControlWiringConfig(),
