@@ -17,6 +17,11 @@
     ],
     "beforeShellExecution": [
       {
+        "command": "node .cursor/hooks/before-shell-execution-block-dangerous-prisma.js",
+        "event": "beforeShellExecution",
+        "description": "Block Prisma commands that can wipe a database (migrate dev/reset, db push/execute, --shadow-database-url)"
+      },
+      {
         "command": "node .cursor/hooks/before-shell-execution-block-no-verify.js",
         "event": "beforeShellExecution",
         "description": "Block git hook-bypass flag to protect pre-commit, commit-msg, and pre-push hooks from being skipped"

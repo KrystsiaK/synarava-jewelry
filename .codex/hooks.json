@@ -18,6 +18,17 @@
         "hooks": [
           {
             "type": "command",
+            "command": "node \"$(git rev-parse --show-toplevel)/.codex/hooks/block-dangerous-prisma.mjs\"",
+            "timeout": 5,
+            "statusMessage": "Checking Prisma safety"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
             "command": "graphify check-update .",
             "timeout": 5,
             "statusMessage": "Checking project graph freshness"
