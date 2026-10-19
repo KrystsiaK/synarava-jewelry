@@ -10,12 +10,21 @@ import type {
   ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
 
-/** Stage 4 live nodes — computed at request time; not persisted. */
+/** Live provider keys — Stage 4 request-time; Stage 5 collector also persists these. */
 export const LIVE_NODE_KEYS = ["site-health", "shopify-sync", "orders"] as const;
 
 export type LiveNodeKey = (typeof LIVE_NODE_KEYS)[number];
 
+/**
+ * Intentional placeholders (no provider yet). Drift check ignores these;
+ * WiringConfig nodes outside LIVE + PLACEHOLDER are logged as drift.
+ */
+export const PLACEHOLDER_NODE_KEYS = ["db", "products", "sentry"] as const;
+
+export type PlaceholderNodeKey = (typeof PLACEHOLDER_NODE_KEYS)[number];
+
 const LIVE_KEY_SET: ReadonlySet<string> = new Set(LIVE_NODE_KEYS);
+const PLACEHOLDER_KEY_SET: ReadonlySet<string> = new Set(PLACEHOLDER_NODE_KEYS);
 
 export type MissionControlSnapshot = {
   nodeStatuses: ServiceNodeStatusRecord[];
@@ -29,7 +38,7 @@ export type MissionControlSnapshot = {
 export function placeholderNodeStatusesFromFixtures(
   fixtures: readonly ServiceNodeStatusRecord[] = MISSION_CONTROL_NODE_STATUS_FIXTURES,
 ): ServiceNodeStatusRecord[] {
-  return fixtures.filter((row) => !LIVE_KEY_SET.has(row.nodeKey));
+  return fixtures.filter((row) => PLACEHOLDER_KEY_SET.has(row.nodeKey));
 }
 
 /**
