@@ -82,8 +82,9 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-19T21:22:00Z] `pnpm exec tsc --noEmit` green. `APP_URL=http://localhost:3000 pnpm build` green (`/admin/mission-control` in route list).
 - [2026-10-19T21:36:00Z] CI Quality Gates: lint error `@typescript-eslint/no-require-imports` in canvas test mock (`require("react")`). Replaced with ESM `import { createElement, … } from "react"`. Local eslint + 7 tests green; pushed fix (not merged).
 - [2026-10-19T21:42:00Z] Review: fixture statuses need a visible admin notice. Added `mc-fixture-notice` (“Demo data. Live statuses arrive in Stage 4.”) on `MissionControlHub` + render test.
+- [2026-10-19T21:50:00Z] CI green on `16790670` (6/6). PR #197 marked ready for review (not merged).
 
-**Stage 3 status:** canvas + `@xyflow/react` + tests in PR → `staging` (not merged). Waiting owner: continue Stage 4?
+**Stage 3 status:** canvas + `@xyflow/react` + tests in PR #197 → `staging`, ready for review (not merged). Waiting owner: continue Stage 4?
 
 ---
 
