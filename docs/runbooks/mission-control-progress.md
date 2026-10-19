@@ -64,6 +64,53 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Этап 3 — Канва-граф (patch bay)
+
+- [2026-10-19T21:14:00Z] Re-read plan §0 (Simplicity contract + Database rules), Stage 3 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging`, stacked `origin/cursor/mission-control-stage2-status-709d` (fast-forward) so Stage 3 includes `lib/mission-control/status.ts` without re-implementing it.
+- [2026-10-19T21:15:00Z] **No database used.** No Prisma migrate/push/execute. Statuses for render = fixtures typed as `ServiceNodeStatusRecord` / `ServiceFlowStatusRecord` from `status.ts`.
+- [2026-10-19T21:17:00Z] Exactly one new dependency: `@xyflow/react@^12.12.0`. No other new packages.
+- [2026-10-19T21:20:00Z] Canvas on existing `/admin/mission-control`:
+  - `lib/mission-control/wiring-config.json` — single `WiringConfig` (bindings for site→db, shopify→products, site→sentry, orders pulse).
+  - `node-catalog.ts` — Stage 3/4 stub `WidgetPortManifest`s (labels/colors until live `defineWidget`s in Stage 4).
+  - `canvas-model.ts` — pure map: level → color; `lastFlowAt` fresh (5 min) → `animated` edge; nodes non-draggable.
+  - `MissionControlCanvas` — React Flow graph (read-only) + mobile collapsible list (`layout=auto|graph|list`).
+  - Hub uses fixtures only (no DB reads). Attribution watermark left visible (no `hideAttribution`).
+- [2026-10-19T21:20:30Z] Tests (mocked status fixtures, no DB):
+  - `lib/mission-control/__tests__/canvas-model.test.ts` — node colors + animated vs idle edges + read-only flags (3).
+  - `components/admin/mission-control/__tests__/mission-control-canvas.test.tsx` — render: colors, edge animation meta, collapsible mobile list (4).
+  - All 7 passed.
+- [2026-10-19T21:22:00Z] `pnpm exec tsc --noEmit` green. `APP_URL=http://localhost:3000 pnpm build` green (`/admin/mission-control` in route list).
+- [2026-10-19T21:36:00Z] CI Quality Gates: lint error `@typescript-eslint/no-require-imports` in canvas test mock (`require("react")`). Replaced with ESM `import { createElement, … } from "react"`. Local eslint + 7 tests green; pushed fix (not merged).
+- [2026-10-19T21:42:00Z] Review: fixture statuses need a visible admin notice. Added `mc-fixture-notice` (“Demo data. Live statuses arrive in Stage 4.”) on `MissionControlHub` + render test.
+- [2026-10-19T21:50:00Z] CI green on `16790670` (6/6). PR #197 marked ready for review (not merged).
+
+**Stage 3 status:** canvas + `@xyflow/react` + tests in PR #197 → `staging`, ready for review (not merged). Waiting owner: continue Stage 4?
+
+---
+
+## Этап 4 — Первые живые узлы
+
+- [2026-10-19T22:00:00Z] Re-read plan §0 (Simplicity + Database rules), Stage 4 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging`, merged `origin/cursor/mission-control-stage3-canvas-6397` (PR #197 still open) so canvas + fixture notice exist.
+- [2026-10-19T22:05:00Z] **No migrate/push/execute; no status-table writes.** Live `shopify-sync` / `orders` use read-only Prisma queries on existing tables; `site-health` uses HTTP to `/api/health`. Unit tests mock Prisma + `fetch` (no real DB). Persistence of `ServiceNodeStatus` / `ServiceFlowStatus` remains Stage 5.
+- [2026-10-19T22:10:00Z] Three live providers only:
+  - `site-health` — HTTP GET `{APP_URL}/api/health` (`lib/mission-control/providers/site-health.ts`)
+  - `shopify-sync` — age of latest `ProductSyncEvent` with `status=SUCCEEDED` (`shopify-sync.ts`)
+  - `orders` — counters from `ShopifyWebhookDelivery` (`orders.ts`)
+  - Orchestrator: `lib/mission-control/live-snapshot.ts` merges live + fixture placeholders (`db`, `products`, `sentry`).
+- [2026-10-19T22:12:00Z] Hub notice: shown only while placeholders remain (`MISSION_CONTROL_PLACEHOLDER_NOTICE`); hidden when only live nodes. Sentry stays gray `unknown` placeholder; no Clarity/Meta/TikTok code.
+- [2026-10-19T22:15:00Z] Tests (mocked Prisma/fetch, no DB):
+  - providers: ok / warn / down / unknown each (12)
+  - live-snapshot merge + placeholder filter (3)
+  - hub notice show/hide (2)
+  - Stage 3 canvas tests updated for sentry=`unknown`
+- [2026-10-19T22:20:00Z] `pnpm exec vitest run lib/mission-control components/admin/mission-control` — **28 passed**. `pnpm exec tsc --noEmit` green. `APP_URL=http://localhost:3000 pnpm build` green (`/admin/mission-control` dynamic). Forbidden: no new deps, tables, action buttons, background jobs.
+
+- [2026-10-19T22:16:00Z] CI green on `892189bb` (6/6). PR #200 marked ready for review (not merged).
+
+**Stage 4 status:** live providers + page wiring in PR #200 → `staging`, ready for review (not merged). Waiting owner: continue Stage 5?
+
+---
+
 ## Later stages
 
-Next after Stage 2 lands: **Этап 3 — Канва-граф (patch bay)**.
+Next after Stage 4 lands: **Этап 5 — Коллектор + супербот (крон-воркер)**.
