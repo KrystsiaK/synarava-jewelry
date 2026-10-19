@@ -43,7 +43,10 @@
     "@number-flow/react": "^0.6.2",
     "@prisma/client": "^6.19.3",
     "@sentry/nextjs": "^11.7.0",
+    "@synarava/shell-kit": "0.1.3",
     "@synarava/sku-contract": "workspace:*",
+    "@synarava/wiring-engine": "0.2.0",
+
     "@tiptap/extension-link": "^3.31.3",
     "@tiptap/pm": "^3.31.3",
     "@tiptap/react": "^3.31.3",
@@ -67,7 +70,9 @@
     "remark-gfm": "^4.0.1",
     "sharp": "^0.35.5",
     "tailwind-merge": "^3.6.0",
+    "zustand": "^4.5.7",
     "zod": "^4.4.3"
+
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
