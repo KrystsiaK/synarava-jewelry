@@ -24,6 +24,8 @@ export { PageHero } from "./page-hero";
 export { PageHeroImage } from "./page-hero-image";
 export { PrimaryCtaButton } from "./primary-cta-button";
 export { ProductCard } from "./product-card";
+export { ProductGalleryMedia } from "./product-gallery-media";
+export type { ProductGalleryMediaProps } from "./product-gallery-media";
 export { ScrollReveal } from "./scroll-reveal";
 export { ShinyText } from "./shiny-text";
 export { Tooltip } from "./tooltip";

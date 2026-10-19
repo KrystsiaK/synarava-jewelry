@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 /**
  * True when the primary pointer can hover (desktop mouse/trackpad).
- * Touch phones/tablets report false — use to skip hover-only grayscale.
+ * Touch phones/tablets report false — use to skip pointer-only hover chrome.
  */
 export function useCanHover(): boolean {
   // Desktop-first: avoid a one-frame full-color flash on pointer devices.
