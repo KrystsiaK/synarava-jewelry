@@ -10,7 +10,7 @@ const UPDATED_AT = new Date("2026-10-19T21:00:01.000Z");
  * Placeholder / demo node statuses for nodes not yet live.
  * Stage 4 live keys (`site-health`, `shopify-sync`, `orders`) are ignored by
  * `placeholderNodeStatusesFromFixtures` — kept here only for canvas unit tests.
- * Collector persistence remains Stage 5.
+ * Stage 5 collector persists live keys; placeholders stay fixture until providers exist.
  */
 export const MISSION_CONTROL_NODE_STATUS_FIXTURES: ServiceNodeStatusRecord[] = [
   {

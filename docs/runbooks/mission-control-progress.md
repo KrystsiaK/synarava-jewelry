@@ -111,6 +111,21 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Этап 5 — Коллектор + супербот (крон-воркер)
+
+- [2026-10-19T22:45:00Z] Re-read plan §0 (Simplicity + Database rules), Stage 5 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging` (Stage 3 #197 + Stage 4 #200 already merged). **No database used** in agent work; Prisma mocked in tests. No secrets requested.
+- [2026-10-19T22:50:00Z] One new process only — `services/mission-control-collector` (thin Node 22 entry, zero new deps/tables). Logic in `lib/mission-control/collector/`:
+  - Reuses providers (`site-health`, `shopify-sync`, `orders`) + `writeServiceNodeStatus` / `writeServiceFlowStatus`
+  - Runs once per cron tick then exits (`pnpm mission-control:collect`)
+  - Telegram via `fetch` only when level **changes into** `warn`/`down` (read previous first); token/chat from env, never logged
+  - Drift: **log** WiringConfig nodes with no provider and not in `PLACEHOLDER_NODE_KEYS` (`db`, `products`, `sentry`)
+- [2026-10-19T22:52:00Z] Railway owner doc (settings only, no secret values): [mission-control-collector-railway.md](mission-control-collector-railway.md). **No Railway apply.**
+- [2026-10-19T22:55:00Z] Unit tests (mocked Prisma + fetch): ok→down alerts once; down→down / ok→ok no alert; Telegram failure does not crash; upserts called. Forbidden: fix/restart ability, new deps, new tables.
+
+**Stage 5 status:** collector worker + tests + Railway runbook in PR → `staging` (not merged). Waiting owner: continue Stage 6?
+
+---
+
 ## Later stages
 
-Next after Stage 4 lands: **Этап 5 — Коллектор + супербот (крон-воркер)**.
+Next after Stage 5 lands: **Этап 6 — «Как чинить» в конфиге** (`fixHint` / `fixPrompt`).
