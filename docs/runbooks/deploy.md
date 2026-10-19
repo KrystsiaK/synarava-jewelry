@@ -79,8 +79,46 @@ Portable SKU API (`sku-api`): Infrastructure as Code partial в [`.railway/railw
 Для PostgreSQL в Railway выставить `DATABASE_URL` как reference variable на Postgres service, например `${{Postgres.DATABASE_URL}}`.
 
 Railpack должен использовать стандартную установку из `package.json` и
-`pnpm-lock.yaml`. Не задавайте кастомный `RAILPACK_INSTALL_CMD`: проект не
-зависит от приватных package registries и не требует npm/GitHub Packages токенов.
+`pnpm-lock.yaml`. Не задавайте кастомный `RAILPACK_INSTALL_CMD`.
+
+### GitHub Packages (`@synarava`)
+
+Mission Control (и другие потребители) тянут опубликованные пакеты
+`@synarava/wiring-engine`, `@synarava/shell-kit` (и транзитивно
+`@synarava/liquid-glass`) из **GitHub Packages**:
+
+- registry: `https://npm.pkg.github.com` (org `synarava`)
+- scope: `@synarava` — см. корневой `.npmrc` (`@synarava:registry=…`)
+- auth: переменная окружения **`NODE_AUTH_TOKEN`** (PAT / fine-grained token с
+  `read:packages` на пакеты org `synarava`)
+
+pnpm **не** раскрывает `${NODE_AUTH_TOKEN}` из committed project `.npmrc`
+([pnpm npmrc](https://pnpm.io/npmrc)). Перед install запишите auth в
+user-level `~/.npmrc`:
+
+```bash
+export NODE_AUTH_TOKEN=…   # read:packages
+node scripts/ensure-github-packages-auth.mjs
+pnpm install
+```
+
+Или одной командой: `node scripts/pnpm-install-with-github-packages.mjs`
+(по умолчанию `pnpm install --frozen-lockfile`).
+
+Без токена install падает на private `@synarava/*` (workspace-пакеты вроде
+`@synarava/sku-contract` от этого не зависят).
+
+**Где задать `NODE_AUTH_TOKEN`:**
+
+- локально / Cloud Agent — в окружении сессии, затем
+  `node scripts/ensure-github-packages-auth.mjs`
+- GitHub Actions — repository secret `NODE_AUTH_TOKEN` (workflow `ci.yml`
+  пишет auth в `~/.npmrc` перед `pnpm install`)
+- Railway (synarava-web) — variable на **build**, и
+  `RAILPACK_INSTALL_CMD=node scripts/pnpm-install-with-github-packages.mjs`
+  (стандартный install без этой команды не получит токен в `~/.npmrc`)
+
+Не коммитьте сам токен.
 
 ### Версионирование релиза
 
