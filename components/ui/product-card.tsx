@@ -66,8 +66,15 @@ export function ProductCard({
             >
               {formatDisplayTitle(product.title)}
             </h3>
-            <span className="product-media-scrim__meta label-mono shrink-0 text-[0.68rem]">
-              {product.price}
+            <span className="flex shrink-0 flex-col items-end">
+              <span className="product-media-scrim__meta label-mono text-[0.68rem]">
+                {product.price}
+              </span>
+              {discount != null ? (
+                <span className="product-media-scrim__meta label-mono text-[0.65rem] line-through opacity-70">
+                  {product.compareAtPrice}
+                </span>
+              ) : null}
             </span>
           </div>
         </ProductGalleryMedia>
