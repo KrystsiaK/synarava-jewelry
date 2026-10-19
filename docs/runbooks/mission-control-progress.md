@@ -64,6 +64,27 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Этап 3 — Канва-граф (patch bay)
+
+- [2026-10-19T21:14:00Z] Re-read plan §0 (Simplicity contract + Database rules), Stage 3 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging`, stacked `origin/cursor/mission-control-stage2-status-709d` (fast-forward) so Stage 3 includes `lib/mission-control/status.ts` without re-implementing it.
+- [2026-10-19T21:15:00Z] **No database used.** No Prisma migrate/push/execute. Statuses for render = fixtures typed as `ServiceNodeStatusRecord` / `ServiceFlowStatusRecord` from `status.ts`.
+- [2026-10-19T21:17:00Z] Exactly one new dependency: `@xyflow/react@^12.12.0`. No other new packages.
+- [2026-10-19T21:20:00Z] Canvas on existing `/admin/mission-control`:
+  - `lib/mission-control/wiring-config.json` — single `WiringConfig` (bindings for site→db, shopify→products, site→sentry, orders pulse).
+  - `node-catalog.ts` — Stage 3/4 stub `WidgetPortManifest`s (labels/colors until live `defineWidget`s in Stage 4).
+  - `canvas-model.ts` — pure map: level → color; `lastFlowAt` fresh (5 min) → `animated` edge; nodes non-draggable.
+  - `MissionControlCanvas` — React Flow graph (read-only) + mobile collapsible list (`layout=auto|graph|list`).
+  - Hub uses fixtures only (no DB reads). Attribution watermark left visible (no `hideAttribution`).
+- [2026-10-19T21:20:30Z] Tests (mocked status fixtures, no DB):
+  - `lib/mission-control/__tests__/canvas-model.test.ts` — node colors + animated vs idle edges + read-only flags (3).
+  - `components/admin/mission-control/__tests__/mission-control-canvas.test.tsx` — render: colors, edge animation meta, collapsible mobile list (4).
+  - All 7 passed.
+- [2026-10-19T21:22:00Z] `pnpm exec tsc --noEmit` green. `APP_URL=http://localhost:3000 pnpm build` green (`/admin/mission-control` in route list).
+
+**Stage 3 status:** canvas + `@xyflow/react` + tests in PR → `staging` (not merged). Waiting owner: continue Stage 4?
+
+---
+
 ## Later stages
 
-Next after Stage 2 lands: **Этап 3 — Канва-граф (patch bay)**.
+Next after Stage 3 lands: **Этап 4 — Первые 3–4 живых узла**.
