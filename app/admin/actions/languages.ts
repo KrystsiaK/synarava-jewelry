@@ -5,7 +5,6 @@ import { revalidatePath } from "next/cache";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { writeAuditLog } from "@/app/admin/actions/shared";
 import {
-  exportLanguageBundle,
   importLanguageBundle,
   type LanguageBundle,
   verifyLanguageBundle,
@@ -13,6 +12,7 @@ import {
 import {
   addStorefrontLanguage,
   deleteStorefrontLanguageData,
+  exportStorefrontLanguage,
   hideStorefrontLanguage,
   restoreStorefrontLanguage,
 } from "@/lib/i18n/language-lifecycle";
@@ -88,7 +88,7 @@ export async function restoreLanguageAction(code: string) {
 
 export async function exportLanguageAction(code: string) {
   await requireAdminSession();
-  const bundle = await exportLanguageBundle(code);
+  const bundle = await exportStorefrontLanguage(code);
   await writeAuditLog({
     action: "LANGUAGE_EXPORT",
     entityType: "STOREFRONT_LOCALE",
