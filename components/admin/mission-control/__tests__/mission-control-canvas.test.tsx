@@ -118,6 +118,8 @@ describe("MissionControlCanvas render", () => {
           message: "pong",
           href: "/health",
           accentColor: statusLevelColor("ok"),
+          fixHint: "unused when ok",
+          fixPrompt: "unused when ok",
         }}
         type="missionControl"
         dragging={false}
@@ -135,5 +137,56 @@ describe("MissionControlCanvas render", () => {
       "data-accent",
       statusLevelColor("ok"),
     );
+  });
+
+  it("shows fix hint for warn/down and not for ok", () => {
+    render(<MissionControlCanvas {...sharedProps} layout="graph" />);
+
+    expect(screen.queryByTestId("mc-fix-hint-site-health")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mc-fix-hint-shopify-sync")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-copy-prompt-shopify-sync")).toBeInTheDocument();
+
+    expect(screen.getByTestId("mc-fix-hint-sentry")).toBeInTheDocument();
+    expect(screen.queryByTestId("mc-copy-prompt-sentry")).not.toBeInTheDocument();
+  });
+
+  it("shows fix hint and Copy prompt for a down node", () => {
+    render(
+      <MissionControlStatusNode
+        id="site-health"
+        data={{
+          widgetKey: "site-health",
+          label: "Site health",
+          level: "down",
+          message: "health unavailable",
+          href: "/api/health",
+          accentColor: statusLevelColor("down"),
+          fixHint: "Check /api/health first.",
+          fixPrompt: "Investigate read-only first; never run prisma migrate",
+        }}
+        type="missionControl"
+        dragging={false}
+        zIndex={1}
+        selectable={false}
+        deletable={false}
+        selected={false}
+        draggable={false}
+        isConnectable={false}
+        positionAbsoluteX={0}
+        positionAbsoluteY={0}
+      />,
+    );
+
+    expect(screen.getByTestId("mc-fix-hint-site-health")).toHaveTextContent(
+      "Check /api/health first.",
+    );
+    expect(screen.getByTestId("mc-copy-prompt-site-health")).toBeInTheDocument();
+  });
+
+  it("shows fix hint in the mobile list for warn nodes only", () => {
+    render(<MissionControlCanvas {...sharedProps} layout="list" />);
+
+    expect(screen.queryByTestId("mc-fix-hint-site-health")).not.toBeInTheDocument();
+    expect(screen.getByTestId("mc-fix-hint-shopify-sync")).toBeInTheDocument();
   });
 });

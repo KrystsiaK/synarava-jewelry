@@ -26,5 +26,34 @@
       "sinks": []
     }
   ],
-  "userConnections": []
+  "userConnections": [],
+  "nodes": [
+    {
+      "widgetKey": "site-health",
+      "fixHint": "Site health probes APP_URL /api/health. If warn/down, check Railway app reachability and the health route first.",
+      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: site-health is warn or down. Read lib/mission-control/providers/site-health.ts, docs/runbooks/mission-control-hub-plan.md (§0 and Stage 4–6), and the health/deploy runbooks. Report what failed, likely cause, and a PR-ready fix proposal — do not mutate production."
+    },
+    {
+      "widgetKey": "shopify-sync",
+      "fixHint": "Shopify sync age comes from the latest succeeded ProductSyncEvent. Stale or missing sync usually means the sync job or webhook path stalled — check admin products sync and recent sync events.",
+      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: shopify-sync is warn or down. Read lib/mission-control/providers/shopify-sync.ts, docs/runbooks/mission-control-hub-plan.md (§0), and docs/wiki/commerce-sync.md. Report sync age evidence, likely stall point, and a PR-ready fix proposal — do not mutate production."
+    },
+    {
+      "widgetKey": "orders",
+      "fixHint": "Orders counters come from ShopifyWebhookDelivery rows. Warn/down means webhook intake is quiet or erroring — check webhook deliveries and Shopify webhook configuration.",
+      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: orders is warn or down. Read lib/mission-control/providers/orders.ts, docs/runbooks/mission-control-hub-plan.md (§0), and webhook/orders runbooks. Report delivery counters, likely cause, and a PR-ready fix proposal — do not mutate production."
+    },
+    {
+      "widgetKey": "db",
+      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
+    },
+    {
+      "widgetKey": "products",
+      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
+    },
+    {
+      "widgetKey": "sentry",
+      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
+    }
+  ]
 }

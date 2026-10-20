@@ -1,7 +1,7 @@
 # Mission Control — план постройки и контракт простоты
 
-**Status:** proposed — Stages 1–4 on staging; Stage 5 (collector cron) in PR → staging
-**Last updated:** 2026-10-19 (Europe/Lisbon)
+**Status:** proposed — Stages 1–5 on staging; Stage 6 (fix hints) in PR → staging
+**Last updated:** 2026-10-20 (Europe/Lisbon)
 
 **Решение:** [ADR-0005](../adr/0005-mission-control-hub.md)
 **Связанные:** [ADR-0004 (SKU-сервис)](../adr/0004-portable-sku-service-boundary.md), [runbook SKU](portable-sku-current-status.md)
