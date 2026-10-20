@@ -40,7 +40,7 @@ export type AdminRichTextFieldProps = {
   errorId?: string;
   warning?: string;
   invalid?: boolean;
-  issue?: ReactNode;
+
   disabled?: boolean;
   className?: string;
   unitId?: string;
@@ -284,7 +284,6 @@ export function AdminRichTextField({
   errorId,
   warning,
   invalid = false,
-  issue,
   disabled = false,
   className,
   unitId,
@@ -357,7 +356,6 @@ export function AdminRichTextField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={cn("w-full min-w-0", className)}
       controlId={controlId}

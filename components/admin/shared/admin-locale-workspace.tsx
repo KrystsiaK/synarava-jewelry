@@ -156,8 +156,6 @@ export type AdminLocaleTabsProps = {
   panelId?: (locale: AdminLocale) => string;
   /** Locale codes with unsaved edits — shows a dirty marker on that tab. */
   dirtyLocales?: ReadonlySet<string> | readonly string[];
-  /** Locale codes with open language-scoped QA issues — tints that tab. */
-  issueLocales?: ReadonlySet<string> | readonly string[];
   /**
    * Locale shells that should show a commerce conflict mark.
    * Shared fields (price, …) mark every language; locale-only copy marks one.
@@ -192,7 +190,6 @@ export function AdminLocaleTabs({
   tabId,
   panelId,
   dirtyLocales,
-  issueLocales,
   conflictLocales,
   embedded = false,
   stacked = false,
@@ -213,9 +210,6 @@ export function AdminLocaleTabs({
   const dirtySet = dirtyLocales instanceof Set
     ? dirtyLocales
     : new Set(dirtyLocales ?? []);
-  const issueSet = issueLocales instanceof Set
-    ? issueLocales
-    : new Set(issueLocales ?? []);
   const conflictSet = conflictLocales instanceof Set
     ? conflictLocales
     : new Set(conflictLocales ?? []);
@@ -268,18 +262,14 @@ export function AdminLocaleTabs({
             data-locale={locale.code.toLowerCase()}
             data-active={active === locale.code ? "true" : undefined}
             data-dirty={dirtySet.has(locale.code) ? "true" : undefined}
-            data-issue={issueSet.has(locale.code) ? "true" : undefined}
             data-conflict={conflictSet.has(locale.code) ? "true" : undefined}
             className="adm-locale-tab"
           >
             {locale.code}
-            {dirtySet.has(locale.code) || issueSet.has(locale.code) || conflictSet.has(locale.code) ? (
+            {dirtySet.has(locale.code) || conflictSet.has(locale.code) ? (
               <span className="adm-locale-tab__marks">
                 {dirtySet.has(locale.code) ? (
                   <span className="adm-locale-tab__pip" data-tone="dirty" title="Unsaved edits" aria-label="Unsaved edits" />
-                ) : null}
-                {issueSet.has(locale.code) ? (
-                  <span className="adm-locale-tab__pip" data-tone="issue" title="Open problem" aria-label="Open problem" />
                 ) : null}
                 {conflictSet.has(locale.code) ? (
                   <span className="adm-locale-tab__pip" data-tone="conflict" title="Shopify conflict" aria-label="Shopify conflict" />

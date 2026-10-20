@@ -518,7 +518,7 @@ export type AdminHrefFieldProps = Omit<AdminHrefControlProps, "warningId" | "onD
   errorId?: string;
   className?: string;
   unitId?: string;
-  issue?: ReactNode;
+
   id?: string;
 };
 
@@ -535,7 +535,6 @@ export function AdminHrefField({
   disabled,
   className,
   unitId,
-  issue,
   ...controlProps
 }: AdminHrefFieldProps) {
   const { controlId, messageId, warningId } = useAdminFieldIds(id, errorId);
@@ -557,7 +556,6 @@ export function AdminHrefField({
       errorId={messageId}
       warning={shellWarning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={className}
       controlId={controlId}

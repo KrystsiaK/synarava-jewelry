@@ -711,7 +711,6 @@ export function EditProductForm({
                           activeLocale={activeLocale}
                           onLocaleChange={selectLocale}
                           selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
-                          mode="edit"
                           productId={currentProduct.id}
                           onSkuAssigned={() => {
                             void (async () => {
@@ -741,7 +740,6 @@ export function EditProductForm({
                         details={details}
                         translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
                         mode="edit"
-                        collections={collections}
                         translationLocales={translationLocales}
                         activeSection={activeSection}
                         activeLocale={activeLocale}

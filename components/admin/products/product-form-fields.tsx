@@ -149,7 +149,6 @@ export function ProductDetailFields({
   details,
   translationsDetails,
   mode,
-  collections,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   activeSection = "details",
   activeLocale,
@@ -165,7 +164,6 @@ export function ProductDetailFields({
   /** Every translation locale's details, keyed by locale code. */
   translationsDetails: Record<string, ProductLocaleDetailsDraft>;
   mode: "create" | "edit";
-  collections: CollectionOption[];
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
   /** Top-level product workspace section. Hidden fields stay mounted so one save still submits the whole record. */
@@ -559,7 +557,6 @@ export function ProductFormFields({
   activeLocale,
   onLocaleChange,
   selectedShopifyCategoryAttributes = [],
-  mode = "edit",
   productId = null,
   onSkuAssigned,
 }: {
@@ -579,7 +576,6 @@ export function ProductFormFields({
   onLocaleChange: (locale: string) => void;
   /** Resolved Shopify category attribute values from the last pull snapshot. */
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
-  mode?: "create" | "edit";
   productId?: string | null;
   onSkuAssigned?: (sku: string) => void;
 }) {

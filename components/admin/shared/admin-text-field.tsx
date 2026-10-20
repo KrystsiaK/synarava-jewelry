@@ -163,7 +163,7 @@ export type AdminTextFieldProps = InputProps & {
   className?: string;
   unitId?: string;
   validationName?: string;
-  issue?: ReactNode;
+
   inputClassName?: string;
   startAdornment?: ReactNode;
   endAdornment?: ReactNode;
@@ -189,7 +189,6 @@ export function AdminTextField({
   className,
   unitId,
   validationName,
-  issue,
   inputClassName,
   startAdornment,
   endAdornment,
@@ -213,7 +212,6 @@ export function AdminTextField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={className}
       controlId={controlId}

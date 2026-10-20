@@ -30,7 +30,7 @@ describe("AdminNavTree", () => {
     render(
       <AdminNavTree
         items={buildAdminNavItems({ pages: manyPages })}
-        issueNavHrefs={["/admin/pages/page-2"]}
+        syncNavHrefs={["/admin/pages/page-2"]}
       />,
     );
 
@@ -82,23 +82,21 @@ describe("AdminNavTree", () => {
     });
   });
 
-  it("shows amber conflict badges on Catalog and a split both-marker", () => {
+  it("shows amber conflict badges on Catalog", () => {
     render(
       <AdminNavTree
         items={buildAdminNavItems({
           pages: [],
-          issueCount: 2,
           syncCounts: { products: 7, collections: 0, pages: 0, settings: 0, total: 7 },
         })}
-        issueNavHrefs={["/admin/products", "/admin/issues"]}
         syncNavHrefs={["/admin/products", "/admin/translations"]}
       />,
     );
 
     const catalog = screen.getByRole("link", { name: /Catalog/ });
-    const bothMarker = catalog.querySelector("[data-signal='both']");
-    expect(bothMarker).not.toBeNull();
-    expect(bothMarker).toHaveAttribute("title", "Open problems and Shopify conflicts");
+    const syncMarker = catalog.querySelector("[data-signal='sync']");
+    expect(syncMarker).not.toBeNull();
+    expect(syncMarker).toHaveAttribute("title", "Shopify conflicts");
     expect(
       screen.getByLabelText("7 Shopify conflicts in Catalog"),
     ).toBeInTheDocument();

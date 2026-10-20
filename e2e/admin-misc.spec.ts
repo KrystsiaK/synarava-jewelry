@@ -8,9 +8,6 @@ import { expect, test } from "./support/fixtures";
 // Read-only smoke coverage for the admin routes that don't fit the
 // products/collections/pages CRUD pattern:
 // - Account is a static session summary, nothing to mutate.
-// - Issues can trigger a real Resend email via "Scan now" when
-//   RESEND_API_KEY is configured, so this only checks the page renders --
-//   it never clicks the scan button.
 // Videos is deliberately not covered here: uploading exercises a real S3
 // bucket (Railway Bucket) outside this sandbox.
 test.describe("Admin misc pages", () => {
@@ -23,13 +20,5 @@ test.describe("Admin misc pages", () => {
 
     await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
     await expect(page.getByText(adminCredentials()!.username)).toBeVisible();
-  });
-
-  test("issues page renders the problems table", async ({ page }) => {
-    await page.goto("/admin/issues");
-
-    await expect(page.getByRole("heading", { name: "Problems", exact: true })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Problems table" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Scan now" })).toBeVisible();
   });
 });
