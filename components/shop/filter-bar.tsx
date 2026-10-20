@@ -1,7 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ArrowUpDown, ChevronDown, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  ArrowsDownUp as ArrowUpDown,
+  CaretDown as ChevronDown,
+  MagnifyingGlass as Search,
+  SlidersHorizontal,
+  X,
+} from "@phosphor-icons/react/ssr";
 
 import { AnimatedModal, ArtifactButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
@@ -357,7 +363,7 @@ export function FilterBar({
 
           {/* Boxed like FilterDropdown — underline + band border-y stacked as a double rule. */}
           <div className="relative flex w-[min(36vw,22rem)] min-w-[12rem] items-center border border-foreground/[0.1] bg-surface/45 transition-[border-color,background-color] focus-within:border-couture-red focus-within:bg-surface">
-            <Search className="pointer-events-none absolute left-3 size-3.5 text-muted/60" aria-hidden="true" />
+            <Search className="pointer-events-none absolute left-3 size-5 text-couture-red" weight="regular" aria-hidden="true" />
             <input
               ref={searchRef}
               type="search"
@@ -401,7 +407,7 @@ export function FilterBar({
       {/* ── Mobile filter row ───────────────────────────────────────────────── */}
       <div className="md:hidden">
         <div className="relative flex items-center border-b border-foreground/[0.14]">
-          <Search className="absolute left-0 size-3.5 shrink-0 text-muted/60 pointer-events-none" aria-hidden="true" />
+          <Search className="pointer-events-none absolute left-0 size-5 shrink-0 text-couture-red" weight="regular" aria-hidden="true" />
           <input
             type="search"
             value={search}
@@ -439,7 +445,7 @@ export function FilterBar({
             allLabel={t("shop.filters.featured")}
             inactiveLabel={t("shop.filters.featured")}
             triggerVariant="toolbar"
-            triggerIcon={<ArrowUpDown className="size-4" />}
+            triggerIcon={<ArrowUpDown className="size-5 text-couture-red" weight="regular" />}
           />
           <button
             type="button"
@@ -456,7 +462,7 @@ export function FilterBar({
             )}
           >
             <span className="inline-flex size-5 shrink-0 items-center justify-center text-muted" aria-hidden="true">
-              <SlidersHorizontal className="size-4" />
+              <SlidersHorizontal className="size-5 text-couture-red" weight="regular" />
             </span>
             <span className="min-w-0 flex-1">
               <span className="block text-[0.58rem] font-semibold uppercase tracking-[0.16em] text-muted/65">

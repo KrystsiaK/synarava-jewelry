@@ -7,7 +7,7 @@ import type {
   TextareaHTMLAttributes,
 } from "react";
 import { useState } from "react";
-import { Eye, EyeOff, Info, Check } from "lucide-react";
+import { Check, Eye, EyeSlash as EyeOff, Info } from "@phosphor-icons/react/ssr";
 
 import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
@@ -143,7 +143,7 @@ export function PasswordInput({
           aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
           className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-foreground/55 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"
         >
-          {visible ? <EyeOff size={16} /> : <Eye size={16} />}
+          {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
       </div>
 
@@ -181,7 +181,7 @@ export function PasswordInput({
                     met ? "text-green-500" : "text-foreground/40",
                   )}
                 >
-                  <Check size={10} className={cn("shrink-0", met ? "opacity-100" : "opacity-30")} />
+                  <Check className={cn("size-2.5 shrink-0", met ? "opacity-100" : "opacity-30")} />
                   {label}
                 </li>
               );
@@ -193,7 +193,7 @@ export function PasswordInput({
       {/* Static hint (only when showStrength is off) */}
       {hint && !showStrength && (
         <p className="flex items-center gap-1.5 text-[0.72rem] leading-5 text-foreground/45">
-          <Info size={12} className="shrink-0" />
+          <Info className="size-3 shrink-0" />
           {hint}
         </p>
       )}

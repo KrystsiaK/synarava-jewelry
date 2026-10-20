@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight } from "lucide-react";
+import { ArrowRight } from "@phosphor-icons/react/ssr";
 
 import { artifactButtonClasses } from "./artifact-button";
 import { MagneticButton } from "./magnetic-button";

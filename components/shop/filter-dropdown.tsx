@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Check, ChevronDown } from "lucide-react";
+import { CaretDown as ChevronDown, Check } from "@phosphor-icons/react/ssr";
 
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";

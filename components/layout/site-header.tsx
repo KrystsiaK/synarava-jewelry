@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, ShoppingBag, X } from "lucide-react";
+import { List as Menu, ShoppingBagOpen as ShoppingBag, X } from "@phosphor-icons/react/ssr";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
@@ -151,7 +151,11 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
             aria-label={isMenuOpen ? t("nav.closeMenu") : t("nav.openMenu")}
             aria-expanded={isMenuOpen}
           >
-            {isMenuOpen ? <X className="size-4.5" aria-hidden="true" /> : <Menu className="size-4.5" aria-hidden="true" />}
+            {isMenuOpen ? (
+              <X className="size-6 text-couture-red" weight="bold" aria-hidden="true" />
+            ) : (
+              <Menu className="size-6 text-couture-red" weight="regular" aria-hidden="true" />
+            )}
           </button>
 
           <Link
@@ -215,7 +219,7 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
             }`}
           >
             <span className="relative inline-flex items-center justify-center">
-              <ShoppingBag className="size-5" aria-hidden="true" />
+              <ShoppingBag className="size-6 text-couture-red" weight="regular" aria-hidden="true" />
               <span className="t-badge" aria-hidden="true">
                 <AnimatePresence initial={false} mode="popLayout">
                   {hasCartItems ? (

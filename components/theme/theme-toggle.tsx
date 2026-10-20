@@ -1,6 +1,6 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Desktop as Monitor, MoonStars as Moon, Sun } from "@phosphor-icons/react/ssr";
 
 import { useTheme } from "@/components/theme/theme-provider";
 import { type ThemePreference } from "@/lib/theme/shared";
@@ -47,7 +47,11 @@ export function ThemeToggle({ compact = false }: ThemeToggleProps) {
                 : "text-muted hover:bg-foreground/5 hover:text-foreground"
             } ${compact ? "justify-center" : ""}`}
           >
-            <Icon className="size-4" aria-hidden="true" />
+            <Icon
+              className={`size-5.5 ${active ? "text-background" : "text-couture-red"}`}
+              weight="regular"
+              aria-hidden="true"
+            />
             {!compact ? <span className="label-caps">{option.label}</span> : null}
           </button>
         );

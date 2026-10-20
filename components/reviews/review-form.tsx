@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star } from "@phosphor-icons/react/ssr";
 
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 import { ArtifactButton } from "@/components/ui";
@@ -48,26 +48,27 @@ export function ReviewForm({
             </span>
             <div role="radiogroup" aria-label={t("reviews.ratingLabel")} className="mt-2 flex w-fit gap-1">
               {[1, 2, 3, 4, 5].map((value) => (
-                <label key={value} className="group grid size-11 cursor-pointer place-items-center">
-                  <input
-                    className="sr-only"
-                    type="radio"
-                    name="rating"
-                    value={value}
-                    required
-                    checked={selectedRating === value}
-                    onChange={() => onSelectRating(value)}
-                    aria-label={plural("reviews.star", value)}
-                  />
-                  <Star
-                    className={`size-6 transition-colors group-hover:text-couture-red group-focus-within:outline group-focus-within:outline-2 group-focus-within:outline-offset-4 group-focus-within:outline-couture-red ${
-                      value <= selectedRating
-                        ? "fill-current text-couture-red"
-                        : "text-foreground/28"
-                    }`}
-                    aria-hidden="true"
-                  />
-                </label>
+                  <label key={value} className="group grid size-11 cursor-pointer place-items-center">
+                    <input
+                      className="sr-only"
+                      type="radio"
+                      name="rating"
+                      value={value}
+                      required
+                      checked={selectedRating === value}
+                      onChange={() => onSelectRating(value)}
+                      aria-label={plural("reviews.star", value)}
+                    />
+                    <Star
+                      weight={value <= selectedRating ? "fill" : "regular"}
+                      className={`size-6 transition-colors group-hover:text-couture-red group-focus-within:outline group-focus-within:outline-2 group-focus-within:outline-offset-4 group-focus-within:outline-couture-red ${
+                        value <= selectedRating
+                          ? "text-couture-red"
+                          : "text-foreground/28"
+                      }`}
+                      aria-hidden="true"
+                    />
+                  </label>
               ))}
             </div>
             {state.fieldErrors?.rating ? <p className="mt-1 text-sm text-couture-red">{t(`reviews.form.field.${state.fieldErrors.rating}`)}</p> : null}

@@ -55,6 +55,9 @@ const nextConfig: NextConfig = {
     process.env.RAILWAY_DEPLOYMENT_ID ||
     undefined,
   experimental: {
+    // Phosphor exports a large icon catalog. Rewrite barrel imports so each
+    // client boundary only receives the glyphs it renders.
+    optimizePackageImports: ["@phosphor-icons/react/ssr"],
     // Proxy clones POST bodies for /admin/* (Server Actions). Keep this at or
     // above serverActions.bodySizeLimit — a lower proxy cap silently truncates
     // multipart payloads and Next reports UnrecognizedActionError ("Admin was
