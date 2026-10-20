@@ -34,6 +34,15 @@ const placeholderNode: ServiceNodeStatusRecord = {
   updatedAt: NOW,
 };
 
+function liveIssue(nodeKey: string, level: "warn" | "down" | "unknown"): ServiceNodeStatusRecord {
+  return {
+    ...liveNode,
+    nodeKey,
+    level,
+    message: `${nodeKey} ${level}`,
+  };
+}
+
 describe("MissionControlHub placeholder notice", () => {
   it("renders the notice while placeholder nodes remain", () => {
     render(
@@ -42,6 +51,7 @@ describe("MissionControlHub placeholder notice", () => {
         flowStatuses={[]}
         nowMs={NOW.getTime()}
         showPlaceholderNotice
+        placeholderNodeKeys={["sentry"]}
       />,
     );
 
@@ -62,5 +72,43 @@ describe("MissionControlHub placeholder notice", () => {
     );
 
     expect(screen.queryByTestId("mc-fixture-notice")).not.toBeInTheDocument();
+  });
+
+  it("lists exactly warn, down, and unknown live nodes in severity order", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[
+          liveNode,
+          liveIssue("shopify-sync", "warn"),
+          liveIssue("orders", "down"),
+          liveIssue("db", "unknown"),
+          placeholderNode,
+        ]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        placeholderNodeKeys={["sentry"]}
+      />,
+    );
+
+    const items = screen.getByTestId("mc-attention-list").querySelectorAll(":scope > li");
+    expect(Array.from(items).map((item) => item.getAttribute("data-testid"))).toEqual([
+      "mc-attention-orders",
+      "mc-attention-shopify-sync",
+      "mc-attention-db",
+    ]);
+    expect(screen.queryByTestId("mc-attention-site-health")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mc-attention-sentry")).not.toBeInTheDocument();
+  });
+
+  it("makes a stale collector explicit", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[{ ...liveNode, checkedAt: new Date(NOW.getTime() - 60 * 60 * 1000) }]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+      />,
+    );
+
+    expect(screen.getByText("Collector looks stale")).toBeInTheDocument();
   });
 });

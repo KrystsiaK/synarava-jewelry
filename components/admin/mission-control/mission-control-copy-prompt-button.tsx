@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Check, Copy } from "lucide-react";
 
 type MissionControlCopyPromptButtonProps = {
   prompt: string;
@@ -29,7 +30,7 @@ export function MissionControlCopyPromptButton({
   return (
     <button
       type="button"
-      className="mt-1 text-xs underline text-ink"
+      className="mc-copy-prompt"
       data-testid={`mc-copy-prompt-${widgetKey}`}
       onClick={(event) => {
         event.preventDefault();
@@ -37,7 +38,8 @@ export function MissionControlCopyPromptButton({
         void handleCopy();
       }}
     >
-      {copied ? "Copied" : "Copy prompt"}
+      {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
+      <span>{copied ? "Copied" : "Copy prompt"}</span>
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import { useReducedMotion } from "motion/react";
 import {
   Background,
   ReactFlow,
@@ -34,6 +35,7 @@ export type MissionControlCanvasProps = {
   nodeStatuses?: readonly ServiceNodeStatusRecord[];
   flowStatuses?: readonly ServiceFlowStatusRecord[];
   nowMs?: number;
+  placeholderNodeKeys?: readonly string[];
   /** Tests / SSR override. `auto` = graph on md+, list on small screens (CSS). */
   layout?: MissionControlCanvasLayout;
 };
@@ -45,15 +47,22 @@ function GraphPane({
   nodes: MissionControlCanvasNode[];
   edges: MissionControlCanvasEdge[];
 }) {
+  const reduceMotion = useReducedMotion();
+  const renderedEdges = useMemo(
+    () => edges.map((edge) => ({ ...edge, animated: Boolean(edge.animated) && !reduceMotion })),
+    [edges, reduceMotion],
+  );
+
   return (
     <div
-      className="h-[28rem] w-full overflow-hidden rounded-lg border border-border-subtle bg-panel"
+      className="mc-canvas-graph"
       data-testid="mc-canvas-graph"
+      data-reduced-motion={reduceMotion ? "true" : "false"}
     >
       <ReactFlowProvider>
         <ReactFlow
           nodes={nodes}
-          edges={edges}
+          edges={renderedEdges}
           nodeTypes={NODE_TYPES}
           nodesDraggable={false}
           nodesConnectable={false}
@@ -63,15 +72,16 @@ function GraphPane({
           panOnDrag
           zoomOnScroll
           fitView
-          minZoom={0.4}
-          maxZoom={1.5}
+          minZoom={0.55}
+          maxZoom={1.3}
+          proOptions={{ hideAttribution: false }}
         >
           <Background gap={18} size={1} />
         </ReactFlow>
       </ReactFlowProvider>
       {/* Expose edge animation flags for render tests without RF internals */}
       <ul className="sr-only" data-testid="mc-edge-meta" aria-hidden>
-        {edges.map((edge) => (
+        {renderedEdges.map((edge) => (
           <li
             key={edge.id}
             data-testid={`mc-edge-${edge.id}`}
@@ -94,6 +104,7 @@ export function MissionControlCanvas({
   nodeStatuses = [],
   flowStatuses = [],
   nowMs,
+  placeholderNodeKeys = [],
   layout = "auto",
 }: MissionControlCanvasProps) {
   const { nodes, edges } = useMemo(
@@ -104,8 +115,9 @@ export function MissionControlCanvas({
         nodeStatuses,
         flowStatuses,
         nowMs,
+        placeholderNodeKeys,
       }),
-    [config, catalog, nodeStatuses, flowStatuses, nowMs],
+    [config, catalog, nodeStatuses, flowStatuses, nowMs, placeholderNodeKeys],
   );
 
   if (layout === "list") {
@@ -118,10 +130,10 @@ export function MissionControlCanvas({
 
   return (
     <div data-testid="mc-canvas-auto">
-      <div className="md:hidden">
+      <div className="lg:hidden">
         <MissionControlMobileList nodes={nodes} edges={edges} />
       </div>
-      <div className="hidden md:block">
+      <div className="hidden lg:block">
         <GraphPane nodes={nodes} edges={edges} />
       </div>
     </div>
