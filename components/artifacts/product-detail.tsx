@@ -32,7 +32,7 @@ import { hasFitFilm } from "@/lib/catalog/taxonomy";
 import { characteristicGroupLabel, characteristicUnit } from "@/lib/products/characteristics";
 import { normalizeLocale } from "@/lib/i18n/locales";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
-import { Share2, Star } from "lucide-react";
+import { ShareNetwork as Share2, Star } from "@phosphor-icons/react/ssr";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
 import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
@@ -69,7 +69,7 @@ function ShareButton({ title }: { title: string }) {
       onClick={handleShare}
       className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
     >
-      <Share2 className="size-4" aria-hidden="true" />
+      <Share2 className="size-5 text-couture-red" weight="regular" aria-hidden="true" />
       {copied ? t("product.linkCopied") : t("product.share")}
     </button>
   );
@@ -161,7 +161,7 @@ function ProductHero({
                   href="#reviews"
                   className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
                 >
-                  <Star className="size-4 fill-current text-couture-red" aria-hidden="true" />
+                  <Star className="size-5 text-couture-red" weight="fill" aria-hidden="true" />
                   <span className="font-semibold tabular-nums">{reviews.average.toFixed(1)}</span>
                   <span>· {plural("reviews.count", reviews.count)}</span>
                 </a>

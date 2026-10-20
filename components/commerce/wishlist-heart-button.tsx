@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Heart } from "lucide-react";
+import { Heart } from "@phosphor-icons/react/ssr";
 import { useRouter } from "next/navigation";
 
 import { useEphemeralToast } from "@/components/ui/ephemeral-toast";
@@ -110,10 +110,10 @@ export function WishlistHeartButton({
       >
         <Heart
           className={cn(
-            "size-4 transition-transform motion-reduce:transition-none",
+            "size-5 text-couture-red transition-transform motion-reduce:transition-none",
             pending && "scale-90 animate-pulse motion-reduce:animate-none",
           )}
-          fill={saved ? "currentColor" : "none"}
+          weight={saved ? "fill" : "regular"}
           aria-hidden="true"
         />
         <span aria-live="polite">

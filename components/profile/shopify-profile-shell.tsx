@@ -6,7 +6,7 @@ import type { KeyboardEvent } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react/ssr";
 
 import type {
   ShopifyCustomerOrder,

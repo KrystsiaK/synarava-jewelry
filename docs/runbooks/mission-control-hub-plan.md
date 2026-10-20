@@ -1,6 +1,6 @@
 # Mission Control — план постройки и контракт простоты
 
-**Status:** proposed — Stage 1 done; Stage 2 (schema + status contract) in PR → staging (migration not applied)
+**Status:** proposed — Stages 1–4 on staging; Stage 5 (collector cron) in PR → staging
 **Last updated:** 2026-10-19 (Europe/Lisbon)
 
 **Решение:** [ADR-0005](../adr/0005-mission-control-hub.md)

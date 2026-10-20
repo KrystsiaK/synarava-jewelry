@@ -11,7 +11,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react/ssr";
 
 import { cn } from "@/lib/ui";
 import { TOAST_DURATION_MS, type EphemeralToastItem, type EphemeralToastTone } from "./ephemeral-toast-queue";

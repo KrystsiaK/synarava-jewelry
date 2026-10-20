@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { X } from "@phosphor-icons/react/ssr";
 import { useTranslations } from "@/lib/i18n/context";
 import { shopComplianceOptions } from "./compliance-options";
 import type { ShopFilterLabels } from "@/lib/content/shop-page-copy";

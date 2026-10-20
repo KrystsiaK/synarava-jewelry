@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Check, Loader2 } from "lucide-react";
+import { Check, GlobeHemisphereEast as Globe, SpinnerGap as Loader2 } from "@phosphor-icons/react/ssr";
 import { useState } from "react";
 import { AdaptivePopover } from "@/components/ui/adaptive-popover";
 import { useTranslations } from "@/lib/i18n/context";
@@ -50,9 +50,9 @@ export function LanguageSwitcher({
             }`}
           >
             {loading ? (
-              <Loader2 size={15} className="animate-spin" />
+              <Loader2 className="size-6 animate-spin text-couture-red" weight="regular" />
             ) : (
-              <Globe size={15} />
+              <Globe className="size-6 text-couture-red" weight="regular" />
             )}
             {showCode ? (
               <span className="label-caps text-[0.72rem]">
@@ -74,7 +74,7 @@ export function LanguageSwitcher({
               <span className={locale === lang.code ? "text-foreground" : "text-muted"}>
                 {lang.name}
               </span>
-              {locale === lang.code && <Check size={12} className="shrink-0 text-accent" />}
+              {locale === lang.code && <Check className="size-4 shrink-0 text-accent" weight="bold" />}
             </button>
           ))}
       </AdaptivePopover>
