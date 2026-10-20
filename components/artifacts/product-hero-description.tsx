@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { CaretDown as ChevronDown } from "@phosphor-icons/react/ssr";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 
 import { RichText } from "@/components/content/rich-text";

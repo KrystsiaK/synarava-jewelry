@@ -1,4 +1,4 @@
-import { Star } from "lucide-react";
+import { Star } from "@phosphor-icons/react/ssr";
 
 export function ReviewStars({ rating, label, className = "size-4" }: { rating: number; label: string; className?: string }) {
   return (
@@ -7,7 +7,7 @@ export function ReviewStars({ rating, label, className = "size-4" }: { rating: n
         <Star
           key={index}
           className={className}
-          fill={index < Math.round(rating) ? "currentColor" : "none"}
+          weight={index < Math.round(rating) ? "fill" : "regular"}
           aria-hidden="true"
         />
       ))}

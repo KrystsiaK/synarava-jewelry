@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Check, X } from "@phosphor-icons/react/ssr";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
