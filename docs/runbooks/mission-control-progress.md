@@ -137,8 +137,9 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-20T15:50:00Z] Hub UI: warn/down/unknown cards show hint + read-only **Copy prompt** (clipboard only when prompt exists). No service-action buttons. No dynamic prompt generation.
 - [2026-10-20T15:52:00Z] Collector Telegram alert body uses the node’s `fixHint` (still only on transitions into warn/down).
 - [2026-10-20T15:55:00Z] Tests: wiring-config fix contract; canvas/list hint show/hide; collector alert contains hint.
+- [2026-10-20T15:57:00Z] CI green on HEAD `4df47107` (Path filter + Quality Gates + Storefront smoke, push + pull_request). PR #205 ready for review (not merged).
 
-**Stage 6 status:** PR [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205) → `staging`, ready for review (not merged). Waiting CI.
+**Stage 6 status:** PR [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205) → `staging`, ready for review (not merged). CI green.
 
 ---
 
