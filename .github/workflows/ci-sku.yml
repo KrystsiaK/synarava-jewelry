@@ -49,6 +49,8 @@ jobs:
     timeout-minutes: 15
     env:
       CI: true
+      # GitHub Packages (@synarava/wiring-engine, shell-kit). See deploy.md.
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -61,6 +63,9 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
+
+      - name: Auth GitHub Packages (@synarava)
+        run: node scripts/ensure-github-packages-auth.mjs
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
