@@ -12,7 +12,7 @@ Use **Check now** to refresh the comparison. For a difference, review both value
 - The app needs `read_translations`, `write_translations`, `read_locales` (or `read_markets_home`), and for language lifecycle writes **`write_locales`** (enable / publish / unpublish / disable). Also `read_metaobjects`, `write_metaobjects`, `read_metaobject_definitions`, and `write_metaobject_definitions`.
 - Page sync uses Shopify `PAGE`; structured Page (including The Edit copy) and Storefront Copy fields use `$app:page_section_copy` and `$app:storefront_copy` metaobjects with the translatable capability. Sync idempotently adds newly registered fields to an existing app-owned definition before writing values.
 
-## Language lifecycle (ADR-0006)
+## Language lifecycle (ADR-0007)
 
 `Draft` → `Published` → `Retired` → `Deleted` (data). Managed on **Admin → Localization → Languages**.
 
@@ -23,7 +23,7 @@ Use **Check now** to refresh the comparison. For a difference, review both value
 | Retired | permanent **301** to default language | no | hidden (toggle “Show retired”) |
 | Deleted | 301 stays | no | no (data removed after export + retention) |
 
-Hide = Retire (reversible). Delete data requires: Retired ≥ 30 days, an export downloaded in the same session, typed language code, no unresolved sync differences, and `write_locales` (Shopify `shopLocaleDisable`). See [`docs/proposals/languages-as-data.md`](../proposals/languages-as-data.md) and [`docs/adr/0006-languages-as-data.md`](../adr/0006-languages-as-data.md).
+Hide = Retire (reversible). Delete data requires: Retired ≥ 30 days, an export downloaded in the same session, typed language code, no unresolved sync differences, and `write_locales` (Shopify `shopLocaleDisable`). See [`docs/proposals/languages-as-data.md`](../proposals/languages-as-data.md) and [`docs/adr/0007-languages-as-data.md`](../adr/0007-languages-as-data.md).
 
 Run `pnpm translations:backfill --dry-run --strict` before enabling writes. Review the machine report and resolve missing identity, unsupported targets, draft translations, and binding conflicts. Apply only after approval, then run the same report again; a clean second run must plan no new bindings. Today this report only checks Portuguese completeness (`scripts/lib/translation-coverage.mjs` is not yet locale-generic) — for a language other than Portuguese, verify completeness manually via **Admin → Localization** until that tool is generalized.
 
@@ -31,7 +31,7 @@ Run `pnpm translations:backfill --dry-run --strict` before enabling writes. Revi
 
 Do these in order. Skipping a step is how storefront chrome stays in English after the locale already exists in admin. This is the only add-language checklist; field modes in detail live in [`translation-field-registry.md`](../wiki/translation-field-registry.md).
 
-1. **Locale registry.** On **Admin → Localization → Languages**, add the language (Draft). With `write_locales`, Synarava enables it unpublished in Shopify; otherwise add/enable in Markets manually, then **Check Shopify**. Publish when copy is ready (Restore/publish path or Markets + Check Shopify). The `StorefrontLocale` registry is the only routing source of truth ([ADR-0006](../adr/0006-languages-as-data.md)). Admin editors list every *registered* locale (including Draft/Retired with the show-retired toggle). The public switcher and sitemap list **Published** only. Draft URLs 404; Retired URLs **301** to the default language.
+1. **Locale registry.** On **Admin → Localization → Languages**, add the language (Draft). With `write_locales`, Synarava enables it unpublished in Shopify; otherwise add/enable in Markets manually, then **Check Shopify**. Publish when copy is ready (Restore/publish path or Markets + Check Shopify). The `StorefrontLocale` registry is the only routing source of truth ([ADR-0007](../adr/0007-languages-as-data.md)). Admin editors list every *registered* locale (including Draft/Retired with the show-retired toggle). The public switcher and sitemap list **Published** only. Draft URLs 404; Retired URLs **301** to the default language.
 
 2. **Messages file.** Run `pnpm messages:generate <code>` to draft `messages/<code>.json` from English (marked unreviewed). Register a static import in `lib/i18n/message-catalog.ts` so the client bundle includes it. English is the fallback for any missing key or missing catalog entry. Keep keys you intend to translate aligned with `messages/en.json` (the EN/PT key sets are required to match). For every storefront locale that ships a messages file, keep the full `product.*` key set (especially `product.specifications.*`) translated — missing keys make the RU/PT PDP show English chrome next to correctly localized passport labels from `lib/products/characteristics.ts`. Home Featured collections chrome lives under `home.archive.*`; material plate labels under `home.material.*`; final CTA eyebrow under `home.finalCta.eyebrow` (all editable in Shared → Home / `$app:storefront_copy`). Storefront URL prefixing uses `localePath` / `storefrontHref` — see [`docs/wiki/storefront-locale-urls.md`](../wiki/storefront-locale-urls.md).
 

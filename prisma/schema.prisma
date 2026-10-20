@@ -933,7 +933,7 @@ model TranslationCache {
   updatedAt DateTime @updatedAt
 }
 
-// Registry of storefront locales (ADR-0006). Lifecycle: Draft → Published →
+// Registry of storefront locales (ADR-0007). Lifecycle: Draft → Published →
 // Retired → Deleted (`deletedAt` set; translation rows removed, 301 kept).
 // `routeSegment` is operator-chosen; Shopify sync never overwrites it.
 // `isPublished` stays denormalized (= status == PUBLISHED) for existing readers.

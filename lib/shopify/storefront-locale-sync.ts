@@ -30,7 +30,7 @@ export async function syncStorefrontLocalesFromShopify(): Promise<StorefrontLoca
     const match = shopifyByLocale.get(row.shopifyLocale.toLowerCase());
     const shopifyPublished = match?.published ?? false;
     // Do not resurrect Deleted rows or flip Retired back to Draft from a
-    // Markets unpublish — retirement is an operator action (ADR-0006).
+    // Markets unpublish — retirement is an operator action (ADR-0007).
     if (row.deletedAt) {
       updated.push({
         code: row.code,

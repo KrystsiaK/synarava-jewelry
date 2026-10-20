@@ -3,7 +3,7 @@ import { isRegisteredRouteSegment } from "@/lib/i18n/registered-route-segments";
 /**
  * Leading `/{registeredSegment}` before `/` or end.
  * Built per call from the registry snapshot so a fourth language does not
- * require a code change (ADR-0006).
+ * require a code change (ADR-0007).
  */
 export function localePathPrefixRe(): RegExp {
   // Fallback pattern matches bootstrap-shaped segments if the snapshot is empty.

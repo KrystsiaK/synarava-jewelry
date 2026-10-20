@@ -1,6 +1,6 @@
 # Languages as data: add, hide, export and delete a storefront language
 
-**Status:** Part A implementing (ADR-0006). Owner Part B (scopes, staging rehearsal) still open.
+**Status:** Part A implementing (ADR-0007). Owner Part B (scopes, staging rehearsal) still open.
 **Scope:** one task, delivered as one PR with ordered milestone commits A1–A9.
 
 ## Goal

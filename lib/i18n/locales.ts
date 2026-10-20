@@ -3,7 +3,7 @@ import { isRegisteredRouteSegment } from "@/lib/i18n/registered-route-segments";
 /**
  * Bootstrapped locales that ship with the app (seed rows + message files).
  * Not a routing allowlist — `StorefrontLocale` via the cached registry is the
- * source of truth (ADR-0006 / languages-as-data Part A).
+ * source of truth (ADR-0007 / languages-as-data Part A).
  */
 export const BOOTSTRAP_LOCALES = [
   { code: "en", name: "English" },

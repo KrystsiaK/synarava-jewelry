@@ -130,7 +130,7 @@ export default async function RootLayout({
     getServerTranslations(),
     getPublishedStorefrontLocales(),
   ]);
-  // Language switcher reads published registry rows only (ADR-0006). Missing
+  // Language switcher reads published registry rows only (ADR-0007). Missing
   // messages/<code>.json falls back to English per key in TranslationProvider.
   const availableLocales = publishedLocales.map((locale) => ({
     code: locale.routeSegment,

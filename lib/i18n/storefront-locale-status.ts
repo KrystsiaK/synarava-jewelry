@@ -17,7 +17,7 @@ export function isPublishedFromStatus(status: StorefrontLocaleStatus): boolean {
 /**
  * Effective lifecycle including soft-deleted rows that retain 301 targets.
  * `deletedAt` wins over `status` so export/delete can clear translation data
- * while keeping the registry row for redirects (ADR-0006).
+ * while keeping the registry row for redirects (ADR-0007).
  */
 export function localeLifecycleState(locale: {
   status: StorefrontLocaleStatus;

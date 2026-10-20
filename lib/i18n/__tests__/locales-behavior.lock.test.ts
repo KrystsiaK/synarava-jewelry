@@ -1,6 +1,6 @@
 /**
  * A1 lock: en / pt / ru storefront behavior must stay identical while the
- * registry becomes the sole routing source of truth (see ADR-0006).
+ * registry becomes the sole routing source of truth (see ADR-0007).
  */
 import { beforeEach, describe, expect, it } from "vitest";
 

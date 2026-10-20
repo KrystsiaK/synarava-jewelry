@@ -1,4 +1,4 @@
-# ADR-0006: Languages as data (registry-driven storefront locales)
+# ADR-0007: Languages as data (registry-driven storefront locales)
 
 **Date**: 2026-10-21
 **Status**: accepted

@@ -206,7 +206,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Retired/Deleted locales keep their URLs alive as permanent redirects to the
-  // default language (ADR-0006 A3). Draft-only locales fall through to layout 404.
+  // default language (ADR-0007 A3). Draft-only locales fall through to layout 404.
   if (localeSegment && locales.length > 0) {
     const disposition = await resolveLocaleRequestDisposition({
       localeSegment,

@@ -9,7 +9,7 @@ import { flattenMessages } from "@/lib/i18n/utils";
 
 /**
  * Bundled UI dictionaries. A registered locale missing from this map falls
- * back to English per key (ADR-0006 A8). Add a static import here when a
+ * back to English per key (ADR-0007 A8). Add a static import here when a
  * generated `messages/<code>.json` is ready to ship in the client bundle.
  */
 const RAW_CATALOGS: Record<string, Record<string, unknown>> = {

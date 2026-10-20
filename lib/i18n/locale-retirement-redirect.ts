@@ -14,7 +14,7 @@ export type LocaleRequestDisposition =
 /**
  * Decide how a request for a registered locale segment should be handled.
  * Draft (never live) → 404. Published → allow. Retired/Deleted → permanent
- * 301 to the default-language equivalent (ADR-0006 A3).
+ * 301 to the default-language equivalent (ADR-0007 A3).
  */
 export function dispositionForLocaleSegment(
   locale: Pick<StorefrontLocaleRecord, "status" | "deletedAt" | "isDefault">,

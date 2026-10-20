@@ -27,7 +27,7 @@ const STORAGE_LOCALE_KEY = "synarava-locale";
 
 // Bundled dictionaries ship in the client bundle already, so a locale switch
 // never waits on a fetch. Locales without a catalog entry fall back to English
-// per key (ADR-0006 A8).
+// per key (ADR-0007 A8).
 const enFlat = getEnglishMessages();
 const dictionaries: Partial<Record<string, Record<string, string>>> = Object.fromEntries(
   listBundledMessageLocales().map((code) => [code, getFlatMessages(code)]),
