@@ -12,7 +12,7 @@ import {
   restoreLanguageAction,
 } from "@/app/admin/actions/languages";
 import { syncStorefrontLocalesAction } from "@/app/admin/actions/translation-sync";
-import { AdminTextField } from "@/components/synarava-cms";
+import { AdminButton, AdminTextField } from "@/components/synarava-cms";
 import type { LanguageBundle } from "@/lib/i18n/language-bundle";
 import {
   LOCALE_DELETE_RETENTION_DAYS,
@@ -109,10 +109,10 @@ export function LanguagesPanel({
             />
             Show retired
           </label>
-          <button type="button" className="adm-btn-ghost" onClick={checkShopify} disabled={pending}>
+          <AdminButton variant="ghost" onClick={checkShopify} disabled={pending}>
             <RefreshCw size={14} className={pending ? "animate-spin" : undefined} aria-hidden="true" />
             {pending ? "Working…" : "Check Shopify"}
-          </button>
+          </AdminButton>
         </div>
       </div>
 
@@ -165,45 +165,20 @@ export function LanguagesPanel({
                   <td className="py-2">
                     <div className="flex flex-wrap gap-2">
                       {!locale.isDefault && state === "published" ? (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost"
-                          disabled={pending}
-                          onClick={() => run("Hide", () => hideLanguageAction(locale.code))}
-                        >
+                        <AdminButton variant="ghost" disabled={pending} onClick={() => run("Hide", () => hideLanguageAction(locale.code))}>
                           Hide
-                        </button>
+                        </AdminButton>
                       ) : null}
                       {!locale.isDefault && state === "retired" ? (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost"
-                          disabled={pending}
-                          onClick={() => run("Restore", () => restoreLanguageAction(locale.code))}
-                        >
+                        <AdminButton variant="ghost" disabled={pending} onClick={() => run("Restore", () => restoreLanguageAction(locale.code))}>
                           Restore
-                        </button>
+                        </AdminButton>
                       ) : null}
                       {!locale.isDefault ? (
-                        <button
-                          type="button"
-                          className="adm-btn-ghost"
-                          disabled={pending}
-                          onClick={() =>
-                            run("Export", async () => {
-                              const result = await exportLanguageAction(locale.code);
-                              downloadBundle(result.bundle);
-                              setExportChecksums((current) => ({
-                                ...current,
-                                [locale.code]: result.bundle.checksum,
-                              }));
-                              return { success: `Exported ${locale.code}.` };
-                            })
-                          }
-                        >
+                        <AdminButton variant="ghost" disabled={pending} onClick={() => run("Export", async () => { const result = await exportLanguageAction(locale.code); downloadBundle(result.bundle); setExportChecksums((current) => ({ ...current, [locale.code]: result.bundle.checksum, })); return { success: `Exported ${locale.code}.` }; }) }>
                           <Download size={14} aria-hidden="true" />
                           Export
-                        </button>
+                        </AdminButton>
                       ) : null}
                       {!locale.isDefault && state === "retired" ? (
                         <div className="grid min-w-[12rem] gap-1">
@@ -218,26 +193,9 @@ export function LanguagesPanel({
                               }))
                             }
                           />
-                          <button
-                            type="button"
-                            className="adm-btn-ghost"
-                            disabled={pending || !canDelete}
-                            title={
-                              canDelete
-                                ? "Delete translation data"
-                                : `Export first; retention ${LOCALE_DELETE_RETENTION_DAYS} days`
-                            }
-                            onClick={() =>
-                              run("Delete", () =>
-                                deleteLanguageDataAction({
-                                  code: locale.code,
-                                  typedCode: typedCodes[locale.code] ?? "",
-                                  exportChecksum: exportChecksums[locale.code] ?? "",
-                                }))
-                            }
-                          >
+                          <AdminButton variant="ghost" disabled={pending || !canDelete} title={ canDelete ? "Delete translation data" : `Export first; retention ${LOCALE_DELETE_RETENTION_DAYS} days` } onClick={() => run("Delete", () => deleteLanguageDataAction({ code: locale.code, typedCode: typedCodes[locale.code] ?? "", exportChecksum: exportChecksums[locale.code] ?? "", })) }>
                             Delete data
-                          </button>
+                          </AdminButton>
                         </div>
                       ) : null}
                     </div>
@@ -292,14 +250,9 @@ export function LanguagesPanel({
             onChange={(event) => setDraft((current) => ({ ...current, nativeName: event.target.value }))}
           />
         </div>
-        <button
-          type="button"
-          className="adm-btn-primary w-fit"
-          disabled={pending}
-          onClick={() => run("Add", () => addLanguageAction(draft))}
-        >
+        <AdminButton variant="primary" className="w-fit" disabled={pending} onClick={() => run("Add", () => addLanguageAction(draft))}>
           Add
-        </button>
+        </AdminButton>
       </div>
 
       <div className="grid gap-2 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>

@@ -10,7 +10,7 @@ import {
 } from "@/app/admin/issues/actions";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert } from "@/components/synarava-cms";
+import { AdminButton, AdminAlert } from "@/components/synarava-cms";
 
 function formatDate(value: Date) {
   return new Intl.DateTimeFormat("en", {
@@ -145,15 +145,10 @@ export function AdminIssuesCms({ issues }: { issues: AdminIssueSummary[] }) {
             {openIssues.length} open · {resolvedIssues.length} resolved or ignored
           </p>
         </div>
-        <button
-          type="button"
-          className="adm-btn-primary inline-flex items-center justify-center gap-2"
-          onClick={runScan}
-          disabled={isPending}
-        >
+        <AdminButton variant="primary" className="inline-flex items-center justify-center gap-2" onClick={runScan} disabled={isPending}>
           <RefreshCw size={15} strokeWidth={1.8} className={isPending ? "animate-spin" : ""} />
           {isPending ? "Scanning..." : "Scan now"}
-        </button>
+        </AdminButton>
       </div>
 
       <AdminAlert message={state.error} />

@@ -5,7 +5,7 @@ description: >-
   AdminSelectField, AdminHrefField/Control, AdminCheckboxField/Control,
   AdminRichTextField default long copy, AdminLongTextField legacy,
   AdminCollapsiblePanel, AdminPanel, AdminNavTree, AdminSectionTabs,
-  AdminEntityList, AdminListWorkspace, AdminIconButton, AdminSignalChip, AdminSortChips,
+  AdminEntityList, AdminListWorkspace, AdminButton, AdminIconButton, AdminSignalChip, AdminSortChips,
   AdminStatusBadge, AdminOrderedList, AdminTextControl, AdminFieldShell). Import from @/components/synarava-cms.
   Use whenever editing admin UI, product/collection/page forms, CMS fields,
   validation chrome, labels, adornments, clearable inputs, shared/common
@@ -67,6 +67,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Section tabs + content well | `AdminSectionTabs` — one compact row. Each language button is its own hue (tint at rest, solid when selected). `AdminLocaleTabs` paints a 3px border of that color on the enclosing panel or form. Section tabs color their background |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
+| Text button (primary/secondary/ghost/danger) | `AdminButton` |
 | Icon action + tooltip | `AdminIconButton` |
 | Locale / problem / conflict glyph | `AdminSignalChip` |
 | Compact sort chips | `AdminSortChips` |

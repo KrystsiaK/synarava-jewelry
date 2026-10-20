@@ -6,7 +6,7 @@ import { Trash2 } from "lucide-react";
 
 import { deletePageAction } from "@/app/admin/actions/pages";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
-import { AdminAlert, AdminIconButton } from "@/components/synarava-cms";
+import { AdminButton, AdminAlert, AdminIconButton } from "@/components/synarava-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 
@@ -58,14 +58,9 @@ export function PageDeleteButton({
         </AdminIconButton>
       ) : (
         <div className="flex flex-col items-end gap-2">
-          <button
-            type="button"
-            onClick={() => setConfirmOpen(true)}
-            disabled={isPending}
-            className="adm-btn-danger"
-          >
+          <AdminButton variant="danger" onClick={() => setConfirmOpen(true)} disabled={isPending}>
             {isPending ? "Deleting..." : "Delete page"}
-          </button>
+          </AdminButton>
           <AdminAlert message={state.error} />
         </div>
       )}

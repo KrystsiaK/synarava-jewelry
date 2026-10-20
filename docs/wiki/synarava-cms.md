@@ -35,6 +35,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones; optional Shopify/Synarava groups) |
 | `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
 | `AdminListWorkspace` | Sticky list chrome (`Root` / `Header` / `Filters` / `Body`) over `AdminPanel` |
+| `AdminButton` | Text button (`primary` / `secondary` / `ghost` / `danger`) — reuses `.adm-btn-*` |
 | `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
 | `AdminSignalChip` | Locale / problem / conflict glyph + tooltip (`empty`/`partial`/`progress`/`ok`; `danger` only for real errors) |
 | `AdminSortChips` | Compact sort chip bar |
@@ -114,6 +115,23 @@ The help mark is a blue Playfair italic **i** (`--adm-info`), larger than the ki
 `AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
 
 Library controls share one press: buttons, icon buttons, help, checkboxes, sort chips, and signal chips scale to `0.97` on pointer-down (`100ms`) and sit still when motion is reduced. Fields focus with the accent at 24% mix, so light and dark use the same ring. Collapsible panels open on a 280ms settle. Secondary actions use `.adm-btn-secondary`, the same chrome as `.adm-btn-ghost`.
+
+### Button
+
+```tsx
+import { AdminButton } from "@/components/synarava-cms";
+
+<AdminButton variant="primary">Save product</AdminButton>
+<AdminButton variant="secondary" leadingIcon={<ArrowUpFromLine />}>Push</AdminButton>
+<AdminButton variant="ghost" busy>Checking…</AdminButton>
+<AdminButton variant="danger" disabled>Delete</AdminButton>
+```
+
+- One chrome per variant: `.adm-btn-primary` / `.adm-btn-secondary` / `.adm-btn-ghost` / `.adm-btn-danger` (no new button styles).
+- Default `type="button"`. `busy` disables the control and sets `aria-busy` (callers own busy label copy).
+- `leadingIcon` is optional before the label (gap from `.adm-btn-*`).
+- Icon-only square actions stay on `AdminIconButton` (`.adm-icon-btn`).
+- Story: `synarava-cms/AdminButton`.
 
 ### Text
 
@@ -618,6 +636,27 @@ Never put tall follow-on panels inside the same `adm-field-unit` as the absolute
 When adding a new control type, extend **synarava-cms** first (implementation under `admin/shared`, re-export from `components/synarava-cms`); update this doc and the skill in the same change.
 
 **Not synarava-cms:** cross-surface chrome shared with the storefront (ephemeral toast, storefront modal shell, tooltip) belongs in `components/ui/` — see [`ephemeral-toast.md`](ephemeral-toast.md) and [`ui-kit.md`](ui-kit.md).
+
+## Storybook
+
+Stories live next to the implementation under `components/admin/shared/*.stories.tsx`
+(title prefix `synarava-cms/…`). Prefer a `BothThemes` (or Light/Dark) story that
+shows default, disabled, and busy/error where the control supports them.
+
+| Story | Component |
+|-------|-----------|
+| `synarava-cms/AdminButton` | `AdminButton` |
+| `synarava-cms/AdminCheckboxField` | `AdminCheckboxField` / `AdminCheckboxControl` |
+| `synarava-cms/AdminHrefField` | `AdminHrefField` |
+| `synarava-cms/AdminFieldShell` | `AdminFieldShell` |
+| `synarava-cms/AdminIconButton` | `AdminIconButton` |
+| `synarava-cms/AdminStatusBadge` | `AdminStatusBadge` |
+| `synarava-cms/AdminSignalChip` | `AdminSignalChip` |
+| `synarava-cms/AdminSortChips` | `AdminSortChips` |
+| `synarava-cms/AdminPanel` | `AdminPanel` |
+| `synarava-cms/AdminEntityList` | `AdminEntityList` |
+| `synarava-cms/AdminConfirmModal` | `AdminConfirmModal` |
+| `synarava-cms/AdminToast` | `AdminToastProvider` / `useAdminToast` (adapter) |
 
 ## Graphify
 
