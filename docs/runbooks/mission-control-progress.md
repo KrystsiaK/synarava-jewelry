@@ -138,7 +138,7 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-20T15:52:00Z] Collector Telegram alert body uses the node’s `fixHint` (still only on transitions into warn/down).
 - [2026-10-20T15:55:00Z] Tests: wiring-config fix contract; canvas/list hint show/hide; collector alert contains hint.
 
-**Stage 6 status:** in progress — PR → `staging` (ready, not merged).
+**Stage 6 status:** PR [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205) → `staging`, ready for review (not merged). Waiting CI.
 
 ---
 
