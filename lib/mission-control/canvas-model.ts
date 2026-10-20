@@ -31,6 +31,8 @@ export type MissionControlNodeData = {
   fixHint: string | null;
   /** Static AI prompt from WiringConfig — copy-only; absent for placeholders. */
   fixPrompt: string | null;
+  /** Fixture-backed node with no live provider yet. */
+  placeholder: boolean;
 };
 
 export type MissionControlCanvasNode = Node<MissionControlNodeData>;
@@ -88,7 +90,7 @@ export function collectWidgetKeys(
 function layoutPosition(index: number): { x: number; y: number } {
   const col = index % 3;
   const row = Math.floor(index / 3);
-  return { x: col * 220, y: row * 120 };
+  return { x: col * 272, y: row * 164 };
 }
 
 export type BuildCanvasGraphInput = {
@@ -97,6 +99,7 @@ export type BuildCanvasGraphInput = {
   nodeStatuses?: readonly ServiceNodeStatusRecord[];
   flowStatuses?: readonly ServiceFlowStatusRecord[];
   nowMs?: number;
+  placeholderNodeKeys?: readonly string[];
 };
 
 /**
@@ -109,6 +112,7 @@ export function buildCanvasGraph({
   nodeStatuses = [],
   flowStatuses = [],
   nowMs = Date.now(),
+  placeholderNodeKeys = [],
 }: BuildCanvasGraphInput): {
   nodes: MissionControlCanvasNode[];
   edges: MissionControlCanvasEdge[];
@@ -117,6 +121,7 @@ export function buildCanvasGraph({
   const nodeStatusMap = statusByNodeKey(nodeStatuses);
   const flowStatusMap = flowByBusKey(flowStatuses);
   const widgetKeys = collectWidgetKeys(config, catalog);
+  const placeholderKeys = new Set(placeholderNodeKeys);
 
   const fixConfig =
     "nodes" in config && Array.isArray(config.nodes)
@@ -141,6 +146,7 @@ export function buildCanvasGraph({
         accentColor: statusLevelColor(level),
         fixHint: fix?.fixHint?.trim() || null,
         fixPrompt: fix?.fixPrompt?.trim() || null,
+        placeholder: placeholderKeys.has(widgetKey),
       },
       draggable: false,
       connectable: false,

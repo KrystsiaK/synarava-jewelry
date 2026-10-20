@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { MissionControlFixGuidance } from "@/components/admin/mission-control/mission-control-fix-guidance";
+import { ExternalLink } from "lucide-react";
+import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
 import type { MissionControlCanvasEdge, MissionControlCanvasNode } from "@/lib/mission-control/canvas-model";
 
 type MissionControlMobileListProps = {
@@ -10,31 +10,19 @@ type MissionControlMobileListProps = {
 };
 
 /**
- * Mobile graceful degrade: collapsible node list (no React Flow canvas).
+ * Mobile/tablet graceful degrade: stable service list (no horizontal canvas).
  */
 export function MissionControlMobileList({
   nodes,
   edges,
 }: MissionControlMobileListProps) {
-  const [open, setOpen] = useState(true);
-
   return (
-    <div
-      className="rounded-lg border border-border-subtle bg-panel"
-      data-testid="mc-mobile-list"
-    >
-      <button
-        type="button"
-        className="flex w-full items-center justify-between px-4 py-3 text-left text-sm font-medium text-ink"
-        aria-expanded={open}
-        data-testid="mc-mobile-list-toggle"
-        onClick={() => setOpen((prev) => !prev)}
-      >
-        <span>Services ({nodes.length})</span>
-        <span className="text-xs text-muted-ink">{open ? "Hide" : "Show"}</span>
-      </button>
-      {open ? (
-        <ul className="space-y-2 border-t border-border-subtle px-4 py-3" data-testid="mc-mobile-list-items">
+    <section className="mc-service-list" data-testid="mc-mobile-list" aria-labelledby="mc-service-list-title">
+      <div className="mc-service-list__header">
+        <h2 id="mc-service-list-title">Service map</h2>
+        <span>{nodes.length} services</span>
+      </div>
+      <ul className="mc-service-list__grid" data-testid="mc-mobile-list-items">
           {nodes.map((node) => {
             const related = edges.filter(
               (edge) => edge.source === node.id || edge.target === node.id,
@@ -42,42 +30,31 @@ export function MissionControlMobileList({
             return (
               <li
                 key={node.id}
-                className="rounded-md border px-3 py-2"
-                style={{
-                  borderColor: node.data.accentColor,
-                  backgroundColor: `${node.data.accentColor}14`,
-                }}
+                className="mc-service-row"
                 data-testid={`mc-list-node-${node.id}`}
                 data-level={node.data.level}
               >
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium text-ink">{node.data.label}</span>
-                  <span className="text-[10px] uppercase tracking-wider text-muted-ink">
-                    {node.data.level}
-                  </span>
+                <div className="mc-service-row__topline">
+                  <div className="min-w-0">
+                    <p className="mc-service-row__name">{node.data.label}</p>
+                    {node.data.placeholder ? <span className="mc-demo-label">Demo node</span> : null}
+                  </div>
+                  <MissionControlStatusMark level={node.data.level} />
                 </div>
-                {node.data.message ? (
-                  <p className="mt-1 text-xs text-muted-ink">{node.data.message}</p>
-                ) : null}
+                <p className="mc-service-row__message">{node.data.message || "No status message"}</p>
                 {node.data.href ? (
                   <a
                     href={node.data.href}
-                    className="mt-1 inline-block text-xs underline"
+                    className="mc-service-row__link"
                     target={node.data.href.startsWith("http") ? "_blank" : undefined}
                     rel={node.data.href.startsWith("http") ? "noreferrer" : undefined}
                   >
-                    Open
+                    <span>Open service</span><ExternalLink aria-hidden="true" />
                   </a>
                 ) : null}
-                <MissionControlFixGuidance
-                  widgetKey={node.data.widgetKey}
-                  level={node.data.level}
-                  fixHint={node.data.fixHint}
-                  fixPrompt={node.data.fixPrompt}
-                />
                 {related.length > 0 ? (
-                  <p className="mt-1 text-[11px] text-muted-ink">
-                    Links:{" "}
+                  <p className="mc-service-row__flows">
+                    Flows ·{" "}
                     {related
                       .map((edge) =>
                         typeof edge.label === "string" ? edge.label : edge.id,
@@ -88,8 +65,7 @@ export function MissionControlMobileList({
               </li>
             );
           })}
-        </ul>
-      ) : null}
-    </div>
+      </ul>
+    </section>
   );
 }

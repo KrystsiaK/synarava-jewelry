@@ -1,5 +1,5 @@
 import { createElement, type ComponentType, type ReactNode } from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { MissionControlCanvas } from "@/components/admin/mission-control/mission-control-canvas";
 import { MissionControlStatusNode } from "@/components/admin/mission-control/mission-control-status-node";
@@ -12,7 +12,18 @@ import {
 } from "@/lib/mission-control/fixtures";
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
+const motionState = vi.hoisted(() => ({ reduced: false }));
+
+vi.mock("motion/react", () => ({
+  useReducedMotion: () => motionState.reduced,
+}));
+
 vi.mock("@xyflow/react", () => ({
+  Handle: ({ isConnectable, ...props }: Record<string, unknown>) => {
+    void isConnectable;
+    return createElement("span", props);
+  },
+  Position: { Left: "left", Right: "right" },
   ReactFlowProvider: ({ children }: { children: ReactNode }) =>
     createElement("div", { "data-testid": "rf-provider" }, children),
   ReactFlow: ({
@@ -87,7 +98,7 @@ describe("MissionControlCanvas render", () => {
     ).toHaveAttribute("data-animated", "false");
   });
 
-  it("renders a collapsible mobile list", () => {
+  it("renders the same services as a mobile list without a canvas", () => {
     render(<MissionControlCanvas {...sharedProps} layout="list" />);
 
     expect(screen.getByTestId("mc-mobile-list")).toBeInTheDocument();
@@ -100,10 +111,6 @@ describe("MissionControlCanvas render", () => {
       "unknown",
     );
 
-    fireEvent.click(screen.getByTestId("mc-mobile-list-toggle"));
-    expect(screen.queryByTestId("mc-mobile-list-items")).not.toBeInTheDocument();
-
-    fireEvent.click(screen.getByTestId("mc-mobile-list-toggle"));
     expect(screen.getByTestId("mc-mobile-list-items")).toBeInTheDocument();
   });
 
@@ -120,6 +127,7 @@ describe("MissionControlCanvas render", () => {
           accentColor: statusLevelColor("ok"),
           fixHint: "unused when ok",
           fixPrompt: "unused when ok",
+          placeholder: false,
         }}
         type="missionControl"
         dragging={false}
@@ -139,54 +147,21 @@ describe("MissionControlCanvas render", () => {
     );
   });
 
-  it("shows fix hint for warn/down and not for ok", () => {
+  it("never renders fix hints or prompts inside node cards", () => {
     render(<MissionControlCanvas {...sharedProps} layout="graph" />);
 
     expect(screen.queryByTestId("mc-fix-hint-site-health")).not.toBeInTheDocument();
-    expect(screen.getByTestId("mc-fix-hint-shopify-sync")).toBeInTheDocument();
-    expect(screen.getByTestId("mc-copy-prompt-shopify-sync")).toBeInTheDocument();
-
-    expect(screen.getByTestId("mc-fix-hint-sentry")).toBeInTheDocument();
+    expect(screen.queryByTestId("mc-fix-hint-shopify-sync")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mc-copy-prompt-shopify-sync")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mc-fix-hint-sentry")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mc-copy-prompt-sentry")).not.toBeInTheDocument();
   });
 
-  it("shows fix hint and Copy prompt for a down node", () => {
-    render(
-      <MissionControlStatusNode
-        id="site-health"
-        data={{
-          widgetKey: "site-health",
-          label: "Site health",
-          level: "down",
-          message: "health unavailable",
-          href: "/api/health",
-          accentColor: statusLevelColor("down"),
-          fixHint: "Check /api/health first.",
-          fixPrompt: "Investigate read-only first; never run prisma migrate",
-        }}
-        type="missionControl"
-        dragging={false}
-        zIndex={1}
-        selectable={false}
-        deletable={false}
-        selected={false}
-        draggable={false}
-        isConnectable={false}
-        positionAbsoluteX={0}
-        positionAbsoluteY={0}
-      />,
-    );
-
-    expect(screen.getByTestId("mc-fix-hint-site-health")).toHaveTextContent(
-      "Check /api/health first.",
-    );
-    expect(screen.getByTestId("mc-copy-prompt-site-health")).toBeInTheDocument();
-  });
-
-  it("shows fix hint in the mobile list for warn nodes only", () => {
-    render(<MissionControlCanvas {...sharedProps} layout="list" />);
-
-    expect(screen.queryByTestId("mc-fix-hint-site-health")).not.toBeInTheDocument();
-    expect(screen.getByTestId("mc-fix-hint-shopify-sync")).toBeInTheDocument();
+  it("disables fresh-edge animation when reduced motion is requested", () => {
+    motionState.reduced = true;
+    render(<MissionControlCanvas {...sharedProps} layout="graph" />);
+    expect(screen.getByTestId("mc-canvas-graph")).toHaveAttribute("data-reduced-motion", "true");
+    expect(screen.getByTestId("mc-edge-site_to_db:site-health->db")).toHaveAttribute("data-animated", "false");
+    motionState.reduced = false;
   });
 });

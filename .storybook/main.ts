@@ -18,6 +18,8 @@ const config: StorybookConfig = {
       "next/image": resolve(__dirname, "./mocks/next-image.tsx"),
       "next/link": resolve(__dirname, "./mocks/next-link.tsx"),
       "next/navigation": resolve(__dirname, "./mocks/next-navigation.ts"),
+      "server-only": resolve(__dirname, "./mocks/server-only.ts"),
+      "node:crypto": resolve(__dirname, "./mocks/node-crypto.ts"),
     };
     return config;
   },

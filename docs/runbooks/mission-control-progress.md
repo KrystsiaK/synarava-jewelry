@@ -6,6 +6,36 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Redesign brief — operational hub
+
+**Users.** The owner operates Synarava alone across roughly fifteen services and
+needs a dependable, low-cognitive-load view that works during quick checks as
+well as incident triage.
+
+**Jobs.** Within five seconds the screen must answer four questions: is the
+system healthy, what needs attention, where has data stopped flowing, and what
+is the safest next step. It must also make a stale collector unmistakable so a
+silent monitoring failure cannot look like an all-clear.
+
+**Hierarchy.** First: a compact status summary and collector recency. Second: a
+fixed-geometry, read-only service map whose nodes communicate state without
+color alone and whose edges animate only for fresh observed flow. Third: a calm,
+severity-sorted Needs attention list containing the complete fix guidance and
+copy-only prompt. On mobile, the same facts become a thumb-friendly vertical
+list with no horizontal canvas.
+
+**Decisions.** Keep topology and remediation separate so long hints can never
+distort the map. Preserve the existing WiringConfig, providers, collector,
+schema, and read-only contract. Reuse `@synarava/shell-kit`,
+`@synarava/wiring-engine`, React Flow, and Synarava admin primitives rather than
+introducing a new UI framework. Use the project’s porcelain/graphite surfaces,
+Hanken Grotesk UI type, restrained Cormorant display moments, and a blueprint
+grid expressed through hairlines and ports—not terminal cosplay. Motion is
+state-bearing, interruptible, and reduced-motion safe; demo-backed placeholders
+remain explicitly labeled.
+
+---
+
 ## Этап 1 — Подключить пакеты
 
 - [2026-10-17T21:12:00Z] Read ADR-0005 and plan §0 (Simplicity Contract) + Stage 1 DoD in full before any package install / code.
@@ -140,6 +170,16 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 - [2026-10-20T15:57:00Z] CI green on HEAD `4df47107` (Path filter + Quality Gates + Storefront smoke, push + pull_request). PR #205 ready for review (not merged).
 
 **Stage 6 status:** PR [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205) → `staging`, ready for review (not merged). CI green.
+
+---
+
+## Product-screen redesign
+
+- [2026-10-20] Reframed the hub around a five-second scan: system counts and collector recency first, fixed-size service topology second, severity-sorted remediation third. The live map stays read-only; links and clipboard copy remain its only actions.
+- [2026-10-20] Rebuilt service nodes as compact `BaseWidget` cards with real React Flow ports, one-line status copy, shape/icon/text state cues, explicit demo-node labels, and fresh-only edge animation. Long `fixHint` text now lives exclusively in Needs attention.
+- [2026-10-20] Added responsive list presentation for phone/tablet, explicit stale-collector and demo-data states, light/dark token styling, visible keyboard focus, and reduced-motion flow suppression.
+- [2026-10-20] Added Storybook fixtures for mixed states, very long hint, 1 node, 12 nodes, stale collector, all-ok, and all-down. Captured light/dark evidence at 1440, 768, and 390 pixels in `docs/assets/mission-control/`.
+- [2026-10-20] Added render coverage for node/hint separation, exact live-node attention filtering and severity order, stale collector visibility, and reduced-motion edge behavior. No database command or access; no provider, collector, schema, migration, or data-flow changes.
 
 ---
 
