@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import {
   localePath,
@@ -6,6 +6,11 @@ import {
   stripLocalePrefix,
   toLocaleFreeHref,
 } from "@/lib/i18n/routing";
+import { resetRegisteredRouteSegmentsForTests } from "@/lib/i18n/registered-route-segments";
+
+beforeEach(() => {
+  resetRegisteredRouteSegmentsForTests();
+});
 
 describe("stripLocalePrefix / toLocaleFreeHref", () => {
   it("strips leading locale segments and leaves bare paths alone", () => {

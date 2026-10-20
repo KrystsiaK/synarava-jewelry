@@ -1,5 +1,6 @@
 import "server-only";
 
+import { setRegisteredRouteSegments } from "./registered-route-segments";
 import { listStorefrontLocales, type StorefrontLocaleRecord } from "./storefront-locale-registry";
 
 const TTL_MS = 30_000;
@@ -37,16 +38,22 @@ export async function getStorefrontLocales(): Promise<StorefrontLocaleRecord[]> 
     const locales = await listStorefrontLocales();
     if (locales.length === 0) {
       console.error("[storefront-locale-cache] registry empty; using emergency en fallback");
+      setRegisteredRouteSegments(EMERGENCY_FALLBACK_LOCALES.map((locale) => locale.routeSegment));
       return EMERGENCY_FALLBACK_LOCALES;
     }
     cache = { locales, expiresAt: now + TTL_MS };
+    setRegisteredRouteSegments(locales.map((locale) => locale.routeSegment));
     return locales;
   } catch (error) {
     // ponytail: serve the last-known-good snapshot on a transient DB error
     // rather than take routing down; a real outage self-heals once the DB
     // recovers and the next request's cache read succeeds.
-    if (cache) return cache.locales;
+    if (cache) {
+      setRegisteredRouteSegments(cache.locales.map((locale) => locale.routeSegment));
+      return cache.locales;
+    }
     console.error("[storefront-locale-cache] registry read failed with no cached fallback", error);
+    setRegisteredRouteSegments(EMERGENCY_FALLBACK_LOCALES.map((locale) => locale.routeSegment));
     return EMERGENCY_FALLBACK_LOCALES;
   }
 }

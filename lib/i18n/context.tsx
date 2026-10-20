@@ -6,13 +6,14 @@ import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "./utils";
-import { normalizeLocale, SUPPORTED_LOCALES, type Locale } from "./locales";
+import { BOOTSTRAP_LOCALES, normalizeLocale, type Locale } from "./locales";
 import { glueOrphanPunctuation } from "@/lib/text/glue-orphan-punctuation";
-import { LOCALE_PATH_PREFIX_RE, localePath } from "./routing";
+import { localePath, pathLocaleSegment, stripLocalePrefix } from "./routing";
+import { setRegisteredRouteSegments } from "./registered-route-segments";
 
 export type { Locale } from "./locales";
 
-type AvailableLocale = (typeof SUPPORTED_LOCALES)[number];
+export type AvailableLocale = { code: string; name: string };
 
 type TranslationContextValue = {
   locale: Locale;
@@ -37,7 +38,7 @@ const enFlat = flattenMessages(en as Record<string, unknown>);
 // Not every registered locale has a static dictionary file — `dictionaries[locale]`
 // is simply undefined for those, and `t()` below already falls back to
 // `enFlat` for any key it can't find.
-const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
+const dictionaries: Partial<Record<string, Record<string, string>>> = {
   en: enFlat,
   pt: flattenMessages(pt as Record<string, unknown>),
   ru: flattenMessages(ru as Record<string, unknown>),
@@ -49,13 +50,13 @@ const TranslationContext = createContext<TranslationContextValue>({
   t: (key, values) => interpolate(enFlat[key] ?? key, values),
   plural: (key, count, values) => interpolate(enFlat[`${key}.${count === 1 ? "one" : "other"}`] ?? key, { ...values, count }),
   loading: false,
-  availableLocales: SUPPORTED_LOCALES,
+  availableLocales: BOOTSTRAP_LOCALES,
 });
 
 export function TranslationProvider({
   initialLocale = "en",
   initialOverrides,
-  availableLocales = SUPPORTED_LOCALES,
+  availableLocales = BOOTSTRAP_LOCALES,
   children,
 }: {
   initialLocale?: string;
@@ -65,12 +66,24 @@ export function TranslationProvider({
 }) {
   const router = useRouter();
   const pathname = usePathname();
+  // Keep client path helpers in sync with the registry-backed switcher list
+  // (plus bootstrap) so stripLocalePrefix never treats /shop as a locale.
+  const segmentCodes = useMemo(() => {
+    const codes = new Set<string>(BOOTSTRAP_LOCALES.map((locale) => locale.code));
+    for (const locale of availableLocales) codes.add(locale.code);
+    return [...codes];
+  }, [availableLocales]);
+
+  useEffect(() => {
+    setRegisteredRouteSegments(segmentCodes);
+  }, [segmentCodes]);
+
   // The URL is the single source of truth for locale (REV-21) — a useState here
   // survives client-side navigation (root layout never remounts), so browser
   // back/forward or a plain Link to a /pt/... route used to leave the previous
   // locale's dictionary in place. Deriving from pathname on every render means
   // there's no stored locale to go stale: it's re-read on every navigation.
-  const pathLocale = pathname.match(LOCALE_PATH_PREFIX_RE)?.[1];
+  const pathLocale = pathLocaleSegment(pathname);
   const locale = normalizeLocale(pathLocale ?? initialLocale);
   const messages = useMemo(
     () => ({ ...dictionaries[locale], ...initialOverrides?.[locale] }),
@@ -89,7 +102,7 @@ export function TranslationProvider({
     // would force this whole subtree (the root layout wraps every page) out of
     // static rendering — setLocale only ever runs from a click handler, never
     // during render, so this is safe.
-    const rest = pathname.replace(LOCALE_PATH_PREFIX_RE, "");
+    const rest = stripLocalePrefix(pathname);
     const { search, hash } = window.location;
     router.push(`${localePath(newLocale, rest === "" ? "/" : rest)}${search}${hash}`);
   }

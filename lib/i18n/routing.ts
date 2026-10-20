@@ -1,19 +1,41 @@
-import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
+import { isRegisteredRouteSegment } from "@/lib/i18n/registered-route-segments";
 
-/** Leading `/en` | `/pt` | `/ru` (and any registered locale) before `/` or end. */
-export const LOCALE_PATH_PREFIX_RE = new RegExp(
-  `^/(${SUPPORTED_LOCALES.map((locale) => locale.code).join("|")})(?=/|$)`,
-  "i",
-);
+/**
+ * Leading `/{registeredSegment}` before `/` or end.
+ * Built per call from the registry snapshot so a fourth language does not
+ * require a code change (ADR-0006).
+ */
+export function localePathPrefixRe(): RegExp {
+  // Fallback pattern matches bootstrap-shaped segments if the snapshot is empty.
+  return /^\/([a-z0-9-]+)(?=\/|$)/i;
+}
+
+/** @deprecated Use localePathPrefixRe() — kept for call sites that need a RegExp. */
+export const LOCALE_PATH_PREFIX_RE = /^\/([a-z0-9-]+)(?=\/|$)/i;
+
+function matchRegisteredLocalePrefix(path: string): RegExpMatchArray | null {
+  const match = path.match(localePathPrefixRe());
+  if (!match) return null;
+  const segment = match[1]?.toLowerCase();
+  if (!segment || !isRegisteredRouteSegment(segment)) return null;
+  return match;
+}
+
+/** First path segment when it is a registered storefront locale; otherwise null. */
+export function pathLocaleSegment(path: string): string | null {
+  const match = matchRegisteredLocalePrefix(path.trim());
+  return match?.[1]?.toLowerCase() ?? null;
+}
 
 /**
  * Strip a leading storefront locale segment from an internal path.
  * `/pt/shop` → `/shop`, `/ru` → `/`, `/shop` → `/shop`.
+ * Only strips segments present in the registry snapshot.
  */
 export function stripLocalePrefix(path: string): string {
   const trimmed = path.trim();
   if (!trimmed.startsWith("/")) return trimmed;
-  const match = trimmed.match(LOCALE_PATH_PREFIX_RE);
+  const match = matchRegisteredLocalePrefix(trimmed);
   if (!match) return trimmed;
   const rest = trimmed.slice(match[0].length);
   if (rest === "" || rest === "/") return "/";
