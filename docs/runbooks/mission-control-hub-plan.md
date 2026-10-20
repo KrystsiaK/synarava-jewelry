@@ -72,6 +72,23 @@
 
 ## 1. Карта: что переиспользуем, что строим
 
+### Owner-approved v1.1 interaction amendment (2026-10-20)
+
+[ADR-0006](../adr/0006-architecture-map.md) supersedes the earlier
+“drag-to-edit forbidden” wording only for local presentation. Node cards may be
+dragged without changing connections; positions are remembered per browser in
+guarded `localStorage` using environment + config version and can be reset to
+the repository defaults. The graph configuration and connections remain
+read-only, the JSON file remains the single source of truth, and nothing is
+saved to the database or repository from the hub.
+
+Allowed controls are: links, prompt copy, opening/closing the node inspector,
+dragging nodes, resetting layout, and switching the displayed environment. No
+control may act on a service. Live status always describes the deployment that
+rendered the page; environment switching must never query another environment's
+database. Nodes may be `live`, `info`, or `placeholder`; only live nodes have a
+provider/status. Directed flows are explicitly `continuous` or `event`.
+
 | Понятие хаба | Источник |
 |---|---|
 | Узел-сервис | `defineWidget` / `WidgetDefinition` (`@synarava/wiring-engine`) |

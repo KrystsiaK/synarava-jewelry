@@ -1,5 +1,11 @@
 # Product
 
+<!-- impeccable:product-schema 1 -->
+
+## Platform
+
+web
+
 ## Users
 
 Synarava staff, founders, editors, and merchandisers use the admin area to maintain a small luxury jewelry storefront. They work in focused sessions: synchronizing and enriching products, shaping collections and editorial pages, managing shared media, and resolving content-quality issues before publication.
@@ -7,6 +13,53 @@ Synarava staff, founders, editors, and merchandisers use the admin area to maint
 ## Product Purpose
 
 Synarava is an online shop of jewelry and accessories (plus related curated goods) with a lightweight CMS. The admin exists to keep catalog, collection, and editorial content accurate, publishable, and safe to edit without engineering help.
+
+Success means customers can discover and buy a coherent, localized catalog while
+the owner can maintain commerce and editorial presentation without creating a
+second source of truth or depending on an engineer for routine content work.
+
+## Positioning
+
+Synarava combines a Shopify-owned commerce backbone with a deliberately separate
+editorial layer. Shopify remains authoritative for sellability, catalog identity,
+checkout, orders, and customer accounts; Synarava adds the localized storytelling,
+merchandising structure, product passport, media, and storefront composition that
+the brand requires. The admin makes that ownership boundary visible instead of
+presenting a generic all-in-one commerce database.
+
+## Operating Context
+
+- The primary operator runs the store in focused admin sessions spanning catalog
+  synchronization, product enrichment, collections, localized pages, shared media,
+  SEO, and content-quality issues.
+- English is the base commerce content. Portuguese and Russian are supported by
+  the locale registry and are reviewed independently; only Shopify-published
+  locales appear in the storefront language switcher.
+- Shopify Admin and Translate & Adapt remain part of the workflow. Synarava Pull,
+  Push, refresh, and reconciliation make ownership and conflicts explicit.
+- The storefront and admin deploy as the `synarava-web` Railway service. Shopify
+  hosts checkout and customer sign-in; S3-compatible storage holds shared media.
+- Mission Control is a read-only operational map. It summarizes live health and
+  architecture, but may only navigate, copy guidance, switch metadata views, and
+  persist a local canvas layout.
+
+## Capabilities and Constraints
+
+- Shopify is the sole commerce backend. Synarava stores a synchronized storefront
+  projection and an explicit editorial layer; it must not become a parallel order,
+  customer, taxonomy, or full commerce store.
+- Product administration follows **Shopify skeleton + Synarava sections**. Every
+  supported Shopify field belongs to the Shopify cluster; local-only editorial
+  content belongs to the Synarava cluster.
+- Shared commerce fields use one normalized Shopify-shaped snapshot before save
+  and compare, followed by deep diff. Concurrent edits require an explicit winner.
+- Admin authentication is a single operator role backed by environment credentials
+  and an HMAC-verified session. Customer identity and sessions belong to Shopify.
+- Content, media, locale structure, and visibility controls must preserve saved
+  work when hidden, switched, pulled, or reconciled.
+- Operational and AI tooling is read-only unless a separately reviewed workflow
+  explicitly authorizes a mutation. Database migrations and production writes
+  remain guarded procedures, never incidental UI behavior.
 
 ## Current Product Surfaces
 
@@ -37,22 +90,43 @@ Shop filters run against the catalog already loaded in the browser. Applying, re
 
 Shopify taxonomy categories and collections serve different purposes. A product has one exact Shopify Standard Product Taxonomy category ID, which powers the storefront category tiles and category filter. Products can belong to multiple Shopify collections, which remain merchandising groups. The local database is a synchronized storefront projection of those Shopify identities, not a parallel category system.
 
-## Brand Personality
+## Brand Commitments
 
 Quiet, ceremonial, precise. The public brand is editorial and museum-like; the admin should translate that into a calm console rather than a decorative marketing surface.
+
+The product name is Synarava. Existing jewelry photography, localized editorial
+copy, catalog records, legal content, and the committed storefront/admin design
+system are real product assets; future work must preserve their ownership and
+must not fabricate product claims, reviews, rankings, or operational certainty.
 
 ## Anti-references
 
 Avoid generic SaaS dashboards, neon terminal themes, over-decorated glassmorphism, weak low-contrast metadata, and noisy command-center language that makes ordinary content tasks feel technical.
 
-## Design Principles
+## Evidence on Hand
 
-- Preserve the brand atmosphere while making every CMS task legible and calm.
-- Make publishing state, draft risk, and locale scope visible before the user edits.
-- Keep the interface dense enough for repeated work, but never cryptic.
-- Prefer reusable admin primitives over one-off page styling.
-- Treat destructive actions and authentication changes as high-friction, clearly explained workflows.
-- Preserve hidden CMS content so editors can safely stage and restore sections without rebuilding them.
+- Implemented storefront, admin, customer-account, Mission Control, and API routes
+  in `app/`, with component stories and automated tests alongside the code.
+- Current architecture and ownership contracts in `docs/wiki/architecture.md`,
+  `docs/wiki/product-data-ownership.md`, and `docs/wiki/commerce-sync.md`.
+- Hard-to-reverse decisions in `docs/adr/`, including Shopify-only commerce and
+  the Mission Control read-only architecture-map boundary.
+- Operational runbooks and test matrices in `docs/runbooks/` and `docs/testing/`.
+- Real catalog, merchandising, media, locale, and operational data exist in the
+  connected systems; the repository does not provide permission to invent missing
+  testimonials, performance claims, popularity rankings, or vendor-dashboard URLs.
+
+## Product Principles
+
+- Preserve Shopify as commerce truth; enrich it without duplicating it.
+- Make ownership, publishing state, draft risk, locale scope, and conflicts visible
+  before the operator changes anything.
+- Keep routine solo operation calm, reversible, and possible without engineering
+  help while making destructive or identity-changing work deliberately high-friction.
+- Preserve curated content through hiding, localization, synchronization, and
+  reconciliation rather than forcing editors to rebuild it.
+- Prefer verified system data and honest unknown states over fabricated fallbacks,
+  metrics, rankings, or assurances.
 
 ## Accessibility & Inclusion
 

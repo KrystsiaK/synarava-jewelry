@@ -1,11 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useReducedMotion } from "motion/react";
 import {
   Background,
+  Controls,
+  MiniMap,
   ReactFlow,
   ReactFlowProvider,
+  useNodesState,
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
@@ -20,6 +23,8 @@ import type {
   ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
 import type { MissionControlWiringConfig } from "@/lib/mission-control/wiring";
+import type { MissionControlEnvironment } from "@/lib/mission-control/wiring";
+import { loadMissionControlLayout, resetMissionControlLayout, saveMissionControlLayout } from "@/lib/mission-control/layout-storage";
 import { MissionControlMobileList } from "@/components/admin/mission-control/mission-control-mobile-list";
 import { MissionControlStatusNode } from "@/components/admin/mission-control/mission-control-status-node";
 
@@ -38,20 +43,44 @@ export type MissionControlCanvasProps = {
   placeholderNodeKeys?: readonly string[];
   /** Tests / SSR override. `auto` = graph on md+, list on small screens (CSS). */
   layout?: MissionControlCanvasLayout;
+  environment?: MissionControlEnvironment;
+  resetNonce?: number;
+  onSelectNode?: (widgetKey: string) => void;
 };
 
 function GraphPane({
   nodes,
   edges,
+  config,
+  environment,
+  resetNonce,
+  onSelectNode,
 }: {
   nodes: MissionControlCanvasNode[];
   edges: MissionControlCanvasEdge[];
+  config: MissionControlWiringConfig;
+  environment: MissionControlEnvironment;
+  resetNonce: number;
+  onSelectNode?: (widgetKey: string) => void;
 }) {
   const reduceMotion = useReducedMotion();
+  const [renderedNodes, setRenderedNodes, onNodesChange] = useNodesState(nodes);
   const renderedEdges = useMemo(
     () => edges.map((edge) => ({ ...edge, animated: Boolean(edge.animated) && !reduceMotion })),
     [edges, reduceMotion],
   );
+
+  useEffect(() => setRenderedNodes(nodes), [nodes, setRenderedNodes]);
+  useEffect(() => {
+    if (!resetNonce) return;
+    resetMissionControlLayout(window.localStorage, config.version, environment);
+    setRenderedNodes(nodes);
+  }, [resetNonce, config.version, environment, nodes, setRenderedNodes]);
+
+  const persistNode = useCallback(() => {
+    const positions = Object.fromEntries(renderedNodes.filter((node) => node.type === "missionControl").map((node) => [node.id, node.position]));
+    saveMissionControlLayout(window.localStorage, config.version, environment, positions);
+  }, [config.version, environment, renderedNodes]);
 
   return (
     <div
@@ -61,12 +90,15 @@ function GraphPane({
     >
       <ReactFlowProvider>
         <ReactFlow
-          nodes={nodes}
+          nodes={renderedNodes}
           edges={renderedEdges}
           nodeTypes={NODE_TYPES}
-          nodesDraggable={false}
+          onNodesChange={onNodesChange}
+          onNodeDragStop={persistNode}
+          onNodeClick={(_, node) => node.type === "missionControl" && onSelectNode?.(node.id)}
+          nodesDraggable
           nodesConnectable={false}
-          elementsSelectable={false}
+          elementsSelectable
           edgesFocusable={false}
           nodesFocusable={false}
           panOnDrag
@@ -77,6 +109,8 @@ function GraphPane({
           proOptions={{ hideAttribution: false }}
         >
           <Background gap={18} size={1} />
+          <MiniMap pannable zoomable ariaLabel="Architecture map overview" />
+          <Controls showInteractive={false} />
         </ReactFlow>
       </ReactFlowProvider>
       {/* Expose edge animation flags for render tests without RF internals */}
@@ -104,9 +138,15 @@ export function MissionControlCanvas({
   nodeStatuses = [],
   flowStatuses = [],
   nowMs,
-  placeholderNodeKeys = [],
   layout = "auto",
+  environment = "production",
+  resetNonce = 0,
+  onSelectNode,
 }: MissionControlCanvasProps) {
+  const positions = useMemo(
+    () => typeof window === "undefined" ? {} : loadMissionControlLayout(window.localStorage, config.version, environment),
+    [config.version, environment],
+  );
   const { nodes, edges } = useMemo(
     () =>
       buildCanvasGraph({
@@ -115,26 +155,27 @@ export function MissionControlCanvas({
         nodeStatuses,
         flowStatuses,
         nowMs,
-        placeholderNodeKeys,
+        environment,
+        positions,
       }),
-    [config, catalog, nodeStatuses, flowStatuses, nowMs, placeholderNodeKeys],
+    [config, catalog, nodeStatuses, flowStatuses, nowMs, environment, positions],
   );
 
   if (layout === "list") {
-    return <MissionControlMobileList nodes={nodes} edges={edges} />;
+    return <MissionControlMobileList nodes={nodes} edges={edges} onSelectNode={onSelectNode} />;
   }
 
   if (layout === "graph") {
-    return <GraphPane nodes={nodes} edges={edges} />;
+    return <GraphPane nodes={nodes} edges={edges} config={config} environment={environment} resetNonce={resetNonce} onSelectNode={onSelectNode} />;
   }
 
   return (
     <div data-testid="mc-canvas-auto">
       <div className="lg:hidden">
-        <MissionControlMobileList nodes={nodes} edges={edges} />
+        <MissionControlMobileList nodes={nodes} edges={edges} onSelectNode={onSelectNode} />
       </div>
       <div className="hidden lg:block">
-        <GraphPane nodes={nodes} edges={edges} />
+        <GraphPane nodes={nodes} edges={edges} config={config} environment={environment} resetNonce={resetNonce} onSelectNode={onSelectNode} />
       </div>
     </div>
   );

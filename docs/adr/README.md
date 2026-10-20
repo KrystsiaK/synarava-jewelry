@@ -9,3 +9,4 @@
 | [0003](0003-commerce-conflict-deep-diff.md) | Детект конфликтов: deep-diff нормализованного Shopify JSON | accepted | 2026-10-10 |
 | [0004](0004-portable-sku-service-boundary.md) | Переносимый SKU-компонент как отдельный сервис в общей монорепе | accepted | 2026-10-12 |
 | [0005](0005-mission-control-hub.md) | Mission Control — read-only хаб наблюдения на `@synarava/*` виджетах | proposed | 2026-10-16 |
+| [0006](0006-architecture-map.md) | Mission Control — architecture map + read-only operations center | accepted | 2026-10-20 |
