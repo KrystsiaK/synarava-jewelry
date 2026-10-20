@@ -43,6 +43,7 @@ export function buildOrganizationJsonLd(
     "@type": "Organization",
     name: "Synarava",
     url: siteUrl,
+    inLanguage: locale,
     description: organizationDescription(locale),
     sameAs: organizationSameAs(socials),
   };
