@@ -3,7 +3,7 @@
 import { Handle, Position, type NodeProps } from "@xyflow/react";
 import { BaseWidget } from "@synarava/shell-kit";
 import "@synarava/shell-kit/styles.css";
-import { ExternalLink } from "lucide-react";
+import { CircleDashed, ExternalLink, Info, RadioTower } from "lucide-react";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
 import type { MissionControlCanvasNode } from "@/lib/mission-control/canvas-model";
 
@@ -14,12 +14,14 @@ import type { MissionControlCanvasNode } from "@/lib/mission-control/canvas-mode
 export function MissionControlStatusNode({
   data,
 }: NodeProps<MissionControlCanvasNode>) {
+  const kindLabel = data.kind === "live" ? "Live" : data.kind === "info" ? "Reference" : "Not wired";
   return (
     <div
       className="mc-node"
       data-testid={`mc-node-${data.widgetKey}`}
       data-level={data.level}
       data-accent={data.accentColor}
+      data-kind={data.kind}
     >
       <Handle type="target" position={Position.Left} isConnectable={false} aria-hidden="true" />
       <Handle type="source" position={Position.Right} isConnectable={false} aria-hidden="true" />
@@ -33,11 +35,11 @@ export function MissionControlStatusNode({
         glassShineIntensity={0}
       >
         <div className="mc-node__identity">
-          <span>{data.placeholder ? "Demo node" : "Live service"}</span>
+          <span>{data.kind === "live" ? <RadioTower aria-hidden="true" /> : data.kind === "info" ? <Info aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}{kindLabel}</span>
           <h3>{data.label}</h3>
         </div>
         <div className="mc-node__status-row">
-          <MissionControlStatusMark level={data.level} compact />
+          {data.kind === "live" ? <MissionControlStatusMark level={data.level} compact /> : <span className="mc-node__kind-state">{kindLabel}</span>}
           {data.href ? (
             <a
               href={data.href}

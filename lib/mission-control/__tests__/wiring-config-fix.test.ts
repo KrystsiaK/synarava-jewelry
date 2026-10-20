@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { LIVE_NODE_KEYS, PLACEHOLDER_NODE_KEYS } from "@/lib/mission-control/live-snapshot";
+import { LIVE_NODE_KEYS } from "@/lib/mission-control/live-snapshot";
 import {
   FIX_PROMPT_SAFETY_PREAMBLE,
   getMissionControlWiringConfig,
@@ -21,12 +21,10 @@ describe("wiring-config fixHint / fixPrompt", () => {
     }
   });
 
-  it("gives placeholders a generic not-connected hint and no fixPrompt", () => {
-    for (const key of PLACEHOLDER_NODE_KEYS) {
-      const fix = getNodeFixConfig(key, config);
-      expect(fix, `missing nodes entry for ${key}`).toBeDefined();
-      expect(fix!.fixHint.toLowerCase()).toContain("not connected yet");
-      expect(fix!.fixPrompt).toBeUndefined();
+  it("keeps placeholders visibly not wired and without executable guidance", () => {
+    for (const node of config.nodes.filter((entry) => entry.kind === "placeholder")) {
+      expect(node.fixPrompt).toBeUndefined();
+      expect(node.provider).toBeUndefined();
     }
   });
 });

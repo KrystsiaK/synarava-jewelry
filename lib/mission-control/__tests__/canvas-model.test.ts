@@ -36,15 +36,13 @@ describe("Mission Control Stage 3 canvas model", () => {
     expect(byKey["shopify-sync"].data.accentColor).toBe(statusLevelColor("warn"));
     expect(byKey["sentry"].data.level).toBe("unknown");
     expect(byKey["sentry"].data.accentColor).toBe(statusLevelColor("unknown"));
-    expect(byKey["sentry"].data.fixHint?.toLowerCase()).toContain(
-      "not connected yet",
-    );
+    expect(byKey["sentry"].data.kind).toBe("placeholder");
     expect(byKey["sentry"].data.fixPrompt).toBeNull();
     expect(byKey["orders"].data.level).toBe("unknown");
     expect(byKey["orders"].data.accentColor).toBe(statusLevelColor("unknown"));
   });
 
-  it("animates only edges with a fresh lastFlowAt", () => {
+  it("animates continuous edges and only fresh event edges", () => {
     expect(isFlowFresh(new Date("2026-10-19T21:01:30.000Z"), MISSION_CONTROL_FIXTURE_NOW.getTime())).toBe(
       true,
     );
@@ -65,17 +63,17 @@ describe("Mission Control Stage 3 canvas model", () => {
       edges.map((e) => [String(e.data?.busKey), e]),
     );
     expect(byBus.site_to_db.animated).toBe(true);
-    expect(byBus.shopify_to_products.animated).toBe(false);
-    expect(byBus.site_to_sentry.animated).toBe(false);
+    expect(byBus.shopify_to_sync.animated).toBe(false);
+    expect(byBus.site_to_monitoring.animated).toBe(false);
   });
 
-  it("keeps nodes non-draggable (read-only patch bay)", () => {
+  it("allows local layout drag without allowing connections", () => {
     const { nodes } = buildCanvasGraph({
       config: getMissionControlWiringConfig(),
       catalog: MISSION_CONTROL_NODE_CATALOG,
       nodeStatuses: MISSION_CONTROL_NODE_STATUS_FIXTURES,
     });
-    expect(nodes.every((n) => n.draggable === false)).toBe(true);
+    expect(nodes.filter((n) => n.type === "missionControl").every((n) => n.draggable === true)).toBe(true);
     expect(nodes.every((n) => n.connectable === false)).toBe(true);
   });
 });

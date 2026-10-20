@@ -9,6 +9,7 @@ import type {
   ServiceFlowStatusRecord,
   ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
+import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
 /** Live provider keys — Stage 4 request-time; Stage 5 collector also persists these. */
 export const LIVE_NODE_KEYS = ["site-health", "shopify-sync", "orders"] as const;
@@ -19,11 +20,15 @@ export type LiveNodeKey = (typeof LIVE_NODE_KEYS)[number];
  * Intentional placeholders (no provider yet). Drift check ignores these;
  * WiringConfig nodes outside LIVE + PLACEHOLDER are logged as drift.
  */
-export const PLACEHOLDER_NODE_KEYS = ["db", "products", "sentry"] as const;
+export const PLACEHOLDER_NODE_KEYS = [
+  "products",
+  ...getMissionControlWiringConfig().nodes
+    .filter((node) => node.kind !== "live")
+    .map((node) => node.widgetKey),
+];
 
-export type PlaceholderNodeKey = (typeof PLACEHOLDER_NODE_KEYS)[number];
+export type PlaceholderNodeKey = string;
 
-const LIVE_KEY_SET: ReadonlySet<string> = new Set(LIVE_NODE_KEYS);
 const PLACEHOLDER_KEY_SET: ReadonlySet<string> = new Set(PLACEHOLDER_NODE_KEYS);
 
 export type MissionControlSnapshot = {

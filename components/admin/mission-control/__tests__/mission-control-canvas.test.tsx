@@ -26,6 +26,7 @@ vi.mock("@xyflow/react", () => ({
   Position: { Left: "left", Right: "right" },
   ReactFlowProvider: ({ children }: { children: ReactNode }) =>
     createElement("div", { "data-testid": "rf-provider" }, children),
+  useNodesState: (nodes: unknown[]) => [nodes, vi.fn(), vi.fn()],
   ReactFlow: ({
     nodes,
     edges,
@@ -54,6 +55,8 @@ vi.mock("@xyflow/react", () => ({
     );
   },
   Background: () => null,
+  MiniMap: () => null,
+  Controls: () => null,
 }));
 
 const sharedProps = {
@@ -91,10 +94,10 @@ describe("MissionControlCanvas render", () => {
       screen.getByTestId("mc-edge-site_to_db:site-health->db"),
     ).toHaveAttribute("data-animated", "true");
     expect(
-      screen.getByTestId("mc-edge-shopify_to_products:shopify-sync->products"),
+      screen.getByTestId("mc-edge-shopify_to_sync:shopify-store->shopify-sync"),
     ).toHaveAttribute("data-animated", "false");
     expect(
-      screen.getByTestId("mc-edge-site_to_sentry:site-health->sentry"),
+      screen.getByTestId("mc-edge-site_to_monitoring:site-health->sentry"),
     ).toHaveAttribute("data-animated", "false");
   });
 
@@ -128,6 +131,9 @@ describe("MissionControlCanvas render", () => {
           fixHint: "unused when ok",
           fixPrompt: "unused when ok",
           placeholder: false,
+          kind: "live",
+          nodeType: "service",
+          group: "app",
         }}
         type="missionControl"
         dragging={false}

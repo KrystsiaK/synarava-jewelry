@@ -34,6 +34,23 @@ grid expressed through hairlines and ports—not terminal cosplay. Motion is
 state-bearing, interruptible, and reduced-motion safe; demo-backed placeholders
 remain explicitly labeled.
 
+### v1.1 architecture-map brief
+
+**Users and jobs.** A solo operator needs one screen that explains both health
+and ownership: what exists, how services exchange data, which boundaries are
+weak, and where to inspect next without granting the map operational power.
+
+**Hierarchy.** Health summary and collector trust lead; the grouped architecture
+map is the primary workspace; the node inspector supplies counters, docs,
+dependencies, environment metadata, and safe fix guidance; the attention ledger
+remains the incident queue. Phone and tablet preserve the same facts as a list.
+
+**Decisions.** Model `live`, `info`, and `placeholder` honestly; use unlabeled
+smooth-step edges with `continuous` versus fresh `event` motion; allow only local
+node positioning keyed by config version and environment; keep production and
+staging metadata switchable while stating that health always belongs to the
+current deployment. ADR-0006 records the owner-approved read-only boundary.
+
 ---
 
 ## Этап 1 — Подключить пакеты
@@ -178,6 +195,37 @@ remain explicitly labeled.
 - [2026-10-20] Reframed the hub around a five-second scan: system counts and collector recency first, fixed-size service topology second, severity-sorted remediation third. The live map stays read-only; links and clipboard copy remain its only actions.
 - [2026-10-20] Rebuilt service nodes as compact `BaseWidget` cards with real React Flow ports, one-line status copy, shape/icon/text state cues, explicit demo-node labels, and fresh-only edge animation. Long `fixHint` text now lives exclusively in Needs attention.
 - [2026-10-20] Added responsive list presentation for phone/tablet, explicit stale-collector and demo-data states, light/dark token styling, visible keyboard focus, and reduced-motion flow suppression.
+
+## v1.1 architecture map + operations center
+
+- [2026-10-20] Owner approved the scoped exception in ADR-0006: node drag is a
+  local view preference only; environment switching changes metadata/links only.
+  Neither can mutate a service, configuration source, provider, collector,
+  schema, or database.
+- [2026-10-20] Expanded the versioned WiringConfig into eight spatial groups,
+  34 typed nodes, and explicit `continuous` / `event` flows. Added React Flow
+  groups, MiniMap, controls, fixed cards, smooth-step arrows, localStorage layout
+  recovery/reset, and the mobile list equivalent.
+- [2026-10-20] Added an accessible near-fullscreen node inspector with live
+  status/counters, environment link, upstream/downstream navigation, docs,
+  copy-only remediation, and the first typed extension (`database`).
+- [2026-10-20] External links that could not be verified from repository facts
+  remain empty and visibly render **Owner TODO**. This includes service/vendor
+  dashboards and operational destinations not already documented in the repo;
+  no URL was invented. Architecture descriptions for those nodes are therefore
+  informational assumptions pending owner review.
+- [2026-10-20] Mission Control implementation and its 53 focused tests use
+  fixtures/mocks only; no Prisma CLI command, credential, write, migration, or
+  successful database connection was used. The required whole-app build and
+  full-suite command reached pre-existing read-only integration paths, which
+  failed closed against the unavailable localhost test database; no data was
+  reached. No dependency, table, migration, provider, collector, schema, or
+  collector data-flow change.
+- [2026-10-20] Verification: Mission Control 53/53; typecheck green; scoped
+  eslint zero errors/warnings; Storybook build green; Next production build
+  green; six Playwright screenshots refreshed at 1440/768/390 in light/dark.
+  Whole suite: 2091 passed, six existing real-DB integration tests could not run
+  because the local test database is unavailable; CI is the authoritative gate.
 - [2026-10-20] Added Storybook fixtures for mixed states, very long hint, 1 node, 12 nodes, stale collector, all-ok, and all-down. Captured light/dark evidence at 1440, 768, and 390 pixels in `docs/assets/mission-control/`.
 - [2026-10-20] Added render coverage for node/hint separation, exact live-node attention filtering and severity order, stale collector visibility, and reduced-motion edge behavior. No database command or access; no provider, collector, schema, migration, or data-flow changes.
 

@@ -10,6 +10,9 @@ vi.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: unknown }) => children,
   ReactFlow: () => null,
   Background: () => null,
+  MiniMap: () => null,
+  Controls: () => null,
+  useNodesState: (nodes: unknown[]) => [nodes, vi.fn(), vi.fn()],
 }));
 
 const NOW = new Date("2026-10-19T22:00:00.000Z");
@@ -94,10 +97,10 @@ describe("MissionControlHub placeholder notice", () => {
     expect(Array.from(items).map((item) => item.getAttribute("data-testid"))).toEqual([
       "mc-attention-orders",
       "mc-attention-shopify-sync",
-      "mc-attention-db",
     ]);
     expect(screen.queryByTestId("mc-attention-site-health")).not.toBeInTheDocument();
     expect(screen.queryByTestId("mc-attention-sentry")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("mc-attention-db")).not.toBeInTheDocument();
   });
 
   it("makes a stale collector explicit", () => {
