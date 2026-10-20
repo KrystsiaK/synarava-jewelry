@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    # Private GitHub Packages (@synarava/*) are not readable by Dependabot
+    # without registry credentials; ignoring stops updater errors. Do not
+    # put a token in this file.
+    ignore:
+      - dependency-name: "@synarava/*"
     groups:
       production-dependencies:
         dependency-type: production
