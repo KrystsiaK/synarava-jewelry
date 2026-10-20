@@ -19,7 +19,7 @@ The collector is **observe + notify only**: one process, one run per cron tick, 
 | Builder | Railpack (same as web) |
 | **Cron schedule** | e.g. `*/5 * * * *` (every 5 minutes) — owner chooses |
 | **Custom start command** | `pnpm mission-control:collect` |
-| Build command | Prefer install-only: leave default install; **do not** run `pnpm build` (Next.js) for this service |
+| Build command | Custom Build Command `echo no-build`: install only; **do not** run `pnpm build` (Next.js) for this service |
 | Pre-deploy | **None** (migrations stay on the web service `preDeployCommand`) |
 | Restart policy | On failure only / never loop a successful exit — cron owns the next tick |
 | Overlap | Keep schedule longer than a typical run so ticks do not overlap (read-then-alert assumes one invocation at a time) |
@@ -41,11 +41,12 @@ Set on the collector service (reference the web/Postgres vars where possible). *
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Same Postgres as the app (`ServiceNodeStatus` / `ServiceFlowStatus` upserts). Use a Railway reference, e.g. `${{Postgres.DATABASE_URL}}`. |
+| `DATABASE_URL` | Connection string of the **limited Postgres role `mc_collector`** (INSERT/UPDATE on `ServiceNodeStatus` and `ServiceFlowStatus`, SELECT on those plus `ShopifyWebhookDelivery` and `ProductSyncEvent`), internal host, plain or sealed variable on this service only. **Do not** use the reference `${{Postgres.DATABASE_URL}}`: that is the superuser. Role SQL: [database-incident-recovery](database-incident-recovery.md). |
 | `APP_URL` | Public site origin (no trailing slash). Used for `site-health` ping and the Telegram link to `/admin/mission-control`. |
 | `TELEGRAM_BOT_TOKEN` | Bot token for alerts. **Runtime only — never log.** |
 | `TELEGRAM_CHAT_ID` | Destination chat/channel id. **Runtime only — never log.** |
-| `NODE_AUTH_TOKEN` | Build-time only if install needs GitHub Packages for `@synarava/*` (same as web). See [deploy.md](deploy.md). |
+| `NODE_AUTH_TOKEN` | Required for the install step: `@synarava/*` come from GitHub Packages (same token as the web service, `read:packages`). See [deploy.md](deploy.md). |
+| `RAILPACK_INSTALL_CMD` | `node scripts/pnpm-install-with-github-packages.mjs`. Required: pnpm ignores a token in the project config, and without this helper the install fails with 401. |
 
 Optional: `NODE_ENV=production`.
 
