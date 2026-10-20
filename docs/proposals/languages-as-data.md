@@ -1,7 +1,7 @@
 # Languages as data: add, hide, export and delete a storefront language
 
-**Status:** approved plan (owner, 2026-10-21). The implementing PR records the decision as the next free ADR number.
-**Scope:** one task, delivered as one PR with ordered milestone commits.
+**Status:** Part A implementing (ADR-0006). Owner Part B (scopes, staging rehearsal) still open.
+**Scope:** one task, delivered as one PR with ordered milestone commits A1–A9.
 
 ## Goal
 

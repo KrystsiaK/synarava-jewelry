@@ -181,7 +181,7 @@ export async function importLanguageBundle(
       seoDescription?: string | null;
       reviewStatus?: "DRAFT" | "REVIEWED";
       reviewedAt?: string | null;
-      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "ERROR";
+      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
       syncError?: string | null;
       contentHash?: string | null;
       lastSyncedAt?: string | null;
@@ -257,7 +257,7 @@ export async function importLanguageBundle(
       seoDescription?: string | null;
       reviewStatus?: "DRAFT" | "REVIEWED";
       reviewedAt?: string | null;
-      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "ERROR";
+      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
       syncError?: string | null;
       contentHash?: string | null;
       lastSyncedAt?: string | null;
@@ -331,7 +331,7 @@ export async function importLanguageBundle(
       seoDescription?: string | null;
       reviewStatus?: "DRAFT" | "REVIEWED";
       reviewedAt?: string | null;
-      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "ERROR";
+      syncStatus?: "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
       syncError?: string | null;
       contentHash?: string | null;
       lastSyncedAt?: string | null;
