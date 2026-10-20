@@ -9,6 +9,7 @@ import {
   getSafeAdminRedirect,
 } from "@/lib/auth/admin-return-path";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { resolveLocaleRequestDisposition } from "@/lib/i18n/locale-retirement-redirect";
 
 const ADMIN_COOKIE = "synarava-admin-session";
 // Emergency fallback only, if the registry cache has never successfully
@@ -187,7 +188,9 @@ export async function proxy(request: NextRequest) {
   const localeSegment = firstSegment && registeredSegments.includes(firstSegment) ? firstSegment : null;
 
   if (!isLocaleExempt && !localeSegment) {
-    const publishedSegments = locales.filter((locale) => locale.isPublished).map((locale) => locale.routeSegment);
+    const publishedSegments = locales
+      .filter((locale) => locale.status === "PUBLISHED" && locale.isPublished && !locale.deletedAt)
+      .map((locale) => locale.routeSegment);
     const defaultSegment = locales.find((locale) => locale.isDefault)?.routeSegment ?? FALLBACK_DEFAULT_SEGMENT;
     const cookieLocale = request.cookies.get("synarava-locale")?.value;
     const hasValidCookie = typeof cookieLocale === "string" && publishedSegments.includes(cookieLocale);
@@ -200,6 +203,21 @@ export async function proxy(request: NextRequest) {
     // No cookie — what Googlebot and first-time visitors get — is the stable,
     // permanent mapping of every currently-indexed bare URL (308).
     return NextResponse.redirect(url, hasValidCookie ? 307 : 308);
+  }
+
+  // Retired/Deleted locales keep their URLs alive as permanent redirects to the
+  // default language (ADR-0006 A3). Draft-only locales fall through to layout 404.
+  if (localeSegment && locales.length > 0) {
+    const disposition = await resolveLocaleRequestDisposition({
+      localeSegment,
+      pathname,
+      locales,
+    });
+    if (disposition.kind === "redirect") {
+      const url = request.nextUrl.clone();
+      url.pathname = disposition.pathname;
+      return NextResponse.redirect(url, disposition.status);
+    }
   }
 
   const nonce = Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString("base64");
