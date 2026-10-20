@@ -16,6 +16,7 @@
     "auth:hash": "node scripts/hash-password.mjs",
     "media:migrate-s3": "node scripts/migrate-local-uploads-to-s3.mjs",
     "translations:backfill": "node scripts/backfill-translations.mjs",
+    "messages:generate": "node scripts/generate-messages-locale.mjs",
     "legal:export": "node scripts/export-legal-documents.mjs",
     "lint": "eslint .",
     "test": "vitest",
