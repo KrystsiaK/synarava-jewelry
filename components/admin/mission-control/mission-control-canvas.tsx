@@ -8,7 +8,7 @@ import {
   type NodeTypes,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { WidgetPortManifest, WiringConfig } from "@synarava/wiring-engine";
+import type { WidgetPortManifest } from "@synarava/wiring-engine";
 import {
   buildCanvasGraph,
   type MissionControlCanvasEdge,
@@ -18,6 +18,7 @@ import type {
   ServiceFlowStatusRecord,
   ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
+import type { MissionControlWiringConfig } from "@/lib/mission-control/wiring";
 import { MissionControlMobileList } from "@/components/admin/mission-control/mission-control-mobile-list";
 import { MissionControlStatusNode } from "@/components/admin/mission-control/mission-control-status-node";
 
@@ -28,7 +29,7 @@ const NODE_TYPES: NodeTypes = {
 export type MissionControlCanvasLayout = "auto" | "graph" | "list";
 
 export type MissionControlCanvasProps = {
-  config: WiringConfig;
+  config: MissionControlWiringConfig;
   catalog: readonly WidgetPortManifest[];
   nodeStatuses?: readonly ServiceNodeStatusRecord[];
   flowStatuses?: readonly ServiceFlowStatusRecord[];

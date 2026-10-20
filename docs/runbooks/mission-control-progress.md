@@ -124,10 +124,24 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 - [2026-10-19T23:05:00Z] CI green on HEAD `4340e6e7` (Quality Gates + Storefront smoke, push + pull_request). PR #202 marked ready for review (not merged).
 
-**Stage 5 status:** collector worker + tests + Railway runbook in PR #202 → `staging`, ready for review (not merged). Waiting owner: continue Stage 6?
+**Stage 5 status:** collector worker + tests + Railway runbook merged via PR #202 → `staging`.
+
+---
+
+## Этап 6 — «Как чинить» в конфиге
+
+- [2026-10-20T15:40:00Z] Re-read plan §0 (Simplicity + Database rules), Stage 6 DoD, ADR-0005, and this progress file in full before code. Branched from `origin/staging` (Stages 1–5 live). **No database used.** No new deps/tables. No Railway apply.
+- [2026-10-20T15:45:00Z] Static `fixHint` / `fixPrompt` on each node in `lib/mission-control/wiring-config.json` (`nodes[]`):
+  - Live (`site-health`, `shopify-sync`, `orders`): English hint + `fixPrompt` starting with safety preamble (read-only investigate; never prisma migrate/reset/diff, db push/execute, shadow DB; no prod write credentials; PR and wait).
+  - Placeholders (`db`, `products`, `sentry`): generic “not connected yet” hint; **no** `fixPrompt`.
+- [2026-10-20T15:50:00Z] Hub UI: warn/down/unknown cards show hint + read-only **Copy prompt** (clipboard only when prompt exists). No service-action buttons. No dynamic prompt generation.
+- [2026-10-20T15:52:00Z] Collector Telegram alert body uses the node’s `fixHint` (still only on transitions into warn/down).
+- [2026-10-20T15:55:00Z] Tests: wiring-config fix contract; canvas/list hint show/hide; collector alert contains hint.
+
+**Stage 6 status:** in progress — PR → `staging` (ready, not merged).
 
 ---
 
 ## Later stages
 
-Next after Stage 5 lands: **Этап 6 — «Как чинить» в конфиге** (`fixHint` / `fixPrompt`).
+v1 complete after Stage 6 lands (see plan §4 Definition of Done).

@@ -25,6 +25,7 @@ import { shouldAlertOnLevelChange } from "@/lib/mission-control/collector/alerts
 import { runCollectorOnce } from "@/lib/mission-control/collector/run-once";
 import { sendTelegramAlert } from "@/lib/mission-control/collector/telegram";
 import type { ServiceNodeStatusRecord } from "@/lib/mission-control/status";
+import { getNodeFixConfig } from "@/lib/mission-control/wiring";
 
 function node(
   partial: Pick<ServiceNodeStatusRecord, "nodeKey" | "level"> &
@@ -154,9 +155,16 @@ describe("runCollectorOnce", () => {
     ]);
     expect(result.alertsSent).toEqual(["site-health"]);
     expect(sendTelegram).toHaveBeenCalledOnce();
-    expect(sendTelegram.mock.calls[0][0]).toContain("Site health → down");
-    expect(sendTelegram.mock.calls[0][0]).toContain(
+    const alertText = sendTelegram.mock.calls[0][0] as string;
+    expect(alertText).toContain("Site health → down");
+    expect(alertText).toContain(
       "https://shop.example/admin/mission-control",
+    );
+    const siteHint = getNodeFixConfig("site-health")?.fixHint;
+    expect(siteHint).toBeTruthy();
+    expect(alertText).toContain(siteHint!);
+    expect(alertText).not.toContain(
+      "Open Mission Control, inspect the node, then follow the linked runbook.",
     );
     expect(mocks.flowUpsert).toHaveBeenCalled();
   });
