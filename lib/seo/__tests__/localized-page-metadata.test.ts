@@ -7,8 +7,30 @@ vi.mock("@/lib/db", () => ({
   db: {
     storefrontLocale: {
       findMany: vi.fn().mockResolvedValue([
-        { routeSegment: "en", isDefault: true, isPublished: true },
-        { routeSegment: "pt", isDefault: false, isPublished: true },
+        {
+          routeSegment: "en",
+          isDefault: true,
+          status: "PUBLISHED",
+          isPublished: true,
+          deletedAt: null,
+          retiredAt: null,
+        },
+        {
+          routeSegment: "pt",
+          isDefault: false,
+          status: "PUBLISHED",
+          isPublished: true,
+          deletedAt: null,
+          retiredAt: null,
+        },
+        {
+          routeSegment: "ru",
+          isDefault: false,
+          status: "DRAFT",
+          isPublished: false,
+          deletedAt: null,
+          retiredAt: null,
+        },
       ]),
     },
   },
