@@ -22,7 +22,6 @@ import {
 import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
@@ -60,16 +59,10 @@ import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } fr
 import { useUnsavedLeaveGuard } from "@/components/admin/products/use-unsaved-leave-guard";
 import {
   getProductEditorDetails,
-  filterIssuesByTaxonomySatisfaction,
-  issuesForSection,
-  localesWithOpenIssues,
   productEditorLocaleForField,
   productEditorSectionForField,
   productToDraft,
   PRODUCT_SAVE_FAILURE_MESSAGE,
-  sectionsWithOpenIssues,
-  taxonomySatisfactionFromDraft,
-  type TaxonomySatisfaction,
 } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
@@ -97,7 +90,6 @@ function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminL
 export function EditProductForm({
   product,
   collections,
-  issues = [],
   onUpdated,
   onDeleted,
   highlighted = false,
@@ -106,7 +98,6 @@ export function EditProductForm({
 }: {
   product: ProductRecord;
   collections: CollectionOption[];
-  issues?: AdminIssueSummary[];
   onUpdated?: (product: ProductRecord) => void;
   onDeleted?: (productId: string) => void;
   highlighted?: boolean;
@@ -138,18 +129,6 @@ export function EditProductForm({
   const currentProduct = state.product ?? product;
   const draft = productToDraft(currentProduct, translationLocales);
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
-  const taxonomySyncKey = `${currentProduct.id}:${fieldsRevision}:${draft.shopifyCategoryId}:${draft.collectionSlug}:${draft.tags}`;
-  const [taxonomySatisfaction, setTaxonomySatisfaction] = useState<TaxonomySatisfaction>(() =>
-    taxonomySatisfactionFromDraft(draft),
-  );
-  const [taxonomySyncedKey, setTaxonomySyncedKey] = useState(taxonomySyncKey);
-  // Adjust during render when the server draft remounts / fieldsRevision bumps
-  // (React “adjusting state when a prop changes” — no setState-in-effect).
-  if (taxonomySyncKey !== taxonomySyncedKey) {
-    setTaxonomySyncedKey(taxonomySyncKey);
-    setTaxonomySatisfaction(taxonomySatisfactionFromDraft(draft));
-  }
-  const visibleIssues = filterIssuesByTaxonomySatisfaction(issues, taxonomySatisfaction);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const isDirty = dirtyScopes.size > 0;
@@ -168,9 +147,6 @@ export function EditProductForm({
       return dirtyScopes.has(sectionDirtyKey(activeLocale, section));
     }),
   );
-  const issueSections = sectionsWithOpenIssues(visibleIssues);
-  const issueLocales = localesWithOpenIssues(visibleIssues);
-  const activeSectionIssues = issuesForSection(visibleIssues, activeSection);
   const productConflict = conflictSignals.products[currentProduct.id];
   // Section tabs: only the owning sibling (Price for price, …) — per propagation graph.
   const conflictSections = conflictSectionsFromDifferences(inspection?.differences ?? []);
@@ -194,20 +170,6 @@ export function EditProductForm({
     ).length
     : 0;
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
-
-  function activateIssue(issue: AdminIssueSummary) {
-    const section = productEditorSectionForField(issue.fieldPath);
-    const locale = productEditorLocaleForField(issue.fieldPath);
-    flushSync(() => {
-      if (locale) selectLocale(locale);
-      if (section) setActiveSection(section);
-    });
-    const nextHash = `#${issue.fieldPath}`;
-    if (window.location.hash !== nextHash) {
-      window.history.replaceState(null, "", nextHash);
-    }
-    window.requestAnimationFrame(() => scrollAdminFieldIntoView(issue.fieldPath));
-  }
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
@@ -310,7 +272,7 @@ export function EditProductForm({
     openSectionForHash();
     window.addEventListener("hashchange", openSectionForHash);
     return () => window.removeEventListener("hashchange", openSectionForHash);
-    // Mount-only: hash deep-links from /admin/issues and in-page activateIssue.
+    // Mount-only: hash deep-links to product editor fields.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -656,7 +618,6 @@ export function EditProductForm({
                 onSelect={selectLocale}
                 locales={localeTabs}
                 dirtyLocales={dirtyLocales}
-                issueLocales={issueLocales}
                 conflictLocales={conflictLocales}
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
@@ -687,10 +648,7 @@ export function EditProductForm({
                 active={activeSection}
                 onChange={setActiveSection}
                 dirtySections={dirtySections}
-                issueSections={issueSections}
                 conflictSections={conflictSections}
-                sectionIssues={activeSectionIssues}
-                onIssueActivate={activateIssue}
                 aside={
                   currentProduct.shopifyProductId && activeSection !== "shopify" ? (
                     <ProductLocaleConflictControl
@@ -747,13 +705,11 @@ export function EditProductForm({
                             primaryVariant: currentProduct.variants[0] ?? null,
                             shopifySnapshot: currentProduct.shopifySnapshot,
                           })}
-                          issues={visibleIssues}
                           validation={validation}
                           translationLocales={translationLocales}
                           activeSection={activeSection}
                           activeLocale={activeLocale}
                           onLocaleChange={selectLocale}
-                          onTaxonomySatisfactionChange={setTaxonomySatisfaction}
                           selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
                           mode="edit"
                           productId={currentProduct.id}
@@ -785,7 +741,6 @@ export function EditProductForm({
                         details={details}
                         translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
                         mode="edit"
-                        issues={issues}
                         collections={collections}
                         translationLocales={translationLocales}
                         activeSection={activeSection}
@@ -815,7 +770,6 @@ export function EditProductForm({
                     <div hidden={activeSection !== "media"}>
                       <ProductMediaManager
                         product={currentProduct}
-                        issues={issues}
                         onAltPersistStart={() => {
                           // Blur fires before the click that may hit a nav link. Clear
                           // Media dirty synchronously so leave-guard does not false-positive

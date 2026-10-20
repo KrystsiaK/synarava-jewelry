@@ -12,7 +12,7 @@ export default async function EditCollectionPage({
   params: Promise<{ collectionId: string }>;
 }) {
   const { collectionId } = await params;
-  const [{ collections, issues }, conflictSignals, translationLocales] = await Promise.all([
+  const [{ collections }, conflictSignals, translationLocales] = await Promise.all([
     getAdminCatalogData(),
     getCollectionConflictSignals().catch((error): CatalogConflictSignals => {
       console.error("[admin/collections/edit] conflict signals failed", error);
@@ -27,9 +27,6 @@ export default async function EditCollectionPage({
     getAdminTranslationLocales(),
   ]);
   const collection = collections.find((item) => item.id === collectionId);
-  const collectionIssues = issues.filter(
-    (issue) => issue.entityType === "COLLECTION" && issue.entityId === collectionId,
-  );
 
   if (!collection) {
     return (
@@ -68,7 +65,6 @@ export default async function EditCollectionPage({
       <CollectionEditRoute
         collection={collection}
         translationLocales={translationLocales}
-        issues={collectionIssues}
         initialConflictSignals={conflictSignals}
       />
     </div>
