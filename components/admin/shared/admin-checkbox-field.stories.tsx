@@ -49,18 +49,28 @@ function ThemeFrame({
 const meta = {
   title: "synarava-cms/AdminCheckboxField",
   component: AdminCheckboxField,
+  args: {
+    label: "Featured on home",
+  },
 } satisfies Meta<typeof AdminCheckboxField>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const BothThemes: Story = {
+  args: {
+    label: "Featured on home",
+  },
   render: () => (
     <div className="grid gap-4 bg-[#cfcabe] p-6">
       {[lightVars, darkVars].map((style, index) => (
         <ThemeFrame key={index === 0 ? "light" : "dark"} label={index === 0 ? "Light" : "Dark"} style={style}>
           <AdminCheckboxField label="Featured on home" defaultChecked />
-          <AdminCheckboxField label="Requires acknowledgement" error="Confirm before continuing." />
+          <AdminCheckboxField label="With follow-on note">
+            <p className="adm-copy m-0 text-[0.8rem] text-[var(--adm-muted)]">
+              Extra content under the checkbox (e.g. certificate URL).
+            </p>
+          </AdminCheckboxField>
           <AdminCheckboxControl label="Inline control" />
           <AdminCheckboxControl label="Disabled control" disabled />
         </ThemeFrame>

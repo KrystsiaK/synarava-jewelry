@@ -75,6 +75,10 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const BothThemes: Story = {
+  // Required by StoryObj when the component has required props; render owns the UI.
+  args: {
+    children: null,
+  },
   render: () => (
     <div className="grid gap-4 bg-[#cfcabe] p-6">
       <ThemeFrame label="Light" style={lightVars}>
