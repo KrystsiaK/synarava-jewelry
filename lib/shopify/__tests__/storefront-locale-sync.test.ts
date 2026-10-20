@@ -16,8 +16,26 @@ vi.mock("../admin", () => ({
 
 import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 
-const enRow = { id: "1", code: "en", routeSegment: "en", shopifyLocale: "en" };
-const ptRow = { id: "2", code: "pt", routeSegment: "pt", shopifyLocale: "pt-PT" };
+const enRow = {
+  id: "1",
+  code: "en",
+  routeSegment: "en",
+  shopifyLocale: "en",
+  status: "PUBLISHED",
+  isPublished: true,
+  retiredAt: null,
+  deletedAt: null,
+};
+const ptRow = {
+  id: "2",
+  code: "pt",
+  routeSegment: "pt",
+  shopifyLocale: "pt-PT",
+  status: "PUBLISHED",
+  isPublished: true,
+  retiredAt: null,
+  deletedAt: null,
+};
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -36,11 +54,21 @@ describe("syncStorefrontLocalesFromShopify", () => {
 
     expect(mocks.update).toHaveBeenCalledWith({
       where: { id: "1" },
-      data: { isPublished: true, shopifyUpdatedAt: expect.any(Date) },
+      data: {
+        status: "PUBLISHED",
+        isPublished: true,
+        retiredAt: null,
+        shopifyUpdatedAt: expect.any(Date),
+      },
     });
     expect(mocks.update).toHaveBeenCalledWith({
       where: { id: "2" },
-      data: { isPublished: true, shopifyUpdatedAt: expect.any(Date) },
+      data: {
+        status: "PUBLISHED",
+        isPublished: true,
+        retiredAt: null,
+        shopifyUpdatedAt: expect.any(Date),
+      },
     });
     expect(result.updated).toEqual([
       { code: "en", shopifyLocale: "en", isPublished: true },
@@ -51,7 +79,7 @@ describe("syncStorefrontLocalesFromShopify", () => {
   });
 
   it("matches locale codes case-insensitively", async () => {
-    mocks.findMany.mockResolvedValue([ptRow]);
+    mocks.findMany.mockResolvedValue([{ ...ptRow, status: "DRAFT", isPublished: false }]);
     mocks.fetchShopifyLocales.mockResolvedValue([
       { locale: "PT-pt", name: "Portuguese", primary: false, published: false },
     ]);
@@ -84,8 +112,52 @@ describe("syncStorefrontLocalesFromShopify", () => {
 
     expect(mocks.update).toHaveBeenCalledWith({
       where: { id: "2" },
-      data: { isPublished: false, shopifyUpdatedAt: expect.any(Date) },
+      data: {
+        status: "DRAFT",
+        isPublished: false,
+        retiredAt: null,
+        shopifyUpdatedAt: expect.any(Date),
+      },
     });
+    expect(result.orphaned).toEqual([{ code: "pt", shopifyLocale: "pt-PT" }]);
+  });
+
+  it("leaves Retired rows retired when Shopify reports unpublished", async () => {
+    mocks.findMany.mockResolvedValue([
+      {
+        ...ptRow,
+        status: "RETIRED",
+        isPublished: false,
+        retiredAt: new Date("2026-09-01T00:00:00.000Z"),
+      },
+    ]);
+    mocks.fetchShopifyLocales.mockResolvedValue([
+      { locale: "pt-PT", name: "Portuguese", primary: false, published: false },
+    ]);
+
+    await syncStorefrontLocalesFromShopify();
+
+    expect(mocks.update).toHaveBeenCalledWith({
+      where: { id: "2" },
+      data: {
+        status: "RETIRED",
+        isPublished: false,
+        retiredAt: new Date("2026-09-01T00:00:00.000Z"),
+        shopifyUpdatedAt: expect.any(Date),
+      },
+    });
+  });
+
+  it("skips Deleted rows without rewriting status", async () => {
+    mocks.findMany.mockResolvedValue([
+      { ...ptRow, status: "RETIRED", isPublished: false, deletedAt: new Date() },
+    ]);
+    mocks.fetchShopifyLocales.mockResolvedValue([]);
+
+    const result = await syncStorefrontLocalesFromShopify();
+
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(result.updated).toEqual([{ code: "pt", shopifyLocale: "pt-PT", isPublished: false }]);
     expect(result.orphaned).toEqual([{ code: "pt", shopifyLocale: "pt-PT" }]);
   });
 });

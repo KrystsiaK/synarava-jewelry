@@ -1,3 +1,5 @@
+import type { StorefrontLocaleStatus } from "@prisma/client";
+
 import { db } from "@/lib/db";
 
 /**
@@ -16,8 +18,11 @@ export type StorefrontLocaleRecord = {
   name: string;
   nativeName: string;
   isDefault: boolean;
+  status: StorefrontLocaleStatus;
   isPublished: boolean;
   sortOrder: number;
+  retiredAt: Date | null;
+  deletedAt: Date | null;
   shopifyUpdatedAt: Date | null;
 };
 

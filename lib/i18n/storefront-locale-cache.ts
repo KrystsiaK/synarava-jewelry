@@ -17,8 +17,11 @@ export const EMERGENCY_FALLBACK_LOCALES: StorefrontLocaleRecord[] = [
     name: "English",
     nativeName: "English",
     isDefault: true,
+    status: "PUBLISHED",
     isPublished: true,
     sortOrder: 0,
+    retiredAt: null,
+    deletedAt: null,
     shopifyUpdatedAt: null,
   },
 ];
@@ -60,7 +63,17 @@ export async function getStorefrontLocales(): Promise<StorefrontLocaleRecord[]> 
 
 /** Published locales only, ordered by sortOrder — what routing/SEO should ever expose. */
 export async function getPublishedStorefrontLocales(): Promise<StorefrontLocaleRecord[]> {
-  return (await getStorefrontLocales()).filter((locale) => locale.isPublished);
+  return (await getStorefrontLocales()).filter(
+    (locale) => locale.status === "PUBLISHED" && locale.isPublished && !locale.deletedAt,
+  );
+}
+
+/** Locales that must never 404: published, retired, or deleted (301 targets). */
+export async function getRedirectableStorefrontLocales(): Promise<StorefrontLocaleRecord[]> {
+  return (await getStorefrontLocales()).filter((locale) => {
+    if (locale.deletedAt) return true;
+    return locale.status === "PUBLISHED" || locale.status === "RETIRED";
+  });
 }
 
 /** Call after any write that changes locale publication or route segments. */
