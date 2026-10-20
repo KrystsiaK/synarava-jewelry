@@ -5,6 +5,10 @@ import type {
   ServiceNodeStatusRecord,
   ServiceStatusLevel,
 } from "@/lib/mission-control/status";
+import {
+  getNodeFixConfig,
+  type MissionControlWiringConfig,
+} from "@/lib/mission-control/wiring";
 
 /** Edges with `lastFlowAt` within this window count as live “electricity”. */
 export const FLOW_FRESH_MS = 5 * 60 * 1000;
@@ -23,6 +27,10 @@ export type MissionControlNodeData = {
   message: string | null;
   href: string | null;
   accentColor: string;
+  /** Static owner hint from WiringConfig — shown for warn/down/unknown. */
+  fixHint: string | null;
+  /** Static AI prompt from WiringConfig — copy-only; absent for placeholders. */
+  fixPrompt: string | null;
 };
 
 export type MissionControlCanvasNode = Node<MissionControlNodeData>;
@@ -84,7 +92,7 @@ function layoutPosition(index: number): { x: number; y: number } {
 }
 
 export type BuildCanvasGraphInput = {
-  config: WiringConfig;
+  config: WiringConfig | MissionControlWiringConfig;
   catalog: readonly WidgetPortManifest[];
   nodeStatuses?: readonly ServiceNodeStatusRecord[];
   flowStatuses?: readonly ServiceFlowStatusRecord[];
@@ -110,10 +118,16 @@ export function buildCanvasGraph({
   const flowStatusMap = flowByBusKey(flowStatuses);
   const widgetKeys = collectWidgetKeys(config, catalog);
 
+  const fixConfig =
+    "nodes" in config && Array.isArray(config.nodes)
+      ? (config as MissionControlWiringConfig)
+      : undefined;
+
   const nodes: MissionControlCanvasNode[] = widgetKeys.map((widgetKey, index) => {
     const manifest = manifests.get(widgetKey);
     const status = nodeStatusMap.get(widgetKey);
     const level: ServiceStatusLevel = status?.level ?? "unknown";
+    const fix = fixConfig ? getNodeFixConfig(widgetKey, fixConfig) : undefined;
     return {
       id: widgetKey,
       type: "missionControl",
@@ -125,6 +139,8 @@ export function buildCanvasGraph({
         message: status?.message ?? null,
         href: status?.href ?? null,
         accentColor: statusLevelColor(level),
+        fixHint: fix?.fixHint?.trim() || null,
+        fixPrompt: fix?.fixPrompt?.trim() || null,
       },
       draggable: false,
       connectable: false,

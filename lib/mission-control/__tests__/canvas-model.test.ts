@@ -30,10 +30,16 @@ describe("Mission Control Stage 3 canvas model", () => {
     const byKey = Object.fromEntries(nodes.map((n) => [n.id, n]));
     expect(byKey["site-health"].data.level).toBe("ok");
     expect(byKey["site-health"].data.accentColor).toBe(statusLevelColor("ok"));
+    expect(byKey["site-health"].data.fixHint).toBeTruthy();
+    expect(byKey["site-health"].data.fixPrompt).toBeTruthy();
     expect(byKey["shopify-sync"].data.level).toBe("warn");
     expect(byKey["shopify-sync"].data.accentColor).toBe(statusLevelColor("warn"));
     expect(byKey["sentry"].data.level).toBe("unknown");
     expect(byKey["sentry"].data.accentColor).toBe(statusLevelColor("unknown"));
+    expect(byKey["sentry"].data.fixHint?.toLowerCase()).toContain(
+      "not connected yet",
+    );
+    expect(byKey["sentry"].data.fixPrompt).toBeNull();
     expect(byKey["orders"].data.level).toBe("unknown");
     expect(byKey["orders"].data.accentColor).toBe(statusLevelColor("unknown"));
   });

@@ -17,7 +17,7 @@ export function shouldAlertOnLevelChange(
 export type AlertMessageInput = {
   nodeName: string;
   level: ServiceStatusLevel;
-  /** Short static instruction — Stage 6 will add per-node fixHint. */
+  /** Short static instruction from WiringConfig `fixHint` (Stage 6). */
   hint?: string;
   hubUrl: string;
 };

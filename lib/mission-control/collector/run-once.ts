@@ -24,7 +24,10 @@ import {
   type ServiceNodeStatusRecord,
   type ServiceStatusLevel,
 } from "@/lib/mission-control/status";
-import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
+import {
+  getMissionControlWiringConfig,
+  getNodeFixConfig,
+} from "@/lib/mission-control/wiring";
 
 function countersForWrite(
   counters: ServiceNodeStatusRecord["counters"],
@@ -137,9 +140,11 @@ export async function runCollectorOnce(
       continue;
     }
 
+    const fixHint = getNodeFixConfig(node.nodeKey)?.fixHint;
     const text = buildAlertMessage({
       nodeName: nodeLabel(node.nodeKey),
       level: node.level,
+      hint: fixHint,
       hubUrl,
     });
 

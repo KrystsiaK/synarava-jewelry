@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { MissionControlFixGuidance } from "@/components/admin/mission-control/mission-control-fix-guidance";
 import type { MissionControlCanvasEdge, MissionControlCanvasNode } from "@/lib/mission-control/canvas-model";
 
 type MissionControlMobileListProps = {
@@ -68,6 +69,12 @@ export function MissionControlMobileList({
                     Open
                   </a>
                 ) : null}
+                <MissionControlFixGuidance
+                  widgetKey={node.data.widgetKey}
+                  level={node.data.level}
+                  fixHint={node.data.fixHint}
+                  fixPrompt={node.data.fixPrompt}
+                />
                 {related.length > 0 ? (
                   <p className="mt-1 text-[11px] text-muted-ink">
                     Links:{" "}
