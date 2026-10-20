@@ -1,10 +1,12 @@
 "use client";
 
-import { Clock3, RadioTower, ShieldAlert } from "lucide-react";
+import { useState } from "react";
+import { Clock3, RadioTower, RotateCcw, ShieldAlert } from "lucide-react";
 import type { WidgetPortManifest } from "@synarava/wiring-engine";
 import { MissionControlCanvas } from "@/components/admin/mission-control/mission-control-canvas";
 import { MissionControlCopyPromptButton } from "@/components/admin/mission-control/mission-control-copy-prompt-button";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
+import { MissionControlNodeModal } from "@/components/admin/mission-control/mission-control-node-modal";
 import { AdminPanel } from "@/components/admin/shared/admin-panel";
 import { MISSION_CONTROL_NODE_CATALOG } from "@/lib/mission-control/node-catalog";
 import type {
@@ -13,6 +15,7 @@ import type {
 } from "@/lib/mission-control/status";
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 import type { MissionControlWiringConfig } from "@/lib/mission-control/wiring";
+import type { MissionControlEnvironment } from "@/lib/mission-control/wiring";
 
 /**
  * Shown while any catalog node still uses fixture/placeholder data.
@@ -35,6 +38,7 @@ export type MissionControlHubProps = {
   placeholderNodeKeys?: readonly string[];
   config?: MissionControlWiringConfig;
   catalog?: readonly WidgetPortManifest[];
+  liveEnvironment?: MissionControlEnvironment;
 };
 
 const LEVEL_ORDER = { down: 0, warn: 1, unknown: 2, ok: 3 } as const;
@@ -62,10 +66,14 @@ export function MissionControlHub({
   placeholderNodeKeys = [],
   config = getMissionControlWiringConfig(),
   catalog = MISSION_CONTROL_NODE_CATALOG,
+  liveEnvironment = "staging",
 }: MissionControlHubProps) {
-  const placeholderKeys = new Set(placeholderNodeKeys);
-  const liveStatuses = nodeStatuses.filter((status) => !placeholderKeys.has(status.nodeKey));
-  const counts = nodeStatuses.reduce(
+  const [environment, setEnvironment] = useState<MissionControlEnvironment>(liveEnvironment);
+  const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
+  const [resetNonce, setResetNonce] = useState(0);
+  const liveKeys = new Set(config.nodes.filter((node) => node.kind === "live").map((node) => node.widgetKey));
+  const liveStatuses = nodeStatuses.filter((status) => liveKeys.has(status.nodeKey));
+  const counts = liveStatuses.reduce(
     (result, status) => ({ ...result, [status.level]: result[status.level] + 1 }),
     { ok: 0, warn: 0, down: 0, unknown: 0 },
   );
@@ -83,6 +91,7 @@ export function MissionControlHub({
     }))
     .filter((entry) => Boolean(entry.fix?.fixHint))
     .sort((a, b) => LEVEL_ORDER[a.status.level] - LEVEL_ORDER[b.status.level]);
+  const selectedNode = config.nodes.find((node) => node.widgetKey === selectedNodeKey) ?? null;
 
   return (
     <main className="mc-hub">
@@ -133,8 +142,15 @@ export function MissionControlHub({
             <h2 id="mc-map-title">Service map</h2>
             <p>Fresh flows carry a moving signal. Quiet lines have no recent activity.</p>
           </div>
-          <span>{nodeStatuses.length} nodes · {flowStatuses.length} flows</span>
+          <div className="mc-map-tools">
+            <div className="mc-environment-switch" role="group" aria-label="Architecture environment">
+              {(["production", "staging"] as const).map((option) => <button key={option} type="button" aria-pressed={environment === option} onClick={() => setEnvironment(option)}>{option === "production" ? "Prod" : "Staging"}</button>)}
+            </div>
+            <button className="mc-reset-layout" type="button" onClick={() => setResetNonce((value) => value + 1)}><RotateCcw aria-hidden="true" />Reset layout</button>
+            <span>{config.nodes.length} nodes · {config.architectureBindings.length} flows</span>
+          </div>
         </div>
+        <p className="mc-live-environment">Viewing <strong>{environment}</strong> architecture · live health comes from this <strong>{liveEnvironment}</strong> deployment.</p>
         <MissionControlCanvas
           config={config}
           catalog={catalog}
@@ -143,6 +159,9 @@ export function MissionControlHub({
           nowMs={nowMs}
           placeholderNodeKeys={placeholderNodeKeys}
           layout="auto"
+          environment={environment}
+          resetNonce={resetNonce}
+          onSelectNode={setSelectedNodeKey}
         />
       </section>
 
@@ -184,6 +203,7 @@ export function MissionControlHub({
           )}
         </AdminPanel.Body>
       </AdminPanel.Root>
+      <MissionControlNodeModal node={selectedNode} status={nodeStatuses.find((status) => status.nodeKey === selectedNodeKey)} config={config} environment={environment} liveEnvironment={liveEnvironment} onClose={() => setSelectedNodeKey(null)} onSelectNode={setSelectedNodeKey} />
     </main>
   );
 }

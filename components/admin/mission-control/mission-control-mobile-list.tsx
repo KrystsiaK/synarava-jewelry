@@ -7,6 +7,7 @@ import type { MissionControlCanvasEdge, MissionControlCanvasNode } from "@/lib/m
 type MissionControlMobileListProps = {
   nodes: MissionControlCanvasNode[];
   edges: MissionControlCanvasEdge[];
+  onSelectNode?: (widgetKey: string) => void;
 };
 
 /**
@@ -15,15 +16,17 @@ type MissionControlMobileListProps = {
 export function MissionControlMobileList({
   nodes,
   edges,
+  onSelectNode,
 }: MissionControlMobileListProps) {
+  const services = nodes.filter((node) => node.type === "missionControl");
   return (
     <section className="mc-service-list" data-testid="mc-mobile-list" aria-labelledby="mc-service-list-title">
       <div className="mc-service-list__header">
         <h2 id="mc-service-list-title">Service map</h2>
-        <span>{nodes.length} services</span>
+        <span>{services.length} services</span>
       </div>
       <ul className="mc-service-list__grid" data-testid="mc-mobile-list-items">
-          {nodes.map((node) => {
+          {services.map((node) => {
             const related = edges.filter(
               (edge) => edge.source === node.id || edge.target === node.id,
             );
@@ -34,14 +37,16 @@ export function MissionControlMobileList({
                 data-testid={`mc-list-node-${node.id}`}
                 data-level={node.data.level}
               >
+                <button className="mc-service-row__inspect" type="button" onClick={() => onSelectNode?.(node.id)} aria-label={`Inspect ${node.data.label}`}>
                 <div className="mc-service-row__topline">
                   <div className="min-w-0">
                     <p className="mc-service-row__name">{node.data.label}</p>
-                    {node.data.placeholder ? <span className="mc-demo-label">Demo node</span> : null}
+                    <span className="mc-demo-label">{node.data.kind === "live" ? "Live" : node.data.kind === "info" ? "Reference" : "Not wired"}</span>
                   </div>
-                  <MissionControlStatusMark level={node.data.level} />
+                  {node.data.kind === "live" ? <MissionControlStatusMark level={node.data.level} /> : <span className="mc-service-row__kind-state">{node.data.kind === "info" ? "Reference" : "Not wired"}</span>}
                 </div>
                 <p className="mc-service-row__message">{node.data.message || "No status message"}</p>
+                </button>
                 {node.data.href ? (
                   <a
                     href={node.data.href}
@@ -57,7 +62,7 @@ export function MissionControlMobileList({
                     Flows ·{" "}
                     {related
                       .map((edge) =>
-                        typeof edge.label === "string" ? edge.label : edge.id,
+                        String(edge.data?.busKey ?? edge.id),
                       )
                       .join(", ")}
                   </p>

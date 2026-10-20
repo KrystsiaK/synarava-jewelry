@@ -39,7 +39,7 @@
 
 **ADR** — [индекс](adr/README.md)
 
-**Proposals** — [documentation-knowledge-system](proposals/documentation-knowledge-system.md) · [portable-sku-service](proposals/portable-sku-service.md) · [catalog-server-pagination](proposals/catalog-server-pagination.md) · [customer-communication](proposals/customer-communication.md) · [shopify-post-purchase-flows](proposals/shopify-post-purchase-flows.md) · [production-database-safety-and-recovery](proposals/production-database-safety-and-recovery.md)
+**Proposals** — [documentation-knowledge-system](proposals/documentation-knowledge-system.md) · [portable-sku-service](proposals/portable-sku-service.md) · [catalog-server-pagination](proposals/catalog-server-pagination.md) · [customer-communication](proposals/customer-communication.md) · [shopify-post-purchase-flows](proposals/shopify-post-purchase-flows.md) · [production-database-safety-and-recovery](proposals/production-database-safety-and-recovery.md) · [languages-as-data](proposals/languages-as-data.md)
 
 **Strategy** — [growth](strategy/growth.md) · [ecommerce-operating-infrastructure](strategy/ecommerce-operating-infrastructure.md)
 

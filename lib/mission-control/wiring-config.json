@@ -1,59 +1,79 @@
 {
   "shellId": "mission-control",
+  "version": "1.1.0",
+  "groups": [
+    { "key": "app", "label": "Synarava app", "position": { "x": 0, "y": 0 }, "size": { "width": 620, "height": 470 } },
+    { "key": "commerce", "label": "Commerce", "position": { "x": 700, "y": 0 }, "size": { "width": 620, "height": 470 } },
+    { "key": "monitoring", "label": "Monitoring & analytics", "position": { "x": 1400, "y": 0 }, "size": { "width": 620, "height": 470 } },
+    { "key": "sku", "label": "SKU platform", "position": { "x": 0, "y": 550 }, "size": { "width": 620, "height": 470 } },
+    { "key": "packages", "label": "Packages", "position": { "x": 700, "y": 550 }, "size": { "width": 620, "height": 470 } },
+    { "key": "infrastructure", "label": "Infrastructure", "position": { "x": 1400, "y": 550 }, "size": { "width": 620, "height": 470 } },
+    { "key": "agents", "label": "AI agents", "position": { "x": 0, "y": 1100 }, "size": { "width": 620, "height": 360 } },
+    { "key": "future", "label": "Future", "position": { "x": 700, "y": 1100 }, "size": { "width": 1320, "height": 360 } }
+  ],
+  "architectureBindings": [
+    { "busKey": "site_to_db", "label": "", "flow": "continuous", "source": { "widgetKey": "site-health", "portKey": "status_out" }, "sinks": [{ "widgetKey": "db", "portKey": "status_in" }] },
+    { "busKey": "site_to_media", "label": "", "flow": "continuous", "source": { "widgetKey": "site-health", "portKey": "status_out" }, "sinks": [{ "widgetKey": "media-bucket", "portKey": "status_in" }] },
+    { "busKey": "collector_to_site", "label": "", "flow": "event", "source": { "widgetKey": "mission-control-collector", "portKey": "status_out" }, "sinks": [{ "widgetKey": "site-health", "portKey": "status_in" }] },
+    { "busKey": "shopify_to_sync", "label": "", "flow": "event", "source": { "widgetKey": "shopify-store", "portKey": "status_out" }, "sinks": [{ "widgetKey": "shopify-sync", "portKey": "status_in" }] },
+    { "busKey": "sync_to_storefront", "label": "", "flow": "event", "source": { "widgetKey": "shopify-sync", "portKey": "status_out" }, "sinks": [{ "widgetKey": "storefront", "portKey": "status_in" }] },
+    { "busKey": "translate_to_shopify", "label": "", "flow": "event", "source": { "widgetKey": "translate-adapt", "portKey": "status_out" }, "sinks": [{ "widgetKey": "shopify-store", "portKey": "status_in" }] },
+    { "busKey": "site_to_monitoring", "label": "", "flow": "event", "source": { "widgetKey": "site-health", "portKey": "status_out" }, "sinks": [{ "widgetKey": "sentry", "portKey": "events_in" }, { "widgetKey": "clarity", "portKey": "events_in" }, { "widgetKey": "google-analytics", "portKey": "events_in" }] },
+    { "busKey": "sku_n8n_to_api", "label": "", "flow": "event", "source": { "widgetKey": "sku-n8n", "portKey": "status_out" }, "sinks": [{ "widgetKey": "sku-api", "portKey": "status_in" }] },
+    { "busKey": "sku_api_to_db", "label": "", "flow": "continuous", "source": { "widgetKey": "sku-api", "portKey": "status_out" }, "sinks": [{ "widgetKey": "sku-postgres", "portKey": "status_in" }] },
+    { "busKey": "sku_n8n_to_telegram", "label": "", "flow": "event", "source": { "widgetKey": "sku-n8n", "portKey": "status_out" }, "sinks": [{ "widgetKey": "sku-telegram", "portKey": "status_in" }] },
+    { "busKey": "github_to_actions", "label": "", "flow": "event", "source": { "widgetKey": "github-repo", "portKey": "status_out" }, "sinks": [{ "widgetKey": "github-actions", "portKey": "status_in" }] },
+    { "busKey": "actions_to_railway", "label": "", "flow": "event", "source": { "widgetKey": "github-actions", "portKey": "status_out" }, "sinks": [{ "widgetKey": "railway-production", "portKey": "status_in" }, { "widgetKey": "railway-staging", "portKey": "status_in" }] },
+    { "busKey": "registry_to_app", "label": "", "flow": "continuous", "source": { "widgetKey": "packages-registry", "portKey": "status_out" }, "sinks": [{ "widgetKey": "site-health", "portKey": "status_in" }] }
+  ],
   "systemBindings": [
-    {
-      "busKey": "site_to_db",
-      "label": "Site → DB",
-      "source": { "widgetKey": "site-health", "portKey": "status_out" },
-      "sinks": [{ "widgetKey": "db", "portKey": "status_in" }]
-    },
-    {
-      "busKey": "shopify_to_products",
-      "label": "Shopify → Products",
-      "source": { "widgetKey": "shopify-sync", "portKey": "status_out" },
-      "sinks": [{ "widgetKey": "products", "portKey": "status_in" }]
-    },
-    {
-      "busKey": "site_to_sentry",
-      "label": "Site → Sentry",
-      "source": { "widgetKey": "site-health", "portKey": "status_out" },
-      "sinks": [{ "widgetKey": "sentry", "portKey": "events_in" }]
-    },
-    {
-      "busKey": "orders_pulse",
-      "label": "Orders pulse",
-      "source": { "widgetKey": "orders", "portKey": "status_out" },
-      "sinks": []
-    }
+    { "busKey": "site_to_db", "label": "Site → DB", "source": { "widgetKey": "site-health", "portKey": "status_out" }, "sinks": [{ "widgetKey": "db", "portKey": "status_in" }] },
+    { "busKey": "shopify_to_products", "label": "Shopify → Products", "source": { "widgetKey": "shopify-sync", "portKey": "status_out" }, "sinks": [{ "widgetKey": "products", "portKey": "status_in" }] },
+    { "busKey": "site_to_sentry", "label": "Site → Sentry", "source": { "widgetKey": "site-health", "portKey": "status_out" }, "sinks": [{ "widgetKey": "sentry", "portKey": "events_in" }] },
+    { "busKey": "orders_pulse", "label": "Orders pulse", "source": { "widgetKey": "orders", "portKey": "status_out" }, "sinks": [] }
   ],
   "userConnections": [],
   "nodes": [
-    {
-      "widgetKey": "site-health",
-      "fixHint": "Site health probes APP_URL /api/health. If warn/down, check Railway app reachability and the health route first.",
-      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: site-health is warn or down. Read lib/mission-control/providers/site-health.ts, docs/runbooks/mission-control-hub-plan.md (§0 and Stage 4–6), and the health/deploy runbooks. Report what failed, likely cause, and a PR-ready fix proposal — do not mutate production."
-    },
-    {
-      "widgetKey": "shopify-sync",
-      "fixHint": "Shopify sync age comes from the latest succeeded ProductSyncEvent. Stale or missing sync usually means the sync job or webhook path stalled — check admin products sync and recent sync events.",
-      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: shopify-sync is warn or down. Read lib/mission-control/providers/shopify-sync.ts, docs/runbooks/mission-control-hub-plan.md (§0), and docs/wiki/commerce-sync.md. Report sync age evidence, likely stall point, and a PR-ready fix proposal — do not mutate production."
-    },
-    {
-      "widgetKey": "orders",
-      "fixHint": "Orders counters come from ShopifyWebhookDelivery rows. Warn/down means webhook intake is quiet or erroring — check webhook deliveries and Shopify webhook configuration.",
-      "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Symptom: orders is warn or down. Read lib/mission-control/providers/orders.ts, docs/runbooks/mission-control-hub-plan.md (§0), and webhook/orders runbooks. Report delivery counters, likely cause, and a PR-ready fix proposal — do not mutate production."
-    },
-    {
-      "widgetKey": "db",
-      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
-    },
-    {
-      "widgetKey": "products",
-      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
-    },
-    {
-      "widgetKey": "sentry",
-      "fixHint": "Not connected yet. This node is a placeholder with no live provider — no action needed until it is wired."
-    }
+    { "widgetKey": "site-health", "label": "synarava-shop-app", "kind": "live", "type": "service", "group": "app", "position": { "x": 40, "y": 70 }, "provider": "site-health", "docs": [{ "label": "Architecture", "href": "/docs/wiki/architecture.md" }, { "label": "Deploy", "href": "/docs/runbooks/deploy.md" }], "env": { "production": { "label": "Production app", "href": "https://shop.synarava.com" }, "staging": { "label": "Staging app", "href": "https://synarava-shop-app-staging.up.railway.app" } }, "fixHint": "Check Railway reachability and this deployment's health route first.", "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Investigate site-health and report a PR-ready fix." },
+    { "widgetKey": "db", "label": "Postgres", "kind": "info", "type": "database", "group": "app", "position": { "x": 350, "y": 70 }, "docs": [{ "label": "Database safety & recovery", "href": "/docs/proposals/production-database-safety-and-recovery.md" }, { "label": "Migrations", "href": "/docs/runbooks/deploy.md" }], "env": { "production": { "label": "Production Postgres", "href": "", "settings": { "engine": "PostgreSQL" } }, "staging": { "label": "Staging Postgres", "href": "", "settings": { "engine": "PostgreSQL" } } }, "engine": "PostgreSQL", "usedBy": ["synarava-shop-app", "Mission Control collector"] },
+    { "widgetKey": "media-bucket", "label": "Media bucket", "kind": "info", "type": "storage", "group": "app", "position": { "x": 40, "y": 260 }, "docs": [{ "label": "Media deploy setup", "href": "/docs/runbooks/deploy.md" }], "env": { "production": { "label": "Production media", "href": "" }, "staging": { "label": "Staging media", "href": "" } } },
+    { "widgetKey": "mission-control-collector", "label": "Mission Control collector", "kind": "info", "type": "automation", "group": "app", "position": { "x": 350, "y": 260 }, "docs": [{ "label": "Collector runbook", "href": "/docs/runbooks/mission-control-collector-railway.md" }], "env": { "production": { "label": "Production cron", "href": "" }, "staging": { "label": "Staging cron", "href": "" } } },
+
+    { "widgetKey": "shopify-store", "label": "Shopify store", "kind": "info", "type": "platform", "group": "commerce", "position": { "x": 40, "y": 70 }, "docs": [{ "label": "Product ownership", "href": "/docs/wiki/product-data-ownership.md" }], "env": { "production": { "label": "Production store", "href": "" }, "staging": { "label": "Development store", "href": "" } } },
+    { "widgetKey": "shopify-sync", "label": "Synarava Sync Admin", "kind": "live", "type": "service", "group": "commerce", "position": { "x": 350, "y": 70 }, "provider": "shopify-sync", "docs": [{ "label": "Commerce sync", "href": "/docs/wiki/commerce-sync.md" }], "env": { "production": { "label": "Production sync", "href": "/admin/products" }, "staging": { "label": "Staging sync", "href": "/admin/products" } }, "fixHint": "Check recent ProductSyncEvent records and the webhook path.", "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Investigate shopify-sync and report a PR-ready fix." },
+    { "widgetKey": "storefront", "label": "Storefront / Headless", "kind": "info", "type": "service", "group": "commerce", "position": { "x": 350, "y": 260 }, "docs": [{ "label": "Commerce ADR", "href": "/docs/adr/0001-shopify-hybrid-commerce.md" }], "env": { "production": { "label": "Production storefront", "href": "https://shop.synarava.com" }, "staging": { "label": "Staging storefront", "href": "https://synarava-shop-app-staging.up.railway.app" } } },
+    { "widgetKey": "translate-adapt", "label": "Translate & Adapt", "kind": "info", "type": "platform", "group": "commerce", "position": { "x": 40, "y": 260 }, "docs": [{ "label": "Translation operations", "href": "/docs/runbooks/translation-operations.md" }], "env": { "production": { "label": "Production translations", "href": "" }, "staging": { "label": "Staging translations", "href": "" } } },
+    { "widgetKey": "orders", "label": "Orders signal", "kind": "live", "type": "service", "group": "commerce", "position": { "x": 195, "y": 165 }, "provider": "orders", "docs": [{ "label": "Post-purchase ops", "href": "/docs/runbooks/post-purchase-ops.md" }], "env": { "production": { "label": "Production webhooks", "href": "/admin/commerce" }, "staging": { "label": "Staging webhooks", "href": "/admin/commerce" } }, "fixHint": "Check webhook receipts and Shopify webhook configuration.", "fixPrompt": "Investigate read-only first; never run prisma migrate dev/reset/diff, db push, db execute or any shadow database; never use or request production write credentials; propose changes as a pull request and wait for the owner. Investigate order webhook intake and report a PR-ready fix." },
+
+    { "widgetKey": "sentry", "label": "Sentry", "kind": "placeholder", "type": "platform", "group": "monitoring", "position": { "x": 40, "y": 70 }, "docs": [{ "label": "Mission Control plan", "href": "/docs/runbooks/mission-control-hub-plan.md" }], "env": { "production": { "label": "Production Sentry", "href": "" }, "staging": { "label": "Staging Sentry", "href": "" } }, "fixHint": "Not wired to a live provider yet." },
+    { "widgetKey": "clarity", "label": "Microsoft Clarity", "kind": "info", "type": "platform", "group": "monitoring", "position": { "x": 350, "y": 70 }, "docs": [{ "label": "Operations strategy", "href": "/docs/strategy/ecommerce-operating-infrastructure.md" }], "env": { "production": { "label": "Production Clarity", "href": "" }, "staging": { "label": "Staging Clarity", "href": "" } } },
+    { "widgetKey": "google-analytics", "label": "Google Analytics / Tag", "kind": "info", "type": "platform", "group": "monitoring", "position": { "x": 195, "y": 260 }, "docs": [{ "label": "GA4 setup", "href": "/docs/wiki/analytics/ga4-ecommerce-setup.md" }], "env": { "production": { "label": "Production analytics", "href": "" }, "staging": { "label": "Staging analytics", "href": "" } } },
+
+    { "widgetKey": "sku-api", "label": "sku-api", "kind": "info", "type": "service", "group": "sku", "position": { "x": 40, "y": 70 }, "docs": [{ "label": "SKU ADR", "href": "/docs/adr/0004-portable-sku-service-boundary.md" }], "env": { "production": { "label": "Production sku-api", "href": "" }, "staging": { "label": "Staging sku-api", "href": "" } } },
+    { "widgetKey": "sku-postgres", "label": "sku-postgres", "kind": "info", "type": "database", "group": "sku", "position": { "x": 350, "y": 70 }, "docs": [{ "label": "SKU Railway", "href": "/docs/runbooks/portable-sku-platform-railway.md" }, { "label": "Database safety", "href": "/docs/proposals/production-database-safety-and-recovery.md" }], "env": { "production": { "label": "Production SKU Postgres", "href": "", "settings": { "engine": "PostgreSQL" } }, "staging": { "label": "Staging SKU Postgres", "href": "", "settings": { "engine": "PostgreSQL" } } }, "engine": "PostgreSQL", "usedBy": ["sku-api"] },
+    { "widgetKey": "sku-n8n", "label": "n8n", "kind": "info", "type": "automation", "group": "sku", "position": { "x": 40, "y": 260 }, "docs": [{ "label": "SKU audit", "href": "/docs/runbooks/sku-catalog-audit-staging.md" }], "env": { "production": { "label": "Production n8n", "href": "" }, "staging": { "label": "Staging n8n", "href": "" } } },
+    { "widgetKey": "sku-telegram", "label": "Telegram notifications", "kind": "info", "type": "service", "group": "sku", "position": { "x": 350, "y": 260 }, "docs": [{ "label": "SKU status", "href": "/docs/wiki/portable-sku-current-status.md" }], "env": { "production": { "label": "Production notifications", "href": "" }, "staging": { "label": "Staging notifications", "href": "" } } },
+
+    { "widgetKey": "shell-kit", "label": "@synarava/shell-kit", "kind": "info", "type": "package", "group": "packages", "position": { "x": 40, "y": 70 }, "docs": [{ "label": "Mission Control plan", "href": "/docs/runbooks/mission-control-hub-plan.md" }], "env": { "production": { "label": "Used by this app", "href": "" }, "staging": { "label": "Used by this app", "href": "" } } },
+    { "widgetKey": "wiring-engine", "label": "@synarava/wiring-engine", "kind": "info", "type": "package", "group": "packages", "position": { "x": 350, "y": 70 }, "docs": [{ "label": "Mission Control ADR", "href": "/docs/adr/0005-mission-control-hub.md" }], "env": { "production": { "label": "Used by this app", "href": "" }, "staging": { "label": "Used by this app", "href": "" } } },
+    { "widgetKey": "widget-generator", "label": "@synarava/widget-generator", "kind": "info", "type": "package", "group": "packages", "position": { "x": 40, "y": 260 }, "docs": [], "env": { "production": { "label": "Not used in this app", "href": "" }, "staging": { "label": "Not used in this app", "href": "" } } },
+    { "widgetKey": "ui-kit", "label": "@synarava/ui-kit", "kind": "info", "type": "package", "group": "packages", "position": { "x": 350, "y": 260 }, "docs": [], "env": { "production": { "label": "Not used in this app", "href": "" }, "staging": { "label": "Not used in this app", "href": "" } } },
+
+    { "widgetKey": "railway-production", "label": "Railway production", "kind": "info", "type": "platform", "group": "infrastructure", "position": { "x": 40, "y": 70 }, "docs": [{ "label": "Deploy", "href": "/docs/runbooks/deploy.md" }], "env": { "production": { "label": "Production environment", "href": "" }, "staging": { "label": "Production reference", "href": "" } } },
+    { "widgetKey": "railway-staging", "label": "Railway staging", "kind": "info", "type": "platform", "group": "infrastructure", "position": { "x": 350, "y": 70 }, "docs": [{ "label": "Staging", "href": "/docs/runbooks/staging.md" }], "env": { "production": { "label": "Staging reference", "href": "" }, "staging": { "label": "Staging environment", "href": "" } } },
+    { "widgetKey": "github-repo", "label": "GitHub repository", "kind": "info", "type": "platform", "group": "infrastructure", "position": { "x": 40, "y": 260 }, "docs": [{ "label": "Architecture", "href": "/docs/wiki/architecture.md" }], "env": { "production": { "label": "Main delivery source", "href": "https://github.com/KrystsiaK/synarava-jewelry" }, "staging": { "label": "Staging delivery source", "href": "https://github.com/KrystsiaK/synarava-jewelry" } } },
+    { "widgetKey": "github-actions", "label": "GitHub Actions", "kind": "info", "type": "automation", "group": "infrastructure", "position": { "x": 195, "y": 165 }, "docs": [{ "label": "CI workflow", "href": "/.github/workflows/ci.yml" }], "env": { "production": { "label": "Main CI", "href": "https://github.com/KrystsiaK/synarava-jewelry/actions" }, "staging": { "label": "Staging CI", "href": "https://github.com/KrystsiaK/synarava-jewelry/actions" } } },
+    { "widgetKey": "packages-registry", "label": "GitHub Packages", "kind": "info", "type": "platform", "group": "infrastructure", "position": { "x": 350, "y": 260 }, "docs": [{ "label": "Package setup", "href": "/docs/runbooks/deploy.md" }], "env": { "production": { "label": "@synarava registry", "href": "" }, "staging": { "label": "@synarava registry", "href": "" } } },
+
+    { "widgetKey": "cursor", "label": "Cursor", "kind": "info", "type": "agent", "group": "agents", "position": { "x": 40, "y": 80 }, "docs": [{ "label": "Database safety", "href": "/docs/proposals/production-database-safety-and-recovery.md" }], "env": { "production": { "label": "Read-only credentials", "href": "" }, "staging": { "label": "Development agent", "href": "" } } },
+    { "widgetKey": "codex", "label": "Codex", "kind": "info", "type": "agent", "group": "agents", "position": { "x": 195, "y": 185 }, "docs": [{ "label": "Database safety", "href": "/docs/proposals/production-database-safety-and-recovery.md" }], "env": { "production": { "label": "Read-only credentials", "href": "" }, "staging": { "label": "Development agent", "href": "" } } },
+    { "widgetKey": "claude-code", "label": "Claude Code", "kind": "info", "type": "agent", "group": "agents", "position": { "x": 350, "y": 80 }, "docs": [{ "label": "Database safety", "href": "/docs/proposals/production-database-safety-and-recovery.md" }], "env": { "production": { "label": "Read-only credentials", "href": "" }, "staging": { "label": "Development agent", "href": "" } } },
+
+    { "widgetKey": "meta-ads", "label": "Meta ads", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 40, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } },
+    { "widgetKey": "tiktok-ads", "label": "TikTok ads", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 250, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } },
+    { "widgetKey": "customer-telegram", "label": "Customer Telegram bots", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 460, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } },
+    { "widgetKey": "invoices", "label": "Invoices tracker", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 670, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } },
+    { "widgetKey": "google-workspace", "label": "Google Workspace", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 880, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } },
+    { "widgetKey": "notion", "label": "Notion", "kind": "placeholder", "type": "future", "group": "future", "position": { "x": 1090, "y": 80 }, "docs": [], "env": { "production": { "label": "Not wired", "href": "" }, "staging": { "label": "Not wired", "href": "" } } }
   ]
 }

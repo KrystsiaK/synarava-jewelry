@@ -1,178 +1,74 @@
 import type { Edge, Node } from "@xyflow/react";
-import type { WidgetPortManifest, WiringConfig } from "@synarava/wiring-engine";
-import type {
-  ServiceFlowStatusRecord,
-  ServiceNodeStatusRecord,
-  ServiceStatusLevel,
-} from "@/lib/mission-control/status";
-import {
-  getNodeFixConfig,
-  type MissionControlWiringConfig,
-} from "@/lib/mission-control/wiring";
+import type { WidgetPortManifest } from "@synarava/wiring-engine";
+import type { ServiceFlowStatusRecord, ServiceNodeStatusRecord, ServiceStatusLevel } from "@/lib/mission-control/status";
+import type { MissionControlEnvironment, MissionControlNodeKind, MissionControlNodeType, MissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
-/** Edges with `lastFlowAt` within this window count as live “electricity”. */
 export const FLOW_FRESH_MS = 5 * 60 * 1000;
-
-export const STATUS_LEVEL_COLORS: Record<ServiceStatusLevel, string> = {
-  ok: "#2f6f5e",
-  warn: "#b8860b",
-  down: "#a33b3b",
-  unknown: "#6b7280",
-};
+export const STATUS_LEVEL_COLORS: Record<ServiceStatusLevel, string> = { ok: "#2f6f5e", warn: "#b8860b", down: "#a33b3b", unknown: "#6b7280" };
 
 export type MissionControlNodeData = {
-  widgetKey: string;
-  label: string;
-  level: ServiceStatusLevel;
-  message: string | null;
-  href: string | null;
-  accentColor: string;
-  /** Static owner hint from WiringConfig — shown for warn/down/unknown. */
-  fixHint: string | null;
-  /** Static AI prompt from WiringConfig — copy-only; absent for placeholders. */
-  fixPrompt: string | null;
-  /** Fixture-backed node with no live provider yet. */
-  placeholder: boolean;
+  widgetKey: string; label: string; level: ServiceStatusLevel; message: string | null; href: string | null;
+  accentColor: string; fixHint: string | null; fixPrompt: string | null; placeholder: boolean;
+  kind: MissionControlNodeKind; nodeType: MissionControlNodeType; group: string;
 };
-
 export type MissionControlCanvasNode = Node<MissionControlNodeData>;
-export type MissionControlCanvasEdge = Edge;
+export type MissionControlCanvasEdge = Edge<{ busKey: string; level: ServiceStatusLevel; flow: string }>;
 
-export function statusLevelColor(level: ServiceStatusLevel): string {
-  return STATUS_LEVEL_COLORS[level];
+export function statusLevelColor(level: ServiceStatusLevel): string { return STATUS_LEVEL_COLORS[level]; }
+export function isFlowFresh(lastFlowAt: Date | null | undefined, nowMs = Date.now(), freshMs = FLOW_FRESH_MS): boolean {
+  return Boolean(lastFlowAt && nowMs - lastFlowAt.getTime() <= freshMs);
 }
-
-export function isFlowFresh(
-  lastFlowAt: Date | null | undefined,
-  nowMs: number = Date.now(),
-  freshMs: number = FLOW_FRESH_MS,
-): boolean {
-  if (!lastFlowAt) return false;
-  return nowMs - lastFlowAt.getTime() <= freshMs;
-}
-
-function catalogByKey(
-  catalog: readonly WidgetPortManifest[],
-): Map<string, WidgetPortManifest> {
-  return new Map(catalog.map((entry) => [entry.widgetKey, entry]));
-}
-
-function statusByNodeKey(
-  statuses: readonly ServiceNodeStatusRecord[],
-): Map<string, ServiceNodeStatusRecord> {
-  return new Map(statuses.map((row) => [row.nodeKey, row]));
-}
-
-function flowByBusKey(
-  flows: readonly ServiceFlowStatusRecord[],
-): Map<string, ServiceFlowStatusRecord> {
-  return new Map(flows.map((row) => [row.busKey, row]));
-}
-
-/** Unique widget keys referenced by WiringConfig bindings (plus catalog extras). */
-export function collectWidgetKeys(
-  config: WiringConfig,
-  catalog: readonly WidgetPortManifest[],
-): string[] {
-  const keys = new Set<string>();
-  for (const entry of catalog) {
-    keys.add(entry.widgetKey);
-  }
-  for (const binding of config.systemBindings) {
-    if (binding.source) keys.add(binding.source.widgetKey);
-    for (const sink of binding.sinks) {
-      keys.add(sink.widgetKey);
-    }
-  }
+export function collectWidgetKeys(config: MissionControlWiringConfig, catalog: readonly WidgetPortManifest[]): string[] {
+  const keys = new Set(config.nodes.map((node) => node.widgetKey));
+  for (const entry of catalog) keys.add(entry.widgetKey);
   return [...keys];
 }
 
-function layoutPosition(index: number): { x: number; y: number } {
-  const col = index % 3;
-  const row = Math.floor(index / 3);
-  return { x: col * 272, y: row * 164 };
-}
-
 export type BuildCanvasGraphInput = {
-  config: WiringConfig | MissionControlWiringConfig;
-  catalog: readonly WidgetPortManifest[];
-  nodeStatuses?: readonly ServiceNodeStatusRecord[];
-  flowStatuses?: readonly ServiceFlowStatusRecord[];
-  nowMs?: number;
-  placeholderNodeKeys?: readonly string[];
+  config: MissionControlWiringConfig; catalog: readonly WidgetPortManifest[];
+  nodeStatuses?: readonly ServiceNodeStatusRecord[]; flowStatuses?: readonly ServiceFlowStatusRecord[];
+  nowMs?: number; environment?: MissionControlEnvironment; positions?: Readonly<Record<string, { x: number; y: number }>>;
 };
 
-/**
- * Pure mapping: WiringConfig + status fixtures → React Flow nodes/edges.
- * Read-only — no drag persistence, no DB writes.
- */
-export function buildCanvasGraph({
-  config,
-  catalog,
-  nodeStatuses = [],
-  flowStatuses = [],
-  nowMs = Date.now(),
-  placeholderNodeKeys = [],
-}: BuildCanvasGraphInput): {
-  nodes: MissionControlCanvasNode[];
-  edges: MissionControlCanvasEdge[];
-} {
-  const manifests = catalogByKey(catalog);
-  const nodeStatusMap = statusByNodeKey(nodeStatuses);
-  const flowStatusMap = flowByBusKey(flowStatuses);
-  const widgetKeys = collectWidgetKeys(config, catalog);
-  const placeholderKeys = new Set(placeholderNodeKeys);
-
-  const fixConfig =
-    "nodes" in config && Array.isArray(config.nodes)
-      ? (config as MissionControlWiringConfig)
-      : undefined;
-
-  const nodes: MissionControlCanvasNode[] = widgetKeys.map((widgetKey, index) => {
-    const manifest = manifests.get(widgetKey);
-    const status = nodeStatusMap.get(widgetKey);
-    const level: ServiceStatusLevel = status?.level ?? "unknown";
-    const fix = fixConfig ? getNodeFixConfig(widgetKey, fixConfig) : undefined;
-    return {
-      id: widgetKey,
-      type: "missionControl",
-      position: layoutPosition(index),
-      data: {
-        widgetKey,
-        label: manifest?.label ?? widgetKey,
-        level,
-        message: status?.message ?? null,
-        href: status?.href ?? null,
-        accentColor: statusLevelColor(level),
-        fixHint: fix?.fixHint?.trim() || null,
-        fixPrompt: fix?.fixPrompt?.trim() || null,
-        placeholder: placeholderKeys.has(widgetKey),
-      },
-      draggable: false,
-      connectable: false,
-      selectable: false,
-    };
+/** Pure projection from versioned architecture config + request-time health into React Flow. */
+export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatuses = [], nowMs = Date.now(), environment = "production", positions = {} }: BuildCanvasGraphInput): { nodes: MissionControlCanvasNode[]; edges: MissionControlCanvasEdge[] } {
+  const manifests = new Map(catalog.map((entry) => [entry.widgetKey, entry]));
+  const statuses = new Map(nodeStatuses.map((row) => [row.nodeKey, row]));
+  const flows = new Map(flowStatuses.map((row) => [row.busKey, row]));
+  const nodeConfig = new Map(config.nodes.map((node) => [node.widgetKey, node]));
+  const groupNodes: MissionControlCanvasNode[] = config.groups.map((group) => ({
+    id: `group:${group.key}`, type: "group", position: group.position,
+    style: { width: group.size.width, height: group.size.height },
+    data: { widgetKey: `group:${group.key}`, label: group.label, level: "unknown", message: null, href: null, accentColor: STATUS_LEVEL_COLORS.unknown, fixHint: null, fixPrompt: null, placeholder: false, kind: "info", nodeType: "platform", group: group.key },
+    draggable: false, connectable: false, selectable: false,
+  }));
+  const serviceNodes: MissionControlCanvasNode[] = collectWidgetKeys(config, catalog).flatMap((widgetKey) => {
+    const definition = nodeConfig.get(widgetKey);
+    if (!definition) return [];
+    const status = statuses.get(widgetKey);
+    const level: ServiceStatusLevel = definition.kind === "live" ? status?.level ?? "unknown" : "unknown";
+    const href = definition.env[environment].href.trim() || status?.href || null;
+    return [{
+      id: widgetKey, type: "missionControl", parentId: `group:${definition.group}`, extent: "parent" as const,
+      position: positions[widgetKey] ?? definition.position,
+      data: { widgetKey, label: definition.label ?? manifests.get(widgetKey)?.label ?? widgetKey, level,
+        message: status?.message ?? (definition.kind === "placeholder" ? "Planned · not wired" : "Architecture reference"),
+        href, accentColor: statusLevelColor(level), fixHint: definition.fixHint?.trim() || null,
+        fixPrompt: definition.fixPrompt?.trim() || null, placeholder: definition.kind === "placeholder",
+        kind: definition.kind, nodeType: definition.type, group: definition.group },
+      draggable: true, connectable: false, selectable: true,
+    }];
   });
-
   const edges: MissionControlCanvasEdge[] = [];
-  for (const binding of config.systemBindings) {
+  for (const binding of config.architectureBindings) {
     if (!binding.source) continue;
-    const flow = flowStatusMap.get(binding.busKey);
-    const animated = isFlowFresh(flow?.lastFlowAt ?? null, nowMs);
-    if (binding.sinks.length === 0) continue;
-    for (const sink of binding.sinks) {
-      edges.push({
-        id: `${binding.busKey}:${binding.source.widgetKey}->${sink.widgetKey}`,
-        source: binding.source.widgetKey,
-        target: sink.widgetKey,
-        label: binding.label,
-        animated,
-        selectable: false,
-        focusable: false,
-        data: { busKey: binding.busKey, level: flow?.level ?? "unknown" },
-      });
-    }
+    const flowStatus = flows.get(binding.busKey);
+    for (const sink of binding.sinks) edges.push({
+      id: `${binding.busKey}:${binding.source.widgetKey}->${sink.widgetKey}`, source: binding.source.widgetKey, target: sink.widgetKey,
+      type: "smoothstep", animated: binding.flow === "continuous" || isFlowFresh(flowStatus?.lastFlowAt, nowMs),
+      markerEnd: { type: "arrowclosed", width: 14, height: 14 }, selectable: false, focusable: false,
+      data: { busKey: binding.busKey, level: flowStatus?.level ?? "unknown", flow: binding.flow },
+    });
   }
-
-  return { nodes, edges };
+  return { nodes: [...groupNodes, ...serviceNodes], edges };
 }

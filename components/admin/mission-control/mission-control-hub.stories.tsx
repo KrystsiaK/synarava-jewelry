@@ -1,118 +1,47 @@
 import type { Meta, StoryObj } from "@storybook/react";
-import type { WidgetPortManifest } from "@synarava/wiring-engine";
 import { MissionControlHub } from "@/components/admin/mission-control/mission-control-hub";
+import { MISSION_CONTROL_NODE_CATALOG } from "@/lib/mission-control/node-catalog";
 import type { ServiceFlowStatusRecord, ServiceNodeStatusRecord, ServiceStatusLevel } from "@/lib/mission-control/status";
-import type { MissionControlWiringConfig } from "@/lib/mission-control/wiring";
+import { getMissionControlWiringConfig, type MissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
 const NOW = new Date("2026-10-20T12:00:00.000Z");
+const fullConfig = getMissionControlWiringConfig();
 
 function status(nodeKey: string, level: ServiceStatusLevel, message?: string, checkedAt = NOW): ServiceNodeStatusRecord {
-  return {
-    nodeKey,
-    level,
-    message: message ?? `${nodeKey} ${level}`,
-    counters: null,
-    href: `/admin/${nodeKey}`,
-    checkedAt,
-    updatedAt: checkedAt,
-  };
+  return { nodeKey, level, message: message ?? `${nodeKey} ${level}`, counters: { checks: 24, failures: level === "ok" ? 0 : 2 }, href: `/admin/${nodeKey}`, checkedAt, updatedAt: checkedAt };
 }
 
-function makeUniverse(count: number, levels: ServiceStatusLevel[]): {
-  catalog: WidgetPortManifest[];
-  config: MissionControlWiringConfig;
-  statuses: ServiceNodeStatusRecord[];
-  flows: ServiceFlowStatusRecord[];
-} {
-  const keys = Array.from({ length: count }, (_, index) => `service-${index + 1}`);
-  const catalog: WidgetPortManifest[] = keys.map((key, index) => ({
-    widgetKey: key,
-    label: count === 1 ? "Synarava storefront" : `Service ${String(index + 1).padStart(2, "0")}`,
-    color: "#7b5b1c",
-    ports: [{ portKey: "status_out", direction: "output", valueType: "json", label: "Status" }],
-  }));
-  const config: MissionControlWiringConfig = {
-    shellId: "mission-control-story",
-    systemBindings: keys.slice(0, -1).map((key, index) => ({
-      busKey: `${key}_to_${keys[index + 1]}`,
-      label: `${index + 1} → ${index + 2}`,
-      source: { widgetKey: key, portKey: "status_out" },
-      sinks: [{ widgetKey: keys[index + 1], portKey: "status_out" }],
-    })),
-    userConnections: [],
-    nodes: keys.map((key, index) => ({
-      widgetKey: key,
-      fixHint: index === 1
-        ? "This deliberately long hint proves that remediation copy stays in the ledger and never stretches a map node. Check the upstream service, confirm the last successful hand-off, compare the expected payload with the observed payload, and document the first broken boundary before proposing any change."
-        : `Inspect ${key} and its nearest upstream flow first.`,
-      fixPrompt: `Investigate ${key} read-only and propose a safe fix.`,
-    })),
-  };
-  const statuses = keys.map((key, index) => status(key, levels[index % levels.length]));
-  const flows = config.systemBindings.map((binding, index) => ({
-    busKey: binding.busKey,
-    lastFlowAt: index % 2 === 0 ? new Date(NOW.getTime() - 60_000) : new Date(NOW.getTime() - 3_600_000),
-    level: index % 2 === 0 ? "ok" : "warn",
-    updatedAt: NOW,
-  })) satisfies ServiceFlowStatusRecord[];
-  return { catalog, config, statuses, flows };
+const liveKeys = fullConfig.nodes.filter((node) => node.kind === "live").map((node) => node.widgetKey);
+const mixedStatuses = [status(liveKeys[0], "ok"), status(liveKeys[1], "warn"), status(liveKeys[2], "down")];
+const flows: ServiceFlowStatusRecord[] = fullConfig.architectureBindings.map((binding, index) => ({ busKey: binding.busKey, lastFlowAt: index % 2 ? new Date(NOW.getTime() - 3_600_000) : new Date(NOW.getTime() - 60_000), level: index % 2 ? "warn" : "ok", updatedAt: NOW }));
+
+function configForNodes(nodes: MissionControlWiringConfig["nodes"]): MissionControlWiringConfig {
+  const keys = new Set(nodes.map((node) => node.widgetKey));
+  const groupKeys = new Set(nodes.map((node) => node.group));
+  return { ...fullConfig, groups: fullConfig.groups.filter((group) => groupKeys.has(group.key)), nodes,
+    architectureBindings: fullConfig.architectureBindings.filter((binding) => binding.source && keys.has(binding.source.widgetKey) && binding.sinks.every((sink) => keys.has(sink.widgetKey))) };
 }
 
-const mixed = makeUniverse(6, ["ok", "warn", "down", "unknown"]);
-const one = makeUniverse(1, ["ok"]);
-const twelve = makeUniverse(12, ["ok", "warn", "down", "unknown"]);
-const allOk = makeUniverse(6, ["ok"]);
-const allDown = makeUniverse(6, ["down"]);
+const appConfig = configForNodes(fullConfig.nodes.filter((node) => node.group === "app"));
+const twelveConfig = configForNodes(fullConfig.nodes.slice(0, 12));
 
 const meta = {
   title: "Admin/Mission Control/Hub",
   component: MissionControlHub,
   parameters: { layout: "fullscreen" },
-  decorators: [
-    (Story) => (
-      <div className="admin-terminal !block !h-auto min-h-dvh p-4 md:p-8">
-        <Story />
-      </div>
-    ),
-  ],
-  args: {
-    nowMs: NOW.getTime(),
-    catalog: mixed.catalog,
-    config: mixed.config,
-    nodeStatuses: mixed.statuses,
-    flowStatuses: mixed.flows,
-    showPlaceholderNotice: true,
-    placeholderNodeKeys: ["service-4"],
-  },
+  decorators: [(Story) => <div className="admin-terminal !block !h-auto min-h-dvh p-4 md:p-8"><Story /></div>],
+  args: { nowMs: NOW.getTime(), catalog: MISSION_CONTROL_NODE_CATALOG, config: fullConfig, nodeStatuses: mixedStatuses, flowStatuses: flows, showPlaceholderNotice: true, liveEnvironment: "staging" },
 } satisfies Meta<typeof MissionControlHub>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
-export const AllStates: Story = {};
-
-export const VeryLongHint: Story = {
-  args: { nodeStatuses: mixed.statuses.map((item, index) => index === 1 ? { ...item, level: "warn" } : item) },
-};
-
-export const OneNode: Story = {
-  args: { catalog: one.catalog, config: one.config, nodeStatuses: one.statuses, flowStatuses: one.flows },
-};
-
-export const TwelveNodes: Story = {
-  args: { catalog: twelve.catalog, config: twelve.config, nodeStatuses: twelve.statuses, flowStatuses: twelve.flows },
-};
-
-export const StaleCollector: Story = {
-  args: {
-    nodeStatuses: mixed.statuses.map((item) => ({ ...item, checkedAt: new Date(NOW.getTime() - 60 * 60 * 1000) })),
-  },
-};
-
-export const AllOk: Story = {
-  args: { catalog: allOk.catalog, config: allOk.config, nodeStatuses: allOk.statuses, flowStatuses: allOk.flows },
-};
-
-export const AllDown: Story = {
-  args: { catalog: allDown.catalog, config: allDown.config, nodeStatuses: allDown.statuses, flowStatuses: allDown.flows },
-};
+export const FullArchitectureMap: Story = {};
+export const SingleGroup: Story = { args: { config: appConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => appConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
+export const TwelvePlusNodes: Story = { args: { config: twelveConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => twelveConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
+export const VeryLongHint: Story = { args: { config: { ...fullConfig, nodes: fullConfig.nodes.map((node) => node.widgetKey === "shopify-sync" ? { ...node, fixHint: "This deliberately long hint proves remediation copy remains in the operations ledger and never stretches a map node. Check the upstream hand-off, compare the expected and observed payload, and document the first broken boundary before proposing a change." } : node) } } };
+export const StaleCollector: Story = { args: { nodeStatuses: mixedStatuses.map((item) => ({ ...item, checkedAt: new Date(NOW.getTime() - 3_600_000) })) } };
+export const AllOk: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "ok")) } };
+export const AllDown: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "down")) } };
+export const ProductionView: Story = { args: { liveEnvironment: "production" } };
+export const NodeModal: Story = { play: async ({ canvasElement }) => { canvasElement.querySelector<HTMLElement>("[data-testid='mc-node-site-health']")?.click(); } };
