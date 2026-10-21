@@ -26,7 +26,7 @@ import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type Adm
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminPanel } from "@/components/synarava-cms";
+import { AdminAlert, AdminIconButton, AdminPanel } from "@/components/synarava-cms";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
@@ -69,7 +69,6 @@ import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
-import { Tooltip } from "@/components/ui/tooltip";
 
 const EMPTY_SIGNALS: CatalogConflictSignals = {
   state: "ready",
@@ -576,17 +575,15 @@ export function EditProductForm({
                   onCheck={() => void refreshConflicts()}
                 />
               ) : null}
-              <Tooltip content="Delete this product permanently. Storefront pages for it will stop working.">
-                <button
-                  type="button"
-                  onClick={() => setDeleteOpen(true)}
-                  disabled={isPending}
-                  className="adm-btn-danger adm-icon-btn"
-                  aria-label="Delete product"
-                >
-                  <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
-                </button>
-              </Tooltip>
+              <AdminIconButton
+                label="Delete product"
+                tooltip="Delete this product permanently. Storefront pages for it will stop working."
+                tone="danger"
+                disabled={isPending}
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
+              </AdminIconButton>
               <SaveButtons iconOnly onOpenConfirm={requestSave} pending={isPending} />
             </div>
           </div>

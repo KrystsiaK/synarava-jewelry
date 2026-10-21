@@ -933,27 +933,36 @@ model TranslationCache {
   updatedAt DateTime @updatedAt
 }
 
-// Registry of storefront locales. Adding a new language (once published in
-// Shopify Markets) is a row here, not a schema change or enum edit — see
-// docs/history/2026-09-universal-localization.md. `routeSegment` is operator-chosen
-// and Shopify sync (`lib/shopify/storefront-locale-sync.ts`) never
-// overwrites it; only `isPublished`/`shopifyUpdatedAt` come from Shopify.
+// Registry of storefront locales (ADR-0007). Lifecycle: Draft → Published →
+// Retired → Deleted (`deletedAt` set; translation rows removed, 301 kept).
+// `routeSegment` is operator-chosen; Shopify sync never overwrites it.
+// `isPublished` stays denormalized (= status == PUBLISHED) for existing readers.
+enum StorefrontLocaleStatus {
+  DRAFT
+  PUBLISHED
+  RETIRED
+}
+
 model StorefrontLocale {
-  id               String    @id @default(cuid())
-  code             String    @unique
-  routeSegment     String    @unique
-  shopifyLocale    String    @unique
+  id               String                 @id @default(cuid())
+  code             String                 @unique
+  routeSegment     String                 @unique
+  shopifyLocale    String                 @unique
   intlLocale       String
   name             String
   nativeName       String
-  isDefault        Boolean   @default(false)
-  isPublished      Boolean   @default(false)
-  sortOrder        Int       @default(0)
+  isDefault        Boolean                @default(false)
+  status           StorefrontLocaleStatus @default(DRAFT)
+  isPublished      Boolean                @default(false)
+  sortOrder        Int                    @default(0)
+  retiredAt        DateTime?
+  deletedAt        DateTime?
   shopifyUpdatedAt DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
 
   @@index([sortOrder])
+  @@index([status])
 }
 
 enum AdminIssueStatus {

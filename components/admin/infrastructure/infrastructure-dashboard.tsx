@@ -107,7 +107,7 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
           </AdminPanelHeader>
           <AdminPanelBody className="space-y-8 p-5 md:p-6">
             {postgres.error ? (
-              <p className="text-sm" style={{ color: "var(--adm-danger, #a6192e)" }}>
+              <p className="text-sm" style={{ color: "var(--adm-danger)" }}>
                 {postgres.error}
               </p>
             ) : null}
@@ -175,7 +175,7 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
           </AdminPanelHeader>
           <AdminPanelBody className="space-y-4 p-5 md:p-6">
             {s3.error ? (
-              <p className="text-sm" style={{ color: "var(--adm-danger, #a6192e)" }}>
+              <p className="text-sm" style={{ color: "var(--adm-danger)" }}>
                 {s3.error}
               </p>
             ) : null}

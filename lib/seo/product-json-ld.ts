@@ -29,6 +29,7 @@ export function buildProductJsonLd(
     "@type": "Product",
     "@id": `${productUrl}#product`,
     url: productUrl,
+    inLanguage: locale,
     name: product.title,
     description,
     ...(images.length > 0 ? { image: images } : {}),

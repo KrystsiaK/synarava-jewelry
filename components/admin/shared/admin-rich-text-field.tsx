@@ -24,6 +24,7 @@ import {
   sanitizeHref,
 } from "@/lib/content/rich-text";
 import { cn } from "@/lib/ui";
+import { AdminButton } from "@/components/synarava-cms";
 
 export type AdminRichTextFieldProps = {
   name?: string;
@@ -123,17 +124,17 @@ function RichTextLinkPanel({
         </p>
       ) : null}
       <div className="adm-rich-text-link-panel__actions">
-        <button type="button" className="adm-btn-ghost" onClick={onClose}>
+        <AdminButton variant="ghost" onClick={onClose}>
           Cancel
-        </button>
+        </AdminButton>
         {previous ? (
-          <button type="button" className="adm-btn-ghost" onClick={remove}>
+          <AdminButton variant="ghost" onClick={remove}>
             Remove link
-          </button>
+          </AdminButton>
         ) : null}
-        <button type="button" className="adm-btn-primary" onClick={apply}>
+        <AdminButton variant="primary" onClick={apply}>
           Apply link
-        </button>
+        </AdminButton>
       </div>
     </div>
   );
@@ -196,65 +197,30 @@ function RichTextModalEditor({
   return (
     <div className="adm-rich-text-editor">
       <div className="adm-rich-text-editor__toolbar" role="toolbar" aria-label="Formatting">
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={() => editor?.chain().focus().toggleBold().run()}
-          disabled={!editor}
-          aria-pressed={editor?.isActive("bold") ?? false}
-        >
+        <AdminButton variant="ghost" onClick={() => editor?.chain().focus().toggleBold().run()} disabled={!editor} aria-pressed={editor?.isActive("bold") ?? false}>
           <Bold aria-hidden="true" className="size-3.5" />
           Bold
-        </button>
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={() => editor?.chain().focus().toggleItalic().run()}
-          disabled={!editor}
-          aria-pressed={editor?.isActive("italic") ?? false}
-        >
+        </AdminButton>
+        <AdminButton variant="ghost" onClick={() => editor?.chain().focus().toggleItalic().run()} disabled={!editor} aria-pressed={editor?.isActive("italic") ?? false}>
           <Italic aria-hidden="true" className="size-3.5" />
           Italic
-        </button>
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={() => editor?.chain().focus().toggleBulletList().run()}
-          disabled={!editor}
-          aria-pressed={editor?.isActive("bulletList") ?? false}
-        >
+        </AdminButton>
+        <AdminButton variant="ghost" onClick={() => editor?.chain().focus().toggleBulletList().run()} disabled={!editor} aria-pressed={editor?.isActive("bulletList") ?? false}>
           <List aria-hidden="true" className="size-3.5" />
           List
-        </button>
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={() => editor?.chain().focus().toggleOrderedList().run()}
-          disabled={!editor}
-          aria-pressed={editor?.isActive("orderedList") ?? false}
-        >
+        </AdminButton>
+        <AdminButton variant="ghost" onClick={() => editor?.chain().focus().toggleOrderedList().run()} disabled={!editor} aria-pressed={editor?.isActive("orderedList") ?? false}>
           <ListOrdered aria-hidden="true" className="size-3.5" />
           Numbered
-        </button>
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={openLinkPanel}
-          disabled={!editor}
-          aria-pressed={linkOpen}
-        >
+        </AdminButton>
+        <AdminButton variant="ghost" onClick={openLinkPanel} disabled={!editor} aria-pressed={linkOpen}>
           <Link2 aria-hidden="true" className="size-3.5" />
           Link
-        </button>
-        <button
-          type="button"
-          className="adm-btn-ghost"
-          onClick={removeLink}
-          disabled={!editor}
-        >
+        </AdminButton>
+        <AdminButton variant="ghost" onClick={removeLink} disabled={!editor}>
           <Unlink aria-hidden="true" className="size-3.5" />
           Unlink
-        </button>
+        </AdminButton>
       </div>
       {linkOpen && editor ? (
         <RichTextLinkPanel editor={editor} onClose={() => setLinkOpen(false)} />
@@ -389,18 +355,10 @@ export function AdminRichTextField({
         >
           <RichText content={value} emptyFallback={placeholder} />
         </div>
-        <button
-          type="button"
-          id={controlId}
-          className="adm-btn-ghost shrink-0"
-          onClick={openEditor}
-          disabled={disabled}
-          aria-label={`Edit ${plainLabel}`}
-          aria-invalid={showError ? true : undefined}
-        >
+        <AdminButton variant="ghost" className="shrink-0" id={controlId} onClick={openEditor} disabled={disabled} aria-label={`Edit ${plainLabel}`} aria-invalid={showError ? true : undefined}>
           <PencilLine aria-hidden="true" className="size-3.5" />
           Edit
-        </button>
+        </AdminButton>
       </div>
 
       <AdminModal
@@ -428,12 +386,12 @@ export function AdminRichTextField({
             {richTextPlainLength(draftValue).toLocaleString()} characters
           </span>
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" className="adm-btn-ghost" onClick={closeEditor}>
+            <AdminButton variant="ghost" onClick={closeEditor}>
               Cancel
-            </button>
-            <button type="button" className="adm-btn-primary" onClick={applyChanges}>
+            </AdminButton>
+            <AdminButton variant="primary" onClick={applyChanges}>
               Apply changes
-            </button>
+            </AdminButton>
           </div>
         </div>
       </AdminModal>

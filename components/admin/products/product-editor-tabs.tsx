@@ -150,9 +150,9 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
   },
 ];
 
-const MARK_CREAM = "#F7F1E6";
-const MARK_TAUPE = "#C9B8A4";
-const MARK_GOLD = "#D4A853";
+const MARK_CREAM = "var(--adm-mark-cream)";
+const MARK_TAUPE = "var(--adm-mark-taupe)";
+const MARK_GOLD = "var(--adm-mark-gold)";
 
 function MarkGround() {
   return <ellipse cx="100" cy="102" rx="54" ry="5.5" fill="currentColor" opacity="0.09" />;

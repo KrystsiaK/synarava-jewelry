@@ -7,6 +7,7 @@ import {
   listCustomProductMetafieldDefinitionsAction,
 } from "@/app/admin/actions/sync";
 import {
+  AdminButton,
   AdminHelp,
   AdminReadonlyField,
   AdminRichTextField,
@@ -209,14 +210,9 @@ export function ProductMetafieldsPanel({
           </p>
         </div>
         {isSource ? (
-          <button
-            type="button"
-            className="adm-btn-secondary"
-            disabled={pending}
-            onClick={() => setAddOpen((open) => !open)}
-          >
+          <AdminButton variant="secondary" disabled={pending} onClick={() => setAddOpen((open) => !open)}>
             Add definition
-          </button>
+          </AdminButton>
         ) : null}
       </div>
 
@@ -258,39 +254,12 @@ export function ProductMetafieldsPanel({
             onChange={setNewDescription}
           />
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              className="adm-btn-primary"
-              disabled={pending || !newName.trim()}
-              onClick={() => {
-                startTransition(async () => {
-                  const result = await createProductMetafieldDefinitionAction({
-                    name: newName,
-                    namespace: newNamespace.trim() || "custom",
-                    key: newKey.trim() || undefined,
-                    type: newType,
-                    description: newDescription.trim() || undefined,
-                  });
-                  if (result.error) {
-                    pushToast({ message: result.error, tone: "error" });
-                    return;
-                  }
-                  pushToast({ message: result.success ?? "Definition created.", tone: "success" });
-                  setNewName("");
-                  setNewNamespace("custom");
-                  setNewKey("");
-                  setNewType("single_line_text_field");
-                  setNewDescription("");
-                  setAddOpen(false);
-                  refreshDefinitions();
-                });
-              }}
-            >
+            <AdminButton variant="primary" disabled={pending || !newName.trim()} onClick={() => { startTransition(async () => { const result = await createProductMetafieldDefinitionAction({ name: newName, namespace: newNamespace.trim() || "custom", key: newKey.trim() || undefined, type: newType, description: newDescription.trim() || undefined, }); if (result.error) { pushToast({ message: result.error, tone: "error" }); return; } pushToast({ message: result.success ?? "Definition created.", tone: "success" }); setNewName(""); setNewNamespace("custom"); setNewKey(""); setNewType("single_line_text_field"); setNewDescription(""); setAddOpen(false); refreshDefinitions(); }); }}>
               {pending ? "Creating…" : "Create in Shopify"}
-            </button>
-            <button type="button" className="adm-btn-ghost" disabled={pending} onClick={() => setAddOpen(false)}>
+            </AdminButton>
+            <AdminButton variant="ghost" disabled={pending} onClick={() => setAddOpen(false)}>
               Cancel
-            </button>
+            </AdminButton>
           </div>
         </div>
       ) : null}

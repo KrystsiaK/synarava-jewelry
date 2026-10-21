@@ -10,9 +10,33 @@ import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-ca
 import { proxy } from "@/proxy";
 
 const REGISTRY_ROWS = [
-  { routeSegment: "en", isDefault: true, isPublished: true },
-  { routeSegment: "pt", isDefault: false, isPublished: true },
-  { routeSegment: "ru", isDefault: false, isPublished: false },
+  {
+    code: "en",
+    routeSegment: "en",
+    isDefault: true,
+    status: "PUBLISHED",
+    isPublished: true,
+    deletedAt: null,
+    retiredAt: null,
+  },
+  {
+    code: "pt",
+    routeSegment: "pt",
+    isDefault: false,
+    status: "PUBLISHED",
+    isPublished: true,
+    deletedAt: null,
+    retiredAt: null,
+  },
+  {
+    code: "ru",
+    routeSegment: "ru",
+    isDefault: false,
+    status: "DRAFT",
+    isPublished: false,
+    deletedAt: null,
+    retiredAt: null,
+  },
 ];
 
 beforeEach(() => {
@@ -162,10 +186,26 @@ describe("registry-driven locale routing", () => {
     expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
   });
 
-  it("passes a registered-but-unpublished locale segment through (layout 404s it, not a redirect loop)", async () => {
+  it("passes a registered-but-draft locale segment through (layout 404s it, not a redirect loop)", async () => {
     const response = await proxy(new NextRequest("https://synarava.test/ru/shop"));
 
     expect(response.headers.get("location")).toBeNull();
+  });
+
+  it("permanently redirects a retired locale to the default-language path", async () => {
+    mocks.findMany.mockResolvedValue(
+      REGISTRY_ROWS.map((row) =>
+        row.routeSegment === "ru"
+          ? { ...row, status: "RETIRED", isPublished: false, retiredAt: new Date() }
+          : row,
+      ),
+    );
+    invalidateStorefrontLocaleCache();
+
+    const response = await proxy(new NextRequest("https://synarava.test/ru/shop"));
+
+    expect(response.status).toBe(301);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
   });
 
   it("falls back to the emergency default segment when the registry is completely unreachable", async () => {

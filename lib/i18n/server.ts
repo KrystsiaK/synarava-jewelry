@@ -1,27 +1,14 @@
 import "server-only";
 
 import { headers } from "next/headers";
-import en from "@/messages/en.json";
-import pt from "@/messages/pt.json";
-import ru from "@/messages/ru.json";
 import { normalizeLocale, type Locale } from "./locales";
-import { flattenMessages, mergeLocaleOverrides } from "./utils";
+import { getEnglishMessages, getFlatMessages } from "./message-catalog";
+import { mergeLocaleOverrides } from "./utils";
 import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getCommerceCopy } from "@/lib/content/commerce-copy";
 import { glueOrphanPunctuation } from "@/lib/text/glue-orphan-punctuation";
 
 type Values = Record<string, string | number>;
-
-const enDictionary = flattenMessages(en as Record<string, unknown>);
-
-// Not every registered locale has a static dictionary file — `dictionaries[locale]`
-// is simply undefined for those, and getServerTranslations already falls
-// back to `enDictionary` for any missing key.
-const dictionaries: Partial<Record<Locale, Record<string, string>>> = {
-  en: enDictionary,
-  pt: flattenMessages(pt as Record<string, unknown>),
-  ru: flattenMessages(ru as Record<string, unknown>),
-};
 
 /**
  * Reads the current locale from the `x-locale` request header, which
@@ -39,8 +26,8 @@ export async function getServerTranslations() {
   const locale = await getRequestLocale();
   const [storefrontCopy, commerceCopy] = await Promise.all([getStorefrontCopy(), getCommerceCopy()]);
   const overrides = mergeLocaleOverrides(storefrontCopy, commerceCopy);
-  const messages = { ...dictionaries[locale], ...overrides[locale] };
-  const fallback = enDictionary;
+  const messages = { ...getFlatMessages(locale), ...overrides[locale] };
+  const fallback = getEnglishMessages();
   const interpolate = (message: string, values?: Values) => {
     const filled = values
       ? message.replace(/\{([a-zA-Z0-9_]+)\}/g, (match, key: string) => (
@@ -62,3 +49,5 @@ export async function getServerTranslations() {
     },
   };
 }
+
+export type { Locale };

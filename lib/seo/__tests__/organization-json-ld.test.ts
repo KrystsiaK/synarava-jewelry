@@ -53,6 +53,7 @@ describe("buildOrganizationJsonLd", () => {
       "@type": "Organization",
       name: "Synarava",
       url: "https://synarava.example",
+      inLanguage: "ru",
       description:
         "Synarava — интернет-магазин украшений и аксессуаров с акцентом на материалы, форму, символику и повседневную носку.",
       sameAs: ["https://instagram.com/synarava"],

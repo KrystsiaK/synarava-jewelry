@@ -13,9 +13,36 @@ import {
 } from "@/lib/i18n/storefront-locale-cache";
 
 const ROWS = [
-  { id: "1", code: "en", routeSegment: "en", isDefault: true, isPublished: true },
-  { id: "2", code: "pt", routeSegment: "pt", isDefault: false, isPublished: true },
-  { id: "3", code: "ru", routeSegment: "ru", isDefault: false, isPublished: false },
+  {
+    id: "1",
+    code: "en",
+    routeSegment: "en",
+    isDefault: true,
+    status: "PUBLISHED",
+    isPublished: true,
+    retiredAt: null,
+    deletedAt: null,
+  },
+  {
+    id: "2",
+    code: "pt",
+    routeSegment: "pt",
+    isDefault: false,
+    status: "PUBLISHED",
+    isPublished: true,
+    retiredAt: null,
+    deletedAt: null,
+  },
+  {
+    id: "3",
+    code: "ru",
+    routeSegment: "ru",
+    isDefault: false,
+    status: "DRAFT",
+    isPublished: false,
+    retiredAt: null,
+    deletedAt: null,
+  },
 ];
 
 beforeEach(() => {

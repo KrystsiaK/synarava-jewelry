@@ -8,6 +8,7 @@ import { getAdminRecordHistoryAction, restoreAdminRecordVersionAction } from "@/
 import type { AdminAuditEntityType, AdminRecordHistoryItem } from "@/app/admin/actions/shared";
 import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
+import { AdminButton } from "@/components/synarava-cms";
 
 export type AdminRecordMeta = {
   createdAt: Date | string;
@@ -166,14 +167,9 @@ export function AdminRecordMetaModal({
                       {formatAdminDate(item.createdAt)}
                     </p>
                   </div>
-                  <button
-                    type="button"
-                    className="adm-btn-ghost py-1 px-2 text-[0.58rem]"
-                    disabled={isPending}
-                    onClick={() => restoreVersion(item.id)}
-                  >
+                  <AdminButton variant="ghost" className="py-1 px-2 text-[0.58rem]" disabled={isPending} onClick={() => restoreVersion(item.id)}>
                     Restore
-                  </button>
+                  </AdminButton>
                 </div>
               ))}
             </div>
@@ -185,9 +181,9 @@ export function AdminRecordMetaModal({
         </div>
 
         <div className="mt-6 flex flex-wrap justify-end gap-3">
-          <button type="button" onClick={onClose} className="adm-btn-ghost">
+          <AdminButton variant="ghost" onClick={onClose}>
             Cancel
-          </button>
+          </AdminButton>
           <Link href={href} className="adm-btn-primary">
             Open editor
           </Link>
