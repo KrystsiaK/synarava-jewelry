@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { TranslationsCms, type ReconcileDifferenceRow } from "@/components/admin/translations/translations-cms";
 import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-types";
