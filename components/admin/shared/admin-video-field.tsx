@@ -11,6 +11,7 @@ import {
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
 import { Tooltip } from "@/components/ui/tooltip";
 import { cn } from "@/lib/ui";
+import { AdminButton } from "@/components/synarava-cms";
 
 const DEFAULT_ACCEPT = "video/mp4,video/webm,application/mp4,.mp4,.webm,.m4v";
 
@@ -150,15 +151,9 @@ export function AdminVideoControl({
                 {formatFileSize(selectedFile.size)}
               </p>
               <Tooltip content="Clear selected video">
-                <button
-                  type="button"
-                  className="adm-btn-ghost adm-icon-btn"
-                  aria-label="Clear selected video"
-                  disabled={disabled}
-                  onClick={clearSelectedFile}
-                >
+                <AdminButton variant="ghost" className="adm-icon-btn" aria-label="Clear selected video" disabled={disabled} onClick={clearSelectedFile}>
                   <X aria-hidden="true" size={14} strokeWidth={1.8} />
-                </button>
+                </AdminButton>
               </Tooltip>
             </div>
           </div>
@@ -191,9 +186,9 @@ export function AdminVideoControl({
           className="grid gap-3 p-4"
           style={{
             border: removeCurrentVideo
-              ? "1px solid rgba(216, 182, 106, 0.34)"
+              ? "1px solid var(--adm-media-accent-border)"
               : currentBroken
-                ? "1px solid rgba(255, 93, 93, 0.42)"
+                ? "1px solid var(--adm-media-danger-border)"
                 : "1px solid var(--adm-border)",
             borderRadius: "8px",
             opacity: removeCurrentVideo ? 0.72 : 1,
@@ -211,14 +206,14 @@ export function AdminVideoControl({
                 </span>
               ) : null}
               {removeFieldName ? (
-                <button
-                  type="button"
-                  className={removeCurrentVideo ? "adm-btn-primary h-8 min-h-8 px-3" : "adm-btn-ghost h-8 min-h-8 px-3"}
+                <AdminButton
+                  variant={removeCurrentVideo ? "primary" : "ghost"}
+                  className="h-8 min-h-8 px-3"
                   disabled={disabled}
                   onClick={toggleRemoveCurrentVideo}
                 >
                   {removeCurrentVideo ? "Undo remove" : removeLabel}
-                </button>
+                </AdminButton>
               ) : null}
             </div>
           </div>
@@ -229,7 +224,7 @@ export function AdminVideoControl({
                 "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
-                background: "rgba(216, 182, 106, 0.08)",
+                background: "var(--adm-media-accent-wash)",
                 color: "var(--adm-accent)",
               }}
             >
@@ -242,7 +237,7 @@ export function AdminVideoControl({
                 "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
-                background: "rgba(255, 93, 93, 0.08)",
+                background: "var(--adm-media-danger-wash)",
                 color: "var(--adm-danger)",
               }}
             >
@@ -288,7 +283,7 @@ export type AdminVideoFieldProps = Omit<AdminVideoControlProps, "controlId"> & {
   help?: ReactNode;
   className?: string;
   unitId?: string;
-  issue?: ReactNode;
+
 };
 
 /**
@@ -306,7 +301,6 @@ export function AdminVideoField({
   disabled,
   className,
   unitId,
-  issue,
   ...controlProps
 }: AdminVideoFieldProps) {
   const { controlId, messageId, warningId } = useAdminFieldIds(id);
@@ -323,7 +317,6 @@ export function AdminVideoField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={cn("adm-video-field", className)}
       controlId={controlId}

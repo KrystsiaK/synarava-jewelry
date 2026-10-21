@@ -1032,7 +1032,7 @@ export async function getPageBySlug(slug: string, requestedLocale?: Locale) {
 }
 
 export async function getAdminCatalogData() {
-  const [rawPages, rawProducts, categoryRows, tags, collections, issues] = await Promise.all([
+  const [rawPages, rawProducts, categoryRows, tags, collections] = await Promise.all([
     db.page.findMany({
       where: { slug: { notIn: [...RETIRED_PAGE_SLUGS] } },
       include: { translations: { orderBy: { locale: "asc" } } },
@@ -1073,10 +1073,6 @@ export async function getAdminCatalogData() {
       include: { translations: { orderBy: { locale: "asc" } } },
       orderBy: { name: "asc" },
     }),
-    db.adminIssue.findMany({
-      where: { status: "OPEN" },
-      orderBy: { updatedAt: "desc" },
-    }),
   ]);
 
   const pages = rawPages.map((page) => ({
@@ -1107,5 +1103,5 @@ export async function getAdminCatalogData() {
     slug: row.shopifyCategoryId!,
     name: row.shopifyCategoryName ?? row.shopifyCategoryId!,
   }));
-  return { pages, products, categories, tags, collections, issues };
+  return { pages, products, categories, tags, collections };
 }

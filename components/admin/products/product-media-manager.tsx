@@ -12,12 +12,9 @@ import {
   updateWorkingSnapshotMediaAltAction,
   type ProductMediaActionState,
 } from "@/app/admin/actions/products";
-import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
-import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
-import { AdminTextField } from "@/components/synarava-cms";
+import { AdminButton, AdminTextField } from "@/components/synarava-cms";
 import { imageAltSoftWarning } from "@/lib/seo/image-alt-checklist";
 import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 
@@ -25,21 +22,17 @@ export function ProductMediaManager({
   product,
   onChange,
   ensureProduct,
-  issues = [],
   onAltPersistStart,
 }: {
   product: ProductRecord | null;
   onChange: (product: ProductRecord) => void;
   ensureProduct?: () => Promise<ProductRecord | null>;
-  issues?: AdminIssueSummary[];
   /** Called synchronously when blur-save starts so leave-guard dirty can clear before click. */
   onAltPersistStart?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
   const { pushToast } = useAdminToast();
-  const coverIssues = issuesForField(issues, "field-imageUrl");
-  const hasCoverIssues = coverIssues.length > 0;
   const localMedia = product?.media ?? [];
   const treeFrames = product ? mediaFramesFromWorkingSnapshot(product.workingSnapshot) : [];
   // OUR tree is SoT for display when local ProductMedia rows are empty (e.g. after Pull).
@@ -106,14 +99,7 @@ export function ProductMediaManager({
     <section
       id="field-imageUrl"
       data-component="ProductMediaManager"
-      className={`grid gap-4 border p-4 ${
-        hasCoverIssues ? "border-[var(--adm-danger)]" : "border-[var(--adm-border)]"
-      }`}
-      style={
-        hasCoverIssues
-          ? { background: "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)" }
-          : undefined
-      }
+      className="grid gap-4 border border-[var(--adm-border)] p-4"
       aria-label="Product gallery"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -125,7 +111,6 @@ export function ProductMediaManager({
             a frame locally; Push omits it from Shopify so the remote media is deleted. Descriptive alt text is
             part of the publish checklist (Shopify <code className="text-[0.7rem]">MEDIA_IMAGE.alt</code>).
           </p>
-          <AdminFieldIssue issues={coverIssues} />
         </div>
         <label className={`adm-btn-ghost ${pending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
           {pending ? "Uploading…" : "Add images"}
@@ -156,10 +141,10 @@ export function ProductMediaManager({
                   }}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</button>
-                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
-                  {!primary ? <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</button> : null}
-                  <button type="button" className="adm-btn-danger min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</button>
+                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</AdminButton>
+                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</AdminButton>
+                  {!primary ? <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</AdminButton> : null}
+                  <AdminButton variant="danger" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</AdminButton>
                 </div>
               </article>
             );
@@ -188,14 +173,14 @@ export function ProductMediaManager({
                 }}
               />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="adm-btn-danger min-h-9 px-3"
+                <AdminButton
+                  variant="danger"
+                  className="min-h-9 px-3"
                   disabled={pending}
                   onClick={() => removeTreeFrame(index)}
                 >
                   Remove
-                </button>
+                </AdminButton>
               </div>
             </article>
           ))}

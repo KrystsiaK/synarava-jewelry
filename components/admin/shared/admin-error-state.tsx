@@ -1,6 +1,7 @@
 "use client";
 
 import { AlertTriangle } from "lucide-react";
+import { AdminButton } from "@/components/synarava-cms";
 
 export function AdminErrorState({
   staleDeployment,
@@ -33,17 +34,16 @@ export function AdminErrorState({
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
           {!staleDeployment ? (
-            <button type="button" className="adm-btn-primary" onClick={onRetry}>
+            <AdminButton variant="primary" onClick={onRetry}>
               Try again
-            </button>
+            </AdminButton>
           ) : null}
-          <button
-            type="button"
-            className={staleDeployment ? "adm-btn-primary" : "adm-btn-ghost"}
+          <AdminButton
+            variant={staleDeployment ? "primary" : "ghost"}
             onClick={onReload}
           >
             Reload latest version
-          </button>
+          </AdminButton>
         </div>
         <p className="mt-4 text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
           {draftPreserved

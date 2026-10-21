@@ -32,15 +32,15 @@ describe("AdminSortChips", () => {
     const onChange = vi.fn();
     render(
       <AdminSortChips
-        value="problems"
+        value="conflicts"
         onChange={onChange}
         options={[
-          { value: "problems", label: "Most problems", shortLabel: "Problems", tone: "danger" },
+          { value: "conflicts", label: "Most conflicts", shortLabel: "Conflicts", tone: "conflict" },
           { value: "published", label: "Latest published", shortLabel: "Published" },
         ]}
       />,
     );
-    expect(screen.getByRole("button", { name: "Problems" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Conflicts" })).toHaveAttribute("aria-pressed", "true");
     screen.getByRole("button", { name: "Published" }).click();
     expect(onChange).toHaveBeenCalledWith("published");
   });
@@ -50,17 +50,17 @@ describe("AdminSignalChip", () => {
   it("renders a labeled signal with tooltip wrapper", () => {
     render(
       <AdminSignalChip
-        label="2 open problems"
-        tooltip="2 open problems. Open the editor to fix them."
-        tone="danger"
+        label="2 open conflicts"
+        tooltip="2 open conflicts. Open the editor to review them."
+        tone="conflict"
         icon={<AlertTriangle />}
         value={2}
       />,
     );
-    expect(screen.getByLabelText("2 open problems")).toBeInTheDocument();
+    expect(screen.getByLabelText("2 open conflicts")).toBeInTheDocument();
     expect(screen.getByTestId("tooltip")).toHaveAttribute(
       "data-content",
-      "2 open problems. Open the editor to fix them.",
+      "2 open conflicts. Open the editor to review them.",
     );
   });
 });

@@ -918,46 +918,6 @@ async function main() {
       );
     }
 
-    // Shopify sync drift vs last ProductSyncEvent without open AdminIssue
-    {
-      const linked = products.filter((p) => p.shopifyProductId);
-      const drift = [];
-      for (const p of linked) {
-        if (p.syncStatus !== "FAILED" && p.syncStatus !== "CONFLICT") continue;
-        const lastEvent = await prisma.productSyncEvent.findFirst({
-          where: { productId: p.id },
-          orderBy: { createdAt: "desc" },
-          select: { id: true, status: true, createdAt: true, error: true },
-        });
-        if (!lastEvent) continue;
-        if (lastEvent.status !== "FAILED" && lastEvent.status !== "CONFLICT") continue;
-        const openIssue = await prisma.adminIssue.findFirst({
-          where: { status: "OPEN", entityType: "PRODUCT", entityId: p.id },
-          select: { id: true },
-        });
-        if (!openIssue) {
-          drift.push({
-            productId: p.id,
-            slug: p.slug,
-            syncStatus: p.syncStatus,
-            lastEventId: lastEvent.id,
-            lastEventStatus: lastEvent.status,
-            lastEventAt: lastEvent.createdAt,
-          });
-        }
-      }
-      findings.push(
-        finding(
-          "D2",
-          "Product with shopifyProductId in FAILED/CONFLICT without OPEN AdminIssue (aligned with latest ProductSyncEvent)",
-          drift.length ? "medium" : "info",
-          drift.length,
-          drift,
-          "Open or refresh AdminIssue via scanAdminIssues (lib/admin/issues.ts). Models: Product.syncStatus, ProductSyncEvent, AdminIssue.",
-        ),
-      );
-    }
-
     // Empty / broken localized handles + redirects
     {
       const emptyHandles = await prisma.$queryRaw`
@@ -1022,41 +982,6 @@ async function main() {
           unread.map((s) => ({ id: s.id, key: s.key, updatedAt: s.updatedAt })),
           "Known readers: site-videos, site-seo-v1, storefront-copy-v1, shopify.store_binding. Archive/delete unread keys only after confirming no external/admin consumers. Model: SiteSetting.",
           { knownKeys: [...KNOWN_SITE_SETTING_KEYS], allKeys: settings.map((s) => s.key) },
-        ),
-      );
-    }
-
-    // OPEN AdminIssue whose entity is gone
-    {
-      const openIssues = await prisma.adminIssue.findMany({
-        where: { status: "OPEN" },
-        select: { id: true, entityType: true, entityId: true, key: true, title: true },
-      });
-      const productIds = new Set(products.map((p) => p.id));
-      const collectionIds = new Set(collections.map((c) => c.id));
-      const stale = [];
-      for (const issue of openIssues) {
-        const t = issue.entityType.toUpperCase();
-        let exists = true;
-        if (t === "PRODUCT") exists = productIds.has(issue.entityId);
-        else if (t === "COLLECTION") exists = collectionIds.has(issue.entityId);
-        else {
-          // unknown type — leave note
-          stale.push({ ...issue, note: "unknown_entityType_not_validated" });
-          continue;
-        }
-        if (!exists) stale.push(issue);
-      }
-      const gone = stale.filter((s) => !s.note);
-      findings.push(
-        finding(
-          "D5",
-          "OPEN AdminIssue whose entityId no longer exists",
-          gone.length ? "medium" : "info",
-          gone.length,
-          gone,
-          "Resolve/close orphan issues. Model: AdminIssue. Total OPEN issues: " + openIssues.length + ".",
-          { openIssueCount: openIssues.length, unknownTypeSamples: take(stale.filter((s) => s.note)) },
         ),
       );
     }

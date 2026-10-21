@@ -85,7 +85,7 @@ export type AdminSelectFieldProps = SelectProps & {
   className?: string;
   unitId?: string;
   validationName?: string;
-  issue?: ReactNode;
+
   selectClassName?: string;
   children: ReactNode;
 };
@@ -107,7 +107,6 @@ export function AdminSelectField({
   className,
   unitId,
   validationName,
-  issue,
   selectClassName,
   children,
   "aria-invalid": ariaInvalid,
@@ -128,7 +127,6 @@ export function AdminSelectField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={className}
       validationName={validationName}

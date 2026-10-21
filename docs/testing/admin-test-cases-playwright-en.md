@@ -2,7 +2,7 @@
 
 Source of truth for `/admin/**` test coverage. Derived from reading the
 implementation (`app/admin/**`, `components/admin/**`, `lib/auth/**`,
-`lib/media/**`, `lib/admin/issues.ts`) as of 2026-09-12, after the
+`lib/media/**`, as of 2026-09-12, after the
 Shopify-alignment work and the god-file split (Phases 1–3 of
 `docs/history/2026-09-admin-shopify-refactor.md`).
 
@@ -50,7 +50,7 @@ cases that need a real browser remain as e2e work.
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
 | AUTH-01 | Guest visiting `/admin` redirects to `/admin/login?redirectTo=%2Fadmin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
-| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/issues`, `/admin/account`. `proxy.ts` sets `redirectTo` + `synarava-admin-return-to`; layout recovers the path from `x-pathname` when a signed-but-expired session cookie slips past the edge guard. |
+| AUTH-02 | Guest visiting **any** nested admin route redirects with the right `redirectTo` | positive | P1 | **E2E** | Loop a route table: `/admin/products`, `/admin/collections/new`, `/admin/pages/new`, `/admin/videos`, `/admin/account`. `proxy.ts` sets `redirectTo` + `synarava-admin-return-to`; layout recovers the path from `x-pathname` when a signed-but-expired session cookie slips past the edge guard. |
 | AUTH-03 | Valid credentials land on `/admin` | positive | P1 | ✔ E2E | `admin-auth.spec.ts`. |
 | AUTH-04 | Wrong password shows "Incorrect admin credentials.", no session | negative | P1 | ✔ action | `login/__tests__/actions.test.ts` + `admin-session.test.ts`. |
 | AUTH-05 | Wrong username gives the *same* generic error (no enumeration) | negative | P2 | ✔ action | Same files; assertion is that both paths return one message. |
@@ -80,8 +80,8 @@ long-lived-tab recovery path in AUTH-20.
 | UI-01 | Sidebar stays fixed-width, scrolls independently | positive | P3 | ✔ E2E | `admin-auth.spec.ts`; move to `admin-layout.spec.ts` when that file is created. |
 | UI-02 | Topbar stays pinned while the page scrolls | positive | P3 | ✔ E2E | Same. |
 | UI-03 | No horizontal overflow on `/admin/products` at 778px | positive | P3 | ✔ E2E | Same. |
-| UI-04 | Open-issue counter shows when `AdminIssue` rows are `OPEN` and links correctly | positive | P2 | **E2E** | Seed an open issue, assert badge count and `href`. |
-| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Shared, Cart & account, Customer account, Meta, Videos, Catalog, Problems, Collections, Localization, Infrastructure, Account` (`admin-nav-config.ts`). Home and About are edited under Pages. |
+| UI-04 | ~~Open-issue counter~~ | — | — | — | **Retired:** Problems / AdminIssue removed from admin. |
+| UI-05 | Mobile menu exposes every nav item, theme toggle, logout | positive | P3 | **E2E** | Nav is `Overview, Pages, Shared, Cart & account, Customer account, Meta, Videos, Catalog, Collections, Localization, Infrastructure, Account` (`admin-nav-config.ts`). Home and About are edited under Pages. |
 | UI-06 | Theme toggle switches and persists across navigation | positive | P3 | **E2E** | |
 | UI-07 | Dashboard tiles reflect actual counts | positive | P2 | **E2E** | **There are exactly three tiles: Pages, Products, Collections.** Categories/Tags tiles were removed with those sections. Status row also shows Products live/draft, Collections live, active locale (`EN`). |
 
@@ -193,7 +193,7 @@ Shopify pull anchor.
 |----|----------|------|------|-------|-------|
 | PROD-S01 | Draft → Publish (image present) goes live on the storefront | positive | P1 | **E2E** | |
 | PROD-S02 | Publish → Draft hides it without deleting | positive | P1 | **E2E** | |
-| PROD-S03 | Publish → Archive hides it and exempts it from taxonomy QA checks | positive | P2 | **E2E** | Cross-check ISS-04. |
+| PROD-S03 | Publish → Archive hides it and exempts it from taxonomy QA checks | positive | P2 | **E2E** | Archive hide behavior only (taxonomy QA / ISS checks retired). |
 | PROD-S04 | Archive → Draft/Publish transitions back | edge | P3 | **action** | |
 | PROD-S05 | Deleting an unlinked product removes it; public URL 404s | positive | P1 | **E2E** | |
 | PROD-S06 | Deleting a Shopify-linked product deletes it remotely too | positive | P2 | **E2E** | Sandbox-gated. |
@@ -298,16 +298,7 @@ mock `/admin/api/videos` rather than moving real megabytes.
 
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
-| ISS-01 | Scan on a clean catalog reports zero open/new | positive | P2 | **E2E** | Hard to guarantee "clean" on a shared DB — scope assertions to seeded fixtures. |
-| ISS-02 | Product with a broken image URL is flagged ERROR | positive | P1 | **E2E** | Seed a product whose `/uploads/...` path does not exist. |
-| ISS-03 | Non-archived product missing Shopify category / tags / marketing collection gets a WARNING for each | positive | P1 | **E2E** | Category = empty `shopifyCategoryId`. Collection ignores Featured-only membership. |
-| ISS-04 | Archived product is exempt from taxonomy checks but not from media checks | edge | P2 | **E2E** | `lib/admin/issues.ts:190` — `if (product.status !== "ARCHIVED")` gates taxonomy only. |
-| ISS-05 | Re-scanning after a fix marks the issue `RESOLVED` and drops the open count | positive | P1 | **E2E** | |
-| ISS-06 | "Open problem" navigates to the entity with the field anchored | positive | P2 | **E2E** | Assert the `#field-...` hash and that the element scrolled into view. Collection `BROKEN_MEDIA` must show the hero field warning on `/admin/collections/:id`. |
-| ISS-07 | ~~Chain from category deletion~~ → replaced: unassigning the last collection surfaces "Missing collection" | positive | P2 | **E2E** | **Rewritten.** The original chained to CAT-07, but the Categories section no longer exists. Re-anchored to collection deletion (COL-07). |
-| ISS-08 | New issue triggers an email when Resend env is configured | positive | P3 | — | Needs an email double; integration/manual only. |
-| ISS-09 | Scan completes with no email attempt when email env is absent | positive | P3 | **action** | Default CI state. |
-| ISS-10 | An UNLISTED product is still taxonomy-checked | edge | P2 | **action** | **New.** The exemption is `ARCHIVED` only — UNLISTED is *not* exempt. Worth pinning so a future refactor can't silently widen the exemption. |
+| ISS-* | Problems / AdminIssue feature retired — cases ISS-01…ISS-10 no longer apply | — | — | — | Code stage 1 removed `/admin/issues` and scanners; Prisma table drop is a later PR. |
 
 ## 14. Account (`e2e/admin-account.spec.ts`)
 

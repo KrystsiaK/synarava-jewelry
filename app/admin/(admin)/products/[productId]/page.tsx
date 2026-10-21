@@ -19,7 +19,7 @@ export default async function EditProductPage({
   // as the conflict icon + Sync tab (commerce deep-diff + CONFLICT translations).
   // Do not mount AdminSyncInlineWarning from raw reconcile rows here — that
   // counted LOCAL_ONLY/SHOPIFY_ONLY and disagreed with the icon.
-  const [{ products, collections, issues }, translationLocales, conflictSignals] = await Promise.all([
+  const [{ products, collections }, translationLocales, conflictSignals] = await Promise.all([
     getAdminCatalogData(),
     getAdminTranslationLocales(),
     getCatalogConflictSignals(session.username).catch((error): CatalogConflictSignals => {
@@ -28,9 +28,6 @@ export default async function EditProductPage({
     }),
   ]);
   const product = products.find((item) => item.id === productId);
-  const productIssues = issues.filter(
-    (issue) => issue.entityType === "PRODUCT" && issue.entityId === productId,
-  );
 
   if (!product) {
     return (
@@ -70,7 +67,6 @@ export default async function EditProductPage({
       <ProductEditRoute
         product={product}
         collections={collections}
-        issues={productIssues}
         translationLocales={translationLocales}
         initialConflictSignals={conflictSignals}
       />

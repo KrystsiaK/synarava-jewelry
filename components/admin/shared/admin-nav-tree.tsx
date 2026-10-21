@@ -39,11 +39,11 @@ function useLocationHash() {
 function AdminNavCountBadge({
   count,
   label,
-  kind = "issues",
+  kind = "sync",
 }: {
   count: number;
   label: string;
-  kind?: "issues" | "sync" | "count";
+  kind?: "sync" | "count";
 }) {
   if (count <= 0) return null;
 
@@ -65,9 +65,8 @@ function AdminNavCountBadge({
 }
 
 function navSignalLabel(signal: AdminNavSignal): string {
-  if (signal === "issue") return "Open problems";
   if (signal === "sync") return "Shopify conflicts";
-  return "Open problems and Shopify conflicts";
+  return "Shopify conflicts";
 }
 
 function AdminNavMarker({
@@ -154,7 +153,6 @@ function activeChildBeyondPreview(
 
 export type AdminNavTreeProps = {
   items: AdminNavItemConfig[];
-  issueNavHrefs?: string[];
   syncNavHrefs?: string[];
   onNavigate?: () => void;
   footer?: ReactNode;
@@ -168,7 +166,6 @@ export type AdminNavTreeProps = {
  */
 export function AdminNavTree({
   items,
-  issueNavHrefs = [],
   syncNavHrefs = [],
   onNavigate,
   footer,
@@ -176,7 +173,6 @@ export function AdminNavTree({
 }: AdminNavTreeProps) {
   const pathname = usePathname();
   const hash = useLocationHash();
-  const issueHrefSet = new Set(issueNavHrefs);
   const syncHrefSet = new Set(syncNavHrefs);
   const routeKey = `${pathname}#${hash}`;
 
@@ -270,7 +266,7 @@ export function AdminNavTree({
           const hasChildren = Boolean(item.children?.length);
           const open = hasChildren && isOpen(item);
           const active = itemIsActive(item, pathname, hash);
-          const signal = resolveAdminNavItemSignal(item, issueHrefSet, syncHrefSet);
+          const signal = resolveAdminNavItemSignal(item, syncHrefSet);
           const panelId = `adm-nav-panel-${item.id}`;
           const limit = item.childPreviewLimit ?? 8;
           const children = item.children ?? [];
@@ -295,11 +291,9 @@ export function AdminNavTree({
                         count={item.badge.count}
                         kind={item.badge.kind}
                         label={
-                          item.badge.kind === "issues"
-                            ? `${item.badge.count} open problem${item.badge.count === 1 ? "" : "s"}`
-                            : item.id === "translations"
-                              ? `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} to review`
-                              : `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} in ${item.label}`
+                          item.id === "translations"
+                            ? `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} to review`
+                            : `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} in ${item.label}`
                         }
                       />
                     ) : item.showChildCount && hasChildren && !open ? (
@@ -349,7 +343,6 @@ export function AdminNavTree({
                       const childActive = childIsActive(child, pathname, hash);
                       const childSignal = resolveAdminNavSignal(
                         child.href,
-                        issueHrefSet,
                         syncHrefSet,
                       );
                       return (

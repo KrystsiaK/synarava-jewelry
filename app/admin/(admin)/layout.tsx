@@ -7,11 +7,9 @@ import {
   AdminSmartTopbar,
   AdminThemeShell,
   AdminThemeToggle,
-  AdminTopbarIssueLink,
 } from "@/components/admin/shared/admin-primitives";
 import {
   countAdminNavSyncBySection,
-  issueToNavHref,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
@@ -29,11 +27,7 @@ export default async function AdminLayout({
   // hardcode `/admin` or a deep link is lost when a signed-but-expired session
   // cookie slips past the edge guard and this layout re-checks the DB.
   await requireAdminSession();
-  const [openIssues, latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
-    db.adminIssue.findMany({
-      where: { status: "OPEN" },
-      select: { entityType: true, targetHref: true },
-    }),
+  const [latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
@@ -42,12 +36,7 @@ export default async function AdminLayout({
       orderBy: { slug: "asc" },
     }),
   ]);
-  const openIssueCount = openIssues.length;
   const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
-  const issueNavHrefs = Array.from(
-    new Set(openIssues.map((issue) => issueToNavHref(issue))),
-  );
-  if (openIssueCount > 0) issueNavHrefs.push("/admin/issues");
 
   const syncCounts = countAdminNavSyncBySection(syncDifferences);
   const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
@@ -66,8 +55,6 @@ export default async function AdminLayout({
         <div className="min-w-0 flex items-center gap-3">
           <AdminMobileMenu
             pages={navPages}
-            issueCount={openIssueCount}
-            issueNavHrefs={issueNavHrefs}
             syncCounts={syncCounts}
             syncNavHrefs={syncNavHrefs}
             footer={
@@ -88,7 +75,6 @@ export default async function AdminLayout({
             <AdminThemeToggle />
           </div>
           <AdminShopifySyncSignal initialRun={latestReconcileRun} />
-          <AdminTopbarIssueLink issues={openIssues} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">
             Live CMS
@@ -115,8 +101,6 @@ export default async function AdminLayout({
 
             <AdminNav
               pages={navPages}
-              issueCount={openIssueCount}
-              issueNavHrefs={issueNavHrefs}
               syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}
             />

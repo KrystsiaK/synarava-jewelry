@@ -1,13 +1,22 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import { isValidBcp47 } from "@/lib/i18n/bcp47";
+import {
+  exportLanguageBundle,
+  type LanguageBundle,
+} from "@/lib/i18n/language-bundle";
+import {
+  clearLanguageExportReceipt,
+  recordLanguageExportReceipt,
+  verifyLanguageExportReceipt,
+} from "@/lib/i18n/language-export-receipt";
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
 import {
   LOCALE_DELETE_RETENTION_DAYS,
   localeLifecycleState,
   retentionDaysElapsed,
 } from "@/lib/i18n/storefront-locale-status";
-import { isValidBcp47 } from "@/lib/i18n/bcp47";
 import {
   hasWriteLocalesScope,
   shopLocaleDisable,
@@ -155,6 +164,16 @@ export async function restoreStorefrontLanguage(code: string): Promise<LanguageA
   };
 }
 
+/**
+ * Export a language bundle and record a server-side SiteSetting receipt
+ * (checksum + timestamp) used to authorize delete within 60 minutes.
+ */
+export async function exportStorefrontLanguage(code: string): Promise<LanguageBundle> {
+  const bundle = await exportLanguageBundle(code);
+  await recordLanguageExportReceipt(bundle.locale, bundle.checksum);
+  return bundle;
+}
+
 export async function deleteStorefrontLanguageData(input: {
   code: string;
   typedCode: string;
@@ -164,9 +183,9 @@ export async function deleteStorefrontLanguageData(input: {
   if (input.typedCode.trim().toLowerCase() !== code) {
     return { error: "Type the language code exactly to confirm deletion." };
   }
-  if (!input.exportChecksum.trim()) {
-    return { error: "Export the language bundle in this session before deleting data." };
-  }
+
+  const receiptCheck = await verifyLanguageExportReceipt(code, input.exportChecksum);
+  if (!receiptCheck.ok) return { error: receiptCheck.error };
 
   const locale = await db.storefrontLocale.findUnique({ where: { code } });
   if (!locale) return { error: `Locale "${code}" not found.` };
@@ -215,6 +234,7 @@ export async function deleteStorefrontLanguageData(input: {
       },
     }),
   ]);
+  await clearLanguageExportReceipt(code).catch(() => undefined);
   invalidateStorefrontLocaleCache();
   return {
     success: `Deleted translation data for ${code}. 301 redirects remain.`,

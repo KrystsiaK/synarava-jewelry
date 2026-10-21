@@ -3,6 +3,7 @@
 import { useId } from "react";
 
 import { AdminModal } from "@/components/admin/shared/admin-modal";
+import { AdminButton } from "@/components/synarava-cms";
 
 type AdminConfirmModalProps = {
   open: boolean;
@@ -39,17 +40,16 @@ export function AdminConfirmModal({
       </h2>
       <p className="adm-copy">{description}</p>
       <div className="mt-4 flex flex-wrap justify-end gap-2">
-        <button type="button" onClick={onCancel} className="adm-btn-ghost">
+        <AdminButton variant="ghost" onClick={onCancel}>
           Cancel
-        </button>
-        <button
-          type="button"
+        </AdminButton>
+        <AdminButton
+          variant={tone === "danger" ? "danger" : "primary"}
           onClick={onConfirm}
-          disabled={pending}
-          className={tone === "danger" ? "adm-btn-danger" : "adm-btn-primary"}
+          busy={pending}
         >
           {pending ? "Processing..." : confirmLabel}
-        </button>
+        </AdminButton>
       </div>
     </AdminModal>
   );

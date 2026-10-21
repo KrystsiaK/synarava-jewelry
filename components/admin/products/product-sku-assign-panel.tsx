@@ -13,6 +13,7 @@ import {
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
   AdminAlert,
+  AdminButton,
   AdminHelp,
   AdminReadonlyField,
   AdminSelectField,
@@ -95,24 +96,25 @@ function VariantAssignRow({
               ))
             )}
           </AdminSelectField>
-          <button type="button" className="adm-btn-secondary" disabled={isPending || !familyKey} onClick={onPreview}>
+          <AdminButton variant="secondary" busy={isPending} disabled={!familyKey} onClick={onPreview}>
             {isPending ? "Working…" : "Preview"}
-          </button>
-          <button type="button" className="adm-btn-primary" disabled={isPending || !familyKey} onClick={onAssign}>
+          </AdminButton>
+          <AdminButton variant="primary" busy={isPending} disabled={!familyKey} onClick={onAssign}>
             {isPending ? "Working…" : "Confirm assign"}
-          </button>
+          </AdminButton>
         </div>
       ) : null}
 
       {row.pendingReservationSku ? (
-        <button
-          type="button"
-          className="adm-btn-primary w-fit"
-          disabled={isPending || !row.shopifyLinked}
+        <AdminButton
+          variant="primary"
+          className="w-fit"
+          busy={isPending}
+          disabled={!row.shopifyLinked}
           onClick={onResume}
         >
           {isPending ? "Working…" : "Retry confirm"}
-        </button>
+        </AdminButton>
       ) : null}
 
       {previewSku ? (

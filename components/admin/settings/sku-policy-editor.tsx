@@ -9,13 +9,14 @@ import {
 } from "@/app/admin/actions/sku-policy";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
+  AdminButton,
   AdminAlert,
   AdminLongTextField,
   AdminPanel,
   AdminReadonlyField,
   AdminSectionTabs,
   AdminStatusBadge,
-  AdminTextField,
+  AdminTextField
 } from "@/components/synarava-cms";
 
 const SECTIONS = [
@@ -153,22 +154,12 @@ export function SkuPolicyEditor({ initial }: { initial: SkuPolicyEditorPayload }
                 rows={10}
               />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="adm-btn-secondary"
-                  disabled={isPending}
-                  onClick={saveDraft}
-                >
+                <AdminButton variant="secondary" disabled={isPending} onClick={saveDraft}>
                   Save draft
-                </button>
-                <button
-                  type="button"
-                  className="adm-btn-primary"
-                  disabled={isPending}
-                  onClick={publish}
-                >
+                </AdminButton>
+                <AdminButton variant="primary" disabled={isPending} onClick={publish}>
                   Publish version
-                </button>
+                </AdminButton>
               </div>
               {initial.profiles.length > 0 ? (
                 <ul className="text-sm space-y-1 opacity-80">
