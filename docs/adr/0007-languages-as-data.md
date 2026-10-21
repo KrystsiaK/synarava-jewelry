@@ -19,7 +19,7 @@ Lifecycle: **Draft → Published → Retired → Deleted**.
 - **Draft**: admin editors can prepare copy; storefront unreachable; absent from switcher/sitemap/hreflang.
 - **Published**: live on the storefront; present in switcher, sitemap, and alternates.
 - **Retired**: every `/{code}/…` URL returns a **permanent 301** to the equivalent path in the default language (translated slugs via `LocalizedHandleRedirect` when needed). Reversible. Data kept. Shopify locale unpublished, not disabled.
-- **Deleted**: data removed only after retention, export in-session, typed confirmation, and no unresolved sync differences. Shopify `shopLocaleDisable` only at this step (it deletes Shopify translations for that locale).
+- **Deleted**: data removed only after retention, a server-side export receipt (SiteSetting key with checksum + timestamp, ≤60 minutes, matching the client-presented checksum), typed confirmation, and no unresolved sync differences. Shopify `shopLocaleDisable` only at this step (it deletes Shopify translations for that locale).
 
 Routing, SEO, admin tabs/filters, and storefront chrome read a **cached registry snapshot** (short TTL + explicit invalidation on change). `SUPPORTED_LOCALES` ceases to be a routing allowlist. Interface strings load `messages/<code>.json` with English fallback; a generator drafts new message files without calling a translation service.
 
