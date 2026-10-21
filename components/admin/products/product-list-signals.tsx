@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, GitCompareArrows, Languages, Clock3 } from "lucide-react";
+import { CheckCircle2, GitCompareArrows, Languages, Clock3 } from "lucide-react";
 
 import { AdminSignalChip, type AdminSignalTone } from "@/components/synarava-cms";
 import type { AdminProductListItem, AdminProductLocaleSignal } from "@/lib/admin/list-products-shared";
@@ -82,16 +82,6 @@ export function ProductListSignals({
           value={`${locale.code.toUpperCase()} ${locale.percent}%`}
         />
       ))}
-      {product.issueCount > 0 ? (
-        <AdminSignalChip
-          label={`${product.issueCount} open problem${product.issueCount === 1 ? "" : "s"}`}
-          tooltip={`${product.issueCount} open problem${product.issueCount === 1 ? "" : "s"}. Open the editor to fix them.`}
-          tone="danger"
-          icon={<AlertTriangle strokeWidth={2.4} />}
-          value={product.issueCount}
-          href={product.issueHref ?? `/admin/products/${product.id}`}
-        />
-      ) : null}
       {conflict ? (
         <AdminSignalChip
           label={`Conflicts for ${product.name}`}

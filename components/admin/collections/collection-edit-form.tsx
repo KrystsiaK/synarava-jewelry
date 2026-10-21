@@ -11,9 +11,7 @@ import {
 import {
   checkOneCollectionConflictsAction,
 } from "@/app/admin/actions/sync";
-import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
@@ -39,10 +37,6 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
   recentlyUpdatedProducts: {},
 };
 const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
-
-function openIssues(issues: AdminIssueSummary[]) {
-  return issues.filter((issue) => issue.status === "OPEN");
-}
 
 function DeleteCollectionForm({
   collectionId,
@@ -104,14 +98,12 @@ function DeleteCollectionForm({
 export function EditCollectionForm({
   collection,
   translationLocales = [{ code: "pt", label: "Português" }],
-  issues = [],
   initialConflictSignals = EMPTY_SIGNALS,
   onUpdated,
   onDeleted,
 }: {
   collection: AdminCollection;
   translationLocales?: AdminTranslationLocale[];
-  issues?: AdminIssueSummary[];
   initialConflictSignals?: CatalogConflictSignals;
   onUpdated?: (collection: AdminCollection) => void;
   onDeleted?: (collectionId: string) => void;
@@ -132,7 +124,6 @@ export function EditCollectionForm({
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
-  const visibleIssues = openIssues(issues);
   const collectionConflict = conflictSignals.products[collection.id];
 
   // Props → local state: adjust during render when the server payload / id changes.
@@ -159,14 +150,6 @@ export function EditCollectionForm({
     window.addEventListener("hashchange", openFieldForHash);
     return () => window.removeEventListener("hashchange", openFieldForHash);
   }, []);
-
-  function activateIssue(issue: AdminIssueSummary) {
-    const nextHash = `#${issue.fieldPath}`;
-    if (window.location.hash !== nextHash) {
-      window.history.replaceState(null, "", nextHash);
-    }
-    window.requestAnimationFrame(() => scrollAdminFieldIntoView(issue.fieldPath));
-  }
 
   function handleConflictCheck() {
     startConflictCheckTransition(async () => {
@@ -277,9 +260,6 @@ export function EditCollectionForm({
 
             <AdminListWorkspace.Body className="grid gap-4">
               <AdminAlert message={state.error} />
-              {visibleIssues.length > 0 ? (
-                <AdminIssueInlineWarning issues={visibleIssues} onIssueActivate={activateIssue} />
-              ) : null}
               <input type="hidden" name="collectionId" value={collection.id} />
               <input
                 type="hidden"
@@ -301,7 +281,6 @@ export function EditCollectionForm({
                 fileInputKey={fileInputKey}
                 entityId={collection.id}
                 translationLocales={translationLocales}
-                issues={visibleIssues}
               />
             </AdminListWorkspace.Body>
           </AdminListWorkspace.Root>

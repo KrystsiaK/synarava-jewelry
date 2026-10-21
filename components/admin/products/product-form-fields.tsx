@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   type AdminFormValidation,
 } from "@/components/admin/shared/admin-form-validation";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
-import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import {
   AdminCheckboxControl,
@@ -52,8 +50,7 @@ import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
-import { getProductEditorDetails, issuesForField, taxonomySatisfactionFromDraft } from "@/components/admin/products/product-helpers";
-import type { TaxonomySatisfaction } from "@/components/admin/products/product-helpers";
+import { getProductEditorDetails } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 import {
   collectionSelectOptionLabel,
@@ -152,8 +149,6 @@ export function ProductDetailFields({
   details,
   translationsDetails,
   mode,
-  issues = [],
-  collections,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   activeSection = "details",
   activeLocale,
@@ -169,8 +164,6 @@ export function ProductDetailFields({
   /** Every translation locale's details, keyed by locale code. */
   translationsDetails: Record<string, ProductLocaleDetailsDraft>;
   mode: "create" | "edit";
-  issues?: AdminIssueSummary[];
-  collections: CollectionOption[];
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
   /** Top-level product workspace section. Hidden fields stay mounted so one save still submits the whole record. */
@@ -326,26 +319,14 @@ export function ProductDetailFields({
           />
         </div>
         <div className="grid gap-4 md:grid-cols-2">
-          {details.materials.map((material, index) => {
-            const materialIssues = issuesForField(issues, `field-details-materials-${index}-image`);
-            return (
+          {details.materials.map((material, index) => (
             <div
               key={`material-${index}`}
               id={`field-details-materials-${index}-image`}
               className="adm-field-unit grid gap-3 p-4"
-              style={{
-                border: materialIssues.length > 0
-                  ? "1px solid var(--adm-danger)"
-                  : "1px solid var(--adm-border)",
-                background: materialIssues.length > 0
-                  ? "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)"
-                  : undefined,
-              }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <p className="adm-section-tag">MATERIAL {index + 1}</p>
-              <div className="min-w-0">
-                <AdminFieldIssue issues={materialIssues} />
-              </div>
               <AdminTextField
                 label="Title"
                 value={draft.materials[index].title}
@@ -373,8 +354,7 @@ export function ProductDetailFields({
                 removeLabel="Remove"
               />
             </div>
-            );
-          })}
+          ))}
         </div>
       </section>
 
@@ -409,10 +389,6 @@ export function ProductDetailFields({
             name="existingProcessMediaImage"
             value={details.process.mediaImage}
           />
-          {/* Wrapper keeps AdminFieldIssue out of the absolute `.adm-field-unit > .adm-field-error` band. */}
-          <div className="min-w-0">
-            <AdminFieldIssue issues={issuesForField(issues, "field-details-process-mediaImage")} />
-          </div>
           <ImageFileField
             name="processMediaImageFile"
             currentImageUrl={mode === "edit" ? details.process.mediaImage : ""}
@@ -472,21 +448,12 @@ export function ProductDetailFields({
           />
         </div>
         <div className="grid gap-4 xl:grid-cols-2">
-          {details.lookbook.map((item, index) => {
-            const lookbookIssues = issuesForField(issues, `field-details-lookbook-${index}-src`);
-            return (
+          {details.lookbook.map((item, index) => (
             <div
               key={`lookbook-${index}`}
               id={`field-details-lookbook-${index}-src`}
               className="adm-field-unit grid gap-3 p-4"
-              style={{
-                border: lookbookIssues.length > 0
-                  ? "1px solid var(--adm-danger)"
-                  : "1px solid var(--adm-border)",
-                background: lookbookIssues.length > 0
-                  ? "color-mix(in srgb, var(--adm-field) 92%, var(--adm-danger) 8%)"
-                  : undefined,
-              }}
+              style={{ border: "1px solid var(--adm-border)" }}
             >
               <div className="flex items-center justify-between gap-3">
                 <p className="adm-section-tag">LOOKBOOK {index + 1}</p>
@@ -497,9 +464,6 @@ export function ProductDetailFields({
                   label="Featured"
                   labelClassName="text-[0.68rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-muted)]"
                 />
-              </div>
-              <div className="min-w-0">
-                <AdminFieldIssue issues={lookbookIssues} />
               </div>
               <AdminTextField
                 value={draft.lookbookLabels[index] ?? ""}
@@ -520,8 +484,7 @@ export function ProductDetailFields({
                 removeLabel="Remove"
               />
             </div>
-            );
-          })}
+          ))}
         </div>
       </section>
     </div>
@@ -588,15 +551,12 @@ export function ProductFormFields({
   collections,
   variantExists = false,
   inventoryFacts,
-  issues = [],
   validation,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   activeSection = "essentials",
   activeLocale,
   onLocaleChange,
-  onTaxonomySatisfactionChange,
   selectedShopifyCategoryAttributes = [],
-  mode = "edit",
   productId = null,
   onSkuAssigned,
 }: {
@@ -605,7 +565,6 @@ export function ProductFormFields({
   variantExists?: boolean;
   /** Pull projections for Inventory tab shipping / location cards. */
   inventoryFacts?: InventoryShippingFacts;
-  issues?: AdminIssueSummary[];
   validation: AdminFormValidation<ProductFieldName>;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
@@ -615,11 +574,8 @@ export function ProductFormFields({
   activeLocale: string;
   /** Lets validation force the source locale open when a required English field fails. */
   onLocaleChange: (locale: string) => void;
-  /** Keeps the section issue strip in sync when taxonomy fields are filled before Save. */
-  onTaxonomySatisfactionChange?: (satisfaction: TaxonomySatisfaction) => void;
   /** Resolved Shopify category attribute values from the last pull snapshot. */
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
-  mode?: "create" | "edit";
   productId?: string | null;
   onSkuAssigned?: (sku: string) => void;
 }) {
@@ -637,21 +593,11 @@ export function ProductFormFields({
     [SOURCE_LOCALE]: coreDraftFrom(draft),
     ...Object.fromEntries(translationLocales.map(({ code }) => [code, coreDraftFrom(draft.translations[code] ?? draft)])),
   }));
-  const taxonomySatisfactionRef = useRef(taxonomySatisfactionFromDraft(draft));
   const coreDraft = draftByLocale[activeLocale] ?? draftByLocale[SOURCE_LOCALE];
   const isEn = activeLocale === SOURCE_LOCALE;
   const activeLabel = translationLocales.find((locale) => locale.code === activeLocale)?.label
     ?? (isEn ? "English" : activeLocale);
   const activeTranslation = isEn ? null : draft.translations[activeLocale];
-  const categoryIssues = issuesForField(issues, "field-taxonomy-category");
-  const collectionIssues = issuesForField(issues, "field-taxonomy-collection");
-  const tagsIssues = issuesForField(issues, "field-taxonomy-tags");
-
-  function updateTaxonomySatisfaction(patch: Partial<TaxonomySatisfaction>) {
-    const next = { ...taxonomySatisfactionRef.current, ...patch };
-    taxonomySatisfactionRef.current = next;
-    onTaxonomySatisfactionChange?.(next);
-  }
 
   useEffect(() => {
     // Fixes a real bug: the required "Name" field sits inside a `hidden`
@@ -800,10 +746,6 @@ export function ProductFormFields({
           defaultValue={draft.tags}
           placeholder="bracelet, heritage, symbolic"
           clearable
-          invalid={tagsIssues.length > 0}
-          issue={<AdminFieldIssue issues={tagsIssues} />}
-          onChange={(event) => updateTaxonomySatisfaction({ hasTags: Boolean(event.target.value.trim()) })}
-          onClear={() => updateTaxonomySatisfaction({ hasTags: false })}
         />
 
         <AdminRichTextField
@@ -968,9 +910,7 @@ export function ProductFormFields({
             controlId="field-taxonomy-category-input"
             initialId={draft.shopifyCategoryId}
             initialName={draft.shopifyCategoryName}
-            invalid={categoryIssues.length > 0}
             selectedAttributeValues={selectedShopifyCategoryAttributes}
-            onSelectedIdChange={(id) => updateTaxonomySatisfaction({ hasCategory: Boolean(id.trim()) })}
           >
             <AdminFieldShell
               id="field-taxonomy-category"
@@ -986,7 +926,6 @@ export function ProductFormFields({
                   merchandising group below.
                 </AdminHelp>
               )}
-              issue={<AdminFieldIssue issues={categoryIssues} />}
             >
               <ShopifyCategoryControl />
             </AdminFieldShell>
@@ -999,9 +938,8 @@ export function ProductFormFields({
             owner="Synarava"
             name="collectionSlug"
             defaultValue={draft.collectionSlug}
-            invalid={collectionIssues.length > 0 || Boolean(fieldErrors.collectionSlug)}
+            invalid={Boolean(fieldErrors.collectionSlug)}
             error={fieldErrors.collectionSlug}
-            issue={<AdminFieldIssue issues={collectionIssues} />}
             help={(
               <AdminHelp label="Collection guidance">
                 Draft collections stay in this list (marked Draft) so you can prep membership
@@ -1011,7 +949,6 @@ export function ProductFormFields({
                 unpublished collection.
               </AdminHelp>
             )}
-            onChange={(event) => updateTaxonomySatisfaction({ hasCollection: Boolean(event.target.value.trim()) })}
           >
             <option value="">No collection</option>
             {filterCollectionsForProductSelect(collections, draft.collectionSlug).map((collection) => (

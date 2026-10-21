@@ -283,7 +283,7 @@ export type AdminVideoFieldProps = Omit<AdminVideoControlProps, "controlId"> & {
   help?: ReactNode;
   className?: string;
   unitId?: string;
-  issue?: ReactNode;
+
 };
 
 /**
@@ -301,7 +301,6 @@ export function AdminVideoField({
   disabled,
   className,
   unitId,
-  issue,
   ...controlProps
 }: AdminVideoFieldProps) {
   const { controlId, messageId, warningId } = useAdminFieldIds(id);
@@ -318,7 +317,6 @@ export function AdminVideoField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={cn("adm-video-field", className)}
       controlId={controlId}

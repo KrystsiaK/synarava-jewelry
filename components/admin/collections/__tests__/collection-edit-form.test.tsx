@@ -22,8 +22,6 @@ vi.mock("@/app/admin/actions/sync", () => ({
 
 import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
 import type { AdminCollection } from "@/components/admin/collections/collection-types";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
-
 function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollection {
   return {
     id: "collection-1",
@@ -52,30 +50,6 @@ function makeCollection(overrides: Partial<AdminCollection> = {}): AdminCollecti
     visibility: "PRIVATE",
     shopifyCollectionId: null,
     translations: [],
-    ...overrides,
-  };
-}
-
-function makeIssue(overrides: Partial<AdminIssueSummary> = {}): AdminIssueSummary {
-  return {
-    id: "issue-1",
-    key: "COLLECTION:collection-1:field-heroImageUrl:BROKEN_MEDIA",
-    entityType: "COLLECTION",
-    entityId: "collection-1",
-    entityLabel: "Wanderlust",
-    fieldPath: "field-heroImageUrl",
-    issueType: "BROKEN_MEDIA",
-    severity: "ERROR",
-    status: "OPEN",
-    title: "Collection hero image is broken",
-    description: "The image URL does not load: /media/uploads/collections/broken.webp",
-    targetHref: "/admin/collections/collection-1#field-heroImageUrl",
-    firstSeenAt: new Date("2026-09-06T13:03:00Z"),
-    lastSeenAt: new Date("2026-09-06T13:03:00Z"),
-    resolvedAt: null,
-    notificationSentAt: null,
-    createdAt: new Date("2026-09-06T13:03:00Z"),
-    updatedAt: new Date("2026-09-06T13:03:00Z"),
     ...overrides,
   };
 }
@@ -144,7 +118,7 @@ describe("EditCollectionForm", () => {
     expect(screen.getByRole("button", { name: "Save collection" })).toBeInTheDocument();
   });
 
-  it("surfaces open problems on the hero field and scrolls to the hash target", async () => {
+  it("scrolls to the hash target field on load", async () => {
     const scrollIntoView = vi.fn();
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
     vi.spyOn(window, "requestAnimationFrame").mockImplementation((cb) => {
@@ -153,11 +127,9 @@ describe("EditCollectionForm", () => {
     });
     window.history.replaceState(null, "", "/admin/collections/collection-1#field-heroImageUrl");
 
-    render(<EditCollectionForm collection={makeCollection()} issues={[makeIssue()]} />);
+    render(<EditCollectionForm collection={makeCollection()} />);
 
-    expect(screen.getByRole("button", { name: /Collection hero image is broken/i })).toBeInTheDocument();
     expect(document.getElementById("field-heroImageUrl")).not.toBeNull();
-    expect(screen.getByRole("alert")).toHaveTextContent("Collection hero image is broken");
     await waitFor(() => {
       expect(scrollIntoView).toHaveBeenCalledWith({
         behavior: "smooth",

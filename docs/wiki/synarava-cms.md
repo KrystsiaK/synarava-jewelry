@@ -50,21 +50,16 @@ two visual variants remain. Agent skill encodes this contract.
 
 ### Shell
 
-- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
+- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
 - Field-level errors are **absolute** inside the unit. Every `.adm-field-unit`
   **always** reserves a one-line error band (`padding-bottom`) so siblings never
   jump when validation appears. Long messages **ellipsis** in that band; full
   copy is available via tooltip / `title`. They must not push sibling rows or
   paint over the next section.
-- **Tall media composites** (`ImageFileField` + preview/path): do **not** put
-  `AdminFieldIssue` as a direct `.adm-field-unit > .adm-field-error` child — the
-  absolute band paints over the path. Keep issue copy in normal flow under the
-  label (see `ProductMediaManager` / collection hero), or wrap it so it is not
-  a direct unit child.
-- **Issue / validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
+- **Validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
   + `[id^="field-"]` scroll-margin). Never `block: "center"` under sticky admin
   chrome — it overshoots tall hero/media blocks.
-- `invalid` forces error chrome without copy (issue-linked fields).
+- `invalid` forces error chrome without copy.
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
 - Field error copy uses `--adm-danger-ink` (deep red in light, a clearer red in dark). Do not hardcode pale pink.
 
@@ -324,18 +319,16 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 <AdminNavTree
   items={buildAdminNavItems({
     pages,
-    issueCount,
     syncCounts: { products: 3, pages: 1, collections: 0, settings: 0, total: 4 },
   })}
-  issueNavHrefs={issueNavHrefs}
   syncNavHrefs={syncNavHrefs}
 />
 ```
 
 - **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
-- **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
-- **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.
+- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
+- **Meaning:** amber = unresolved Shopify field conflicts / divergences.
 - **Truncation:** long labels ellipsize; tooltip on long titles.
 - **Focus:** no outline ring on nav items — soft background only.
 - Story: `synarava-cms/AdminNavTree`.
@@ -459,8 +452,8 @@ import {
 |--------|------|
 | `AdminListWorkspace` | Sticky title band + optional collapsible filters + body (wraps `AdminPanel`) |
 | `AdminIconButton` | Square icon action + tooltip + `aria-label` (optional badge) |
-| `AdminSignalChip` | Locale / problem / conflict glyph with explanatory tooltip |
-| `AdminSortChips` | Compact single-select sort bar (Problems / Conflicts first) |
+| `AdminSignalChip` | Locale / conflict glyph with explanatory tooltip |
+| `AdminSortChips` | Compact single-select sort bar (Conflicts first) |
 | `AdminEntityList` | Header + dense rows + infinite-scroll sentinel |
 
 - Sticky header uses `AdminPanel.Header sticky` + `.adm-panel__header--ruled` so the

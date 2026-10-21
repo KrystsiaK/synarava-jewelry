@@ -14,8 +14,6 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-import { AdminIssueInlineWarning } from "@/components/admin/issues/admin-issues-cms";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import {
   AdminSectionTabs,
   type AdminSectionTabGroup,
@@ -318,10 +316,8 @@ function ProductSectionGraphic({ section }: { section: ProductEditorSection }) {
 
 function resolveTabTone(
   id: ProductEditorSection,
-  issueSet: ReadonlySet<ProductEditorSection>,
   conflictSet: ReadonlySet<ProductEditorSection>,
 ): AdminSectionTabTone {
-  if (issueSet.has(id)) return "issue";
   if (conflictSet.has(id)) return "conflict";
   return "default";
 }
@@ -349,10 +345,7 @@ export function ProductEditorTabs({
   onChange,
   includeShopify = true,
   dirtySections,
-  issueSections,
   conflictSections,
-  sectionIssues,
-  onIssueActivate,
   embedded = false,
   aside = null,
   children = null,
@@ -362,13 +355,8 @@ export function ProductEditorTabs({
   includeShopify?: boolean;
   /** Sections with unsaved edits — amber dirty dot. */
   dirtySections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
-  /** Sections with open QA issues — issue tone. */
-  issueSections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
-  /** Sections with Shopify sync conflicts — conflict tone (issue wins if both). */
+  /** Sections with Shopify sync conflicts — conflict tone. */
   conflictSections?: ReadonlySet<ProductEditorSection> | readonly ProductEditorSection[];
-  /** Open issues owned by the active section — listed under the description. */
-  sectionIssues?: AdminIssueSummary[];
-  onIssueActivate?: (issue: AdminIssueSummary) => void;
   /** Inside the locale workspace shell — no nested card radii. */
   embedded?: boolean;
   /** Header actions for the active section (e.g. locale sync controls). */
@@ -397,13 +385,9 @@ export function ProductEditorTabs({
   const dirtySet = dirtySections instanceof Set
     ? dirtySections
     : new Set(dirtySections ?? []);
-  const issueSet = issueSections instanceof Set
-    ? issueSections
-    : new Set(issueSections ?? []);
   const conflictSet = conflictSections instanceof Set
     ? conflictSections
     : new Set(conflictSections ?? []);
-  const hasSectionIssues = Boolean(sectionIssues && sectionIssues.length > 0);
 
   const items: AdminSectionTabItem[] = tabs.map((tab) => ({
     id: tab.id,
@@ -413,7 +397,7 @@ export function ProductEditorTabs({
     icon: tab.icon,
     group: tab.group,
     dirty: dirtySet.has(tab.id),
-    tone: resolveTabTone(tab.id, issueSet, conflictSet),
+    tone: resolveTabTone(tab.id, conflictSet),
   }));
 
   const visibleGroups = PRODUCT_EDITOR_TAB_GROUPS.filter((group) =>
@@ -482,19 +466,6 @@ export function ProductEditorTabs({
           (and flashes opacity:0 over the whole panel in tests).
         */}
         <div>
-          {hasSectionIssues ? (
-            <div
-              className="adm-inset-x py-[var(--adm-band-pad-y)]"
-              style={{ borderTop: "1px solid color-mix(in srgb, var(--adm-cool) 16%, var(--adm-border))" }}
-            >
-              <AdminIssueInlineWarning
-                issues={sectionIssues!}
-                className="w-full"
-                onIssueActivate={onIssueActivate}
-              />
-            </div>
-          ) : null}
-
           {children}
         </div>
       </AdminSectionTabs>

@@ -143,10 +143,10 @@ Canonical via `savePageImageUpload` (`lib/media/local-upload.ts`). After cleanup
 | ID | Result |
 | --- | --- |
 | D1 orphan joins/translations | 0 |
-| D2 sync FAILED/CONFLICT without AdminIssue | 0 |
+| D2 sync FAILED/CONFLICT without AdminIssue | *(check removed — AdminIssue UI retired)* |
 | D3 empty/broken localized handles & redirects | 0 |
 | D4 unread SiteSetting keys | 0 (only `shopify.store_binding` present) |
-| D5 OPEN AdminIssue missing entity | 0 |
+| D5 OPEN AdminIssue missing entity | *(check removed — AdminIssue UI retired)* |
 | D6 expired sessions | cleaned |
 | D7 growth tables | `AuditLog` ~15% of small DB — retention optional |
 | D8 legacy tables vs Prisma schema | **resolved** by `20260924221500_drop_legacy_local_commerce` |

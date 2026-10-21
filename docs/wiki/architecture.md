@@ -134,7 +134,6 @@ The implemented admin is intentionally small and task-focused:
 - `Videos` — shared S3-backed storefront video assets;
 - `Catalog` — products, Shopify taxonomy selection, synchronized tags, and product media;
 - `Collections` — Shopify-linked grouping, merchandising, and primary storefront navigation;
-- `Problems` — catalog/content consistency findings;
 - `Localization` — Shopify translation sync review;
 - `Account` — the current administrator's session and operational controls.
 

@@ -204,7 +204,6 @@ export function CreateProductForm({
                       activeSection={activeSection}
                       activeLocale={activeLocale}
                       onLocaleChange={selectLocale}
-                      mode="create"
                       productId={draftProduct?.id ?? (draftId || null)}
                     />
                   </div>
@@ -222,7 +221,6 @@ export function CreateProductForm({
                     details={getProductEditorDetails(null)}
                     translationsDetails={Object.fromEntries(translationLocales.map(({ code }) => [code, draft.translations[code]?.details]))}
                     mode="create"
-                    collections={collections}
                     translationLocales={translationLocales}
                     activeSection={activeSection}
                     activeLocale={activeLocale}
