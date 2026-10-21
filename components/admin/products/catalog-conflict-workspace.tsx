@@ -15,7 +15,7 @@ import {
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
-import { AdminCheckboxControl } from "@/components/synarava-cms";
+import { AdminButton, AdminCheckboxControl } from "@/components/synarava-cms";
 import type {
   CatalogConflictApplyScope,
   CatalogConflictPreview,
@@ -216,7 +216,7 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
               : "This is the list from the last conflict check. Choose a direction, or open one product field by field. Nothing is written until the final confirmation."}
           </p>
         </div>
-        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close catalog conflicts"><X className="size-4" /></button>
+        <AdminButton variant="ghost" className="grid size-11 place-items-center p-0" onClick={onClose} disabled={busy} aria-label="Close catalog conflicts"><X className="size-4" /></AdminButton>
       </header>
       <div className="min-h-0 space-y-3 overflow-y-auto p-5">
         {productIds.length === 0 ? <p className="adm-copy py-8 text-center">No saved conflicts. Run a conflict check to confirm the latest Shopify state.</p> : null}
@@ -242,20 +242,20 @@ function ConflictListModal({ open, onClose, signals, products, focusedProductId,
                 </div>
               </div>
               <div className="flex shrink-0 gap-2" aria-label={`Actions for ${productName}`}>
-                {allowedDirections.includes("SHOPIFY_TO_SYNARAVA") ? <Tooltip content={signal.presence ? "Create or link this product in Synarava from Shopify" : "Use Shopify for every supported conflicting field in this product"}><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal.presence ? "Pull product from Shopify" : "Apply Shopify values"}><ArrowDownToLine className="size-4" /></button></Tooltip> : null}
-                {allowedDirections.includes("SYNARAVA_TO_SHOPIFY") ? <Tooltip content={signal.presence ? "Create this product in Shopify from Synarava" : "Use Synarava for every supported conflicting field in this product"}><button type="button" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label={signal.presence ? "Push product to Shopify" : "Apply Synarava values"}><ArrowUpFromLine className="size-4" /></button></Tooltip> : null}
-                {!signal.presence ? <Tooltip content="Compare fields and choose Shopify or Synarava separately"><button type="button" disabled={busy} onClick={() => onDetails(productId)} className="adm-btn-secondary grid size-11 place-items-center p-0" aria-label="Compare fields side by side"><Columns2 className="size-4" /></button></Tooltip> : null}
+                {allowedDirections.includes("SHOPIFY_TO_SYNARAVA") ? <Tooltip content={signal.presence ? "Create or link this product in Synarava from Shopify" : "Use Shopify for every supported conflicting field in this product"}><AdminButton variant="secondary" className="grid size-11 place-items-center p-0" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SHOPIFY_TO_SYNARAVA" })} aria-label={signal.presence ? "Pull product from Shopify" : "Apply Shopify values"}><ArrowDownToLine className="size-4" /></AdminButton></Tooltip> : null}
+                {allowedDirections.includes("SYNARAVA_TO_SHOPIFY") ? <Tooltip content={signal.presence ? "Create this product in Shopify from Synarava" : "Use Synarava for every supported conflicting field in this product"}><AdminButton variant="secondary" className="grid size-11 place-items-center p-0" disabled={busy} onClick={() => onPreview({ kind: "PRODUCT", productId, direction: "SYNARAVA_TO_SHOPIFY" })} aria-label={signal.presence ? "Push product to Shopify" : "Apply Synarava values"}><ArrowUpFromLine className="size-4" /></AdminButton></Tooltip> : null}
+                {!signal.presence ? <Tooltip content="Compare fields and choose Shopify or Synarava separately"><AdminButton variant="secondary" className="grid size-11 place-items-center p-0" disabled={busy} onClick={() => onDetails(productId)} aria-label="Compare fields side by side"><Columns2 className="size-4" /></AdminButton></Tooltip> : null}
               </div>
             </article>
           );
         })}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost">Close</button>
+        <AdminButton variant="ghost" onClick={onClose} disabled={busy}>Close</AdminButton>
         {hideBulk ? null : (
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })} className="adm-btn-secondary inline-flex items-center gap-2"><ArrowDownToLine className="size-4" />Use Shopify for all</button>
-            <button type="button" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })} className="adm-btn-primary inline-flex items-center gap-2"><ArrowUpFromLine className="size-4" />Use Synarava for all</button>
+            <AdminButton variant="secondary" className="inline-flex items-center gap-2" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" })}><ArrowDownToLine className="size-4" />Use Shopify for all</AdminButton>
+            <AdminButton variant="primary" className="inline-flex items-center gap-2" disabled={busy || productIds.length === 0} onClick={() => onPreview({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" })}><ArrowUpFromLine className="size-4" />Use Synarava for all</AdminButton>
           </div>
         )}
       </footer>
@@ -320,7 +320,7 @@ function DetailsModal({
               : "Pick Synarava or Shopify for each field. Media uses the same contract (Pull adopts gallery; Push sends gallery)."}
           </p>
         </div>
-        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close conflict details"><X className="size-4" /></button>
+        <AdminButton variant="ghost" className="grid size-11 place-items-center p-0" onClick={onClose} disabled={busy} aria-label="Close conflict details"><X className="size-4" /></AdminButton>
       </header>
       <div className="min-h-0 space-y-4 overflow-y-auto p-5">
         {loading && !conflict ? (
@@ -359,25 +359,25 @@ function DetailsModal({
         ))}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <button type="button" onClick={onClose} disabled={busy} className="adm-btn-secondary">{needsWholeRecordSync ? "Back" : "Cancel"}</button>
+        <AdminButton variant="secondary" onClick={onClose} disabled={busy}>{needsWholeRecordSync ? "Back" : "Cancel"}</AdminButton>
         {!needsWholeRecordSync ? (
           <>
             <div className="flex flex-wrap items-center gap-2">
-              <button type="button" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")} className="adm-btn-ghost">Select Shopify for visible fields</button>
-              <button type="button" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")} className="adm-btn-ghost">Select Synarava for visible fields</button>
+              <AdminButton variant="ghost" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")}>Select Shopify for visible fields</AdminButton>
+              <AdminButton variant="ghost" disabled={busy || loading || actionable.length === 0} onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")}>Select Synarava for visible fields</AdminButton>
               <span className="text-xs text-[var(--adm-muted)]">{Object.keys(selections).length} of {actionable.length} selected</span>
             </div>
-            <button type="button" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0} className="adm-btn-primary">Review merge</button>
+            <AdminButton variant="primary" onClick={onContinue} disabled={busy || loading || Object.keys(selections).length === 0}>Review merge</AdminButton>
           </>
         ) : null}
         {conflict && showWholeRecordActions ? (
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={busy} onClick={() => onPull(conflict.productId)} className="adm-btn-secondary inline-flex items-center gap-2">
+            <AdminButton variant="secondary" className="inline-flex items-center gap-2" disabled={busy} onClick={() => onPull(conflict.productId)}>
               <ArrowDownToLine className="size-4" />Pull from Shopify
-            </button>
-            <button type="button" disabled={busy} onClick={() => onPush(conflict.productId)} className="adm-btn-primary inline-flex items-center gap-2">
+            </AdminButton>
+            <AdminButton variant="primary" className="inline-flex items-center gap-2" disabled={busy} onClick={() => onPush(conflict.productId)}>
               <ArrowUpFromLine className="size-4" />Push to Shopify
-            </button>
+            </AdminButton>
           </div>
         ) : null}
       </footer>
@@ -397,7 +397,7 @@ function PreviewModal({ preview, productsById, applying, resultMessage, onClose,
   const hasClears = preview.entries.some((entry) => entry.willClearNonEmptyValue);
   return (
     <AnimatedModal open onClose={applying ? () => undefined : onClose} ariaLabel="Confirm conflict resolution" portalClassName="admin-modal-root" zIndexClassName="z-[400]" backdropZIndexClassName="z-[390]" className="adm-panel pointer-events-auto grid max-h-[min(90vh,64rem)] w-full max-w-6xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0">
-      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5"><div><p className="adm-section-tag">[ FINAL PREVIEW ]</p><h2 className="adm-title-sm mt-2">Confirm {plural(preview.entries.length, "field change", "field changes")}</h2><p className="mt-1 text-xs text-[var(--adm-muted)]">This is the exact reviewed set. Current values are checked again immediately before every write.</p></div><button type="button" onClick={onClose} disabled={applying} className="adm-btn-ghost grid size-11 place-items-center p-0" aria-label="Close confirmation"><X className="size-4" /></button></header>
+      <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5"><div><p className="adm-section-tag">[ FINAL PREVIEW ]</p><h2 className="adm-title-sm mt-2">Confirm {plural(preview.entries.length, "field change", "field changes")}</h2><p className="mt-1 text-xs text-[var(--adm-muted)]">This is the exact reviewed set. Current values are checked again immediately before every write.</p></div><AdminButton variant="ghost" className="grid size-11 place-items-center p-0" onClick={onClose} disabled={applying} aria-label="Close confirmation"><X className="size-4" /></AdminButton></header>
       <div className="min-h-0 space-y-4 overflow-y-auto p-5">
         {preview.entries.map((entry) => (
           <section key={`${entry.productId}:${entry.field.fieldKey}`} className="rounded-xl border border-[var(--adm-border)] p-4">
@@ -424,7 +424,7 @@ function PreviewModal({ preview, productsById, applying, resultMessage, onClose,
             <span className="text-xs text-[var(--adm-muted)]">Nothing changes until you confirm.</span>
           )}
         </div>
-        <div className="flex gap-2"><button type="button" onClick={onClose} disabled={applying} className="adm-btn-secondary">Cancel</button><button type="button" onClick={() => onConfirm(acknowledgeClears)} disabled={applying || preview.entries.length === 0 || (hasClears && !acknowledgeClears)} className="adm-btn-primary">{applying ? "Applying…" : "Confirm changes"}</button></div>
+        <div className="flex gap-2"><AdminButton variant="secondary" onClick={onClose} disabled={applying}>Cancel</AdminButton><AdminButton variant="primary" onClick={() => onConfirm(acknowledgeClears)} disabled={applying || preview.entries.length === 0 || (hasClears && !acknowledgeClears)}>{applying ? "Applying…" : "Confirm changes"}</AdminButton></div>
       </footer>
     </AnimatedModal>
   );

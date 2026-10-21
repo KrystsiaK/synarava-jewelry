@@ -17,7 +17,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { issuesForField } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
-import { AdminTextField } from "@/components/synarava-cms";
+import { AdminButton, AdminTextField } from "@/components/synarava-cms";
 import { imageAltSoftWarning } from "@/lib/seo/image-alt-checklist";
 import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 
@@ -156,10 +156,10 @@ export function ProductMediaManager({
                   }}
                 />
                 <div className="flex flex-wrap gap-2">
-                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</button>
-                  <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</button>
-                  {!primary ? <button type="button" className="adm-btn-ghost min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</button> : null}
-                  <button type="button" className="adm-btn-danger min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</button>
+                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</AdminButton>
+                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</AdminButton>
+                  {!primary ? <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</AdminButton> : null}
+                  <AdminButton variant="danger" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</AdminButton>
                 </div>
               </article>
             );
@@ -188,14 +188,14 @@ export function ProductMediaManager({
                 }}
               />
               <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className="adm-btn-danger min-h-9 px-3"
+                <AdminButton
+                  variant="danger"
+                  className="min-h-9 px-3"
                   disabled={pending}
                   onClick={() => removeTreeFrame(index)}
                 >
                   Remove
-                </button>
+                </AdminButton>
               </div>
             </article>
           ))}

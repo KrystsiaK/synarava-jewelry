@@ -38,6 +38,7 @@ import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/compo
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
+  AdminButton,
   AdminAlert,
   AdminEntityList,
   AdminIconButton,
@@ -45,7 +46,7 @@ import {
   AdminSelectField,
   AdminSortChips,
   AdminStatusBadge,
-  AdminTextField,
+  AdminTextField
 } from "@/components/synarava-cms";
 import {
   centsToPrice,
@@ -429,14 +430,9 @@ export function ProductsCms({
             <>
               <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
               {shopifyStoreMismatch ? (
-                <button
-                  type="button"
-                  className="adm-btn-danger inline-flex items-center justify-center gap-2"
-                  onClick={() => setConfirmStoreRebind(true)}
-                  disabled={isStoreRebindPending}
-                >
+                <AdminButton variant="danger" className="inline-flex items-center justify-center gap-2" onClick={() => setConfirmStoreRebind(true)} disabled={isStoreRebindPending}>
                   Rebind to {shopifyStoreMismatch.currentShopDomain}
-                </button>
+                </AdminButton>
               ) : null}
               <Link href="/admin/products/new" className="adm-btn-primary">
                 New product

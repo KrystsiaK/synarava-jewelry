@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { syncStorefrontLocalesAction } from "@/app/admin/actions/translation-sync";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
 import type { ShopifyShopLocale } from "@/lib/shopify/admin";
+import { AdminButton } from "@/components/synarava-cms";
 
 export function LocaleRegistryPanel({
   locales,
@@ -41,10 +42,10 @@ export function LocaleRegistryPanel({
             and run Check Shopify.
           </p>
         </div>
-        <button type="button" className="adm-btn-ghost" onClick={checkNow} disabled={pending}>
+        <AdminButton variant="ghost" onClick={checkNow} disabled={pending}>
           <RefreshCw size={14} className={pending ? "animate-spin" : undefined} aria-hidden="true" />
           {pending ? "Checking…" : "Check Shopify"}
-        </button>
+        </AdminButton>
       </div>
 
       {sourceViolation ? (

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { X } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
+import { AdminButton } from "@/components/synarava-cms";
 
 type ImageFileFieldProps = {
   name: string;
@@ -153,14 +154,9 @@ export function ImageFileField({
                 {formatFileSize(selectedFile.size)}
               </p>
               <Tooltip content="Clear selected image">
-                <button
-                  type="button"
-                  className="adm-btn-ghost adm-icon-btn"
-                  aria-label="Clear selected image"
-                  onClick={clearSelectedFile}
-                >
+                <AdminButton variant="ghost" className="adm-icon-btn" aria-label="Clear selected image" onClick={clearSelectedFile}>
                   <X aria-hidden="true" size={14} strokeWidth={1.8} />
-                </button>
+                </AdminButton>
               </Tooltip>
             </div>
           </div>
@@ -195,9 +191,9 @@ export function ImageFileField({
           className="grid gap-3 p-3"
           style={{
             border: removeCurrentImage
-              ? "1px solid rgba(216, 182, 106, 0.34)"
+              ? "1px solid var(--adm-media-accent-border)"
               : currentImageBroken
-              ? "1px solid rgba(255, 93, 93, 0.42)"
+              ? "1px solid var(--adm-media-danger-border)"
               : "1px solid var(--adm-border)",
             borderRadius: "8px",
             opacity: removeCurrentImage ? 0.72 : 1,
@@ -215,13 +211,13 @@ export function ImageFileField({
                 </span>
               ) : null}
               {removeFieldName ? (
-                <button
-                  type="button"
-                  className={removeCurrentImage ? "adm-btn-primary h-8 min-h-8 px-3" : "adm-btn-ghost h-8 min-h-8 px-3"}
+                <AdminButton
+                  variant={removeCurrentImage ? "primary" : "ghost"}
+                  className="h-8 min-h-8 px-3"
                   onClick={toggleRemoveCurrentImage}
                 >
                   {removeCurrentImage ? "Undo remove" : removeLabel}
-                </button>
+                </AdminButton>
               ) : null}
             </div>
           </div>
@@ -232,7 +228,7 @@ export function ImageFileField({
                 "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
-                background: "rgba(216, 182, 106, 0.08)",
+                background: "var(--adm-media-accent-wash)",
                 color: "var(--adm-accent)",
               }}
             >
@@ -245,7 +241,7 @@ export function ImageFileField({
                 "grid place-items-center rounded-[8px] p-4 text-center text-xs font-medium",
               ].join(" ")}
               style={{
-                background: "rgba(255, 93, 93, 0.08)",
+                background: "var(--adm-media-danger-wash)",
                 color: "var(--adm-danger)",
               }}
             >

@@ -1,6 +1,8 @@
 "use client";
 
 import { GitCompareArrows, Languages, RefreshCw } from "lucide-react";
+
+import { AdminButton } from "@/components/synarava-cms";
 import type { CatalogConflictProductSignal, CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 function plural(count: number, singular: string, pluralWord: string) {
@@ -82,19 +84,21 @@ export function CatalogConflictStatus({
         </time>
       ) : null}
       {hasConflicts ? (
-        <button type="button" onClick={onShow} className="adm-btn-secondary min-h-11 px-3 py-1 text-xs">
+        <AdminButton variant="secondary" onClick={onShow} className="min-h-11 px-3 py-1 text-xs">
           Show conflicts
-        </button>
+        </AdminButton>
       ) : null}
-      <button
-        type="button"
+      <AdminButton
+        variant="ghost"
         onClick={onCheck}
         disabled={checking || signals.state === "checking" || signals.state === "disconnected"}
-        className="adm-btn-ghost inline-flex min-h-11 items-center gap-1.5 px-3 py-1 text-xs"
+        className="inline-flex min-h-11 items-center gap-1.5 px-3 py-1 text-xs"
+        leadingIcon={
+          <RefreshCw className={`size-3.5 ${(checking || signals.state === "checking") ? "animate-spin" : ""}`} aria-hidden="true" />
+        }
       >
-        <RefreshCw className={`size-3.5 ${(checking || signals.state === "checking") ? "animate-spin" : ""}`} aria-hidden="true" />
         {(checking || signals.state === "checking") ? "Checking conflicts…" : "Run conflict check"}
-      </button>
+      </AdminButton>
     </div>
   );
 }

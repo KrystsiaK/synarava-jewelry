@@ -9,7 +9,7 @@ import type {
   ReconcileDifferenceView,
   ReconcileRunSummary,
 } from "@/lib/shopify/reconciliation-run";
-import { AdminCheckboxControl } from "@/components/synarava-cms";
+import { AdminButton, AdminCheckboxControl } from "@/components/synarava-cms";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export type ReconcileDifferenceRow = ReconcileDifferenceView & { href: string };
@@ -277,10 +277,14 @@ export function TranslationsCms({
             ) : null}
           </div>
         </div>
-        <button type="button" className="adm-btn-ghost" onClick={() => void checkNow()} disabled={checking}>
-          <RefreshCw size={15} className={checking ? "animate-spin" : ""} aria-hidden="true" />
+        <AdminButton
+          variant="ghost"
+          leadingIcon={<RefreshCw size={15} className={checking ? "animate-spin" : ""} aria-hidden="true" />}
+          onClick={() => void checkNow()}
+          busy={checking}
+        >
           {checking ? "Checking…" : "Check now"}
-        </button>
+        </AdminButton>
       </div>
 
       {differences.length > 0 ? (
@@ -422,17 +426,22 @@ export function TranslationsCms({
                 Unselected fields stay untouched.
               </p>
             </div>
-            <button
-              type="button"
-              className="adm-btn-primary"
-              disabled={applying
-                || (clearCount > 0 && !acknowledgedClears)
-                || (selected.length > 1 && !acknowledgedBatch)}
+            <AdminButton
+              variant="primary"
+              leadingIcon={
+                applying
+                  ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" />
+                  : <Check size={15} aria-hidden="true" />
+              }
+              disabled={
+                (clearCount > 0 && !acknowledgedClears)
+                || (selected.length > 1 && !acknowledgedBatch)
+              }
+              busy={applying}
               onClick={() => void applyChoices()}
             >
-              {applying ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" /> : <Check size={15} aria-hidden="true" />}
               {applying ? "Applying…" : "Apply selected"}
-            </button>
+            </AdminButton>
           </div>
 
           <ul className="adm-apply-review__list">
