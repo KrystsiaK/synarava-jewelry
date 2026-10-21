@@ -19,6 +19,10 @@ const config: StorybookConfig = {
     config.resolve ??= {};
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string>),
+      "@/app/admin/actions/storefront-href": resolve(
+        __dirname,
+        "./mocks/storefront-href-action.ts",
+      ),
       "@": resolve(__dirname, ".."),
       "next/image": resolve(__dirname, "./mocks/next-image.tsx"),
       "next/link": resolve(__dirname, "./mocks/next-link.tsx"),
