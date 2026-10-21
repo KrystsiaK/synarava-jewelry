@@ -57,7 +57,7 @@ export const TreeWithSignals: Story = {
         total: 18,
       },
     }),
-    issueNavHrefs: ["/admin/pages/care", "/admin/products", "/admin/issues"],
+    issueNavHrefs: ["/admin/pages/care", "/admin/products"],
     syncNavHrefs: [
       "/admin/products",
       "/admin/collections",

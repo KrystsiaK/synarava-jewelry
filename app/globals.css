@@ -3240,6 +3240,26 @@ html[data-theme="dark"] .ephemeral-toast {
   line-height: 1.45;
 }
 
+.adm-apply-review__action {
+  display: grid;
+  justify-items: end;
+  gap: 0.45rem;
+  min-width: min(22rem, 100%);
+}
+
+.adm-apply-review__action .adm-alert {
+  width: 100%;
+}
+
+.adm-apply-progress {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--adm-muted);
+  font-size: 0.7rem;
+  font-weight: 680;
+}
+
 .adm-apply-review__list {
   display: grid;
   gap: 0.3rem;
@@ -3348,6 +3368,11 @@ html[data-theme="dark"] .ephemeral-toast {
   .adm-apply-review__heading .adm-btn-primary {
     align-self: stretch;
   }
+
+  .adm-apply-review__action {
+    justify-items: stretch;
+    width: 100%;
+  }
 }
 
 @media (max-width: 42rem) {
@@ -3370,7 +3395,9 @@ html[data-theme="dark"] .ephemeral-toast {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .adm-sync-overview[data-tone="checking"] .adm-sync-overview__mark svg {
+  .adm-sync-overview[data-tone="checking"] .adm-sync-overview__mark svg,
+  .adm-apply-progress svg,
+  .adm-apply-review .animate-spin {
     animation: none;
   }
 }

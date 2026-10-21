@@ -47,9 +47,9 @@ export default async function AdminTranslationsPage({ searchParams }: PageProps)
   return (
     <div className="space-y-7">
       <header>
-        <h1 className="adm-page-title">Shopify sync</h1>
+        <h1 className="adm-page-title">Translations</h1>
         <p className="adm-page-subtitle">
-          Review only the translated fields that differ. Nothing is changed until you choose which version to keep.
+          Compare Synarava and Shopify translations, then choose which side wins for each difference.
         </p>
       </header>
       <LocaleRegistryPanel

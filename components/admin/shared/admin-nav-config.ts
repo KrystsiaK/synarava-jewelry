@@ -225,12 +225,11 @@ export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildCo
  * Catalog stays a leaf; Pages + Shared expand inline.
  *
  * Conflict (sync) badges sit on the section that owns the divergence —
- * Catalog / Collections / Pages / Shared — plus Localization as the
+ * Catalog / Collections / Pages / Shared — plus Translations as the
  * review hub (total). Left markers still carry issue / sync / both.
  */
 export function buildAdminNavItems({
   pages = [],
-  issueCount = 0,
   syncCount = 0,
   syncCounts,
 }: BuildAdminNavItemsInput = {}): AdminNavItemConfig[] {
@@ -288,13 +287,6 @@ export function buildAdminNavItems({
       badge: syncBadge(sync.products),
     },
     {
-      id: "issues",
-      href: "/admin/issues",
-      label: "Problems",
-      code: "QA",
-      badge: issueCount > 0 ? { kind: "issues", count: issueCount } : undefined,
-    },
-    {
       id: "collections",
       href: "/admin/collections",
       label: "Collections",
@@ -304,7 +296,7 @@ export function buildAdminNavItems({
     {
       id: "translations",
       href: "/admin/translations",
-      label: "Localization",
+      label: "Translations",
       code: "I18N",
       badge: syncBadge(sync.total),
     },

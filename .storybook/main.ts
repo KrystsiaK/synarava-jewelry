@@ -14,10 +14,12 @@ const config: StorybookConfig = {
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string>),
       "@/app/admin/issues/actions": resolve(__dirname, "./mocks/admin-issues-actions.ts"),
+      "@/lib/db": resolve(__dirname, "./mocks/db.ts"),
       "@": resolve(__dirname, ".."),
       "next/image": resolve(__dirname, "./mocks/next-image.tsx"),
       "next/link": resolve(__dirname, "./mocks/next-link.tsx"),
       "next/navigation": resolve(__dirname, "./mocks/next-navigation.ts"),
+      ".prisma/client/index-browser": resolve(__dirname, "./mocks/prisma-client-browser.ts"),
       "server-only": resolve(__dirname, "./mocks/server-only.ts"),
       "node:crypto": resolve(__dirname, "./mocks/node-crypto.ts"),
     };
