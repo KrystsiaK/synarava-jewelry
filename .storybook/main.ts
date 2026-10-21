@@ -19,6 +19,7 @@ const config: StorybookConfig = {
     config.resolve ??= {};
     config.resolve.alias = {
       ...(config.resolve.alias as Record<string, string>),
+      "@/lib/db": resolve(__dirname, "./mocks/db.ts"),
       "@/app/admin/actions/storefront-href": resolve(
         __dirname,
         "./mocks/storefront-href-action.ts",
@@ -27,6 +28,7 @@ const config: StorybookConfig = {
       "next/image": resolve(__dirname, "./mocks/next-image.tsx"),
       "next/link": resolve(__dirname, "./mocks/next-link.tsx"),
       "next/navigation": resolve(__dirname, "./mocks/next-navigation.ts"),
+      ".prisma/client/index-browser": resolve(__dirname, "./mocks/prisma-client-browser.ts"),
       "server-only": resolve(__dirname, "./mocks/server-only.ts"),
       "node:crypto": resolve(__dirname, "./mocks/node-crypto.ts"),
       "@prisma/client": resolve(__dirname, "./mocks/prisma-client.ts"),
