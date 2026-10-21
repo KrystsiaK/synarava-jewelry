@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { FilterChips } from "./filter-chips";
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];

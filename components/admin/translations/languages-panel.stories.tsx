@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { LanguagesPanel } from "@/components/admin/translations/languages-panel";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";

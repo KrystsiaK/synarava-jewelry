@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AdminEntityList } from "./admin-entity-list";
 import { AdminStatusBadge } from "./admin-status-badge";

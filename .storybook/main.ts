@@ -1,14 +1,20 @@
+// This file has been automatically migrated to valid ESM format by Storybook.
+import { fileURLToPath } from "node:url";
 import type { StorybookConfig } from "@storybook/react-vite";
-import { resolve } from "path";
+import { resolve, dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const config: StorybookConfig = {
   stories: ["../components/**/*.stories.@(ts|tsx)"],
-  addons: ["@storybook/addon-essentials"],
+  addons: ["@storybook/addon-mcp", "@storybook/addon-docs"],
+
   framework: {
     name: "@storybook/react-vite",
     options: {},
   },
-  docs: { autodocs: "tag" },
+
   async viteFinal(config) {
     config.resolve ??= {};
     config.resolve.alias = {
@@ -23,7 +29,7 @@ const config: StorybookConfig = {
       "@prisma/client/index-browser": resolve(__dirname, "./mocks/prisma-client.ts"),
     };
     return config;
-  },
+  }
 };
 
 export default config;

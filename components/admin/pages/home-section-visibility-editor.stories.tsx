@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { HomeSectionVisibilityEditor } from "@/components/admin/pages/home-section-visibility-editor";
 

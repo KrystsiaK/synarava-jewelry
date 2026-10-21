@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AdminFieldShell } from "./admin-field-shell";
 import { AdminHelp } from "./admin-help";
