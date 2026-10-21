@@ -54,7 +54,7 @@ describe("admin-nav-config", () => {
     const catalog = items.find((item) => item.id === "products");
     const collections = items.find((item) => item.id === "collections");
     const problems = items.find((item) => item.id === "issues");
-    const localization = items.find((item) => item.id === "translations");
+    const translations = items.find((item) => item.id === "translations");
     const infrastructure = items.find((item) => item.id === "infrastructure");
 
     expect(pages?.children).toHaveLength(2);
@@ -90,7 +90,7 @@ describe("admin-nav-config", () => {
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems).toBeUndefined();
-    expect(localization?.badge).toEqual({ kind: "sync", count: 9 });
+    expect(translations).toMatchObject({ label: "Translations", badge: { kind: "sync", count: 9 } });
     expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });
   });
 

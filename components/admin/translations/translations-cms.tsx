@@ -8,13 +8,15 @@ import { useMemo, useState } from "react";
 import type {
   ReconcileDifferenceView,
   ReconcileRunSummary,
-} from "@/lib/shopify/reconciliation-run";
-import { AdminButton, AdminCheckboxControl } from "@/components/synarava-cms";
+} from "@/lib/shopify/reconciliation-types";
+import { AdminAlert, AdminButton, AdminCheckboxControl } from "@/components/synarava-cms";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 
 export type ReconcileDifferenceRow = ReconcileDifferenceView & { href: string };
 type DifferenceFilter = "ALL" | ReconcileDifferenceView["kind"];
 type ReconcileChoice = "SYNARAVA" | "SHOPIFY";
+type SelectedDifference = { difference: ReconcileDifferenceRow; choice: ReconcileChoice };
+type ApplyFeedback = { message: string; tone: "success" | "error" };
 
 const FILTERS: Array<{ value: DifferenceFilter; label: string }> = [
   { value: "ALL", label: "All changes" },
@@ -151,7 +153,10 @@ export function TranslationsCms({
   const [acknowledgedClears, setAcknowledgedClears] = useState(false);
   const [acknowledgedBatch, setAcknowledgedBatch] = useState(false);
   const [applying, setApplying] = useState(false);
-  const [applyMessage, setApplyMessage] = useState<string | null>(null);
+  const [applyFeedback, setApplyFeedback] = useState<ApplyFeedback | null>(null);
+  const [lastApplied, setLastApplied] = useState<SelectedDifference[]>([]);
+  const [recheckingAfterApply, setRecheckingAfterApply] = useState(false);
+  const [recheckError, setRecheckError] = useState<string | null>(null);
   const router = useRouter();
   const presentation = runPresentation(
     checking && initialRun ? { ...initialRun, status: "RUNNING" } : initialRun,
@@ -176,6 +181,7 @@ export function TranslationsCms({
   const localWriteCount = selected.filter(({ choice }) => choice === "SHOPIFY").length;
   const clearCount = selected.filter(({ difference, choice }) =>
     isEmptyValue(choice === "SYNARAVA" ? difference.localValue : difference.shopifyValue)).length;
+  const reviewRows = selected.length > 0 ? selected : lastApplied;
 
   async function checkNow() {
     setChecking(true);
@@ -198,7 +204,9 @@ export function TranslationsCms({
   }
 
   function choose(divergenceId: string, choice: ReconcileChoice) {
-    setApplyMessage(null);
+    setApplyFeedback(null);
+    setLastApplied([]);
+    setRecheckError(null);
     setAcknowledgedClears(false);
     setAcknowledgedBatch(false);
     setChoices((current) => current[divergenceId] === choice
@@ -211,7 +219,9 @@ export function TranslationsCms({
       || (clearCount > 0 && !acknowledgedClears)
       || (selected.length > 1 && !acknowledgedBatch)) return;
     setApplying(true);
-    setApplyMessage(null);
+    setApplyFeedback(null);
+    setLastApplied([]);
+    setRecheckError(null);
     try {
       const response = await fetch("/admin/api/shopify/reconcile/apply", {
         method: "POST",
@@ -236,24 +246,43 @@ export function TranslationsCms({
 
       const applied = payload.appliedCount ?? 0;
       const failed = payload.failedCount ?? 0;
-      setApplyMessage(failed > 0
-        ? `${applied} applied. ${failed} need another review: ${payload.results?.find((result) => !result.ok)?.message ?? "check again"}`
-        : `${applied} change${applied === 1 ? "" : "s"} applied and verified.`);
+      setApplyFeedback({
+        tone: failed > 0 ? "error" : "success",
+        message: failed > 0
+          ? `${applied} applied. ${failed} need another review: ${payload.results?.find((result) => !result.ok)?.message ?? "check again"}`
+          : `${applied} change${applied === 1 ? "" : "s"} applied.`,
+      });
+      setLastApplied(selected);
       setChoices({});
       setAcknowledgedClears(false);
       setAcknowledgedBatch(false);
+      setApplying(false);
 
       if (applied > 0) {
-        await fetch("/admin/api/shopify/reconcile", {
-          method: "POST",
-          cache: "no-store",
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          body: JSON.stringify({ trigger: "MANUAL" }),
-        });
+        setRecheckingAfterApply(true);
+        try {
+          const recheckResponse = await fetch("/admin/api/shopify/reconcile", {
+            method: "POST",
+            cache: "no-store",
+            headers: { "Content-Type": "application/json", Accept: "application/json" },
+            body: JSON.stringify({ trigger: "MANUAL" }),
+          });
+          const recheckPayload = await recheckResponse.json().catch(() => ({})) as { error?: string };
+          if (!recheckResponse.ok) {
+            throw new Error(recheckPayload.error || "The follow-up check could not be completed.");
+          }
+        } catch (error) {
+          setRecheckError(error instanceof Error ? error.message : "The follow-up check could not be completed.");
+        } finally {
+          setRecheckingAfterApply(false);
+        }
       }
       refreshPreservingScroll(router);
     } catch (error) {
-      setApplyMessage(error instanceof Error ? error.message : "The selected changes could not be applied.");
+      setApplyFeedback({
+        tone: "error",
+        message: error instanceof Error ? error.message : "The selected changes could not be applied.",
+      });
     } finally {
       setApplying(false);
     }
@@ -415,43 +444,67 @@ export function TranslationsCms({
         ) : null}
       </div>
 
-      {selected.length > 0 ? (
-        <aside className="adm-apply-review" aria-label="Review selected sync changes">
+      {selected.length > 0 || applyFeedback ? (
+        <aside
+          className="adm-apply-review"
+          aria-label="Review selected sync changes"
+          aria-busy={applying || recheckingAfterApply}
+        >
           <div className="adm-apply-review__heading">
             <div>
-              <h2>Review {selected.length} selected change{selected.length === 1 ? "" : "s"}</h2>
-              <p>
-                {shopifyWriteCount > 0 ? `${shopifyWriteCount} will update Shopify. ` : ""}
-                {localWriteCount > 0 ? `${localWriteCount} will update Synarava. ` : ""}
-                Unselected fields stay untouched.
-              </p>
+              <h2>{selected.length > 0
+                ? `Review ${selected.length} selected change${selected.length === 1 ? "" : "s"}`
+                : "Apply result"}</h2>
+              {selected.length > 0 ? (
+                <p>
+                  {shopifyWriteCount > 0 ? `${shopifyWriteCount} will update Shopify. ` : ""}
+                  {localWriteCount > 0 ? `${localWriteCount} will update Synarava. ` : ""}
+                  Unselected fields stay untouched.
+                </p>
+              ) : null}
             </div>
-            <AdminButton
-              variant="primary"
-              leadingIcon={
-                applying
-                  ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" />
-                  : <Check size={15} aria-hidden="true" />
-              }
-              disabled={
-                (clearCount > 0 && !acknowledgedClears)
-                || (selected.length > 1 && !acknowledgedBatch)
-              }
-              busy={applying}
-              onClick={() => void applyChoices()}
-            >
-              {applying ? "Applying…" : "Apply selected"}
-            </AdminButton>
+            <div className="adm-apply-review__action">
+              {selected.length > 0 ? (
+                <AdminButton
+                  variant="primary"
+                  leadingIcon={
+                    applying
+                      ? <RefreshCw size={15} className="animate-spin" aria-hidden="true" />
+                      : <Check size={15} aria-hidden="true" />
+                  }
+                  disabled={
+                    recheckingAfterApply
+                    || (clearCount > 0 && !acknowledgedClears)
+                    || (selected.length > 1 && !acknowledgedBatch)
+                  }
+                  busy={applying}
+                  onClick={() => void applyChoices()}
+                >
+                  {applying ? "Applying…" : "Apply selected"}
+                </AdminButton>
+              ) : null}
+              <AdminAlert message={applyFeedback?.message} tone={applyFeedback?.tone} />
+              {recheckingAfterApply ? (
+                <p className="adm-apply-progress" role="status">
+                  <RefreshCw size={14} className="animate-spin" aria-hidden="true" />
+                  Re-checking translations…
+                </p>
+              ) : null}
+              <AdminAlert
+                message={recheckError ? `Automatic re-check failed: ${recheckError}` : undefined}
+                tone="error"
+              />
+            </div>
           </div>
 
-          <ul className="adm-apply-review__list">
-            {selected.map(({ difference, choice }) => (
+          {reviewRows.length > 0 ? <ul className="adm-apply-review__list">
+            {reviewRows.map(({ difference, choice }) => (
               <li key={difference.id}>
                 <span>{difference.entityLabel} · {difference.fieldLabel}</span>
                 <strong>{choice === "SYNARAVA" ? "Synarava → Shopify" : "Shopify → Synarava"}</strong>
               </li>
             ))}
-          </ul>
+          </ul> : null}
 
           {clearCount > 0 ? (
             <AdminCheckboxControl
@@ -472,7 +525,6 @@ export function TranslationsCms({
         </aside>
       ) : null}
 
-      {applyMessage ? <p className="adm-apply-message" role="status">{applyMessage}</p> : null}
     </section>
   );
 }

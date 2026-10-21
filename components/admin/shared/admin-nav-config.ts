@@ -198,7 +198,7 @@ export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildCo
  * Catalog stays a leaf; Pages + Shared expand inline.
  *
  * Conflict (sync) badges sit on the section that owns the divergence —
- * Catalog / Collections / Pages / Shared — plus Localization as the
+ * Catalog / Collections / Pages / Shared — plus Translations as the
  * review hub (total). Left markers carry sync attention.
  */
 export function buildAdminNavItems({
@@ -269,7 +269,7 @@ export function buildAdminNavItems({
     {
       id: "translations",
       href: "/admin/translations",
-      label: "Localization",
+      label: "Translations",
       code: "I18N",
       badge: syncBadge(sync.total),
     },

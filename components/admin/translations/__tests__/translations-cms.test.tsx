@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { TranslationsCms, type ReconcileDifferenceRow } from "@/components/admin/translations/translations-cms";
-import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
+import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-types";
 
 const refresh = vi.fn();
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh }) }));
@@ -133,6 +133,35 @@ describe("TranslationsCms", () => {
         }] }),
       }),
     ));
+  });
+
+  it("shows apply success immediately and reports a later re-check error separately", async () => {
+    let resolveRecheck: (response: Response) => void = () => undefined;
+    vi.mocked(fetch)
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ appliedCount: 1, failedCount: 0, results: [{ ok: true, message: "Applied" }] }),
+      } as Response)
+      .mockImplementationOnce(() => new Promise<Response>((resolve) => {
+        resolveRecheck = resolve;
+      }));
+    render(<TranslationsCms initialRun={run} differences={differences} />);
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Keep Synarava Update Shopify with this value/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Apply selected" }));
+
+    expect(await screen.findByText("1 change applied.")).toBeVisible();
+    expect(screen.getByText("Re-checking translations…")).toBeVisible();
+    expect(screen.getByText("Lava Ring · Title")).toBeVisible();
+
+    resolveRecheck({
+      ok: false,
+      json: async () => ({ error: "Shopify timed out" }),
+    } as Response);
+
+    expect(await screen.findByText("Automatic re-check failed: Shopify timed out")).toBeVisible();
+    expect(screen.getByText("1 change applied.")).toBeVisible();
+    await waitFor(() => expect(refresh).toHaveBeenCalledTimes(1));
   });
 
   it("requires a loss acknowledgement before applying an empty chosen value", () => {
