@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { buildAdminNavItems } from "@/components/admin/shared/admin-nav-config";
 import { AdminNavTree } from "@/components/admin/shared/admin-nav-tree";
@@ -43,12 +43,11 @@ const demoPages = [
   { slug: "privacy", title: "Privacy Policy" },
 ];
 
-/** Red problems + amber conflicts on Catalog; split marker on Pages (both). */
+/** Amber Shopify conflict markers on Catalog / Pages / Shared / Localization. */
 export const TreeWithSignals: Story = {
   args: {
     items: buildAdminNavItems({
       pages: demoPages,
-      issueCount: 23,
       syncCounts: {
         products: 12,
         collections: 2,
@@ -57,7 +56,6 @@ export const TreeWithSignals: Story = {
         total: 18,
       },
     }),
-    issueNavHrefs: ["/admin/pages/care", "/admin/products"],
     syncNavHrefs: [
       "/admin/products",
       "/admin/collections",

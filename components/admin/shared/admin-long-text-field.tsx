@@ -10,6 +10,7 @@ import {
 import type { AdminFieldOwner } from "@/components/admin/shared/ownership-label";
 import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { cn } from "@/lib/ui";
+import { AdminButton } from "@/components/synarava-cms";
 
 export type AdminLongTextFieldProps = {
   // Omit `name` when the caller submits via hidden mirrors and drives `value`/`onChange`.
@@ -28,7 +29,7 @@ export type AdminLongTextFieldProps = {
   errorId?: string;
   warning?: string;
   invalid?: boolean;
-  issue?: ReactNode;
+
   disabled?: boolean;
   className?: string;
   unitId?: string;
@@ -59,7 +60,6 @@ export function AdminLongTextField({
   errorId,
   warning,
   invalid = false,
-  issue,
   disabled = false,
   className,
   unitId,
@@ -131,7 +131,6 @@ export function AdminLongTextField({
       errorId={messageId}
       warning={warning}
       warningId={warningId}
-      issue={issue}
       disabled={disabled}
       className={cn("w-full min-w-0", className)}
       controlId={controlId}
@@ -162,18 +161,10 @@ export function AdminLongTextField({
         <p className="adm-long-text-preview__copy" data-empty={value ? undefined : "true"}>
           {value || placeholder}
         </p>
-        <button
-          type="button"
-          id={controlId}
-          className="adm-btn-ghost shrink-0"
-          onClick={openEditor}
-          disabled={disabled}
-          aria-label={`Edit ${plainLabel}`}
-          aria-invalid={showError ? true : undefined}
-        >
+        <AdminButton variant="ghost" className="shrink-0" id={controlId} onClick={openEditor} disabled={disabled} aria-label={`Edit ${plainLabel}`} aria-invalid={showError ? true : undefined}>
           <PencilLine aria-hidden="true" className="size-3.5" />
           Edit
-        </button>
+        </AdminButton>
       </div>
 
       <AdminModal
@@ -203,8 +194,8 @@ export function AdminLongTextField({
             {draftValue.length.toLocaleString()} characters
           </span>
           <div className="flex flex-wrap justify-end gap-2">
-            <button type="button" className="adm-btn-ghost" onClick={closeEditor}>Cancel</button>
-            <button type="button" className="adm-btn-primary" onClick={applyChanges}>Apply changes</button>
+            <AdminButton variant="ghost" onClick={closeEditor}>Cancel</AdminButton>
+            <AdminButton variant="primary" onClick={applyChanges}>Apply changes</AdminButton>
           </div>
         </div>
       </AdminModal>

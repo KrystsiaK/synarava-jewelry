@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { MissionControlHub } from "@/components/admin/mission-control/mission-control-hub";
 import { MISSION_CONTROL_NODE_CATALOG } from "@/lib/mission-control/node-catalog";
 import type { ServiceFlowStatusRecord, ServiceNodeStatusRecord, ServiceStatusLevel } from "@/lib/mission-control/status";

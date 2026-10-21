@@ -3,10 +3,8 @@
 import { createContext, use, useEffect, type ReactNode } from "react";
 
 import type { CollectionFieldName } from "@/lib/admin/collection-form-validation";
-import { AdminFieldIssue } from "@/components/admin/issues/admin-issues-cms";
 import { AdminFieldError } from "@/components/admin/shared/admin-form-validation";
 import { localeOfFirstError } from "@/components/admin/shared/admin-locale-panel";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
@@ -213,7 +211,6 @@ export function CollectionFields({
   fileInputKey,
   entityId,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
-  issues = [],
 }: {
   draft: CollectionDraft;
   onChange: <K extends keyof CollectionDraft>(key: K, value: CollectionDraft[K]) => void;
@@ -228,13 +225,8 @@ export function CollectionFields({
   entityId?: string;
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
-  issues?: AdminIssueSummary[];
 }) {
   const { locale, isEn, active, activeLabel } = useCollectionLocale();
-  const heroIssues = issues.filter(
-    (issue) => issue.fieldPath === "field-heroImageUrl" && issue.status === "OPEN",
-  );
-  const hasHeroIssues = heroIssues.length > 0;
 
   function updateActiveTranslation<K extends keyof CollectionLocaleDraft>(key: K, value: CollectionLocaleDraft[K]) {
     onChangeTranslation(locale, key, value);
@@ -334,16 +326,6 @@ export function CollectionFields({
           data-component="CollectionHeroField"
           data-validation-for="heroImageFile"
           className="grid gap-2"
-          style={
-            hasHeroIssues
-              ? {
-                  border: "1px solid rgba(255, 93, 93, 0.38)",
-                  background: "rgba(255, 93, 93, 0.06)",
-                  borderRadius: "8px",
-                  padding: "0.75rem",
-                }
-              : undefined
-          }
         >
           <FieldLabel
             required
@@ -351,12 +333,11 @@ export function CollectionFields({
           >
             Hero image
           </FieldLabel>
-          <AdminFieldIssue issues={heroIssues} />
           <ImageFileField
             key={fileInputKey}
             name="heroImageFile"
-            className={fieldClass(fieldErrors?.heroImageFile ?? (hasHeroIssues ? "broken" : undefined))}
-            aria-invalid={Boolean(fieldErrors?.heroImageFile) || hasHeroIssues}
+            className={fieldClass(fieldErrors?.heroImageFile)}
+            aria-invalid={Boolean(fieldErrors?.heroImageFile)}
             currentImageUrl={currentHeroImageUrl}
             currentImageAlt={currentHeroImageLabel ?? "Collection hero image"}
             currentImageLabel="Current hero image"

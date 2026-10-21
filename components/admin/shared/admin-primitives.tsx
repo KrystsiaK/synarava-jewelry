@@ -3,8 +3,6 @@
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import {
   buildAdminNavItems,
@@ -70,57 +68,14 @@ export function AdminSmartTopbar({ children }: { children: ReactNode }) {
   );
 }
 
-export type AdminTopbarIssueSignal = {
-  targetHref: string;
-};
-
-function hrefPathname(href: string) {
-  return href.split("#")[0]?.split("?")[0] || href;
-}
-
-export function AdminTopbarIssueLink({
-  issues,
-}: {
-  issues: AdminTopbarIssueSignal[];
-}) {
-  const pathname = usePathname();
-  const totalCount = issues.length;
-  const localIssues = issues.filter((issue) => hrefPathname(issue.targetHref) === pathname);
-  const localCount = localIssues.length;
-
-  if (totalCount <= 0) return null;
-
-  const href = localIssues[0]?.targetHref ?? "/admin/issues";
-  const ariaLabel =
-    localCount > 0
-      ? `${localCount} problem${localCount === 1 ? "" : "s"} on this page, ${totalCount} open total`
-      : `${totalCount} open admin problems`;
-
-  return (
-    <Link href={href} className="adm-topbar-issue-link" aria-label={ariaLabel}>
-      <span className="adm-topbar-issue-dot" aria-hidden="true" />
-      <span>{localCount > 0 ? localCount : totalCount}</span>
-      <span>{localCount > 0 ? "here" : "Problems"}</span>
-      {localCount > 0 && totalCount !== localCount ? (
-        <span className="adm-topbar-issue-total">/ {totalCount} total</span>
-      ) : null}
-    </Link>
-  );
-}
-
-
 export function AdminNav({
   pages = [],
-  issueCount = 0,
-  issueNavHrefs = [],
   syncCount = 0,
   syncCounts,
   syncNavHrefs = [],
   onNavigate,
 }: {
   pages?: AdminNavPageRef[];
-  issueCount?: number;
-  issueNavHrefs?: string[];
   /** @deprecated Prefer `syncCounts` — total only, no per-section badges. */
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
@@ -128,14 +83,13 @@ export function AdminNav({
   onNavigate?: () => void;
 }) {
   const items = useMemo(
-    () => buildAdminNavItems({ pages, issueCount, syncCount, syncCounts }),
-    [pages, issueCount, syncCount, syncCounts],
+    () => buildAdminNavItems({ pages, syncCount, syncCounts }),
+    [pages, syncCount, syncCounts],
   );
 
   return (
     <AdminNavTree
       items={items}
-      issueNavHrefs={issueNavHrefs}
       syncNavHrefs={syncNavHrefs}
       onNavigate={onNavigate}
     />
@@ -145,16 +99,12 @@ export function AdminNav({
 export function AdminMobileMenu({
   footer,
   pages = [],
-  issueCount = 0,
-  issueNavHrefs = [],
   syncCount = 0,
   syncCounts,
   syncNavHrefs = [],
 }: {
   footer?: ReactNode;
   pages?: AdminNavPageRef[];
-  issueCount?: number;
-  issueNavHrefs?: string[];
   /** @deprecated Prefer `syncCounts`. */
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
@@ -237,8 +187,6 @@ export function AdminMobileMenu({
 
             <AdminNav
               pages={pages}
-              issueCount={issueCount}
-              issueNavHrefs={issueNavHrefs}
               syncCount={syncCount}
               syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}

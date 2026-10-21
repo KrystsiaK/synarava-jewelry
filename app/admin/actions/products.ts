@@ -59,7 +59,6 @@ import {
   syncStorefrontPriorityMembership,
 } from "@/lib/admin/collection-membership-sync";
 import { liveProductRequiresPublishedCollectionMessage } from "@/lib/admin/collection-select-options";
-import { resolveSatisfiedProductTaxonomyIssues } from "@/lib/admin/issues";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import {
@@ -492,25 +491,7 @@ export async function updateProductMediaAltAction(
     db.productMedia.update({ where: { id: media.id }, data: { alt: nextAlt } }),
     db.mediaAsset.update({ where: { id: media.assetId }, data: { alt: nextAlt } }),
   ]);
-  const result = await finishProductMediaMutation(media.productId, "Image alt text updated.");
-  const { countWeakGalleryAlts, productGalleryAltsForChecklist } = await import(
-    "@/lib/seo/image-alt-checklist"
-  );
-  const { resolveSatisfiedImageAltIssues } = await import("@/lib/admin/issues");
-  const product = await db.product.findUnique({
-    where: { id: media.productId },
-    select: {
-      workingSnapshot: true,
-      media: {
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        select: { alt: true, asset: { select: { filename: true } } },
-      },
-    },
-  });
-  if (product && countWeakGalleryAlts(productGalleryAltsForChecklist(product)) === 0) {
-    await resolveSatisfiedImageAltIssues(media.productId);
-  }
-  return result;
+  return finishProductMediaMutation(media.productId, "Image alt text updated.");
 }
 
 /**
@@ -562,24 +543,6 @@ export async function updateWorkingSnapshotMediaAltAction(
       localProductId: productId,
       window: nextWorking,
     });
-  }
-
-  const { countWeakGalleryAlts, productGalleryAltsForChecklist } = await import(
-    "@/lib/seo/image-alt-checklist"
-  );
-  const { resolveSatisfiedImageAltIssues } = await import("@/lib/admin/issues");
-  const refreshed = await db.product.findUnique({
-    where: { id: productId },
-    select: {
-      workingSnapshot: true,
-      media: {
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        select: { alt: true, asset: { select: { filename: true } } },
-      },
-    },
-  });
-  if (refreshed && countWeakGalleryAlts(productGalleryAltsForChecklist(refreshed)) === 0) {
-    await resolveSatisfiedImageAltIssues(productId);
   }
 
   revalidatePath("/admin/products");
@@ -1454,15 +1417,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   revalidateStorefront();
   revalidatePath("/admin/products");
-  revalidatePath("/admin/issues");
   revalidateStorefrontPath(`/products/${product.slug}`);
 
   let savedProduct = await getSavedProductPayload(product.id);
-  await resolveSatisfiedProductTaxonomyIssues(savedProduct.id, {
-    hasCategory: Boolean(savedProduct.shopifyCategoryId),
-    hasTags: savedProduct.tags.length > 0,
-    hasCollection: savedProduct.collections.some((item) => !item.collection.isStorefrontDefault),
-  });
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
   const nextSyncStatus = savedProduct.shopifyProductId
     ? before?.syncStatus === "CONFLICT"

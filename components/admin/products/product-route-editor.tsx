@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { CreateProductForm } from "@/components/admin/products/product-create-form";
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import type { SavedProductPayload } from "@/app/admin/actions/products";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
 import type { CollectionOption } from "@/components/admin/products/product-types";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
@@ -35,13 +34,11 @@ export function ProductCreateRoute({
 export function ProductEditRoute({
   product,
   collections,
-  issues = [],
   translationLocales,
   initialConflictSignals,
 }: {
   product: SavedProductPayload;
   collections: CollectionOption[];
-  issues?: AdminIssueSummary[];
   translationLocales: AdminTranslationLocale[];
   initialConflictSignals?: CatalogConflictSignals;
 }) {
@@ -51,7 +48,6 @@ export function ProductEditRoute({
     <EditProductForm
       product={product}
       collections={collections}
-      issues={issues}
       translationLocales={translationLocales}
       initialConflictSignals={initialConflictSignals}
       onUpdated={() => refreshPreservingScroll(router)}

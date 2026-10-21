@@ -171,8 +171,6 @@ type ListRow = Prisma.ProductGetPayload<{ select: typeof LIST_SELECT }>;
 
 function toListItem(
   row: ListRow,
-  issueCount: number,
-  issueHref: string | null,
   score: number,
   localeLabels: Map<string, string>,
 ): AdminProductListItem {
@@ -207,8 +205,6 @@ function toListItem(
     publishedAt: row.publishedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
-    issueCount,
-    issueHref,
     conflictScore: score,
     locales,
     collections: row.collections,
@@ -223,9 +219,6 @@ function compareRows(
 ): number {
   let primary = 0;
   switch (sort) {
-    case "problems":
-      primary = right.issueCount - left.issueCount;
-      break;
     case "conflicts":
       primary = right.conflictScore - left.conflictScore;
       break;
@@ -262,7 +255,7 @@ function compareRows(
 /**
  * Filtered, sorted, cursor-paginated admin product list.
  * Candidate cap + in-memory sort (same idea as the storefront catalog) so
- * problem/conflict scores stay correct without denormalized rank columns.
+ * conflict scores stay correct without denormalized rank columns.
  */
 export async function listAdminProductsPage(params: {
   filters?: AdminProductListFilters;
@@ -274,40 +267,18 @@ export async function listAdminProductsPage(params: {
   const filters: AdminProductListFilters = { ...params.filters, sort };
   const limit = clampAdminProductPageSize(params.limit);
 
-  const [rows, issueGroups, translationLocales, conflictSignals] = await Promise.all([
+  const [rows, translationLocales, conflictSignals] = await Promise.all([
     db.product.findMany({
       where: buildWhere(filters),
       select: LIST_SELECT,
       orderBy: [{ updatedAt: "desc" }, { id: "asc" }],
       take: ADMIN_PRODUCT_CANDIDATE_CAP,
     }),
-    db.adminIssue.groupBy({
-      by: ["entityId"],
-      where: { status: "OPEN", entityType: "PRODUCT" },
-      _count: { _all: true },
-    }),
     getAdminTranslationLocales(),
     getCatalogConflictSignals(params.adminUsername).catch(() => null),
   ]);
 
   const signals = conflictSignals ?? { products: {} as Record<string, CatalogConflictProductSignal> };
-
-  const issueCountById = new Map(issueGroups.map((group) => [group.entityId, group._count._all]));
-  const issueHrefById = new Map<string, string>();
-  if (issueGroups.length > 0) {
-    const openIssues = await db.adminIssue.findMany({
-      where: {
-        status: "OPEN",
-        entityType: "PRODUCT",
-        entityId: { in: issueGroups.map((group) => group.entityId) },
-      },
-      select: { entityId: true, targetHref: true },
-      orderBy: { updatedAt: "desc" },
-    });
-    for (const issue of openIssues) {
-      if (!issueHrefById.has(issue.entityId)) issueHrefById.set(issue.entityId, issue.targetHref);
-    }
-  }
 
   const localeLabels = new Map<string, string>([["en", "English"]]);
   for (const locale of translationLocales) {
@@ -317,8 +288,6 @@ export async function listAdminProductsPage(params: {
   let nodes = rows.map((row) =>
     toListItem(
       row,
-      issueCountById.get(row.id) ?? 0,
-      issueHrefById.get(row.id) ?? null,
       conflictScore(signals.products[row.id]),
       localeLabels,
     ),

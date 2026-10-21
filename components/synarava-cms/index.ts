@@ -115,6 +115,12 @@ export {
 } from "@/components/admin/shared/admin-nav-config";
 
 export {
+  AdminButton,
+  type AdminButtonProps,
+  type AdminButtonVariant,
+} from "@/components/admin/shared/admin-button";
+
+export {
   AdminIconButton,
   type AdminIconButtonProps,
   type AdminIconButtonTone,

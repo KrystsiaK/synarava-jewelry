@@ -28,11 +28,36 @@ export async function syncStorefrontLocalesFromShopify(): Promise<StorefrontLoca
 
   for (const row of registryRows) {
     const match = shopifyByLocale.get(row.shopifyLocale.toLowerCase());
-    const isPublished = match?.published ?? false;
+    const shopifyPublished = match?.published ?? false;
+    // Do not resurrect Deleted rows or flip Retired back to Draft from a
+    // Markets unpublish — retirement is an operator action (ADR-0007).
+    if (row.deletedAt) {
+      updated.push({
+        code: row.code,
+        shopifyLocale: row.shopifyLocale,
+        isPublished: false,
+      });
+      if (!match) orphaned.push({ code: row.code, shopifyLocale: row.shopifyLocale });
+      continue;
+    }
+
+    let status = row.status;
+    let isPublished = row.isPublished;
+    let retiredAt = row.retiredAt;
+    if (row.status === "RETIRED") {
+      isPublished = false;
+    } else if (shopifyPublished) {
+      status = "PUBLISHED";
+      isPublished = true;
+      retiredAt = null;
+    } else {
+      status = "DRAFT";
+      isPublished = false;
+    }
 
     await db.storefrontLocale.update({
       where: { id: row.id },
-      data: { isPublished, shopifyUpdatedAt: new Date() },
+      data: { status, isPublished, retiredAt, shopifyUpdatedAt: new Date() },
     });
     updated.push({ code: row.code, shopifyLocale: row.shopifyLocale, isPublished });
 

@@ -1,4 +1,4 @@
-import { LocaleRegistryPanel } from "@/components/admin/translations/locale-registry-panel";
+import { LanguagesPanel } from "@/components/admin/translations/languages-panel";
 import { TranslationsCms } from "@/components/admin/translations/translations-cms";
 import {
   findDuplicateRouteSegments,
@@ -7,6 +7,7 @@ import {
 } from "@/lib/i18n/storefront-locale-registry";
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { db } from "@/lib/db";
+import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
 import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
@@ -18,7 +19,7 @@ type PageProps = {
 
 export default async function AdminTranslationsPage({ searchParams }: PageProps) {
   const requested = await searchParams;
-  const [run, differences, pages, locales] = await Promise.all([
+  const [run, differences, pages, locales, hasWriteLocales] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
@@ -26,6 +27,7 @@ export default async function AdminTranslationsPage({ searchParams }: PageProps)
       select: { id: true, slug: true },
     }),
     listStorefrontLocales(),
+    hasWriteLocalesScope().catch(() => false),
   ]);
   const pageSlugs = new Map(pages.map((page) => [page.id, page.slug]));
 
@@ -52,10 +54,11 @@ export default async function AdminTranslationsPage({ searchParams }: PageProps)
           Compare Synarava and Shopify translations, then choose which side wins for each difference.
         </p>
       </header>
-      <LocaleRegistryPanel
+      <LanguagesPanel
         locales={locales}
         duplicateSegments={findDuplicateRouteSegments(locales)}
         sourceViolation={findEnglishSourceViolation(locales)}
+        hasWriteLocales={hasWriteLocales}
       />
       <TranslationsCms initialRun={run} differences={rows} />
     </div>

@@ -2070,6 +2070,15 @@ body.admin-mode .artifact-footer {
   --adm-danger-soft: rgba(185, 74, 72, 0.13);
   /* Error copy. Brighter than --adm-danger so a sentence stays red on a dark panel. */
   --adm-danger-ink: #e87874;
+  /* Media field wash / border (video + image composites) — keep exact prior rgba */
+  --adm-media-accent-border: rgba(216, 182, 106, 0.34);
+  --adm-media-danger-border: rgba(255, 93, 93, 0.42);
+  --adm-media-accent-wash: rgba(216, 182, 106, 0.08);
+  --adm-media-danger-wash: rgba(255, 93, 93, 0.08);
+  /* Tab-mark illustration fills (product editor section icons) */
+  --adm-mark-cream: #f7f1e6;
+  --adm-mark-taupe: #c9b8a4;
+  --adm-mark-gold: #d4a853;
   /* Cool slate — section tabs / open-tab well (harmonizes with warm gold) */
   --adm-cool: #7a92a3;
   --adm-cool-soft: rgba(122, 146, 163, 0.14);
@@ -2167,6 +2176,13 @@ html[data-theme="light"] .admin-modal-root {
   --adm-danger: #9d3836;
   --adm-danger-soft: rgba(157, 56, 54, 0.09);
   --adm-danger-ink: #9d3836;
+  --adm-media-accent-border: rgba(216, 182, 106, 0.34);
+  --adm-media-danger-border: rgba(255, 93, 93, 0.42);
+  --adm-media-accent-wash: rgba(216, 182, 106, 0.08);
+  --adm-media-danger-wash: rgba(255, 93, 93, 0.08);
+  --adm-mark-cream: #f7f1e6;
+  --adm-mark-taupe: #c9b8a4;
+  --adm-mark-gold: #d4a853;
   --adm-cool: #5d7385;
   --adm-cool-soft: rgba(93, 115, 133, 0.12);
   --adm-teal: #3f7a6c;

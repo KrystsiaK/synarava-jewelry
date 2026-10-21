@@ -1,5 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AdminAlert } from "@/components/synarava-cms";
 

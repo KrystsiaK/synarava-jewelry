@@ -3,47 +3,17 @@ import { describe, expect, it } from "vitest";
 import {
   centsToPrice,
   emptyDraft,
-  filterIssuesByTaxonomySatisfaction,
   getProductDetailsTranslation,
   getProductEditorDetails,
-  issuesForField,
-  issuesForSection,
-  localesWithOpenIssues,
   normalizeProducts,
   productActionCopy,
   productEditorLocaleForField,
   productEditorSectionForField,
   productStatusLabel,
   productToDraft,
-  sectionsWithOpenIssues,
   sortProducts,
 } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
-import type { AdminIssueSummary } from "@/components/admin/shared/admin-issue-types";
-
-function makeIssue(overrides: Partial<AdminIssueSummary>): AdminIssueSummary {
-  return {
-    id: "issue-1",
-    key: "issue-1",
-    entityType: "PRODUCT",
-    entityId: "product-1",
-    entityLabel: "Lava Ring",
-    fieldPath: "field-imageUrl",
-    issueType: "MISSING_FIELD",
-    severity: "WARNING",
-    status: "OPEN",
-    title: "Missing image",
-    description: "",
-    targetHref: "/admin/products/product-1",
-    firstSeenAt: new Date("2026-01-01"),
-    lastSeenAt: new Date("2026-01-01"),
-    resolvedAt: null,
-    notificationSentAt: null,
-    createdAt: new Date("2026-01-01"),
-    updatedAt: new Date("2026-01-01"),
-    ...overrides,
-  };
-}
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
   return {
@@ -408,36 +378,7 @@ describe("getProductDetailsTranslation", () => {
   });
 });
 
-describe("issuesForField", () => {
-  it("filters to open issues matching the field path", () => {
-    const issues = [
-      makeIssue({ fieldPath: "field-imageUrl", status: "OPEN" }),
-      makeIssue({ fieldPath: "field-imageUrl", status: "RESOLVED" }),
-      makeIssue({ fieldPath: "field-other", status: "OPEN" }),
-    ];
-    expect(issuesForField(issues, "field-imageUrl")).toHaveLength(1);
-  });
-});
-
-describe("filterIssuesByTaxonomySatisfaction", () => {
-  it("hides taxonomy warnings once the form already satisfies them", () => {
-    const issues = [
-      makeIssue({ id: "1", fieldPath: "field-taxonomy-category", status: "OPEN", title: "Missing category" }),
-      makeIssue({ id: "2", fieldPath: "field-taxonomy-collection", status: "OPEN", title: "Missing collection" }),
-      makeIssue({ id: "3", fieldPath: "field-imageUrl", status: "OPEN", title: "Broken cover" }),
-    ];
-
-    expect(
-      filterIssuesByTaxonomySatisfaction(issues, {
-        hasCategory: true,
-        hasCollection: true,
-        hasTags: false,
-      }).map((issue) => issue.title),
-    ).toEqual(["Broken cover"]);
-  });
-});
-
-describe("product issue routing", () => {
+describe("product editor hash routing", () => {
   it("maps taxonomy and media fields to shared sections without locale tint", () => {
     expect(productEditorSectionForField("field-taxonomy-category")).toBe("essentials");
     expect(productEditorSectionForField("field-taxonomy-collection")).toBe("essentials");
@@ -445,24 +386,6 @@ describe("product issue routing", () => {
     expect(productEditorSectionForField("field-details-materials-0-image")).toBe("details");
     expect(productEditorLocaleForField("field-taxonomy-category")).toBeNull();
     expect(productEditorLocaleForField("field-imageUrl")).toBeNull();
-  });
-
-  it("collects sections with open issues and filters the active section list", () => {
-    const issues = [
-      makeIssue({ id: "1", fieldPath: "field-taxonomy-category", status: "OPEN", title: "Missing category" }),
-      makeIssue({ id: "2", fieldPath: "field-taxonomy-collection", status: "OPEN", title: "Missing collection" }),
-      makeIssue({ id: "3", fieldPath: "field-imageUrl", status: "RESOLVED", title: "Broken image" }),
-      makeIssue({ id: "4", fieldPath: "field-imageUrl", status: "OPEN", title: "Broken cover" }),
-    ];
-
-    expect([...sectionsWithOpenIssues(issues)].sort()).toEqual(["essentials", "media"]);
-    expect(localesWithOpenIssues(issues).size).toBe(0);
-    expect(issuesForSection(issues, "essentials").map((issue) => issue.title)).toEqual([
-      "Missing category",
-      "Missing collection",
-    ]);
-    expect(issuesForSection(issues, "media")).toHaveLength(1);
-    expect(issuesForSection(issues, "details")).toHaveLength(0);
   });
 });
 

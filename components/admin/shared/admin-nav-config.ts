@@ -1,8 +1,8 @@
 import { ACCOUNT_PAGE_AREAS } from "@/lib/content/account-page-fields";
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
 
-/** Attention signal for a nav node (open problems and/or Shopify sync conflicts). */
-export type AdminNavSignal = "issue" | "sync" | "both";
+/** Attention signal for a nav node (Shopify sync conflicts). */
+export type AdminNavSignal = "sync";
 
 export type AdminNavChildConfig = {
   id: string;
@@ -11,7 +11,7 @@ export type AdminNavChildConfig = {
 };
 
 export type AdminNavBadgeConfig = {
-  kind: "issues" | "sync";
+  kind: "sync";
   count: number;
 };
 
@@ -56,7 +56,6 @@ export type AdminNavSyncEntityType =
 
 export type BuildAdminNavItemsInput = {
   pages?: AdminNavPageRef[];
-  issueCount?: number;
   /** @deprecated Prefer `syncCounts.total` — kept for callers that only know the hub total. */
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
@@ -135,51 +134,25 @@ export function adminHrefUnder(itemHref: string, currentPathname: string, exact?
 
 export function resolveAdminNavSignal(
   href: string,
-  issueHrefs: ReadonlySet<string>,
   syncHrefs: ReadonlySet<string>,
 ): AdminNavSignal | undefined {
-  let hasIssue = false;
-  let hasSync = false;
-  for (const issueHref of issueHrefs) {
-    if (adminHrefMatches(href, issueHref) || adminHrefMatches(issueHref, href)) {
-      hasIssue = true;
-      break;
-    }
-  }
   for (const syncHref of syncHrefs) {
     if (adminHrefMatches(href, syncHref) || adminHrefMatches(syncHref, href)) {
-      hasSync = true;
-      break;
+      return "sync";
     }
   }
-  if (hasIssue && hasSync) return "both";
-  if (hasIssue) return "issue";
-  if (hasSync) return "sync";
   return undefined;
 }
 
 /** Parent inherits signal if any child or the parent path itself is flagged. */
 export function resolveAdminNavItemSignal(
   item: AdminNavItemConfig,
-  issueHrefs: ReadonlySet<string>,
   syncHrefs: ReadonlySet<string>,
 ): AdminNavSignal | undefined {
-  const own = resolveAdminNavSignal(item.href, issueHrefs, syncHrefs);
-  if (own === "both") return "both";
-
-  let hasIssue = own === "issue";
-  let hasSync = own === "sync";
-
+  if (resolveAdminNavSignal(item.href, syncHrefs)) return "sync";
   for (const child of item.children ?? []) {
-    const childSignal = resolveAdminNavSignal(child.href, issueHrefs, syncHrefs);
-    if (childSignal === "issue" || childSignal === "both") hasIssue = true;
-    if (childSignal === "sync" || childSignal === "both") hasSync = true;
-    if (hasIssue && hasSync) return "both";
+    if (resolveAdminNavSignal(child.href, syncHrefs)) return "sync";
   }
-
-  if (hasIssue && hasSync) return "both";
-  if (hasIssue) return "issue";
-  if (hasSync) return "sync";
   return undefined;
 }
 
@@ -226,7 +199,7 @@ export function buildPagesNavChildren(pages: AdminNavPageRef[]): AdminNavChildCo
  *
  * Conflict (sync) badges sit on the section that owns the divergence —
  * Catalog / Collections / Pages / Shared — plus Translations as the
- * review hub (total). Left markers still carry issue / sync / both.
+ * review hub (total). Left markers carry sync attention.
  */
 export function buildAdminNavItems({
   pages = [],
@@ -310,22 +283,6 @@ export function buildAdminNavItems({
     { id: "account", href: "/admin/account", label: "Account", code: "ACC" },
 
   ];
-}
-
-/** Map an open admin issue onto the most specific sidebar href. */
-export function issueToNavHref(issue: {
-  entityType: string;
-  targetHref?: string | null;
-}): string {
-  if (issue.entityType === "PRODUCT") return "/admin/products";
-  if (issue.entityType === "COLLECTION") return "/admin/collections";
-  if (issue.entityType === "PAGE") {
-    const slug = pageSlugFromAdminHref(issue.targetHref);
-    return slug ? `/admin/pages/${slug}` : "/admin/pages";
-  }
-  if (issue.entityType === "CATEGORY") return "/admin/categories";
-  if (issue.entityType === "TAG") return "/admin/tags";
-  return "/admin/issues";
 }
 
 export function pageSlugFromAdminHref(href: string | null | undefined): string | null {

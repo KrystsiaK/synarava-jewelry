@@ -83,8 +83,6 @@ function listItem(overrides: Partial<AdminProductListItem> = {}): AdminProductLi
     publishedAt: null,
     createdAt: "2026-10-13T00:00:00.000Z",
     updatedAt: "2026-10-13T00:00:00.000Z",
-    issueCount: 0,
-    issueHref: null,
     conflictScore: 0,
     locales: [],
     collections: [],

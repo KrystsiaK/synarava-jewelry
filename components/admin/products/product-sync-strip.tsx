@@ -3,8 +3,7 @@
 import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, HardDriveUpload, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
-import { Tooltip } from "@/components/ui/tooltip";
-import { AdminStatusBadge } from "@/components/synarava-cms";
+import { AdminButton, AdminIconButton, AdminStatusBadge } from "@/components/synarava-cms";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import { centsToPrice } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
@@ -34,35 +33,37 @@ export function SaveButtons({
   iconOnly?: boolean;
 }) {
   const label = pending ? "Saving product…" : "Save product locally. Shopify does not change until you push.";
-  const button = (
-    <button
+
+  if (iconOnly) {
+    return (
+      <span data-component="SaveButtons">
+        <AdminIconButton
+          label={pending ? "Saving product" : "Save product"}
+          tooltip={label}
+          disabled={pending}
+          onClick={onOpenConfirm}
+        >
+          {pending ? (
+            <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
+          ) : (
+            <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
+          )}
+        </AdminIconButton>
+      </span>
+    );
+  }
+
+  return (
+    <AdminButton
       data-component="SaveButtons"
-      type="button"
+      variant="primary"
+      busy={pending}
       onClick={onOpenConfirm}
-      disabled={pending}
-      className={
-        iconOnly
-          ? "adm-btn-ghost adm-icon-btn"
-          : "adm-btn-primary"
-      }
       aria-label={pending ? "Saving product" : "Save product"}
     >
-      {iconOnly ? (
-        pending ? (
-          <RefreshCw className="size-3.5 animate-spin" strokeWidth={2} aria-hidden="true" />
-        ) : (
-          <HardDriveUpload className="size-3.5" strokeWidth={2} aria-hidden="true" />
-        )
-      ) : pending ? (
-        "Saving..."
-      ) : (
-        "Save product"
-      )}
-    </button>
+      {pending ? "Saving..." : "Save product"}
+    </AdminButton>
   );
-
-  if (!iconOnly) return button;
-  return <Tooltip content={label}>{button}</Tooltip>;
 }
 
 function syncPresentation(product: ProductRecord, dirty: boolean, inspection: ProductSyncInspection | null) {
@@ -159,26 +160,26 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
         </div>
         <div className="flex flex-wrap justify-end gap-2">
           {product.shopifyProductId ? (
-            <button
-              type="button"
-              className="adm-btn-ghost inline-flex items-center justify-center gap-2"
+            <AdminButton
+              variant="ghost"
+              className="inline-flex items-center justify-center gap-2"
               onClick={onCheck}
               disabled={pending || dirty}
               aria-label="Check Shopify"
               title="Check Shopify"
             >
               <RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />
-            </button>
+            </AdminButton>
           ) : null}
           {actionable ? (
-            <button
-              type="button"
-              className={failed ? "adm-btn-danger inline-flex items-center justify-center gap-2" : "adm-btn-secondary inline-flex items-center justify-center gap-2"}
+            <AdminButton
+              variant={failed ? "danger" : "secondary"}
+              className="inline-flex items-center justify-center gap-2"
               onClick={onOpenDetail}
               disabled={pending || dirty}
             >
               {actionLabel}
-            </button>
+            </AdminButton>
           ) : null}
         </div>
       </div>
@@ -272,14 +273,24 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
       </div>
 
       <div className="flex flex-wrap gap-2 border-y border-[var(--adm-border)] py-4">
-        <button type="button" className="adm-btn-ghost inline-flex items-center justify-center gap-2" onClick={onPull} disabled={pending || !canPull}>
-          <ArrowDownToLine className="size-4" />
+        <AdminButton
+          variant="ghost"
+          className="inline-flex items-center justify-center gap-2"
+          leadingIcon={<ArrowDownToLine className="size-4" />}
+          onClick={onPull}
+          disabled={pending || !canPull}
+        >
           {pending ? "Refreshing..." : pullLabel}
-        </button>
-        <button type="button" className="adm-btn-secondary inline-flex items-center justify-center gap-2" onClick={onPush} disabled={pending || !canPush}>
-          <ArrowUpFromLine className="size-4" />
+        </AdminButton>
+        <AdminButton
+          variant="secondary"
+          className="inline-flex items-center justify-center gap-2"
+          leadingIcon={<ArrowUpFromLine className="size-4" />}
+          onClick={onPush}
+          disabled={pending || !canPush}
+        >
           {pending ? "Syncing..." : product.variants.length === 0 ? "Save core fields first" : product.shopifyProductId ? "Push to Shopify" : "Create in Shopify"}
-        </button>
+        </AdminButton>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
@@ -308,8 +319,8 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
             </div>
             {syncState === "CONFLICT" ? (
               <div className="flex flex-wrap gap-2">
-                <button type="button" className="adm-btn-ghost" disabled={pending || dirty} onClick={() => onResolve("shopify")}>Use Shopify version</button>
-                <button type="button" className="adm-btn-secondary" disabled={pending || dirty} onClick={() => onResolve("synarava")}>Keep Synarava and push</button>
+                <AdminButton variant="ghost" disabled={pending || dirty} onClick={() => onResolve("shopify")}>Use Shopify version</AdminButton>
+                <AdminButton variant="secondary" disabled={pending || dirty} onClick={() => onResolve("synarava")}>Keep Synarava and push</AdminButton>
               </div>
             ) : null}
           </div>

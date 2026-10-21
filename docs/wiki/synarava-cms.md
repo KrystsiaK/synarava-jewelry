@@ -35,6 +35,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminSectionTabs` | Card section tabs + cool content well (issue/conflict tones; optional Shopify/Synarava groups) |
 | `AdminEntityList` | Dense list shell (header / row / infinite-scroll load more) |
 | `AdminListWorkspace` | Sticky list chrome (`Root` / `Header` / `Filters` / `Body`) over `AdminPanel` |
+| `AdminButton` | Text button (`primary` / `secondary` / `ghost` / `danger`) — reuses `.adm-btn-*` |
 | `AdminIconButton` | Square icon action + tooltip (`adm-icon-btn`, fixed 2rem, no wrap) |
 | `AdminSignalChip` | Locale / problem / conflict glyph + tooltip (`empty`/`partial`/`progress`/`ok`; `danger` only for real errors) |
 | `AdminSortChips` | Compact sort chip bar |
@@ -49,21 +50,16 @@ two visual variants remain. Agent skill encodes this contract.
 
 ### Shell
 
-- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `issue`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
+- `AdminFieldShell` owns `adm-field-unit`, `label`/`owner`/`help`/`required`, `error`, optional `unitId`. Optional `validationName` sets `data-validation-for` so `useAdminFormValidation` scrolls to this unit instead of a hidden locale mirror.
 - Field-level errors are **absolute** inside the unit. Every `.adm-field-unit`
   **always** reserves a one-line error band (`padding-bottom`) so siblings never
   jump when validation appears. Long messages **ellipsis** in that band; full
   copy is available via tooltip / `title`. They must not push sibling rows or
   paint over the next section.
-- **Tall media composites** (`ImageFileField` + preview/path): do **not** put
-  `AdminFieldIssue` as a direct `.adm-field-unit > .adm-field-error` child — the
-  absolute band paints over the path. Keep issue copy in normal flow under the
-  label (see `ProductMediaManager` / collection hero), or wrap it so it is not
-  a direct unit child.
-- **Issue / validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
+- **Validation scroll:** use `scrollAdminFieldIntoView` (`block: "start"`
   + `[id^="field-"]` scroll-margin). Never `block: "center"` under sticky admin
   chrome — it overshoots tall hero/media blocks.
-- `invalid` forces error chrome without copy (issue-linked fields).
+- `invalid` forces error chrome without copy.
 - `warning` — soft orange notice in the **same** absolute band as `error` (`.adm-field-warning` / `.adm-field-group--warning`). Error wins when both are set. Does not set `aria-invalid`.
 - Field error copy uses `--adm-danger-ink` (deep red in light, a clearer red in dark). Do not hardcode pale pink.
 
@@ -114,6 +110,23 @@ The help mark is a blue Playfair italic **i** (`--adm-info`), larger than the ki
 `AdminModal` is the admin dialog. It dims the page and centers a 14px sheet that settles in 400ms on `cubic-bezier(0.32, 0.72, 0, 1)` and leaves on the same path. Reduced motion is a 160ms fade. Storefront `.t-modal` timing is separate. `AdminConfirmModal` is that sheet with Cancel and a confirm action. Long text, rich text, and record details use the same shell.
 
 Library controls share one press: buttons, icon buttons, help, checkboxes, sort chips, and signal chips scale to `0.97` on pointer-down (`100ms`) and sit still when motion is reduced. Fields focus with the accent at 24% mix, so light and dark use the same ring. Collapsible panels open on a 280ms settle. Secondary actions use `.adm-btn-secondary`, the same chrome as `.adm-btn-ghost`.
+
+### Button
+
+```tsx
+import { AdminButton } from "@/components/synarava-cms";
+
+<AdminButton variant="primary">Save product</AdminButton>
+<AdminButton variant="secondary" leadingIcon={<ArrowUpFromLine />}>Push</AdminButton>
+<AdminButton variant="ghost" busy>Checking…</AdminButton>
+<AdminButton variant="danger" disabled>Delete</AdminButton>
+```
+
+- One chrome per variant: `.adm-btn-primary` / `.adm-btn-secondary` / `.adm-btn-ghost` / `.adm-btn-danger` (no new button styles).
+- Default `type="button"`. `busy` disables the control and sets `aria-busy` (callers own busy label copy).
+- `leadingIcon` is optional before the label (gap from `.adm-btn-*`).
+- Icon-only square actions stay on `AdminIconButton` (`.adm-icon-btn`).
+- Story: `synarava-cms/AdminButton`.
 
 ### Text
 
@@ -306,18 +319,16 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 <AdminNavTree
   items={buildAdminNavItems({
     pages,
-    issueCount,
     syncCounts: { products: 3, pages: 1, collections: 0, settings: 0, total: 4 },
   })}
-  issueNavHrefs={issueNavHrefs}
   syncNavHrefs={syncNavHrefs}
 />
 ```
 
 - **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
-- **Signals:** left marker shows issue (red) / sync-conflict (amber) / both (split red+amber dots); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
-- **Meaning:** red = open Problems; amber = unresolved Shopify field conflicts / divergences. When a node has both, the split marker keeps both visible.
+- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
+- **Meaning:** amber = unresolved Shopify field conflicts / divergences.
 - **Truncation:** long labels ellipsize; tooltip on long titles.
 - **Focus:** no outline ring on nav items — soft background only.
 - Story: `synarava-cms/AdminNavTree`.
@@ -441,8 +452,8 @@ import {
 |--------|------|
 | `AdminListWorkspace` | Sticky title band + optional collapsible filters + body (wraps `AdminPanel`) |
 | `AdminIconButton` | Square icon action + tooltip + `aria-label` (optional badge) |
-| `AdminSignalChip` | Locale / problem / conflict glyph with explanatory tooltip |
-| `AdminSortChips` | Compact single-select sort bar (Problems / Conflicts first) |
+| `AdminSignalChip` | Locale / conflict glyph with explanatory tooltip |
+| `AdminSortChips` | Compact single-select sort bar (Conflicts first) |
 | `AdminEntityList` | Header + dense rows + infinite-scroll sentinel |
 
 - Sticky header uses `AdminPanel.Header sticky` + `.adm-panel__header--ruled` so the
@@ -618,6 +629,27 @@ Never put tall follow-on panels inside the same `adm-field-unit` as the absolute
 When adding a new control type, extend **synarava-cms** first (implementation under `admin/shared`, re-export from `components/synarava-cms`); update this doc and the skill in the same change.
 
 **Not synarava-cms:** cross-surface chrome shared with the storefront (ephemeral toast, storefront modal shell, tooltip) belongs in `components/ui/` — see [`ephemeral-toast.md`](ephemeral-toast.md) and [`ui-kit.md`](ui-kit.md).
+
+## Storybook
+
+Stories live next to the implementation under `components/admin/shared/*.stories.tsx`
+(title prefix `synarava-cms/…`). Prefer a `BothThemes` (or Light/Dark) story that
+shows default, disabled, and busy/error where the control supports them.
+
+| Story | Component |
+|-------|-----------|
+| `synarava-cms/AdminButton` | `AdminButton` |
+| `synarava-cms/AdminCheckboxField` | `AdminCheckboxField` / `AdminCheckboxControl` |
+| `synarava-cms/AdminHrefField` | `AdminHrefField` |
+| `synarava-cms/AdminFieldShell` | `AdminFieldShell` |
+| `synarava-cms/AdminIconButton` | `AdminIconButton` |
+| `synarava-cms/AdminStatusBadge` | `AdminStatusBadge` |
+| `synarava-cms/AdminSignalChip` | `AdminSignalChip` |
+| `synarava-cms/AdminSortChips` | `AdminSortChips` |
+| `synarava-cms/AdminPanel` | `AdminPanel` |
+| `synarava-cms/AdminEntityList` | `AdminEntityList` |
+| `synarava-cms/AdminConfirmModal` | `AdminConfirmModal` |
+| `synarava-cms/AdminToast` | `AdminToastProvider` / `useAdminToast` (adapter) |
 
 ## Graphify
 

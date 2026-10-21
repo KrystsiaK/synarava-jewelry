@@ -22,10 +22,19 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { shouldAlertOnLevelChange } from "@/lib/mission-control/collector/alerts";
+import { runCollectorProcess } from "@/lib/mission-control/collector/entry";
 import { runCollectorOnce } from "@/lib/mission-control/collector/run-once";
 import { sendTelegramAlert } from "@/lib/mission-control/collector/telegram";
 import type { ServiceNodeStatusRecord } from "@/lib/mission-control/status";
 import { getNodeFixConfig } from "@/lib/mission-control/wiring";
+
+const emptyRunResult = {
+  nodesUpserted: ["site-health"],
+  flowsUpserted: ["site_to_db"],
+  alertsSent: [] as string[],
+  alertsFailed: [] as string[],
+  driftKeys: [] as string[],
+};
 
 function node(
   partial: Pick<ServiceNodeStatusRecord, "nodeKey" | "level"> &
@@ -281,5 +290,55 @@ describe("runCollectorOnce", () => {
         "orders_pulse",
       ]),
     );
+  });
+});
+
+describe("runCollectorProcess", () => {
+  it("resolves the run, closes the client, then exits 0", async () => {
+    const runOnce = vi.fn().mockResolvedValue(emptyRunResult);
+    const disconnect = vi.fn().mockResolvedValue(undefined);
+    const exit = vi.fn();
+    const logInfo = vi.fn();
+
+    await runCollectorProcess({ runOnce, disconnect, exit, logInfo });
+
+    expect(runOnce).toHaveBeenCalledOnce();
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledWith(0);
+    expect(logInfo).toHaveBeenCalledWith(
+      expect.stringContaining("mission-control collector: done"),
+    );
+    expect(disconnect.mock.invocationCallOrder[0]).toBeLessThan(
+      exit.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("closes the client then exits 1 when the run fails", async () => {
+    const runOnce = vi.fn().mockRejectedValue(new Error("probe failed"));
+    const disconnect = vi.fn().mockResolvedValue(undefined);
+    const exit = vi.fn();
+    const logError = vi.fn();
+
+    await runCollectorProcess({ runOnce, disconnect, exit, logError });
+
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledWith(1);
+    expect(logError).toHaveBeenCalledWith(
+      "mission-control collector: failed — probe failed",
+    );
+    expect(disconnect.mock.invocationCallOrder[0]).toBeLessThan(
+      exit.mock.invocationCallOrder[0],
+    );
+  });
+
+  it("still exits after disconnect rejects", async () => {
+    const runOnce = vi.fn().mockResolvedValue(emptyRunResult);
+    const disconnect = vi.fn().mockRejectedValue(new Error("pool stuck"));
+    const exit = vi.fn();
+
+    await runCollectorProcess({ runOnce, disconnect, exit });
+
+    expect(disconnect).toHaveBeenCalledOnce();
+    expect(exit).toHaveBeenCalledWith(0);
   });
 });

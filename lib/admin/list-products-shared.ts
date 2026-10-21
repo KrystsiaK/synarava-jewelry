@@ -4,13 +4,6 @@ export const ADMIN_PRODUCT_CANDIDATE_CAP = 2000;
 
 export const ADMIN_PRODUCT_SORT_OPTIONS = [
   {
-    value: "problems",
-    label: "Most problems",
-    shortLabel: "Problems",
-    tone: "danger" as const,
-    tooltip: "Open content issues first — missing fields, broken media, validation errors.",
-  },
-  {
     value: "conflicts",
     label: "Most conflicts",
     shortLabel: "Conflicts",
@@ -97,8 +90,6 @@ export type AdminProductListItem = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  issueCount: number;
-  issueHref: string | null;
   conflictScore: number;
   locales: AdminProductLocaleSignal[];
   collections: Array<{

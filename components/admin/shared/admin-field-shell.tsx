@@ -24,8 +24,6 @@ export type AdminFieldShellProps = {
   /** Soft orange notice in the same band as error (error wins when both set). */
   warning?: string;
   warningId?: string;
-  /** Absolute under-control copy (e.g. AdminFieldIssue). Same band as AdminFieldError. */
-  issue?: ReactNode;
   disabled?: boolean;
   className?: string;
   controlId: string;
@@ -47,7 +45,6 @@ export function AdminFieldShell({
   errorId,
   warning,
   warningId,
-  issue,
   disabled = false,
   className,
   controlId,
@@ -77,7 +74,6 @@ export function AdminFieldShell({
     >
       {labelNode ? <label htmlFor={controlId}>{labelNode}</label> : null}
       {children}
-      {issue}
       {error ? (
         <AdminFieldError id={messageId} message={error} />
       ) : (

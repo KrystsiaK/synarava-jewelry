@@ -5,7 +5,6 @@ import {
   adminHrefUnder,
   buildAdminNavItems,
   countAdminNavSyncBySection,
-  issueToNavHref,
   pageSlugFromAdminHref,
   resolveAdminNavItemSignal,
   resolveAdminNavSignal,
@@ -28,10 +27,8 @@ describe("admin-nav-config", () => {
     expect(adminHrefUnder("/admin/products", "/admin/products/abc")).toBe(true);
   });
 
-  it("maps page issues to concrete page hrefs", () => {
-    expect(
-      issueToNavHref({ entityType: "PAGE", targetHref: "/admin/pages/care" }),
-    ).toBe("/admin/pages/care");
+  it("reads page slugs from admin hrefs", () => {
+    expect(pageSlugFromAdminHref("/admin/pages/care")).toBe("care");
     expect(pageSlugFromAdminHref("/admin/pages/new")).toBeNull();
     expect(pageSlugFromAdminHref("/en/home")).toBe("home");
   });
@@ -42,7 +39,6 @@ describe("admin-nav-config", () => {
         { slug: "home", title: "Home" },
         { slug: "about", title: "About" },
       ],
-      issueCount: 3,
       syncCounts: {
         products: 5,
         collections: 1,
@@ -138,29 +134,15 @@ describe("admin-nav-config", () => {
     ).toBe("/admin/pages");
   });
 
-  it("bubbles child sync/issue signals to the parent", () => {
+  it("bubbles child sync signals to the parent", () => {
     const items = buildAdminNavItems({
       pages: [{ slug: "care", title: "Care" }],
     });
     const pages = items.find((item) => item.id === "pages")!;
-    const issueHrefs = new Set(["/admin/pages/care"]);
-    const syncHrefs = new Set<string>();
+    const syncHrefs = new Set(["/admin/pages/care"]);
 
-    expect(resolveAdminNavSignal("/admin/pages/care", issueHrefs, syncHrefs)).toBe("issue");
-    expect(resolveAdminNavItemSignal(pages, issueHrefs, syncHrefs)).toBe("issue");
-    expect(
-      resolveAdminNavItemSignal(
-        pages,
-        new Set(),
-        new Set(["/admin/pages/care"]),
-      ),
-    ).toBe("sync");
-    expect(
-      resolveAdminNavItemSignal(
-        pages,
-        new Set(["/admin/pages/care"]),
-        new Set(["/admin/pages/care"]),
-      ),
-    ).toBe("both");
+    expect(resolveAdminNavSignal("/admin/pages/care", syncHrefs)).toBe("sync");
+    expect(resolveAdminNavItemSignal(pages, syncHrefs)).toBe("sync");
+    expect(resolveAdminNavItemSignal(pages, new Set())).toBeUndefined();
   });
 });

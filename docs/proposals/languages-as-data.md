@@ -1,7 +1,7 @@
 # Languages as data: add, hide, export and delete a storefront language
 
-**Status:** approved plan (owner, 2026-10-21). The implementing PR records the decision as the next free ADR number.
-**Scope:** one task, delivered as one PR with ordered milestone commits.
+**Status:** Part A implementing (ADR-0007). Owner Part B (scopes, staging rehearsal) still open.
+**Scope:** one task, delivered as one PR with ordered milestone commits A1–A9.
 
 ## Goal
 
@@ -25,7 +25,7 @@ From the admin: add a language, hide it, bring it back, export it, import it, an
 | Retired | every URL answers 301 to the same path in the default language (permanent) | no | hidden, "show retired" toggle | kept, can be restored | unpublished, NOT disabled |
 | Deleted | 301 stays | no | no | removed after export | disabled only after export and retention |
 
-Rules: Retired is reversible at any time. Deleted needs: language Retired for at least N days (default 30), an exported bundle downloaded in the same session, the language code typed by the user, and no unresolved sync differences. Shopify `shopLocaleDisable` deletes that language's translations in Shopify, so it is used only in the Deleted step.
+Rules: Retired is reversible at any time. Deleted needs: language Retired for at least N days (default 30), a server-side export receipt (SiteSetting checksum + timestamp, valid 60 minutes — not client-trusted alone), the language code typed by the user, and no unresolved sync differences. Shopify `shopLocaleDisable` deletes that language's translations in Shopify, so it is used only in the Deleted step.
 
 ## Part A: implementation (agent)
 
