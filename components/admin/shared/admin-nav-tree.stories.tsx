@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { buildAdminNavItems } from "@/components/admin/shared/admin-nav-config";
 import { AdminNavTree } from "@/components/admin/shared/admin-nav-tree";

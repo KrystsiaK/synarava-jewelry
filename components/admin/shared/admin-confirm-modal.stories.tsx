@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AdminButton } from "./admin-button";
 import { AdminConfirmModal } from "./admin-confirm-modal";

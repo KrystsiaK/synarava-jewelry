@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { AdminHelp } from "@/components/admin/shared/admin-help";
 import { Tooltip } from "@/components/ui/tooltip";
