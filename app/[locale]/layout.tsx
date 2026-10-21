@@ -1,6 +1,7 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
-import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { getStorefrontLocales, getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { resolveLocaleRequestDisposition } from "@/lib/i18n/locale-retirement-redirect";
 
 // The registry read backing alternates/params now touches the DB, which
 // Next's background ISR revalidation of a "static" page can't do (throws
@@ -21,9 +22,17 @@ type Props = {
 
 export default async function LocaleLayout({ children, params }: Props) {
   const { locale } = await params;
-  const locales = await getPublishedStorefrontLocales();
+  const locales = await getStorefrontLocales();
+  const disposition = await resolveLocaleRequestDisposition({
+    localeSegment: locale,
+    pathname: `/${locale}`,
+    locales,
+  });
 
-  if (!locales.some((entry) => entry.routeSegment === locale)) {
+  if (disposition.kind === "redirect") {
+    permanentRedirect(disposition.pathname);
+  }
+  if (disposition.kind === "not-found") {
     notFound();
   }
 

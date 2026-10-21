@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies, headers } from "next/headers";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
-import { SUPPORTED_LOCALES } from "@/lib/i18n/locales";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { Cormorant_Garamond, Hanken_Grotesk } from "next/font/google";
 import { MotionConfig } from "motion/react";
@@ -131,12 +130,12 @@ export default async function RootLayout({
     getServerTranslations(),
     getPublishedStorefrontLocales(),
   ]);
-  // The language switcher only offers locales this app can actually render
-  // UI copy for (SUPPORTED_LOCALES, still hardcoded until the buyer-facing
-  // copy itself is registry-driven) — intersected with the registry so an
-  // unpublished/removed Shopify locale drops out automatically.
-  const publishedCodes = new Set(publishedLocales.map((locale) => locale.routeSegment));
-  const availableLocales = SUPPORTED_LOCALES.filter((locale) => publishedCodes.has(locale.code));
+  // Language switcher reads published registry rows only (ADR-0007). Missing
+  // messages/<code>.json falls back to English per key in TranslationProvider.
+  const availableLocales = publishedLocales.map((locale) => ({
+    code: locale.routeSegment,
+    name: locale.nativeName,
+  }));
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
