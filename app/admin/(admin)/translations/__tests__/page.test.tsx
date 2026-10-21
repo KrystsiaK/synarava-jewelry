@@ -1,9 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
-vi.mock("@/components/admin/translations/locale-registry-panel", () => ({
-  LocaleRegistryPanel: () => <div>Locale registry</div>,
-}));
 vi.mock("@/components/admin/translations/translations-cms", () => ({
   TranslationsCms: () => <div>Translation differences</div>,
 }));
