@@ -1,4 +1,4 @@
-import type { Meta, StoryObj } from "@storybook/react";
+import type { Meta, StoryObj } from "@storybook/react-vite";
 import { CircleDollarSign, FileText, Gem, Images, PackageSearch, Shapes, Store } from "lucide-react";
 import { useState } from "react";
 

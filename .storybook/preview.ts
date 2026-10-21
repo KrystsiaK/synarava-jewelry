@@ -1,5 +1,5 @@
 import { createElement, useEffect, type ReactNode } from "react";
-import type { Decorator, Preview } from "@storybook/react";
+import type { Decorator, Preview } from "@storybook/react-vite";
 import "../app/globals.css";
 
 function StorybookTheme({ Story, theme }: { Story: () => ReactNode; theme: "light" | "dark" }) {
