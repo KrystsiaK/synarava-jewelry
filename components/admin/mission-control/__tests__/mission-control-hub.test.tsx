@@ -13,6 +13,7 @@ vi.mock("@xyflow/react", () => ({
   MiniMap: () => null,
   Controls: () => null,
   useNodesState: (nodes: unknown[]) => [nodes, vi.fn(), vi.fn()],
+  useReactFlow: () => ({ fitView: vi.fn(), getNode: vi.fn(), setCenter: vi.fn() }),
 }));
 
 const NOW = new Date("2026-10-19T22:00:00.000Z");

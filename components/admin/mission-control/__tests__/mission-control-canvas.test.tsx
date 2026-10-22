@@ -27,6 +27,7 @@ vi.mock("@xyflow/react", () => ({
   ReactFlowProvider: ({ children }: { children: ReactNode }) =>
     createElement("div", { "data-testid": "rf-provider" }, children),
   useNodesState: (nodes: unknown[]) => [nodes, vi.fn(), vi.fn()],
+  useReactFlow: () => ({ fitView: vi.fn(), getNode: vi.fn(), setCenter: vi.fn() }),
   ReactFlow: ({
     nodes,
     edges,
@@ -79,12 +80,8 @@ describe("MissionControlCanvas render", () => {
     expect(warn).toHaveAttribute("data-level", "warn");
     expect(warn).toHaveAttribute("data-accent", statusLevelColor("warn"));
 
-    const placeholder = screen.getByTestId("mc-node-sentry");
-    expect(placeholder).toHaveAttribute("data-level", "unknown");
-    expect(placeholder).toHaveAttribute(
-      "data-accent",
-      statusLevelColor("unknown"),
-    );
+    expect(screen.getByTestId("mc-node-group:monitoring")).toBeInTheDocument();
+    expect(screen.queryByTestId("mc-node-sentry")).not.toBeInTheDocument();
   });
 
   it("marks fresh edges animated and stale edges idle", () => {

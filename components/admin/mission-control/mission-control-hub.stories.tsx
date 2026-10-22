@@ -1,4 +1,6 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import type { ReactNode } from "react";
+import { useLayoutEffect } from "react";
 import { MissionControlHub } from "@/components/admin/mission-control/mission-control-hub";
 import { MISSION_CONTROL_NODE_CATALOG } from "@/lib/mission-control/node-catalog";
 import type { ServiceFlowStatusRecord, ServiceNodeStatusRecord, ServiceStatusLevel } from "@/lib/mission-control/status";
@@ -29,13 +31,39 @@ const meta = {
   title: "Admin/Mission Control/Hub",
   component: MissionControlHub,
   parameters: { layout: "fullscreen" },
-  decorators: [(Story) => <div className="admin-terminal !block !h-auto min-h-dvh p-4 md:p-8"><Story /></div>],
+  decorators: [(Story) => <div className="admin-terminal !block h-dvh"><Story /></div>],
   args: { nowMs: NOW.getTime(), catalog: MISSION_CONTROL_NODE_CATALOG, config: fullConfig, nodeStatuses: mixedStatuses, flowStatuses: flows, showPlaceholderNotice: true, liveEnvironment: "staging" },
 } satisfies Meta<typeof MissionControlHub>;
 
 export default meta;
 type Story = StoryObj<typeof meta>;
 
+function ThemeStory({ theme, children }: { theme: "light" | "dark"; children: ReactNode }) {
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    const applyTheme = () => {
+      if (root.dataset.theme !== theme) root.dataset.theme = theme;
+      if (root.style.colorScheme !== theme) root.style.colorScheme = theme;
+    };
+    applyTheme();
+    const observer = new MutationObserver(applyTheme);
+    observer.observe(root, { attributes: true, attributeFilter: ["data-theme", "style"] });
+    return () => observer.disconnect();
+  }, [theme]);
+  return children;
+}
+
+function LightThemeDecorator(Story: () => ReactNode) {
+  return <ThemeStory theme="light"><Story /></ThemeStory>;
+}
+
+function DarkThemeDecorator(Story: () => ReactNode) {
+  return <ThemeStory theme="dark"><Story /></ThemeStory>;
+}
+
+export const MixedStatus: Story = {};
+export const ReviewLight: Story = { decorators: [LightThemeDecorator] };
+export const ReviewDark: Story = { decorators: [DarkThemeDecorator] };
 export const FullArchitectureMap: Story = {};
 export const SingleGroup: Story = { args: { config: appConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => appConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
 export const TwelvePlusNodes: Story = { args: { config: twelveConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => twelveConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
@@ -44,4 +72,4 @@ export const StaleCollector: Story = { args: { nodeStatuses: mixedStatuses.map((
 export const AllOk: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "ok")) } };
 export const AllDown: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "down")) } };
 export const ProductionView: Story = { args: { liveEnvironment: "production" } };
-export const NodeModal: Story = { play: async ({ canvasElement }) => { canvasElement.querySelector<HTMLElement>("[data-testid='mc-node-site-health']")?.click(); } };
+export const InspectorPanel: Story = { play: async ({ canvasElement }) => { canvasElement.querySelector<HTMLElement>("[data-testid='mc-node-site-health']")?.click(); } };

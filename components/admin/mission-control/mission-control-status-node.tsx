@@ -14,7 +14,16 @@ import type { MissionControlCanvasNode } from "@/lib/mission-control/canvas-mode
 export function MissionControlStatusNode({
   data,
 }: NodeProps<MissionControlCanvasNode>) {
-  const kindLabel = data.kind === "live" ? "Live" : data.kind === "info" ? "Reference" : "Not wired";
+  if (data.kind !== "live") {
+    return (
+      <div className="mc-node mc-node--reference" data-testid={`mc-node-${data.widgetKey}`} data-kind={data.kind} data-level={data.level}>
+        <Handle type="target" position={Position.Left} isConnectable={false} aria-hidden="true" />
+        <Handle type="source" position={Position.Right} isConnectable={false} aria-hidden="true" />
+        <span className="mc-node__reference-icon">{data.kind === "info" ? <Info aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}</span>
+        <span className="mc-node__reference-name" title={data.label}>{data.label}</span>
+      </div>
+    );
+  }
   return (
     <div
       className="mc-node"
@@ -35,11 +44,11 @@ export function MissionControlStatusNode({
         glassShineIntensity={0}
       >
         <div className="mc-node__identity">
-          <span>{data.kind === "live" ? <RadioTower aria-hidden="true" /> : data.kind === "info" ? <Info aria-hidden="true" /> : <CircleDashed aria-hidden="true" />}{kindLabel}</span>
+          <span><RadioTower aria-hidden="true" />Live</span>
           <h3>{data.label}</h3>
         </div>
         <div className="mc-node__status-row">
-          {data.kind === "live" ? <MissionControlStatusMark level={data.level} compact /> : <span className="mc-node__kind-state">{kindLabel}</span>}
+          <MissionControlStatusMark level={data.level} compact />
           {data.href ? (
             <a
               href={data.href}
@@ -56,6 +65,10 @@ export function MissionControlStatusNode({
         <p className="mc-node__message" title={data.message ?? undefined}>
           {data.message || "No status message"}
         </p>
+        <div className="mc-node__live-meta">
+          {data.value ? <strong>{data.value}</strong> : <span>No value</span>}
+          <time dateTime={data.checkedAt ?? undefined}>{data.checkedAt ? `Updated ${new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(new Date(data.checkedAt))} UTC` : "Never updated"}</time>
+        </div>
       </BaseWidget>
     </div>
   );
