@@ -3,7 +3,7 @@
 Единый реестр осознанно отложенной работы (бывшие `docs/tech-debt.md` + `docs/admin/tech-debt.md` + незакрытые хвосты завершённых планов из [`history/`](history/)).
 
 **Правила**
-- Одна строка в таблице = один пункт; ID не переиспользуются. Префиксы: `ADM` админка/CMS, `SYNC` Shopify sync, `I18N` локализация, `CX` витрина/покупатель, `QA` тесты/CI.
+- Одна строка в таблице = один пункт; ID не переиспользуются. Префиксы: `ADM` админка/CMS, `SYNC` Shopify sync, `I18N` локализация, `CX` витрина/покупатель, `QA` тесты/CI, `OPS` инфраструктура и безопасность.
 - Подробный разбор нужен, только если пункт не помещается в строку — тогда отдельный раздел ниже.
 - Закрыл пункт → удали строку в том же PR. Если закрытие — долговременное решение, заведи ADR.
 - Новая идея, а не долг → [`proposals/`](proposals/).
@@ -25,6 +25,17 @@
 | TD-CX-03 | Глубокий каталог: `CATALOG_CANDIDATE_CAP = 1000` + сортировка в памяти, нет keyset | До роста каталога не критично | [proposal](proposals/catalog-server-pagination.md) |
 | TD-CX-04 | `MovementStory` на About: нет poster для фонового видео (`components/about/about-page.tsx`) + ручная проверка reduced motion / play-pause в реальном браузере | Нужно подготовить кадр-poster; хвост REV-26 | [app review REV-26](history/2026-09-app-review.md) |
 | TD-QA-01 | Coverage-политика для auth/content/commerce в CI (thresholds не действуют при `test:run`) | E2E smoke в CI уже есть | [app review REV-36](history/2026-09-app-review.md) |
+| TD-OPS-01 | Staging: baseline истории миграций + pre-deploy (миграция Part A применена руками в Query) | Нужен туннель `railway connect` (публичный доступ к БД закрыт) | [database-incident-recovery](runbooks/database-incident-recovery.md) |
+| TD-OPS-02 | `RAILWAY_TOKEN` в `synarava-shop-app` мёртвый (страница Infrastructure): создать read-only токен проекта или убрать переменную | Токены Railway удалены после инцидента | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
+| TD-OPS-03 | n8n: `N8N_ENCRYPTION_KEY` и креды внутри (смена делает сохранённые креды нечитаемыми) | Сначала экспорт кредов, потом ротация | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
+| TD-OPS-04 | Убрать DeepL (`DEEPL_API_KEY` в `lib/env.ts`, строка в `runbooks/deploy.md`): в приложении не используется | Бот-задача, ничего не блокирует | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
+| TD-OPS-05 | CSP блокирует браузерные события Sentry (`connect-src` без `*.ingest.de.sentry.io`, `proxy.ts`) | Бот-задача; проверить на staging после правки | Sentry / console prod 2026-10-22 |
+| TD-OPS-06 | Удалить таблицу `AdminIssue` (этап 2 после удаления Problems #216) | Нужен явный ОК владельца на `DROP TABLE` | [PR 216](https://github.com/KrystsiaK/synarava-jewelry/pull/216) |
+| TD-OPS-07 | Languages Part B: `write_locales` в Synarava Sync (staging), репетиция с тестовым языком, решения по retention/301/fallback | Действия владельца | [languages-as-data](proposals/languages-as-data.md) |
+| TD-OPS-08 | Ротация секретов после инцидента Railway, остаток: Artur-проект (S3, пароль админки, `AUTH_SECRET`, БД), `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` на prod, Cursor cloud secrets (`NODE_AUTH_TOKEN`), prod-вебхуки (проверка 200) | Идёт вручную владельцем | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
+| TD-OPS-09 | Проверка следов: Railway Activity и участники, Shopify staff/приложения, GitHub security log, Sentry members; тикет в поддержку Railway (причина «Limited Access», компенсация) | Только вручную | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
+| TD-OPS-10 | Решить, оставлять ли репозиторий публичным (аудиты и инфраструктурные заметки видны всем) | Решение владельца | [infrastructure audit](audits/2026-09-infrastructure.md) |
+| TD-OPS-11 | Dependabot красный: нужен Dependabot secret для GitHub Packages | Решение по способу доступа | [deploy](runbooks/deploy.md) |
 
 ---
 
