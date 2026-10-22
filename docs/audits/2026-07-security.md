@@ -23,7 +23,7 @@
 | 6 | Захардкоженный дефолтный секрет сессии + слабое подписание токена | Auth | 🟡 Medium | ✅ Исправлено |
 | 7 | Загрузка SVG хранится «как есть» → возможный stored XSS | Админка | 🟡 Medium | ✅ Исправлено |
 | 8 | Webhook Stripe не проверяет сумму + нет идемпотентности | Оплата | 🟡 Medium | ✅ Исправлено |
-| 9 | Translate API без авторизации → абьюз DeepL/БД, отравление кэша | API | 🟡 Medium | ✅ Исправлено |
+| 9 | Translate API без авторизации → абьюз платного MT/БД, отравление кэша | API | 🟡 Medium | ✅ Исправлено |
 | 10 | Нет Content-Security-Policy | Hardening | 🟡 Medium | ✅ Исправлено |
 | 11 | XSS через JSON-LD (`JSON.stringify` внутри `<script>`) | Storefront | 🟢 Low | ✅ Исправлено |
 | 12 | Смена пароля не инвалидирует сессии (admin + profile) | Аккаунт | 🟢 Low | ✅ Исправлено |
@@ -158,7 +158,7 @@ function signSessionToken(token: string) {
 ### 9. Translate API без авторизации → абьюз и отравление кэша
 **Файл:** `app/api/translate/route.ts:59-101`
 
-`GET /api/translate?locale=xx` открыт всем. Для неизвестной локали дёргает платный DeepL и делает `upsert` в `translationCache` по произвольному `locale` из query. Аноним может: генерировать расходы на DeepL, засорять таблицу кэша произвольными ключами локалей.
+`GET /api/translate?locale=xx` открыт всем. Для неизвестной локали дёргал платный machine-translation API и делал `upsert` в `translationCache` по произвольному `locale` из query. Аноним мог: генерировать расходы на внешний MT, засорять таблицу кэша произвольными ключами локалей. (Машинный перевод в приложении больше не используется — локали правятся вручную в админке и синхронизируются с Shopify.)
 
 **Рекомендации:** ограничить `locale` белым списком поддерживаемых значений; добавить rate-limit/кэш-контроль; не создавать записи БД для непредусмотренных локалей.
 
@@ -211,7 +211,7 @@ dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
 | `lib/commerce/checkout.ts` | `confirmCheckoutOrder` больше не ставит `AUTHORIZED` — только очищает корзину (#2) |
 | `app/checkout/confirmed/page.tsx` | Убрано условие `session.status === "open"` как признак успешной оплаты (#2) |
 | `app/api/stripe/webhook/route.ts` | Добавлена проверка суммы и валюты против заказа в БД; идемпотентность — если `paymentStatus === PAID`, событие пропускается (#8) |
-| `app/api/translate/route.ts` | Добавлен allowlist разрешённых локалей; неизвестные локали возвращают английский без обращения к DeepL/БД (#9) |
+| `app/api/translate/route.ts` | Добавлен allowlist разрешённых локалей; неизвестные локали возвращают английский без обращения к внешнему MT/БД (#9) |
 | `lib/media/local-upload.ts` | SVG-загрузки отклоняются с ошибкой (#7) |
 | `next.config.ts` | Добавлен заголовок `Content-Security-Policy` (#10) |
 | `app/artifacts/[id]/product-page.tsx` | JSON-LD экранируется через `safeJsonLd()` (unicode escapes для `<`, `>`, `&`) (#11) |
