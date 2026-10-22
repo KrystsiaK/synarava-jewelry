@@ -51,7 +51,6 @@ Translation rollout and recovery are documented in `docs/runbooks/translation-op
 | Переменная | Описание |
 |-----------|----------|
 | `NEXTAUTH_URL` | Базовый URL (если не задан `APP_URL`) |
-| `DEEPL_API_KEY` | API ключ DeepL для машинного перевода |
 
 ---
 
