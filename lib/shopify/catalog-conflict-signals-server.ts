@@ -63,7 +63,7 @@ export async function getCollectionConflictSignals(): Promise<CatalogConflictSig
  */
 export async function runProductConflictCheck({
   productId,
-  locale: _locale,
+  locale,
   requestedBy,
 }: {
   productId: string;
@@ -74,7 +74,7 @@ export async function runProductConflictCheck({
   warning?: string;
 }> {
   return signalsFromWaterfall(
-    { kind: "product", productId },
+    { kind: "product", productId, locale },
     requestedBy,
     "PRODUCT",
   );
@@ -91,7 +91,7 @@ export async function runCatalogConflictCheck(requestedBy: string): Promise<{
 /** Scoped collection check. */
 export async function runCollectionConflictCheck({
   collectionId,
-  locale: _locale,
+  locale,
   requestedBy,
 }: {
   collectionId: string;
@@ -102,7 +102,7 @@ export async function runCollectionConflictCheck({
   warning?: string;
 }> {
   return signalsFromWaterfall(
-    { kind: "collection", collectionId },
+    { kind: "collection", collectionId, locale },
     requestedBy,
     "COLLECTION",
   );

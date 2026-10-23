@@ -15,13 +15,20 @@ import {
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
 import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
+import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { db } from "@/lib/db";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 
+async function resolveShopifyLocale(registryCode: string): Promise<string | null> {
+  if (registryCode === "en") return "en";
+  const locales = await getPublishedStorefrontLocales();
+  return locales.find((locale) => !locale.isDefault && locale.code === registryCode)?.shopifyLocale ?? null;
+}
+
 export type RefreshShopifyStateScope =
   | { kind: "catalog" }
-  | { kind: "product"; productId: string }
-  | { kind: "collection"; collectionId: string }
+  | { kind: "product"; productId: string; locale?: string }
+  | { kind: "collection"; collectionId: string; locale?: string }
   | { kind: "collections" };
 
 export type RefreshShopifyStateResult = {
@@ -54,10 +61,22 @@ export async function refreshShopifyState(
     if (product?.shopifyProductId) {
       await refreshShopifyProductState(product.shopifyProductId);
     }
+    const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
+    if (scope.locale && !shopifyLocale) {
+      return {
+        ok: true,
+        warning: `Locale ${scope.locale} is not published in Shopify Markets.`,
+        runId: null,
+      };
+    }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
       requestedBy,
-      scope: { entityType: "PRODUCT", entityId: scope.productId },
+      scope: {
+        entityType: "PRODUCT",
+        entityId: scope.productId,
+        ...(shopifyLocale ? { locale: shopifyLocale } : {}),
+      },
     });
     return {
       ok: true,
@@ -68,10 +87,22 @@ export async function refreshShopifyState(
 
   if (scope.kind === "collection") {
     // PR4 adds refreshShopifyCollectionState — until merged, translation + presence only.
+    const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
+    if (scope.locale && !shopifyLocale) {
+      return {
+        ok: true,
+        warning: `Locale ${scope.locale} is not published in Shopify Markets.`,
+        runId: null,
+      };
+    }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
       requestedBy,
-      scope: { entityType: "COLLECTION", entityId: scope.collectionId },
+      scope: {
+        entityType: "COLLECTION",
+        entityId: scope.collectionId,
+        ...(shopifyLocale ? { locale: shopifyLocale } : {}),
+      },
     });
     return {
       ok: true,
