@@ -39,7 +39,16 @@ function catalogRow(overrides: {
     shopifyCategoryName: null,
     createdAt: overrides.createdAt,
     translations: [],
-    variants: [{ status: "ACTIVE", stockOnHand: 5, inventoryPolicy: "DENY", tracked: true, priceCents: overrides.priceCents, compareAtCents: null }],
+    shopifySnapshot: null,
+    variants: [{
+      status: "ACTIVE",
+      shopifyVariantId: `gid://shopify/ProductVariant/${overrides.id}`,
+      stockOnHand: 5,
+      inventoryPolicy: "DENY",
+      tracked: true,
+      priceCents: overrides.priceCents,
+      compareAtCents: null,
+    }],
     tags: [],
     collections: [],
     characteristics: [],
@@ -72,9 +81,31 @@ describe("shop listing projection", () => {
       shopifyCategoryName: "Jewelry > Rings",
       createdAt: new Date("2026-01-01"),
       translations: [],
+      shopifySnapshot: {
+        variants: [
+          { id: "gid://shopify/ProductVariant/1", inventoryQuantity: 0 },
+          { id: "gid://shopify/ProductVariant/2", inventoryQuantity: 4 },
+        ],
+      },
       variants: [
-        { status: "ACTIVE", stockOnHand: 0, inventoryPolicy: "DENY", tracked: true, priceCents: 1000, compareAtCents: null },
-        { status: "ACTIVE", stockOnHand: 2, inventoryPolicy: "DENY", tracked: true, priceCents: 1200, compareAtCents: 1500 },
+        {
+          status: "ACTIVE",
+          shopifyVariantId: "gid://shopify/ProductVariant/1",
+          stockOnHand: 0,
+          inventoryPolicy: "DENY",
+          tracked: true,
+          priceCents: 1000,
+          compareAtCents: null,
+        },
+        {
+          status: "ACTIVE",
+          shopifyVariantId: "gid://shopify/ProductVariant/2",
+          stockOnHand: 2,
+          inventoryPolicy: "DENY",
+          tracked: true,
+          priceCents: 1200,
+          compareAtCents: 1500,
+        },
       ],
       tags: [{ tag: { slug: "gift", name: "Gift" } }],
       collections: [{ sortOrder: 0, collection: { slug: "rings", name: "Rings", isStorefrontDefault: false } }],
@@ -95,9 +126,10 @@ describe("shop listing projection", () => {
 
     const select = findMany.mock.calls[0]?.[0]?.select;
     expect(select).not.toHaveProperty("details");
-    expect(select).not.toHaveProperty("shopifySnapshot");
+    expect(select).toHaveProperty("shopifySnapshot");
     expect(select).not.toHaveProperty("media");
     expect(select.variants.select).not.toHaveProperty("selectedOptions");
+    expect(select.variants.select).toHaveProperty("shopifyVariantId");
   });
 
   it("projects translated product copy when an explicit Portuguese locale is supplied", async () => {
