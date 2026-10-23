@@ -16,7 +16,7 @@
 | [`history/`](history/) | Завершённые планы и журналы работ | Только чтение; открытые хвосты — в tech-debt |
 | [`tech-debt.md`](tech-debt.md) | **Единый реестр** осознанно отложенной работы | Закрыл → удали строку |
 
-Вне `docs/`: [`README.md`](../README.md) (запуск), [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md) (правила для агентов), [`PRODUCT.md`](../PRODUCT.md) и [`DESIGN.md`](../DESIGN.md) (продуктовый и дизайн-контекст, их читают design-скиллы), `mobile/README.md` (Capacitor-обёртка).
+Вне `docs/`: [`README.md`](../README.md) (запуск), [`AGENTS.md`](../AGENTS.md) / [`CLAUDE.md`](../CLAUDE.md) (правила для агентов), [`PRODUCT.md`](../PRODUCT.md) и [`DESIGN.md`](../DESIGN.md) (продуктовый и дизайн-контекст, их читают design-скиллы).
 
 ## Куда класть новый документ
 
