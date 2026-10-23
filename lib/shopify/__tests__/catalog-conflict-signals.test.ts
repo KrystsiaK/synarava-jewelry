@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
-import { buildCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { buildCatalogConflictSignals } from "@/lib/sync/build-signals";
 
 const locales = [
   { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },

@@ -32,6 +32,13 @@ export {
   catalogConflictSignalsFromSyncResult,
   syncResourceLeafCount,
 } from "./signals-from-result";
+export { buildCatalogConflictSignals } from "./build-signals";
+export { productConflictBadgeCount } from "./badge-count";
+export {
+  countAdminNavSyncBySection,
+  selectAdminNavSyncCounts,
+  type AdminNavSyncEntityType,
+} from "./nav-counts";
 export {
   applySync,
   applyCollectionSync,

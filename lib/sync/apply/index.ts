@@ -1,7 +1,13 @@
 import "server-only";
 
-import type { CatalogConflictApplyScope } from "@/lib/shopify/catalog-conflict-apply";
-import type { CollectionConflictApplyScope } from "@/lib/shopify/collection-conflict-apply";
+import type {
+  CatalogConflictApplyEntryInput,
+  CatalogConflictApplyScope,
+} from "@/lib/shopify/catalog-conflict-apply";
+import type {
+  CollectionConflictApplyEntryInput,
+  CollectionConflictApplyScope,
+} from "@/lib/shopify/collection-conflict-apply";
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { CollectionPresenceDifference } from "@/lib/shopify/collection-presence";
 import type { ReconcileChoice } from "@/lib/shopify/reconciliation-apply";
@@ -12,8 +18,18 @@ import { applyProductSync, previewProductSync } from "./product";
 import { applyTranslationSync } from "./translation";
 
 export type SyncApplyTarget =
-  | { resource: "product"; scope: CatalogConflictApplyScope; confirmedClearNonEmpty: boolean }
-  | { resource: "collection"; scope: CollectionConflictApplyScope; confirmedClearNonEmpty: boolean }
+  | {
+      resource: "product";
+      entries: CatalogConflictApplyEntryInput[];
+      acknowledgeClears: boolean;
+      actorUsername: string;
+    }
+  | {
+      resource: "collection";
+      entries: CollectionConflictApplyEntryInput[];
+      acknowledgeClears: boolean;
+      actorUsername: string;
+    }
   | {
       resource: "translation";
       divergenceId: string;
@@ -40,13 +56,15 @@ export async function applySync(target: SyncApplyTarget) {
   switch (target.resource) {
     case "product":
       return applyProductSync({
-        scope: target.scope,
-        confirmedClearNonEmpty: target.confirmedClearNonEmpty,
+        entries: target.entries,
+        acknowledgeClears: target.acknowledgeClears,
+        actorUsername: target.actorUsername,
       });
     case "collection":
       return applyCollectionSync({
-        scope: target.scope,
-        confirmedClearNonEmpty: target.confirmedClearNonEmpty,
+        entries: target.entries,
+        acknowledgeClears: target.acknowledgeClears,
+        actorUsername: target.actorUsername,
       });
     case "translation":
       return applyTranslationSync(target);
@@ -58,6 +76,8 @@ export async function applySync(target: SyncApplyTarget) {
     }
   }
 }
+
+export type { CatalogConflictApplyScope, CollectionConflictApplyScope };
 
 export {
   applyCollectionSync,

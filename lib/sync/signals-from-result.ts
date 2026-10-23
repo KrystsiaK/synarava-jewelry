@@ -67,9 +67,15 @@ export function catalogConflictSignalsFromSyncResult(
       .map(([code, count]) => localeSignal(code, count, localeMeta))
       .sort((a, b) => a.code.localeCompare(b.code));
 
+    const leafCount = selectSyncCounts(result, {
+      kind: "listChip",
+      resourceType: rootEntityType,
+      resourceId,
+    });
     products[resourceId] = {
       shared: sharedCount > 0 || Boolean(presence),
       sharedCount,
+      leafCount,
       locales,
       presence,
       allowedDirections: presence === "SHOPIFY_ONLY"

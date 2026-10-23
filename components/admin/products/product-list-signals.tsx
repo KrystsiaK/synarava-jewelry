@@ -88,11 +88,7 @@ export function ProductListSignals({
           tooltip={conflictTooltip(conflict)}
           tone="conflict"
           icon={<GitCompareArrows strokeWidth={2.4} />}
-          value={
-            conflict.locales.reduce((sum, entry) => sum + entry.count, 0)
-            + (conflict.shared || conflict.presence ? 1 : 0)
-            || undefined
-          }
+          value={conflict.leafCount && conflict.leafCount > 0 ? conflict.leafCount : undefined}
           onClick={onShowConflicts}
         />
       ) : null}

@@ -28,6 +28,7 @@ import type {
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { productEditorSectionForConflictField } from "@/components/admin/products/commerce-conflict-section";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 
 type ProductSummary = { id: string; name: string; sku: string | null };
 type ToastTone = "success" | "error" | "info";
@@ -109,13 +110,20 @@ export function filterSignalsForView(
   if (!hasLocaleConflict && !shared && !signal.presence) {
     return { ...signals, products: {}, totalCount: 0 };
   }
+  const scoped = {
+    ...signal,
+    shared,
+    locales,
+    leafCount: undefined,
+  };
+  // Recompute leafCount for this locale shell (shared + locale rows) —
+  // do not keep the product-wide leafCount.
   return {
     ...signals,
     products: {
       [productId]: {
-        ...signal,
-        shared,
-        locales,
+        ...scoped,
+        leafCount: productConflictBadgeCount(scoped),
       },
     },
     totalCount: 1,
