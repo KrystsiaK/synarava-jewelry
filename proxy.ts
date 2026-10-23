@@ -70,6 +70,8 @@ function cspFor(nonce: string) {
     "https://region1.google-analytics.com",
     "https://www.facebook.com",
     "https://*.clarity.ms",
+    // Browser Sentry SDK → EU ingest (DSN host). Wildcard matches org subdomain only.
+    "https://*.ingest.de.sentry.io",
     ...(checkoutOrigin ? [checkoutOrigin] : []),
     ...storage,
   ].join(" ");
