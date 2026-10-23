@@ -17,6 +17,13 @@ export function isProductionDeployment(
   return source.NODE_ENV === "production";
 }
 
+/** Railway staging only — never true for production or local NODE_ENV heuristics. */
+export function isStagingDeployment(
+  source: DeploymentEnvironmentSource = process.env,
+): boolean {
+  return source.RAILWAY_ENVIRONMENT_NAME?.trim().toLowerCase() === "staging";
+}
+
 export function allowNonProductionAnalytics(
   source: DeploymentEnvironmentSource & { ENABLE_NON_PRODUCTION_ANALYTICS?: string } = process.env,
 ): boolean {

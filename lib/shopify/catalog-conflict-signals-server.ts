@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { COMMERCE_SYNC_STORE_ID } from "@/lib/commerce-store/refresh";
 import type { CommerceStoreConflict } from "@/lib/commerce-store/types";
+import { isStagingDeployment } from "@/lib/deployment-environment";
 import { getPublishedStorefrontLocales, getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { buildCatalogConflictSignals, type CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
@@ -17,10 +18,17 @@ import {
   scanAndSaveCatalogPresence,
 } from "@/lib/shopify/catalog-presence-server";
 import {
+  buildCollectionWindowFromColumns,
+  diffCollectionCommerceWindows,
+} from "@/lib/shopify/collection-commerce-projection";
+import {
   getLatestCollectionPresenceCheckedAt,
   getLatestCollectionPresenceDifferences,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
+
+/** One-time staging log for PR4 commerce-window surface (process lifetime). */
+let loggedStagingCollectionCommerceDivergenceCount = false;
 
 /** Field-diff totals from the dual-store conflict report (local product id → count). */
 async function commerceFieldCountsFromStore(): Promise<Record<string, number>> {
@@ -109,18 +117,97 @@ export async function getCatalogConflictSignals(adminUsername?: string): Promise
   });
 }
 
-/** Same signal shape as products; `products` map holds collection IDs (translation + presence). */
+/**
+ * Compare stored collection windows and persist syncStatus flags only
+ * (never workingSnapshot / columns / translations). Returns field counts.
+ */
+async function reconcileCollectionCommerceFlags(): Promise<{
+  commerceCollectionIds: string[];
+  commerceFieldCounts: Record<string, number>;
+}> {
+  const rows = await db.collection.findMany({
+    where: { shopifyCollectionId: { not: null } },
+    select: {
+      id: true,
+      shopifyCollectionId: true,
+      workingSnapshot: true,
+      shopifySnapshot: true,
+      name: true,
+      slug: true,
+      description: true,
+      seoTitle: true,
+      seoDescription: true,
+      syncStatus: true,
+    },
+  });
+
+  const commerceCollectionIds: string[] = [];
+  const commerceFieldCounts: Record<string, number> = {};
+
+  await Promise.all(rows.map(async (row) => {
+    const shopify = row.shopifySnapshot
+      ?? buildCollectionWindowFromColumns({
+        shopifyCollectionId: row.shopifyCollectionId,
+        name: row.name,
+        slug: row.slug,
+        description: row.description,
+        seoTitle: row.seoTitle,
+        seoDescription: row.seoDescription,
+      });
+    const working = row.workingSnapshot;
+    const differences = working == null
+      ? [{ field: "Adopt Shopify", path: "_adopt" }]
+      : diffCollectionCommerceWindows(working, shopify);
+    const count = differences.length;
+    if (count === 0) {
+      if (row.syncStatus === "CONFLICT") {
+        await db.collection.update({
+          where: { id: row.id },
+          data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
+        });
+      }
+      return;
+    }
+    commerceCollectionIds.push(row.id);
+    commerceFieldCounts[row.id] = count;
+    if (row.syncStatus !== "CONFLICT") {
+      await db.collection.update({
+        where: { id: row.id },
+        data: {
+          syncStatus: "CONFLICT",
+          syncError: working == null
+            ? "Synarava commerce window is missing — Adopt Shopify to create it."
+            : "workingSnapshot and shopifySnapshot differ.",
+        },
+      });
+    }
+  }));
+
+  return { commerceCollectionIds, commerceFieldCounts };
+}
+
+function maybeLogStagingCollectionCommerceCount(count: number) {
+  if (loggedStagingCollectionCommerceDivergenceCount) return;
+  if (!isStagingDeployment()) return;
+  loggedStagingCollectionCommerceDivergenceCount = true;
+  console.info(
+    `[sync-unification-pr4] staging collection commerce divergences (windows): ${count}`,
+  );
+}
+
+/** Same signal shape as products; `products` map holds collection IDs (commerce + translation + presence). */
 export async function getCollectionConflictSignals(): Promise<CatalogConflictSignals> {
-  const [differences, presenceDifferences, locales, run, checkedAt] = await Promise.all([
+  const [differences, presenceDifferences, locales, run, checkedAt, commerceCollections] = await Promise.all([
     getLatestReconcileDifferences(),
     getLatestCollectionPresenceDifferences(),
     getStorefrontLocales(),
     getLatestReconcileRun(),
     lastSuccessfulCollectionCheckAt(),
+    db.collection.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
   ]);
 
   return buildCatalogConflictSignals({
-    commerceProductIds: [],
+    commerceProductIds: commerceCollections.map((row) => row.id),
     differences,
     presenceDifferences,
     locales,
@@ -331,6 +418,9 @@ export async function runCollectionConflictCheck({
     },
   });
 
+  const commerce = await reconcileCollectionCommerceFlags();
+  maybeLogStagingCollectionCommerceCount(commerce.commerceCollectionIds.length);
+
   const [differences, presenceDifferences, locales, checkedAt] = await Promise.all([
     getLatestReconcileDifferences(),
     getLatestCollectionPresenceDifferences(),
@@ -339,7 +429,10 @@ export async function runCollectionConflictCheck({
   ]);
 
   const signals = buildCatalogConflictSignals({
-    commerceProductIds: [],
+    commerceProductIds: commerce.commerceCollectionIds.filter((id) => id === collectionId),
+    commerceFieldCounts: commerce.commerceFieldCounts[collectionId] != null
+      ? { [collectionId]: commerce.commerceFieldCounts[collectionId]! }
+      : {},
     differences,
     presenceDifferences,
     locales,
@@ -377,6 +470,9 @@ export async function runCollectionsConflictCheck(requestedBy: string): Promise<
     presenceWarning = error instanceof Error ? error.message : "Collection presence could not be checked.";
   }
 
+  const commerce = await reconcileCollectionCommerceFlags();
+  maybeLogStagingCollectionCommerceCount(commerce.commerceCollectionIds.length);
+
   const [differences, locales] = await Promise.all([
     getLatestReconcileDifferences(),
     getStorefrontLocales(),
@@ -388,7 +484,8 @@ export async function runCollectionsConflictCheck(requestedBy: string): Promise<
     .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0]
     ?? null;
   const signals = buildCatalogConflictSignals({
-    commerceProductIds: [],
+    commerceProductIds: commerce.commerceCollectionIds,
+    commerceFieldCounts: commerce.commerceFieldCounts,
     differences,
     presenceDifferences,
     locales,

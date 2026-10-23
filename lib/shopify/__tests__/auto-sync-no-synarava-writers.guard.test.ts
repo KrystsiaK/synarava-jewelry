@@ -124,4 +124,41 @@ describe("auto sync paths must not write Synarava data", () => {
     expect(route).not.toMatch(/applyShopifyProductTypeLabel/);
     expect(route).toMatch(/runTranslationReconciliation/);
   });
+
+  it("refreshShopifyCollectionState never writes Synarava content", () => {
+    const source = read("lib/shopify/collection-presence-server.ts");
+    const body = extractExportedFunction(source, "refreshShopifyCollectionState");
+    const dataBlock = (() => {
+      const marker = "await db.collection.update({";
+      const start = body.indexOf(marker);
+      if (start < 0) throw new Error("db.collection.update not found");
+      const dataIdx = body.indexOf("data:", start);
+      if (dataIdx < 0) throw new Error("data: not found");
+      const braceStart = body.indexOf("{", dataIdx);
+      let depth = 0;
+      for (let i = braceStart; i < body.length; i += 1) {
+        if (body[i] === "{") depth += 1;
+        else if (body[i] === "}") {
+          depth -= 1;
+          if (depth === 0) return body.slice(braceStart, i + 1);
+        }
+      }
+      throw new Error("Unbalanced data block");
+    })();
+    for (const key of ["workingSnapshot", "name", "slug", "description", "seoTitle", "seoDescription"]) {
+      expect(dataBlock, `refresh data must not write ${key}`).not.toMatch(new RegExp(`\\b${key}\\s*:`));
+    }
+    expect(body).not.toMatch(/collectionTranslation/);
+    expect(body).not.toMatch(/applyCollectionCommerceWindows/);
+    expect(dataBlock).toMatch(/shopifySnapshot/);
+    expect(dataBlock).toMatch(/syncStatus/);
+  });
+
+  it("collection conflict read model does not import apply/pull writers", () => {
+    const source = read("lib/shopify/collection-conflict.ts");
+    expect(source).not.toMatch(/applyShopifyCollectionToSynarava/);
+    expect(source).not.toMatch(/pullShopifyCollection/);
+    expect(source).not.toMatch(/applyCollectionCommerceWindows/);
+    expect(source).not.toMatch(/refreshShopifyCollectionState/);
+  });
 });
