@@ -1,7 +1,10 @@
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
 import { featuredCollectionPosition } from "@/lib/catalog/collection-order";
-import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
+import {
+  isVariantPurchasable,
+  withShopifyInventoryAvailability,
+} from "@/lib/commerce/variant-availability";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { formatCurrency } from "@/lib/i18n/format";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -77,10 +80,12 @@ const SHOP_LISTING_SELECT = {
   translations: {
     select: { locale: true, title: true, shortDescription: true, description: true, materialLine: true },
   },
+  shopifySnapshot: true,
   variants: {
     orderBy: { createdAt: "asc" },
     select: {
       status: true,
+      shopifyVariantId: true,
       stockOnHand: true,
       inventoryPolicy: true,
       tracked: true,
@@ -130,7 +135,11 @@ function mapProductRowToListing(
     seoDescription: null,
     translations: row.translations,
   }, locale);
-  const primaryVariant = row.variants.find(isVariantPurchasable) ?? row.variants[0];
+  const availabilityFor = (variant: (typeof row.variants)[number]) =>
+    withShopifyInventoryAvailability(variant, row.shopifySnapshot);
+  const primaryVariant =
+    row.variants.find((variant) => isVariantPurchasable(availabilityFor(variant))) ??
+    row.variants[0];
   const priceCents = primaryVariant?.priceCents ?? row.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   const productType = row.productType?.trim() ?? "";
@@ -150,7 +159,7 @@ function mapProductRowToListing(
     compareAtPrice: compareAtCents == null ? "" : formatCurrency(compareAtCents / 100, row.currency, locale),
     compareAtAmount: compareAtCents == null ? null : compareAtCents / 100,
     image: storefrontMedia(row.imageUrl, row.slug),
-    inStock: row.variants.some(isVariantPurchasable),
+    inStock: row.variants.some((variant) => isVariantPurchasable(availabilityFor(variant))),
     searchText: [
       row.slug, row.sku, row.seriesLabel, row.searchSummary, row.searchDocument,
       copy.title, copy.shortDescription, copy.description, copy.materialLine,

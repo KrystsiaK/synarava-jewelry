@@ -24,6 +24,7 @@ export type OrdersPaidWebhookPayload = {
   financial_status?: string;
   currency?: string;
   total_price?: string;
+  line_items?: unknown;
 };
 
 /** Extract ops-only fields — never mirror the full Shopify Order into a local store. */
@@ -115,8 +116,11 @@ export async function claimOrdersPaidDelivery(params: {
   });
 }
 
-export async function markOrdersPaidDeliverySucceeded(deliveryId: string) {
-  await db.shopifyWebhookDelivery.update({
+export async function markOrdersPaidDeliverySucceeded(
+  deliveryId: string,
+  tx: { shopifyWebhookDelivery: { update: typeof db.shopifyWebhookDelivery.update } } = db,
+) {
+  await tx.shopifyWebhookDelivery.update({
     where: { id: deliveryId },
     data: { status: "SUCCEEDED", completedAt: new Date(), error: null },
   });

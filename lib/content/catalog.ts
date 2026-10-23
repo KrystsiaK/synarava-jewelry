@@ -40,7 +40,10 @@ import { getS3PublicUrl } from "@/lib/s3";
 import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
 import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
-import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
+import {
+  isVariantPurchasable,
+  withShopifyInventoryAvailability,
+} from "@/lib/commerce/variant-availability";
 import {
   resolveProductCopy,
   type ProductTranslationRecord,
@@ -422,9 +425,13 @@ function toSummary(product: {
   // price must match what the PDP opens on, so this prefers the first
   // purchasable variant over the literal first-created one (REV-07);
   // ProductPurchasePanel's own initialVariant selection mirrors this.
-  const primaryVariant = product.variants.find((variant) => isVariantPurchasable(variant)) ?? product.variants[0];
+  const availabilityFor = (variant: (typeof product.variants)[number]) =>
+    withShopifyInventoryAvailability(variant, product.shopifySnapshot);
+  const primaryVariant =
+    product.variants.find((variant) => isVariantPurchasable(availabilityFor(variant))) ??
+    product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
-  const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
+  const inStock = product.variants.some((variant) => isVariantPurchasable(availabilityFor(variant)));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   // Options/metafields + gallery prefer OUR working tree (admin SoT), else last Pull.
@@ -517,7 +524,7 @@ function toSummary(product: {
         compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency, locale),
         compareAtAmount: variant.compareAtCents == null ? null : variant.compareAtCents / 100,
         stockOnHand: variant.stockOnHand,
-        available: isVariantPurchasable(variant),
+        available: isVariantPurchasable(availabilityFor(variant)),
         weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
         selectedOptions,
       };

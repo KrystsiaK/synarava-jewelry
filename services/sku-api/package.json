@@ -29,7 +29,7 @@
     "@prisma/client": "^6.19.3",
     "@synarava/sku-contract": "workspace:*",
     "@synarava/sku-core": "workspace:*",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
