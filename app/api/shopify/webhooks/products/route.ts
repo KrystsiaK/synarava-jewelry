@@ -3,7 +3,7 @@ import type { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { pullShopifyInventory, pullShopifyProduct } from "@/lib/shopify/product-sync";
+import { pullShopifyInventory, refreshShopifyProductState } from "@/lib/shopify/product-sync";
 import { shopifyGid, shopifyNumericId } from "@/lib/shopify/admin";
 import { claimWebhookEvent } from "@/lib/shopify/webhook-event";
 import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
@@ -42,13 +42,18 @@ export async function POST(request: Request) {
 
   try {
     if (isInventory) {
+      // Refresh Shopify inventory into shopifySnapshot + flag; never write stockOnHand.
       await pullShopifyInventory(shopifyGid("InventoryItem", payload.inventory_item_id!), event.id);
     } else if (topic === "products/delete") {
+      // Presence divergence only — human Apply chooses archive or push-back.
       const product = await db.product.findUnique({ where: { shopifyProductId: shopifyProductId! } });
       if (product) {
         await db.product.update({
           where: { id: product.id },
-          data: { status: "ARCHIVED", visibility: "PRIVATE", syncStatus: "UNLINKED", syncError: "Product was deleted in Shopify." },
+          data: {
+            syncStatus: "CONFLICT",
+            syncError: "Product was deleted in Shopify.",
+          },
         });
       }
       await db.productSyncEvent.update({
@@ -56,10 +61,8 @@ export async function POST(request: Request) {
         data: { productId: product?.id, status: "SUCCEEDED", completedAt: new Date() },
       });
     } else {
-      // Commerce projection only — never pull translations from products/*
-      // webhooks (Shopify has no translation-update topic; empty remote would
-      // wipe local locale drafts after our own Push).
-      await pullShopifyProduct(shopifyProductId!, event.id, false, { pullTranslations: false });
+      // products/create|update — Shopify-side copy + divergence flags only.
+      await refreshShopifyProductState(shopifyProductId!, event.id);
     }
     return NextResponse.json({ ok: true });
   } catch (error) {

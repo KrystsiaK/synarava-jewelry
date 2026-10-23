@@ -28,7 +28,7 @@ import {
   ensureShopifyStoreBinding,
   rebindShopifyStore,
 } from "@/lib/shopify/store-binding";
-import { ensureProductWebhookSubscriptions, inspectProductSyncState, pullShopifyProduct, pushProductToShopify } from "@/lib/shopify/product-sync";
+import { applyShopifyProductToSynarava, ensureProductWebhookSubscriptions, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-reviews";
 import { ensureOrderLifecycleWebhookSubscriptions } from "@/lib/shopify/order-lifecycle-webhooks";
 import { ensureOrdersPaidWebhookSubscription } from "@/lib/shopify/orders-paid-webhook";
@@ -538,7 +538,7 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
-    const pullResult = await pullShopifyProduct(product.shopifyProductId, undefined, force);
+    const pullResult = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, force);
     const { refreshCommerceSyncStore } = await import("@/lib/commerce-store/refresh");
     await refreshCommerceSyncStore();
     revalidateStorefront();
