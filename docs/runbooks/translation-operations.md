@@ -1,8 +1,10 @@
 # Translation operations
 
+**Model:** two states only (Synarava ↔ Shopify). No common-ancestor snapshot. See [`docs/wiki/translation-operations.md`](../wiki/translation-operations.md) and [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
+
 ## Daily workflow
 
-Edit every registered locale (English plus any translation locale — Portuguese, Russian, and so on) in the same admin editor. The sticky locale tabs render one per registered locale and only change the visible panel; they do not save, upload media, or duplicate shared relations. Save the entity, then use **Admin → Localization** to check Shopify and review the fields that differ. The page distinguishes changes made only in Synarava, only in Shopify, and on both sides.
+Edit every registered locale (English plus any translation locale — Portuguese, Russian, and so on) in the same admin editor. The sticky locale tabs render one per registered locale and only change the visible panel; they do not save, upload media, or duplicate shared relations. Save the entity, then use **Admin → Localization** to check Shopify and review the fields that differ. The page distinguishes changes made only in Synarava, only in Shopify, and on both sides. Refresh never overwrites Synarava copy — only a human Apply does.
 
 Use **Check now** to refresh the comparison. For a difference, review both values and choose the version to keep for each field before applying. Product editors reuse the same catalog conflict dialogs from the locale tab (scoped to that product and language) — there is no separate Sync details path. Collection editors and **Admin → Collections** use the same preview/apply stack for translation conflicts (`COLLECTION`). A failed or incomplete check is not evidence that the values match. Catalog products can also be resolved from **Admin → Products** via **Show conflicts**; that flow previews every supported field and also includes products that exist only in Shopify or only in Synarava, with Pull or Push as the sole valid direction. See [`docs/wiki/catalog-conflict-resolution-ux.md`](../wiki/catalog-conflict-resolution-ux.md).
 

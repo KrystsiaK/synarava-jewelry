@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { localCommerceMatchesProjection } from "@/lib/shopify/local-commerce-projection";
 import {
   canonicalizeShopifyProjection,
+  diffShopifyProjections,
   writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
-import { classifyProjectionMerge } from "@/lib/shopify/projection-merge";
 
 describe("localCommerceMatchesProjection", () => {
   it("detects price column drift from snapshot", () => {
@@ -32,7 +32,7 @@ describe("localCommerceMatchesProjection", () => {
     ).toBe(true);
   });
 
-  it("after write-through of local 11 vs Shopify 11 → synced; vs Shopify 10 → ahead", () => {
+  it("after write-through of local 11 vs Shopify 11 → no diffs; vs Shopify 10 → price differs", () => {
     const snapshot = {
       title: "Ring",
       variants: [{ id: "v1", price: "10.00", taxable: true }],
@@ -41,23 +41,19 @@ describe("localCommerceMatchesProjection", () => {
       title: "Ring",
       variant: { shopifyVariantId: "v1", priceCents: 1100, taxable: true },
     });
-    const base = snapshot;
 
     expect(
-      classifyProjectionMerge({
-        base,
-        local,
-        remote: { title: "Ring", variants: [{ id: "v1", price: "11.00", taxable: true }] },
-      }).state,
-    ).toBe("SYNCED");
+      diffShopifyProjections(local, {
+        title: "Ring",
+        variants: [{ id: "v1", price: "11.00", taxable: true }],
+      }),
+    ).toEqual([]);
 
-    expect(
-      classifyProjectionMerge({
-        base,
-        local,
-        remote: { title: "Ring", variants: [{ id: "v1", price: "10.00", taxable: true }] },
-      }).state,
-    ).toBe("LOCAL_CHANGES");
+    const ahead = diffShopifyProjections(local, {
+      title: "Ring",
+      variants: [{ id: "v1", price: "10.00", taxable: true }],
+    });
+    expect(ahead.some((diff) => diff.path.includes("price"))).toBe(true);
   });
 
   it("write-through of tags updates the compare projection", () => {

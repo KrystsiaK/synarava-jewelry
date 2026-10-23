@@ -78,7 +78,6 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     collectionTranslations,
     pageTranslations,
     handleRedirects,
-    translationSnapshots,
     translationCache,
   ] = await Promise.all([
     db.storefrontLocale.findUnique({ where: { code } }),
@@ -86,16 +85,8 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     db.collectionTranslation.findMany({ where: { locale: code } }),
     db.pageTranslation.findMany({ where: { locale: code } }),
     db.localizedHandleRedirect.findMany({ where: { locale: code } }),
-    db.shopifyTranslationSnapshot.findMany({ where: { locale: code } }),
     db.translationCache.findUnique({ where: { locale: code } }),
   ]);
-
-  const shopifyTranslations = translationSnapshots.map((snapshot) => ({
-    bindingId: snapshot.bindingId,
-    locale: snapshot.locale,
-    values: snapshot.values,
-    syncedAt: snapshot.syncedAt.toISOString(),
-  }));
 
   const payload: LanguageBundlePayload = {
     schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
@@ -126,13 +117,12 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     handleRedirects: handleRedirects.map((row) =>
       stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
     ),
-    translationSnapshots: translationSnapshots.map((row) =>
-      stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
-    ),
+    // Kept empty for schema v1 checksum shape; third-state translation ancestors are gone.
+    translationSnapshots: [],
     translationCache: translationCache
       ? stripIds(translationCache as unknown as Record<string, unknown>, ["createdAt", "updatedAt"])
       : null,
-    shopifyTranslations,
+    shopifyTranslations: [],
   };
 
   return attachLanguageBundleChecksum(payload);
@@ -144,7 +134,6 @@ export type ImportLanguageBundleResult = {
   collections: number;
   pages: number;
   redirects: number;
-  snapshots: number;
 };
 
 /**
@@ -405,25 +394,8 @@ export async function importLanguageBundle(
     redirects += 1;
   }
 
-  let snapshots = 0;
-  for (const raw of bundle.translationSnapshots) {
-    const row = raw as { bindingId: string; values: unknown; syncedAt?: string };
-    if (!row.bindingId) continue;
-    await db.shopifyTranslationSnapshot.upsert({
-      where: { bindingId_locale: { bindingId: row.bindingId, locale } },
-      create: {
-        bindingId: row.bindingId,
-        locale,
-        values: row.values as object,
-        syncedAt: row.syncedAt ? new Date(row.syncedAt) : new Date(),
-      },
-      update: {
-        values: row.values as object,
-        syncedAt: row.syncedAt ? new Date(row.syncedAt) : new Date(),
-      },
-    });
-    snapshots += 1;
-  }
+  // Legacy translationSnapshots / shopifyTranslations in older bundles are ignored
+  // (third-state ancestors removed; compare is two-way against live Shopify).
 
   if (bundle.translationCache && typeof bundle.translationCache === "object") {
     const cache = bundle.translationCache as { messages?: unknown };
@@ -461,5 +433,5 @@ export async function importLanguageBundle(
     });
   }
 
-  return { locale, products, collections, pages, redirects, snapshots };
+  return { locale, products, collections, pages, redirects };
 }
