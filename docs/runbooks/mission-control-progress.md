@@ -234,3 +234,33 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 ## Later stages
 
 v1 complete after Stage 6 lands (see plan §4 Definition of Done).
+
+---
+
+## Full-screen canvas readability pass
+
+- [2026-10-22] Rebuilt the desktop hub as a viewport-filling, no-page-scroll
+  operations canvas with a slim environment/search/counts toolbar, fit/reset and
+  fullscreen controls, a collapsible overview, and a persistent right inspector.
+  Mobile remains the list presentation.
+- [2026-10-22] Reworked map hierarchy: large live status/value/updated cards;
+  compact one-line reference nodes; titled group frames with count and worst live
+  status; reference-only groups collapsed by default; no MiniMap.
+- [2026-10-22] Unified rendered and tested node geometry, moved the Commerce
+  reference row clear of live cards, and added collision/bounds coverage. A
+  dragged node cannot be left over a sibling. Pushing a group edge expands that
+  group on the grid and shifts adjacent groups instead of overlapping them.
+  Positions remain a local view preference under ADR-0006.
+- [2026-10-22] Muted default flows and exposed labels/direction for selected,
+  fresh, warning, and down paths; hovering a node dims unrelated topology.
+- [2026-10-22] Added Storybook review states for mixed health, all-ok, all-down,
+  inspector, production, and explicit light/dark capture. Refreshed screenshots
+  at 1440, 768, and 390 pixels in `docs/assets/mission-control/`.
+- [2026-10-22] Scope remained read-only: links and clipboard only. No dependency,
+  table, schema, database, provider, or collector change.
+- [2026-10-22] Verification: Mission Control 58/58, typecheck and scoped ESLint
+  green, Storybook production build green, six responsive screenshots checked.
+  Required `pnpm test:run` was executed: 2137/2148 passed; six existing real-DB
+  integration tests failed closed because `127.0.0.1:55432` is unavailable, and
+  five unrelated UI cases timed out only in the fully parallel run. Those five
+  were rerun serially and passed 24/24. No database command or access was used.

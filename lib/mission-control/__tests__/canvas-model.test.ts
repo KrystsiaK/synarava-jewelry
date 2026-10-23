@@ -76,4 +76,20 @@ describe("Mission Control Stage 3 canvas model", () => {
     expect(nodes.filter((n) => n.type === "missionControl").every((n) => n.draggable === true)).toBe(true);
     expect(nodes.every((n) => n.connectable === false)).toBe(true);
   });
+
+  it("expands and reflows groups around locally moved nodes", () => {
+    const config = getMissionControlWiringConfig();
+    const { nodes } = buildCanvasGraph({
+      config,
+      catalog: MISSION_CONTROL_NODE_CATALOG,
+      positions: { "site-health": { x: 720, y: 360 } },
+    });
+    const app = nodes.find((node) => node.id === "group:app")!;
+    const commerce = nodes.find((node) => node.id === "group:commerce")!;
+    const sku = nodes.find((node) => node.id === "group:sku")!;
+    expect(Number(app.style?.width)).toBeGreaterThan(config.groups[0].size.width);
+    expect(Number(app.style?.height)).toBeGreaterThan(config.groups[0].size.height);
+    expect(commerce.position.x).toBeGreaterThan(config.groups[1].position.x);
+    expect(sku.position.y).toBeGreaterThan(config.groups[3].position.y);
+  });
 });
