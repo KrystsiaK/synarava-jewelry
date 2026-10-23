@@ -1,0 +1,70 @@
+{
+  "source": "live",
+  "query": "GroundTruthCollections",
+  "http": 200,
+  "errors": null,
+  "extensions": {
+    "cost": {
+      "requestedQueryCost": 122,
+      "actualQueryCost": 6,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1994,
+        "restoreRate": 100.0
+      }
+    }
+  },
+  "data": {
+    "collections": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "eyJsYXN0X2lkIjo3MDUyMDM1MzYyMDMsImxhc3RfdmFsdWUiOiI3MDUyMDM1MzYyMDMifQ=="
+      },
+      "nodes": [
+        {
+          "id": "gid://shopify/Collection/REDACTED",
+          "title": "REDACTED_TITLE",
+          "handle": "redacted-handle",
+          "descriptionHtml": "",
+          "updatedAt": "2026-10-13T20:28:21Z",
+          "seo": {
+            "title": null,
+            "description": null
+          },
+          "productsCount": {
+            "count": 1,
+            "precision": "EXACT"
+          },
+          "products": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "eyJsYXN0X2lkIjoxNjA3OTE4OTA4MjQ0MywibGFzdF92YWx1ZSI6IjAifQ=="
+            },
+            "nodes": [
+              {
+                "id": "gid://shopify/Product/REDACTED",
+                "handle": "redacted-handle",
+                "title": "REDACTED_TITLE"
+              }
+            ]
+          },
+          "metafields": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            },
+            "nodes": []
+          },
+          "sources": [
+            {
+              "__typename": "CollectionConditionsSource",
+              "id": "gid://shopify/CollectionConditionsSource/REDACTED",
+              "title": "REDACTED_TITLE",
+              "targetType": "PRODUCTS"
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,259 @@
+{
+  "apiVersion": "2026-07",
+  "mutation_count": 0,
+  "all_requests": [
+    {
+      "name": "collections",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 122,
+        "actualQueryCost": 6,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1994,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "locales_markets",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 93,
+        "actualQueryCost": 3,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1997,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": [
+        "ACCESS_DENIED"
+      ]
+    },
+    {
+      "name": "markets_light",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 8,
+        "actualQueryCost": 2,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1998,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": [
+        "ACCESS_DENIED"
+      ]
+    },
+    {
+      "name": "shop_locales",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 1,
+        "actualQueryCost": 1,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1999,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "products_full_window",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 974,
+        "actualQueryCost": 15,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1985,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "inventory_levels",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 30,
+        "actualQueryCost": 4,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1996,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "shop_locales_for_tr",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 1,
+        "actualQueryCost": 1,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1999,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "shop_locales_again",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 1,
+        "actualQueryCost": 1,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1999,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "translatable_PRODUCT",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 4,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1996,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "translatable_COLLECTION",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 3,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1997,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "translatable_PAGE",
+      "http": 200,
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 3,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1997,
+          "restoreRate": 100.0
+        }
+      },
+      "errors": null
+    },
+    {
+      "name": "translation_digest_probe",
+      "http": 200,
+      "cost": null,
+      "errors": [
+        "undefinedField"
+      ]
+    }
+  ],
+  "catalog_full_fetch_approx": {
+    "note": "Single first-page fetch of products(full PRODUCT_FIELDS) + collections(with products/seo/metafields). Shop has few entities so this approximates full catalog.",
+    "request_count": 2,
+    "actualQueryCost_sum": 21,
+    "requestedQueryCost_sum": 1096,
+    "per_request": [
+      {
+        "name": "collections",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 122,
+          "actualQueryCost": 6,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1994,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "products_full_window",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 974,
+          "actualQueryCost": 15,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1985,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      }
+    ]
+  },
+  "translations_full_fetch_approx": {
+    "note": "First page of PRODUCT+COLLECTION+PAGE translatableResources with translations(locale: en)",
+    "locale": "en",
+    "request_count": 3,
+    "actualQueryCost_sum": 10,
+    "requestedQueryCost_sum": 60,
+    "per_request": [
+      {
+        "name": "translatable_PRODUCT",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 4,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1996,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "translatable_COLLECTION",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "translatable_PAGE",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      }
+    ]
+  }
+}

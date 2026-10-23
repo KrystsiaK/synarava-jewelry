@@ -1,0 +1,66 @@
+{
+  "source": "live",
+  "query_parity": "lib/shopify/inventory-levels.ts fetchInventoryLevels",
+  "inventoryItemId": "gid://shopify/InventoryItem/REDACTED",
+  "http": 200,
+  "errors": null,
+  "extensions": {
+    "cost": {
+      "requestedQueryCost": 30,
+      "actualQueryCost": 4,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1996,
+        "restoreRate": 100.0
+      }
+    }
+  },
+  "data": {
+    "inventoryItem": {
+      "inventoryLevels": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "eyJsYXN0X2lkIjo3MzkxODEzNDY4MTkzMSwibGFzdF92YWx1ZSI6IjczOTE4MTM0NjgxOTMxIn0="
+        },
+        "nodes": [
+          {
+            "location": {
+              "id": "gid://shopify/Location/REDACTED"
+            },
+            "quantities": [
+              {
+                "name": "available",
+                "quantity": 4
+              },
+              {
+                "name": "committed",
+                "quantity": 1
+              },
+              {
+                "name": "on_hand",
+                "quantity": 5
+              },
+              {
+                "name": "reserved",
+                "quantity": 0
+              },
+              {
+                "name": "damaged",
+                "quantity": 0
+              },
+              {
+                "name": "quality_control",
+                "quantity": 0
+              },
+              {
+                "name": "safety_stock",
+                "quantity": 0
+              }
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "mutation_count": 0
+}

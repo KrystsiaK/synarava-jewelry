@@ -39,5 +39,9 @@
   "metaobject_definitions_errors": null,
   "metaobjects_http": 200,
   "metaobject_count": 1,
-  "metaobjects_errors": null
+  "metaobjects_errors": null,
+  "part2": {
+    "mutation_count": 0,
+    "see": "_capture-summary-part2.json"
+  }
 }
