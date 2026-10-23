@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
 
+import {
+  decrementStockForPaidOrderLines,
+  paidOrderStockLinesFromPayload,
+} from "@/lib/commerce/order-stock-decrement";
+import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import {
   claimOrdersPaidDelivery,
@@ -15,8 +20,9 @@ import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 export const runtime = "nodejs";
 
 /**
- * Production ORDERS_PAID signal: HMAC + idempotent receipt + structured log.
- * Shopify remains source of truth for Orders — this is confirmation/ops only.
+ * Production ORDERS_PAID: HMAC + idempotent receipt, then decrement our
+ * `stockOnHand` for ordered variants (floor 0). Cancel/refund do not restock —
+ * mismatch stays a normal admin divergence. Shopify remains SoT for Orders.
  * @see https://shopify.dev/docs/api/admin-graphql/latest/enums/WebhookSubscriptionTopic
  */
 export async function POST(request: Request) {
@@ -53,8 +59,12 @@ export async function POST(request: Request) {
   }
 
   try {
+    const lines = paidOrderStockLinesFromPayload(payload);
+    await db.$transaction(async (tx) => {
+      await decrementStockForPaidOrderLines(lines, tx);
+      await markOrdersPaidDeliverySucceeded(delivery.id, tx);
+    });
     logOrdersPaidSignal({ webhookId, topic, signal });
-    await markOrdersPaidDeliverySucceeded(delivery.id);
     return NextResponse.json({ ok: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Orders paid webhook processing failed.";
