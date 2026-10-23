@@ -121,6 +121,10 @@ export function MissionControlHub({
     else await workspaceRef.current.requestFullscreen();
   }
 
+  function toggleOverview() {
+    setOverviewOpen((value) => !value);
+  }
+
   return (
     <main className="mc-hub" ref={workspaceRef}>
       <header className="mc-toolbar">
@@ -141,30 +145,16 @@ export function MissionControlHub({
         </div>
       </header>
 
-      <section className="mc-map" aria-label="Service map">
-        <MissionControlCanvas
-          config={config}
-          catalog={catalog}
-          nodeStatuses={nodeStatuses}
-          flowStatuses={flowStatuses}
-          nowMs={nowMs}
-          placeholderNodeKeys={placeholderNodeKeys}
-          layout="auto"
-          environment={environment}
-          resetNonce={resetNonce}
-          fitNonce={fitNonce}
-          focusNodeKey={focusNodeKey}
-          selectedNodeKey={selectedNodeKey}
-          onSelectNode={setSelectedNodeKey}
-        />
-      </section>
-
-      <aside className="mc-overview" data-open={overviewOpen ? "true" : "false"} aria-label="System overview">
-        <button className="mc-overview__toggle" type="button" onClick={() => setOverviewOpen((value) => !value)} aria-expanded={overviewOpen}>
-          {overviewOpen ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
-          <span>{overviewOpen ? "Hide overview" : allClear ? "All systems healthy" : `${attention.length} need attention`}</span>
-        </button>
-        <div className="mc-overview__body">
+      <div className="mc-workspace" data-overview-open={overviewOpen ? "true" : "false"}>
+        <aside className="mc-overview" data-open={overviewOpen ? "true" : "false"} aria-label="System overview">
+          <div className="mc-overview__header">
+            <strong>Overview</strong>
+            <button className="mc-overview__toggle" type="button" onClick={toggleOverview} aria-expanded={overviewOpen} aria-label={overviewOpen ? "Hide overview" : "Show overview"}>
+              {overviewOpen ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+              <span>{overviewOpen ? "Hide" : allClear ? "Healthy" : `${attention.length}`}</span>
+            </button>
+          </div>
+          <div className="mc-overview__body" hidden={!overviewOpen}>
           <section className="mc-summary" aria-label="System status summary">
             <div className="mc-summary__states">
               {(["ok", "warn", "down", "unknown"] as const).map((level) => <div className="mc-summary__state" key={level} data-level={level}><MissionControlStatusMark level={level} compact /><strong>{counts[level]}</strong></div>)}
@@ -210,8 +200,26 @@ export function MissionControlHub({
           )}
         </AdminPanel.Body>
       </AdminPanel.Root>
-        </div>
-      </aside>
+          </div>
+        </aside>
+        <section className="mc-map" aria-label="Service map">
+          <MissionControlCanvas
+            config={config}
+            catalog={catalog}
+            nodeStatuses={nodeStatuses}
+            flowStatuses={flowStatuses}
+            nowMs={nowMs}
+            placeholderNodeKeys={placeholderNodeKeys}
+            layout="auto"
+            environment={environment}
+            resetNonce={resetNonce}
+            fitNonce={fitNonce}
+            focusNodeKey={focusNodeKey}
+            selectedNodeKey={selectedNodeKey}
+            onSelectNode={setSelectedNodeKey}
+          />
+        </section>
+      </div>
       <MissionControlNodeModal node={selectedNode} status={nodeStatuses.find((status) => status.nodeKey === selectedNodeKey)} config={config} environment={environment} liveEnvironment={liveEnvironment} onClose={() => setSelectedNodeKey(null)} onSelectNode={setSelectedNodeKey} />
     </main>
   );

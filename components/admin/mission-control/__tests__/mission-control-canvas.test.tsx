@@ -58,6 +58,7 @@ vi.mock("@xyflow/react", () => ({
   Background: () => null,
   MiniMap: () => null,
   Controls: () => null,
+  NodeResizeControl: () => null,
 }));
 
 const sharedProps = {
@@ -96,6 +97,9 @@ describe("MissionControlCanvas render", () => {
     expect(
       screen.getByTestId("mc-edge-site_to_monitoring:site-health->sentry"),
     ).toHaveAttribute("data-animated", "false");
+    expect(
+      screen.getByTestId("rf-edge-summary:site-health->group:monitoring:site_to_monitoring"),
+    ).toBeInTheDocument();
   });
 
   it("renders the same services as a mobile list without a canvas", () => {
