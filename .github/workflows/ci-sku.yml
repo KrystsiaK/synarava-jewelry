@@ -18,8 +18,10 @@ on:
       - "docs/testing/portable-sku-staging-matrix.md"
       - ".github/workflows/ci-sku.yml"
   push:
+    # Feature/bot branches are covered by pull_request only — avoid double runs.
     branches:
-      - "**"
+      - main
+      - staging
     paths:
       - "services/sku-api/**"
       - "packages/sku-core/**"
@@ -36,8 +38,9 @@ on:
       - ".github/workflows/ci-sku.yml"
 
 concurrency:
-  group: ci-sku-${{ github.ref }}
-  cancel-in-progress: true
+  # Per-PR cancel; push/tag runs never cancel each other.
+  group: ci-sku-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
