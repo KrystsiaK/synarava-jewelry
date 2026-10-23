@@ -49,7 +49,10 @@ Shopify recommends placing a test order after changing payment settings.
 | Logged-in checkout URL | Guest keeps raw URL; signed-in appends `sso=silent` | `lib/shopify/__tests__/cart.test.ts` |
 | Unavailable checkout UX | Alert and cart CTA; no silent redirect | `app/[locale]/checkout/__tests__/page.test.tsx` |
 | `ORDERS_PAID` HMAC | Reject invalid signature before claiming delivery | `app/api/shopify/webhooks/orders/paid/__tests__/route.test.ts` |
-| `ORDERS_PAID` deduplication | Duplicate claim returns `{ ok, duplicate }` | same |
+| `ORDERS_PAID` deduplication | Duplicate claim returns `{ ok, duplicate }` (no stock replay) | same |
+| `ORDERS_PAID` stock decrement | Quantity / floor 0 / unknown variant ignored | `lib/commerce/__tests__/order-stock-decrement.test.ts` |
+| Dual storefront availability | Ours ∧ Shopify inventory; CONTINUE / untracked / missing copy | `lib/commerce/__tests__/variant-availability.test.ts` |
+| Add-to-cart stock gate | Server refuses when ours or Shopify inventory is 0 | `lib/commerce/__tests__/storefront-cart.test.ts` |
 | Receipt and subscription | Ops summary, delivery claim, subscription setup | `lib/shopify/__tests__/orders-paid-webhook.test.ts` |
 | Shared webhook verification | HMAC verification primitive | `lib/shopify/__tests__/webhooks.test.ts` |
 | Cart permalink parser | Syntax, merge, limits, GID mapping | `lib/shopify/__tests__/cart-permalink.test.ts` |
