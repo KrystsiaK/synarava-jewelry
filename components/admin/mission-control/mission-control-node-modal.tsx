@@ -1,7 +1,6 @@
 "use client";
 
 import { ChevronRight, ExternalLink, X } from "lucide-react";
-import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { MissionControlCopyPromptButton } from "@/components/admin/mission-control/mission-control-copy-prompt-button";
 import { MissionControlNodeWidget } from "@/components/admin/mission-control/mission-control-node-widgets";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
@@ -36,7 +35,7 @@ export function MissionControlNodeModal({ node, status, config, environment, liv
   const showFix = node.kind === "live" && status?.level !== "ok" && Boolean(node.fixHint);
 
   return (
-    <AdminModal open onClose={onClose} ariaLabelledBy="mc-node-detail-title" className="mc-node-detail">
+    <aside className="mc-node-detail" role="dialog" aria-modal="false" aria-labelledby="mc-node-detail-title">
       <header className="mc-node-detail__header">
         <div><p className="mc-node-detail__eyebrow">{node.kind === "live" ? "Live service" : node.kind === "info" ? "Architecture reference" : "Planned · not wired"}</p><h2 id="mc-node-detail-title">{node.label}</h2></div>
         <button type="button" onClick={onClose} aria-label="Close service details"><X aria-hidden="true" /></button>
@@ -58,6 +57,6 @@ export function MissionControlNodeModal({ node, status, config, environment, liv
           <section><h3>Documentation</h3>{node.docs.length ? node.docs.map((doc) => <a key={doc.href} href={doc.href} target={doc.href.startsWith("http") ? "_blank" : undefined} rel={doc.href.startsWith("http") ? "noreferrer" : undefined}>{doc.label}<ExternalLink aria-hidden="true" /></a>) : <p className="mc-node-detail__todo">Owner TODO</p>}</section>
         </aside>
       </div>
-    </AdminModal>
+    </aside>
   );
 }

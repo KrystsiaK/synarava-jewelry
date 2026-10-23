@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { Clock3, RadioTower, RotateCcw, ShieldAlert } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ChevronLeft, ChevronRight, Clock3, Expand, Focus, Maximize2, Minimize2, RadioTower, RotateCcw, ShieldAlert } from "lucide-react";
 import type { WidgetPortManifest } from "@synarava/wiring-engine";
 import { MissionControlCanvas } from "@/components/admin/mission-control/mission-control-canvas";
 import { MissionControlCopyPromptButton } from "@/components/admin/mission-control/mission-control-copy-prompt-button";
@@ -71,6 +71,10 @@ export function MissionControlHub({
   const [environment, setEnvironment] = useState<MissionControlEnvironment>(liveEnvironment);
   const [selectedNodeKey, setSelectedNodeKey] = useState<string | null>(null);
   const [resetNonce, setResetNonce] = useState(0);
+  const [fitNonce, setFitNonce] = useState(0);
+  const [focusNodeKey, setFocusNodeKey] = useState("");
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const workspaceRef = useRef<HTMLElement>(null);
   const liveKeys = new Set(config.nodes.filter((node) => node.kind === "live").map((node) => node.widgetKey));
   const liveStatuses = nodeStatuses.filter((status) => liveKeys.has(status.nodeKey));
   const counts = liveStatuses.reduce(
@@ -92,65 +96,52 @@ export function MissionControlHub({
     .filter((entry) => Boolean(entry.fix?.fixHint))
     .sort((a, b) => LEVEL_ORDER[a.status.level] - LEVEL_ORDER[b.status.level]);
   const selectedNode = config.nodes.find((node) => node.widgetKey === selectedNodeKey) ?? null;
+  const allClear = attention.length === 0 && !collectorStale;
+  const [overviewOpen, setOverviewOpen] = useState(!allClear);
+
+  useEffect(() => {
+    const handleFullscreen = () => setIsFullscreen(document.fullscreenElement === workspaceRef.current);
+    document.addEventListener("fullscreenchange", handleFullscreen);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreen);
+  }, []);
+
+  function changeEnvironment(next: MissionControlEnvironment) {
+    setEnvironment(next);
+    setFitNonce((value) => value + 1);
+  }
+
+  function focusNode() {
+    if (!focusNodeKey) return;
+    setSelectedNodeKey(focusNodeKey);
+  }
+
+  async function toggleFullscreen() {
+    if (!workspaceRef.current) return;
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await workspaceRef.current.requestFullscreen();
+  }
 
   return (
-    <main className="mc-hub">
-      <header className="mc-hero">
-        <div>
-          <p className="mc-hero__context">Synarava operations</p>
-          <h1>Mission Control</h1>
-          <p className="mc-hero__lede">A read-only view of service health and the flows between them.</p>
-        </div>
-        <div className="mc-hero__mode" aria-label="Read-only monitoring">
+    <main className="mc-hub" ref={workspaceRef}>
+      <header className="mc-toolbar">
+        <div className="mc-toolbar__identity">
           <RadioTower aria-hidden="true" />
-          <span>Observe only</span>
+          <div><h1>Mission Control</h1><p>Read-only architecture · health from {liveEnvironment}</p></div>
+        </div>
+        <div className="mc-toolbar__actions">
+          <div className="mc-environment-switch" role="group" aria-label="Architecture environment">
+            {(["production", "staging"] as const).map((option) => <button key={option} type="button" aria-pressed={environment === option} onClick={() => changeEnvironment(option)}>{option === "production" ? "Prod" : "Staging"}</button>)}
+          </div>
+          <label className="mc-node-search"><span className="sr-only">Focus node</span><Focus aria-hidden="true" /><select value={focusNodeKey} onChange={(event) => setFocusNodeKey(event.target.value)}><option value="">Find node…</option>{config.nodes.map((node) => <option key={node.widgetKey} value={node.widgetKey}>{node.label}</option>)}</select></label>
+          <button className="mc-tool-button" type="button" onClick={focusNode} disabled={!focusNodeKey}>Focus</button>
+          <button className="mc-tool-button" type="button" onClick={() => setResetNonce((value) => value + 1)}><RotateCcw aria-hidden="true" />Reset layout</button>
+          <button className="mc-tool-button" type="button" onClick={() => setFitNonce((value) => value + 1)}><Expand aria-hidden="true" />Fit view</button>
+          <span className="mc-toolbar__counts">{config.nodes.length} nodes · {config.architectureBindings.length} flows</span>
+          <button className="mc-icon-tool" type="button" onClick={toggleFullscreen} aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}>{isFullscreen ? <Minimize2 aria-hidden="true" /> : <Maximize2 aria-hidden="true" />}</button>
         </div>
       </header>
 
-      <section className="mc-summary" aria-label="System status summary">
-        <div className="mc-summary__states">
-          {(["ok", "warn", "down", "unknown"] as const).map((level) => (
-            <div className="mc-summary__state" key={level} data-level={level}>
-              <MissionControlStatusMark level={level} compact />
-              <strong>{counts[level]}</strong>
-            </div>
-          ))}
-        </div>
-        <div className="mc-collector" data-stale={collectorStale ? "true" : "false"}>
-          {collectorStale ? <ShieldAlert aria-hidden="true" /> : <Clock3 aria-hidden="true" />}
-          <div>
-            <span>{collectorStale ? "Collector looks stale" : "Collector checked"}</span>
-            <time dateTime={lastCheckedAt?.toISOString()}>{checkedAtLabel(lastCheckedAt)}</time>
-          </div>
-        </div>
-      </section>
-
-      {showPlaceholderNotice ? (
-        <div
-          className="mc-fixture-notice"
-          role="status"
-          data-testid="mc-fixture-notice"
-        >
-          <span aria-hidden="true">Demo</span>
-          <p>{MISSION_CONTROL_PLACEHOLDER_NOTICE}</p>
-        </div>
-      ) : null}
-
-      <section className="mc-map" aria-labelledby="mc-map-title">
-        <div className="mc-section-heading">
-          <div>
-            <h2 id="mc-map-title">Service map</h2>
-            <p>Fresh flows carry a moving signal. Quiet lines have no recent activity.</p>
-          </div>
-          <div className="mc-map-tools">
-            <div className="mc-environment-switch" role="group" aria-label="Architecture environment">
-              {(["production", "staging"] as const).map((option) => <button key={option} type="button" aria-pressed={environment === option} onClick={() => setEnvironment(option)}>{option === "production" ? "Prod" : "Staging"}</button>)}
-            </div>
-            <button className="mc-reset-layout" type="button" onClick={() => setResetNonce((value) => value + 1)}><RotateCcw aria-hidden="true" />Reset layout</button>
-            <span>{config.nodes.length} nodes · {config.architectureBindings.length} flows</span>
-          </div>
-        </div>
-        <p className="mc-live-environment">Viewing <strong>{environment}</strong> architecture · live health comes from this <strong>{liveEnvironment}</strong> deployment.</p>
+      <section className="mc-map" aria-label="Service map">
         <MissionControlCanvas
           config={config}
           catalog={catalog}
@@ -161,10 +152,26 @@ export function MissionControlHub({
           layout="auto"
           environment={environment}
           resetNonce={resetNonce}
+          fitNonce={fitNonce}
+          focusNodeKey={focusNodeKey}
+          selectedNodeKey={selectedNodeKey}
           onSelectNode={setSelectedNodeKey}
         />
       </section>
 
+      <aside className="mc-overview" data-open={overviewOpen ? "true" : "false"} aria-label="System overview">
+        <button className="mc-overview__toggle" type="button" onClick={() => setOverviewOpen((value) => !value)} aria-expanded={overviewOpen}>
+          {overviewOpen ? <ChevronLeft aria-hidden="true" /> : <ChevronRight aria-hidden="true" />}
+          <span>{overviewOpen ? "Hide overview" : allClear ? "All systems healthy" : `${attention.length} need attention`}</span>
+        </button>
+        <div className="mc-overview__body">
+          <section className="mc-summary" aria-label="System status summary">
+            <div className="mc-summary__states">
+              {(["ok", "warn", "down", "unknown"] as const).map((level) => <div className="mc-summary__state" key={level} data-level={level}><MissionControlStatusMark level={level} compact /><strong>{counts[level]}</strong></div>)}
+            </div>
+            <div className="mc-collector" data-stale={collectorStale ? "true" : "false"}>{collectorStale ? <ShieldAlert aria-hidden="true" /> : <Clock3 aria-hidden="true" />}<div><span>{collectorStale ? "Collector looks stale" : "Collector checked"}</span><time dateTime={lastCheckedAt?.toISOString()}>{checkedAtLabel(lastCheckedAt)}</time></div></div>
+          </section>
+          {showPlaceholderNotice ? <div className="mc-fixture-notice" role="status" data-testid="mc-fixture-notice"><span aria-hidden="true">Demo</span><p>{MISSION_CONTROL_PLACEHOLDER_NOTICE}</p></div> : null}
       <AdminPanel.Root className="mc-attention" data-component="MissionControlAttention">
         <AdminPanel.Header className="mc-attention__header">
           <div>
@@ -203,6 +210,8 @@ export function MissionControlHub({
           )}
         </AdminPanel.Body>
       </AdminPanel.Root>
+        </div>
+      </aside>
       <MissionControlNodeModal node={selectedNode} status={nodeStatuses.find((status) => status.nodeKey === selectedNodeKey)} config={config} environment={environment} liveEnvironment={liveEnvironment} onClose={() => setSelectedNodeKey(null)} onSelectNode={setSelectedNodeKey} />
     </main>
   );
