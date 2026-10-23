@@ -84,7 +84,8 @@ export function buildCatalogConflictSignals({
           : ["SYNARAVA_TO_SHOPIFY"],
     };
   }
-  if (rootEntityType === "PRODUCT") {
+  // Products and collections both carry shared commerce divergences (PR4 + PR5a).
+  if (rootEntityType === "PRODUCT" || rootEntityType === "COLLECTION") {
     for (const productId of commerceProductIds) {
       const fieldCount = Math.max(0, Math.trunc(commerceFieldCounts[productId] ?? 0));
       products[productId] = products[productId] ?? { shared: true, locales: [], sharedCount: 0 };
