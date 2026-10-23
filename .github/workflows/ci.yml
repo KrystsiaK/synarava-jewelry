@@ -70,36 +70,17 @@ jobs:
               - 'scripts/sku-platform-production-plan-check.sh'
               - 'scripts/lib/railway-*.mjs'
 
-  quality:
-    name: Quality Gates
+  # Parallel quality workers. The required check name stays "Quality Gates"
+  # via the aggregator job below (must not rely on needs alone — skipped deps
+  # would otherwise look green on GitHub).
+  static:
+    name: Static checks
     runs-on: ubuntu-latest
-    timeout-minutes: 25
-    services:
-      # A handful of unit-test files (lib/i18n/__tests__/*-save-integration.test.ts)
-      # exercise the real save actions against a real Postgres instance instead of
-      # mocking @/lib/db, so `pnpm test:run` needs a reachable database here too —
-      # not just in the storefront-smoke job below.
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: synarava_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d synarava_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    timeout-minutes: 15
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
-      APP_URL: http://localhost:3000
-      # GitHub Packages (@synarava/wiring-engine, shell-kit). See deploy.md.
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -122,7 +103,6 @@ jobs:
       - name: Check release version
         run: pnpm check:version
 
-
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
@@ -132,14 +112,127 @@ jobs:
       - name: Dependency security audit
         run: pnpm audit --audit-level high --prod
 
+  unit:
+    name: Unit tests (${{ matrix.shard }}/3)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    services:
+      # A handful of unit-test files (lib/i18n/__tests__/*-save-integration.test.ts)
+      # exercise the real save actions against a real Postgres instance instead of
+      # mocking @/lib/db, so vitest needs a reachable database here too —
+      # not just in the storefront-smoke job below.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synarava_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synarava_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      APP_URL: http://localhost:3000
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Auth GitHub Packages (@synarava)
+        run: node scripts/ensure-github-packages-auth.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
       - name: Push database schema
         run: pnpm prisma:push
 
-      - name: Unit tests
-        run: pnpm test:run
+      - name: Unit tests (vitest shard)
+        run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
+
+      # Preserve the rest of `pnpm test:run` (workspace package suites) once.
+      - name: SKU package unit tests
+        if: matrix.shard == 1
+        run: pnpm test:sku
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      # next build may read DATABASE_URL for prisma generate / config; point at a
+      # dummy URL — schema push is not required for a compile-only build.
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      APP_URL: http://localhost:3000
+      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Auth GitHub Packages (@synarava)
+        run: node scripts/ensure-github-packages-auth.mjs
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Build
         run: pnpm build
+
+  quality:
+    name: Quality Gates
+    needs: [static, unit, build]
+    # Always run so a failed/cancelled/skipped dependency cannot leave the
+    # required check missing or vacuously green.
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Aggregate quality results
+        run: |
+          set -euo pipefail
+          require_success() {
+            local name="$1"
+            local result="$2"
+            echo "${name}: ${result}"
+            if [ "${result}" != "success" ]; then
+              echo "::error::Quality Gates failed because ${name} was ${result} (required: success)"
+              exit 1
+            fi
+          }
+          require_success "Static checks" "${{ needs.static.result }}"
+          require_success "Unit tests" "${{ needs.unit.result }}"
+          require_success "Build" "${{ needs.build.result }}"
+          echo "All quality dependencies succeeded."
 
   storefront-smoke:
     name: Storefront smoke (desktop and mobile)
