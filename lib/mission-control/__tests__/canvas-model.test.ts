@@ -92,4 +92,30 @@ describe("Mission Control Stage 3 canvas model", () => {
     expect(commerce.position.x).toBeGreaterThan(config.groups[1].position.x);
     expect(sku.position.y).toBeGreaterThan(config.groups[3].position.y);
   });
+
+  it("restores locally resized groups without allowing a frame smaller than its contents", () => {
+    const config = getMissionControlWiringConfig();
+    const { nodes } = buildCanvasGraph({
+      config,
+      catalog: MISSION_CONTROL_NODE_CATALOG,
+      groupSizes: {
+        commerce: { width: 1240, height: 640 },
+        app: { width: 100, height: 100 },
+      },
+    });
+    const commerce = nodes.find((node) => node.id === "group:commerce")!;
+    const app = nodes.find((node) => node.id === "group:app")!;
+    expect(commerce.style).toMatchObject({ width: 1240, height: 640 });
+    expect(Number(app.style?.width)).toBeGreaterThanOrEqual(config.groups[0].size.width);
+    expect(Number(app.style?.height)).toBeGreaterThanOrEqual(config.groups[0].size.height);
+  });
+
+  it("marks configured relationships that cross group boundaries", () => {
+    const { edges } = buildCanvasGraph({
+      config: getMissionControlWiringConfig(),
+      catalog: MISSION_CONTROL_NODE_CATALOG,
+    });
+    expect(edges.find((edge) => edge.data?.busKey === "site_to_monitoring")?.data?.crossGroup).toBe(true);
+    expect(edges.find((edge) => edge.data?.busKey === "shopify_to_sync")?.data?.crossGroup).toBe(false);
+  });
 });
