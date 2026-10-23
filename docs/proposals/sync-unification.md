@@ -233,6 +233,7 @@ See §7. Drop `CommerceSyncStore` if badges no longer need it (D1). Drop `projec
 | `CommerceSyncStore` (if replaced) | PR6 |
 | `TranslationsCms` field merge/apply UI | PR5 |
 | Duplicate collection/product dialog implementations | PR5 |
+| Parallel counter builders (`countAdminNavSyncBySection` from raw reconcile rows, `commerceFieldCountsFromStore`, badge≠banner paths) | PR5 — replaced by `selectSyncCounts` |
 
 **Keep:** ADR-0003 `canonicalize` + `diffShopifyProjections`; human Save write-through; human Apply adapters; language bundle export/import; local-only Synarava fields; `TranslationSyncEvent` / `ProductSyncEvent` as audit of **human** sync actions.
 
@@ -253,30 +254,162 @@ Conflict field Apply does **not** live on this page.
 
 ## 9. Shopify Admin GraphQL (API **2026-07**) — fetch shape
 
-Verified against the live Admin GraphQL schema (Shopify MCP `graphql_schema`) and [manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content) / [rate limits](https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits). Store default version: `SHOPIFY_ADMIN_API_VERSION` → `2026-07` (`lib/shopify/admin.ts`).
+Verified against the live Admin GraphQL **schema** (Shopify MCP `graphql_schema`) and official docs: [manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content), [TranslatableResource](https://shopify.dev/docs/api/admin-graphql/latest/objects/TranslatableResource), [rate limits](https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits). App default version: `SHOPIFY_ADMIN_API_VERSION` → `2026-07` (`lib/shopify/admin.ts`).
+
+### Live RO probe status (this agent run)
+
+**Did not run live catalog queries.**
+
+| Check | Result |
+| --- | --- |
+| Staging Agent RO Admin token in env | **Absent** — no `SHOPIFY_ADMIN_ACCESS_TOKEN` (or staging-prefixed equivalent) |
+| Client credentials in env | `SHOPIFY_CLIENT_ID` + `SHOPIFY_CLIENT_SECRET` + `SHOPIFY_STORE_DOMAIN` are set (app can mint Admin tokens via client_credentials in `lib/shopify/admin.ts`) |
+| Confirmed **dev / staging** store for Agent RO | **No** — hard rule is **dev store only**; Shopify MCP `get-shop-info` is connected to the live Synarava Basic shop, not an isolated staging/dev shop |
+| Action taken | **Skipped** token mint + catalog GraphQL against that shop. Schema-only inspection (no store data) remains valid. |
+
+When a dedicated **staging/dev** read-only Admin credential is available to agents, re-run the probe queries below and replace the “expected shape” blocks with real `extensions.cost` + redacted node samples.
 
 ### Can existing translations per locale ride the same paginated query?
 
-**Yes.**
+**Yes** (schema + official docs; not re-proven with live cost numbers this run).
 
 | Mechanism | What the API allows |
 | --- | --- |
-| `translatableResources(first:, after:, resourceType:)` | Paginated list of `TranslatableResource`. Each node exposes `translations(locale: String!)` (also `marketId`, `outdated`). Nesting `translations(locale:)` under the connection is the documented pattern ([translatableResource / TranslatableResource](https://shopify.dev/docs/api/admin-graphql/latest/objects/TranslatableResource)). Our code already does this in `fetchTranslatableResourceIndex` (`lib/shopify/translations.ts:341–346`). |
-| `Product.translations(locale: String!)` / `Collection.translations(locale: String!)` | Same locale-filtered field on the commerce objects themselves (schema). A `products(first:)` / `collections(first:)` page can request commerce fields **and** `translations(locale:)` in **one** GraphQL operation. |
+| `translatableResources(first:, after:, resourceType:)` | Paginated list of `TranslatableResource`. Each node exposes `translations(locale: String!)` (also `marketId`, `outdated`). Nesting `translations(locale:)` under the connection is the documented pattern. Our code already does this in `fetchTranslatableResourceIndex` (`lib/shopify/translations.ts:341–346`). |
+| `Product.translations(locale: String!)` / `Collection.translations(locale: String!)` | Same locale-filtered field on the commerce objects (schema). A `products(first:)` / `collections(first:)` page can request commerce fields **and** `translations(locale:)` in **one** GraphQL operation. |
 | Multiple locales | `translations` takes a **single required** `locale: String!` per field selection. Multiple locales in one document = GraphQL **aliases** (e.g. `tPt: translations(locale: "pt-PT")`, `tRu: translations(locale: "ru")`) or one request per locale. No multi-locale array argument on the field. |
 
 **Implication for waterfall step 1:** “Full Shopify state” for catalog sync can include commerce + per-locale translations without a separate Bulk Operation. Prefer nesting on `products` / `collections` (and/or one `translatableResources` pass per resource type) so step 1 stays a small number of paginated Admin queries.
 
 ### Is Bulk Operation required at our size (~52 products, ~12 collections)?
 
-**No.**
+**No** (from official rate-limit docs + catalog size; live `extensions.cost` not measured this run).
 
 - Single GraphQL query hard cap: **1000 cost points**; pagination up to **250** nodes per page ([rate limits](https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits)).
 - 52 products and 12 collections each fit in **one page** (`first: 100` is enough).
 - Shopify positions bulk ops for **large** catalogs (thousands of products / avoiding max cost), not for this scale.
-- At ~2–3 published non-default locales, even aliased multi-locale selections stay far under the 1000-point single-query ceiling for this catalog size.
+- At ~2–3 published non-default locales, even aliased multi-locale selections should stay far under the 1000-point single-query ceiling for this catalog size.
 
 **Use bulk only if** catalog growth or nested metafield/translation fan-out later pushes requested cost near 1000 or page counts become large — not as part of the initial unification design.
+
+### Probe queries + redacted expected shapes (for staging RO when available)
+
+Run against Admin API **2026-07** only. Never log tokens. Redact GIDs / titles / translation values in any committed output.
+
+**A — Products page: commerce fields + one locale’s translations + pagination + cost**
+
+```graphql
+query SyncProbeProducts($locale: String!) {
+  products(first: 50) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      handle
+      title
+      status
+      translations(locale: $locale) { key value updatedAt outdated }
+    }
+  }
+}
+```
+
+Expected redacted shape (schema/docs; live sample TBD):
+
+```json
+{
+  "data": {
+    "products": {
+      "pageInfo": { "hasNextPage": false, "endCursor": "<cursor>" },
+      "nodes": [
+        {
+          "id": "gid://shopify/Product/<id>",
+          "handle": "<handle>",
+          "title": "<redacted>",
+          "status": "ACTIVE",
+          "translations": [
+            { "key": "title", "value": "<redacted>", "updatedAt": "<iso>", "outdated": false }
+          ]
+        }
+      ]
+    }
+  },
+  "extensions": {
+    "cost": {
+      "requestedQueryCost": "<n>",
+      "actualQueryCost": "<n>",
+      "throttleStatus": { "maximumAvailable": "<n>", "currentlyAvailable": "<n>", "restoreRate": "<n>" }
+    }
+  }
+}
+```
+
+**B — Same page, two locales via aliases**
+
+```graphql
+query SyncProbeProductsMultiLocale {
+  products(first: 50) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      tPt: translations(locale: "pt-PT") { key value updatedAt outdated }
+      tRu: translations(locale: "ru") { key value updatedAt outdated }
+    }
+  }
+}
+```
+
+Expected: each node has `tPt` / `tRu` arrays (possibly empty); still one connection page; cost in `extensions.cost`.
+
+**C — `translatableResources` pagination (PRODUCT) with nested translations**
+
+```graphql
+query SyncProbeTranslatableProducts($locale: String!, $after: String) {
+  translatableResources(first: 50, after: $after, resourceType: PRODUCT) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      resourceId
+      translations(locale: $locale) { key value updatedAt outdated }
+    }
+  }
+}
+```
+
+Expected redacted shape:
+
+```json
+{
+  "data": {
+    "translatableResources": {
+      "pageInfo": { "hasNextPage": false, "endCursor": null },
+      "nodes": [
+        {
+          "resourceId": "gid://shopify/Product/<id>",
+          "translations": [{ "key": "title", "value": "<redacted>", "updatedAt": "<iso>", "outdated": false }]
+        }
+      ]
+    }
+  },
+  "extensions": { "cost": { "requestedQueryCost": "<n>", "actualQueryCost": "<n>" } }
+}
+```
+
+**D — Collections (same pattern)**
+
+```graphql
+query SyncProbeCollections($locale: String!) {
+  collections(first: 50) {
+    pageInfo { hasNextPage endCursor }
+    nodes {
+      id
+      handle
+      title
+      translations(locale: $locale) { key value updatedAt outdated }
+    }
+  }
+}
+```
+
+**Pass criteria when RO staging runs:** `hasNextPage` false at `first: 50` for both products (~52) and collections (~12); `actualQueryCost` ≪ 1000 for A–D; translation keys present for locales that have content; no mutations.
 
 ---
 
