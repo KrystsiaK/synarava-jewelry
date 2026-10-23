@@ -84,6 +84,16 @@ import {
   alignMetafieldResolvedValues,
   writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
+import {
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
+
+export {
+  ADOPT_SHOPIFY_FIELD_KEY,
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
@@ -1422,14 +1432,16 @@ export type ProductSyncInspection = {
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];
+  /** True when Synarava has no commerce window yet — human must Adopt Shopify. */
+  workingSnapshotMissing?: boolean;
   debug?: ProductSyncInspectDebug;
 };
 
 /**
- * Dual-snapshot inspect:
- * 1) fetch Shopify → write shopifySnapshot
- * 2) ensure workingSnapshot (seed once from shopify if missing)
- * 3) diff(working, shopify) → state
+ * Dual-snapshot inspect (read path — never writes Synarava content):
+ * 1) fetch Shopify → write shopifySnapshot (+ syncStatus from compare)
+ * 2) read workingSnapshot (do not seed/align-persist)
+ * 3) diff in memory → state; missing window → Adopt Shopify row
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
@@ -1466,73 +1478,51 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
+  const workingSnapshotMissing = local.workingSnapshot == null;
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
-  // working = Synarava window. Seed once; never overwrite on inspect/refresh.
-  let workingSnapshot = local.workingSnapshot;
-  if (workingSnapshot == null) {
-    const variant = local.variants[0];
-    const seeded = writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: local.name,
-      handle: local.slug,
-      vendor: local.vendor,
-      productType: local.productType,
-      variant: variant
-        ? {
-            shopifyVariantId: variant.shopifyVariantId,
-            sku: variant.sku,
-            priceCents: variant.priceCents,
-            taxable: variant.taxable,
-            inventoryQuantity: variant.stockOnHand,
-          }
-        : { priceCents: local.priceCents },
-    });
-    workingSnapshot = seeded as Prisma.JsonValue;
+  let differences: ProductSyncDifference[];
+  let compareWorking: unknown = local.workingSnapshot;
+
+  if (workingSnapshotMissing) {
+    differences = [{
+      field: ADOPT_SHOPIFY_FIELD_LABEL,
+      local: "— No Synarava commerce window —",
+      shopify: [remote.title, remote.handle ? `handle ${remote.handle}` : ""].filter(Boolean).join(" · "),
+      path: ADOPT_SHOPIFY_FIELD_PATH,
+    }];
+  } else {
+    // Display enrichment only — never persisted on inspect (V14).
+    compareWorking = alignMetafieldResolvedValues(local.workingSnapshot, shopifySnapshot);
+    differences = diffShopifyProjections(compareWorking, shopifySnapshot).map((item) => ({
+      field: item.field,
+      local: item.local,
+      shopify: item.shopify,
+      path: item.path,
+    }));
   }
 
-  // Align category display enrichment so missing resolvedValues do not look like
-  // empty-OUR commerce conflicts against a live Shopify fetch.
-  workingSnapshot = alignMetafieldResolvedValues(
-    workingSnapshot,
-    shopifySnapshot,
-  ) as Prisma.JsonValue;
-
+  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
   await db.product.update({
     where: { id: productId },
     data: {
       shopifySnapshot,
-      workingSnapshot: workingSnapshot as Prisma.InputJsonValue,
       shopifyUpdatedAt: new Date(remote.updatedAt),
+      ...(state === "SYNCED"
+        ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
+        : {
+            syncStatus: "CONFLICT" as const,
+            syncError: workingSnapshotMissing
+              ? "Synarava commerce window is missing — Adopt Shopify to create it."
+              : "workingSnapshot and shopifySnapshot differ.",
+          }),
     },
   });
 
-  const differences: ProductSyncDifference[] = diffShopifyProjections(
-    workingSnapshot,
-    shopifySnapshot,
-  ).map((item) => ({
-    field: item.field,
-    local: item.local,
-    shopify: item.shopify,
-    path: item.path,
-  }));
-
-  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
-  if (state === "SYNCED") {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-    });
-  } else {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "CONFLICT", syncError: "workingSnapshot and shopifySnapshot differ." },
-    });
-  }
-
-  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
   const debug: ProductSyncInspectDebug = {
     shopifyResponse: remote,
     shopifySnapshot,
-    workingSnapshot,
+    workingSnapshot: compareWorking,
     differences,
   };
 
@@ -1541,6 +1531,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     remoteUpdatedAt: remote.updatedAt,
     publications: publishedPublications,
     differences,
+    workingSnapshotMissing,
     debug,
   };
 }
