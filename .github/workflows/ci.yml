@@ -178,11 +178,24 @@ jobs:
     name: Build
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    services:
+      # Match prior Quality Gates env: next build can touch Prisma during SSG.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synarava_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synarava_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      # next build may read DATABASE_URL for prisma generate / config; point at a
-      # dummy URL — schema push is not required for a compile-only build.
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
       APP_URL: http://localhost:3000
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
@@ -205,8 +218,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Push database schema
+        run: pnpm prisma:push
+
       - name: Build
         run: pnpm build
+
+      - name: Upload Next.js build
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: next-build
+          path: |
+            .next
+            !/.next/cache
+          retention-days: 1
+          if-no-files-found: error
 
   quality:
     name: Quality Gates
@@ -236,9 +262,10 @@ jobs:
 
   storefront-smoke:
     name: Storefront smoke (desktop and mobile)
-    needs: changes
+    needs: [changes, build]
     # Skip heavy smoke when the diff is sku/docs-only; always run on tag pushes.
-    if: ${{ needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/') }}
+    # Require a successful build artifact (do not start smoke on a failed build).
+    if: ${{ (needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/')) && needs.build.result == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -272,9 +299,13 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:push
 
-      # Build before smoke so Playwright starts `next start` (fast, deterministic)
-      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
-      - run: pnpm build
+      # Reuse the Build job artifact so Playwright starts `next start` without a
+      # second full compile (same determinism as an in-job pnpm build).
+      - name: Download Next.js build
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: next-build
+          path: .next
 
       # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
       - name: Cache Playwright browsers
