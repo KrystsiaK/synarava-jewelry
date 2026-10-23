@@ -68,7 +68,7 @@ beforeEach(() => {
   mocks.getPublishedStorefrontLocales.mockResolvedValue(LOCALES);
   mocks.getLatestReconcileDifferences.mockResolvedValue([]);
   mocks.findManyProduct.mockResolvedValue([]);
-  mocks.findUniqueProduct.mockResolvedValue({ id: "product-1" });
+  mocks.findUniqueProduct.mockResolvedValue({ id: "product-1", workingSnapshot: { title: "Local" } });
   mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([]);
 });
 
@@ -159,6 +159,44 @@ describe("getProductCatalogConflict", () => {
 
     expect(result.fields).toHaveLength(1);
     expect(result.fields[0]).toMatchObject({ scope: { kind: "SHARED" }, origin: "COMMERCE", label: "Vendor" });
+  });
+
+  it("surfaces Adopt Shopify as the only commerce row when workingSnapshot is missing", async () => {
+    mocks.findUniqueProduct.mockResolvedValue({ id: "product-1", workingSnapshot: null });
+    mocks.inspectProductSyncState.mockResolvedValue(
+      inspection({
+        state: "CONFLICT",
+        workingSnapshotMissing: true,
+        differences: [
+          {
+            field: "Adopt Shopify",
+            local: "— No Synarava commerce window —",
+            shopify: "Shopify title · handle shopify-handle",
+            path: "_adopt",
+          },
+          // Path-level phantoms must not become choosable commerce rows.
+          { field: "Vendor", local: "—", shopify: "Other", path: "vendor" },
+        ],
+      }),
+    );
+    mocks.getLatestReconcileDifferences.mockResolvedValue([
+      translationDiff({ id: "diff-pt", locale: "pt-PT", fieldKey: "title" }),
+    ]);
+
+    const result = await getProductCatalogConflict("product-1");
+
+    const commerce = result.fields.filter((field) => field.origin === "COMMERCE");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]).toMatchObject({
+      fieldKey: "commerce:adopt-shopify",
+      origin: "COMMERCE",
+      label: "Adopt Shopify",
+      path: "_adopt",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      blockedReason: null,
+    });
+    expect(result.fields.some((field) => field.origin === "TRANSLATION")).toBe(true);
+    expect(result.fields.some((field) => field.label === "Vendor")).toBe(false);
   });
 
   it("gives a commerce field real, stable sha256 fingerprints and no sourceId (whole-product apply, not one row per field)", async () => {

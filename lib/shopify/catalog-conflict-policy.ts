@@ -9,6 +9,11 @@ export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
   "Charge tax",
 ]);
 
+/** Synthetic commerce row when Synarava `workingSnapshot` is absent (human Adopt). */
+export const ADOPT_SHOPIFY_FIELD_KEY = "commerce:adopt-shopify";
+export const ADOPT_SHOPIFY_FIELD_LABEL = "Adopt Shopify";
+export const ADOPT_SHOPIFY_FIELD_PATH = "_adopt";
+
 /** Media gallery rows — adopt whole `media` (Pull) or Push pipeline (Push). */
 export function isMediaGalleryFieldLabel(label: string): boolean {
   return label === "Media gallery" || label.startsWith("Media gallery (");

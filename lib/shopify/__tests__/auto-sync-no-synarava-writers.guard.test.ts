@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guard: automatic paths (product webhooks + refreshShopifyProductState + pull
- * translation loop + AUTO reconcile) must not write Synarava content.
- * Human Apply (reconcile field apply / explicit applyShopifyProductToSynarava
- * commerce columns) keep those writers.
+ * Guard: automatic / read paths (webhooks, refresh, inspect, pull translation loop, AUTO
+ * reconcile, taxonomy load) must not import or call Synarava content writers.
+ * Human Apply/Pull (reconcile field apply / explicit applyShopifyProductToSynarava)
+ * keep those writers.
  */
 
 const root = join(process.cwd());
@@ -181,5 +181,32 @@ describe("auto sync paths must not write Synarava data", () => {
       expect(code, label).not.toMatch(/\blastSnapshot\b/);
       expect(code, label).not.toMatch(/FROM\s+"ShopifyTranslationSnapshot"/);
     }
+  });
+
+  it("inspectProductSyncState refreshes Shopify only — never writes Synarava content", () => {
+    const source = read("lib/shopify/product-sync.ts");
+    const body = extractFunction(source, "inspectProductSyncState");
+    for (const pattern of SYNARAVA_WRITER_PATTERNS) {
+      expect(body, `inspect must not match ${pattern}`).not.toMatch(pattern);
+    }
+    expect(body).not.toMatch(/writeThroughLocalCommerceToProjection/);
+    expect(body).not.toMatch(/adoptShopifyProjectionField/);
+    expect(body).not.toMatch(/agreedProjectionWrite/);
+    expect(body).toMatch(/shopifySnapshot/);
+    expect(body).toMatch(/ADOPT_SHOPIFY_FIELD/);
+    const dataBlock = productUpdateDataBlock(body);
+    for (const key of FORBIDDEN_REFRESH_DATA_KEYS) {
+      expect(dataBlock, `inspect data must not write ${key}`).not.toMatch(
+        new RegExp(`\\b${key}\\s*:`),
+      );
+    }
+    expect(dataBlock).toMatch(/shopifySnapshot/);
+    expect(dataBlock).toMatch(/syncStatus/);
+  });
+
+  it("taxonomy labels editor load does not seed TaxonomyValueLabel", () => {
+    const action = read("app/admin/actions/taxonomy-labels.ts");
+    expect(action).toMatch(/loadTaxonomyLabelsEditorPayload/);
+    expect(action).not.toMatch(/ensureTaxonomySeedLabels/);
   });
 });
