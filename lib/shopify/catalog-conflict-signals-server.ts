@@ -41,7 +41,7 @@ async function commerceFieldCountsFromStore(): Promise<Record<string, number>> {
   for (const entry of row.conflictReport as CommerceStoreConflict[]) {
     const productId = entry.localProductId;
     if (!productId || !Array.isArray(entry.differences)) continue;
-    const fieldDiffs = entry.differences.filter((diff) => diff.path !== "_presence");
+    const fieldDiffs = entry.differences.filter((diff) => diff.path !== "_presence" && diff.path !== "_adopt");
     if (fieldDiffs.length === 0) continue;
     counts[productId] = fieldDiffs.length;
   }

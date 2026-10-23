@@ -17,7 +17,7 @@ import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-ca
 import { listStorefrontLocales } from "@/lib/i18n/storefront-locale-registry";
 import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 import { registerProductTranslation } from "@/lib/shopify/translations";
-import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
+import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
 
 export type TranslationOverviewEntity = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
 
@@ -61,12 +61,9 @@ async function syncCollection(collectionId: string, locale: SyncTargetLocale, ac
       seoTitle: snapshot.seoTitle,
       seoDescription: snapshot.seoDescription,
     }, locale.shopifyLocale);
-    await Promise.all([
-      saveTranslationSnapshot({ bindingId: binding.id, locale: locale.shopifyLocale, values: snapshot }),
-      recordSyncEvent({
-        bindingId: binding.id, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername,
-      }),
-    ]);
+    await recordSyncEvent({
+      bindingId: binding.id, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await Promise.all([
@@ -134,16 +131,13 @@ async function syncProductNativeTranslation(productId: string, locale: SyncTarge
       seoTitle: snapshot.seoTitle,
       seoDescription: snapshot.seoDescription,
     }, locale.shopifyLocale);
-    await Promise.all([
-      saveTranslationSnapshot({ bindingId: binding.id, locale: locale.shopifyLocale, values: snapshot }),
-      recordSyncEvent({
-        bindingId: binding.id,
-        locale: locale.code,
-        direction: "PUSH",
-        status: "SUCCEEDED",
-        actorUsername,
-      }),
-    ]);
+    await recordSyncEvent({
+      bindingId: binding.id,
+      locale: locale.code,
+      direction: "PUSH",
+      status: "SUCCEEDED",
+      actorUsername,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     await Promise.all([

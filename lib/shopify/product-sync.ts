@@ -2,7 +2,7 @@ import "server-only";
 
 import { fetchInventoryLevels, selectStockOnHand, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
 
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -74,7 +74,6 @@ import {
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
-import { applyShopifyProductTypeLabel } from "@/lib/catalog/taxonomy-value-labels";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import {
   canonicalizeShopifyProjection,
@@ -84,6 +83,16 @@ import {
   alignMetafieldResolvedValues,
   writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
+import {
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
+
+export {
+  ADOPT_SHOPIFY_FIELD_KEY,
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
@@ -920,7 +929,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
+  { pullTranslations = true }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -929,8 +938,9 @@ async function finishPulledProduct(
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
-  // Product webhooks update commerce only — Shopify has no translation-update
-  // webhooks; translations reconcile via explicit conflict check / manual pull.
+  // Pull translations = fetch Shopify copy + flag divergences only.
+  // Never auto APPLY_REMOTE / upsert ProductTranslation / TaxonomyValueLabel —
+  // human Apply (reconcile field apply) is the only Synarava content write path.
   const translationLocales = pullTranslations
     ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
     : [];
@@ -950,17 +960,6 @@ async function finishPulledProduct(
     }
     if (!translationAvailable) continue;
 
-    // Shared taxonomy overlay: PRODUCT.product_type translation → one EN value.
-    // Pull-only; never invent a parallel commerce type. Category SPT has no
-    // Translations API surface — Synarava overlays cover those gaps.
-    if (remoteTranslation?.productType && remote.productType?.trim()) {
-      await applyShopifyProductTypeLabel({
-        enProductType: remote.productType,
-        locale: translationLocale.code,
-        label: remoteTranslation.productType,
-      });
-    }
-
     const localShopifyCopy = localTranslation ? {
       handle: "",
       title: localTranslation.title,
@@ -968,82 +967,28 @@ async function finishPulledProduct(
       seoTitle: localTranslation.seoTitle ?? "",
       seoDescription: localTranslation.seoDescription ?? "",
     } : null;
+    // force:false — never treat pull as APPLY_REMOTE auto-write.
     const decision = decideProductTranslationPull({
       local: localShopifyCopy,
       localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
       localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
       remote: remoteTranslation,
-      force,
+      force: false,
     });
+    if (decision === "UNCHANGED") continue;
 
-    if (decision === "CONFLICT" && localTranslation) {
-      if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "CONFLICT";
+    // Any Synarava ≠ Shopify difference is a divergence; human picks direction.
+    if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) {
+      translationStatus = "CONFLICT";
+    }
+    if (localTranslation) {
       await db.productTranslation.update({
         where: { id: localTranslation.id },
         data: {
           syncStatus: "CONFLICT",
-          syncError: `${translationLocale.name} copy changed in both Synarava and Shopify. Choose Pull or Push to resolve it.`,
+          syncError: `${translationLocale.name} Synarava and Shopify translations differ. Choose which side to keep on Apply.`,
         },
       });
-    } else if (decision === "KEEP_LOCAL") {
-      if (TRANSLATION_STATUS_RANK.LOCAL_CHANGES > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "LOCAL_CHANGES";
-    } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
-      if (remoteTranslation || localTranslation) {
-        const mergedCopy = {
-          localizedHandle: null as string | null,
-          title: remoteTranslation?.title ?? "",
-          shortDescription: localTranslation?.shortDescription ?? null,
-          description: remoteTranslation ? sanitizeRichTextHtml(remoteTranslation.descriptionHtml) || null : null,
-          materialLine: localTranslation?.materialLine ?? null,
-          symbolismLabel: localTranslation?.symbolismLabel ?? null,
-          symbolismTitle: localTranslation?.symbolismTitle ?? null,
-          symbolismBody: localTranslation?.symbolismBody ?? null,
-          symbolismBody2: localTranslation?.symbolismBody2 ?? null,
-          details: localTranslation?.details ?? undefined,
-          seoTitle: remoteTranslation?.seoTitle || null,
-          seoDescription: remoteTranslation?.seoDescription || null,
-        };
-        const contentHash = createHash("sha256").update(JSON.stringify({
-          title: mergedCopy.title,
-          shortDescription: mergedCopy.shortDescription,
-          description: mergedCopy.description,
-          materialLine: mergedCopy.materialLine,
-          symbolismLabel: mergedCopy.symbolismLabel,
-          symbolismTitle: mergedCopy.symbolismTitle,
-          symbolismBody: mergedCopy.symbolismBody,
-          symbolismBody2: mergedCopy.symbolismBody2,
-          seoTitle: mergedCopy.seoTitle,
-          seoDescription: mergedCopy.seoDescription,
-        })).digest("hex");
-        const reviewed = Boolean(
-          remoteTranslation?.title
-          && mergedCopy.description
-          && mergedCopy.shortDescription
-          && localTranslation?.reviewStatus === "REVIEWED"
-          && !remoteTranslation.outdated,
-        );
-        await db.productTranslation.upsert({
-          where: { productId_locale: { productId: product.id, locale: translationLocale.code } },
-          update: {
-            ...mergedCopy,
-            reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-            reviewedAt: reviewed ? localTranslation?.reviewedAt ?? new Date() : null,
-            syncStatus: "SYNCED",
-            syncError: null,
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-          create: {
-            productId: product.id,
-            locale: translationLocale.code,
-            ...mergedCopy,
-            reviewStatus: "DRAFT",
-            syncStatus: "SYNCED",
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-        });
-      }
     }
   }
 
@@ -1422,14 +1367,16 @@ export type ProductSyncInspection = {
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];
+  /** True when Synarava has no commerce window yet — human must Adopt Shopify. */
+  workingSnapshotMissing?: boolean;
   debug?: ProductSyncInspectDebug;
 };
 
 /**
- * Dual-snapshot inspect:
- * 1) fetch Shopify → write shopifySnapshot
- * 2) ensure workingSnapshot (seed once from shopify if missing)
- * 3) diff(working, shopify) → state
+ * Dual-snapshot inspect (read path — never writes Synarava content):
+ * 1) fetch Shopify → write shopifySnapshot (+ syncStatus from compare)
+ * 2) read workingSnapshot (do not seed/align-persist)
+ * 3) diff in memory → state; missing window → Adopt Shopify row
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
@@ -1466,73 +1413,51 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
+  const workingSnapshotMissing = local.workingSnapshot == null;
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
-  // working = Synarava window. Seed once; never overwrite on inspect/refresh.
-  let workingSnapshot = local.workingSnapshot;
-  if (workingSnapshot == null) {
-    const variant = local.variants[0];
-    const seeded = writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: local.name,
-      handle: local.slug,
-      vendor: local.vendor,
-      productType: local.productType,
-      variant: variant
-        ? {
-            shopifyVariantId: variant.shopifyVariantId,
-            sku: variant.sku,
-            priceCents: variant.priceCents,
-            taxable: variant.taxable,
-            inventoryQuantity: variant.stockOnHand,
-          }
-        : { priceCents: local.priceCents },
-    });
-    workingSnapshot = seeded as Prisma.JsonValue;
+  let differences: ProductSyncDifference[];
+  let compareWorking: unknown = local.workingSnapshot;
+
+  if (workingSnapshotMissing) {
+    differences = [{
+      field: ADOPT_SHOPIFY_FIELD_LABEL,
+      local: "— No Synarava commerce window —",
+      shopify: [remote.title, remote.handle ? `handle ${remote.handle}` : ""].filter(Boolean).join(" · "),
+      path: ADOPT_SHOPIFY_FIELD_PATH,
+    }];
+  } else {
+    // Display enrichment only — never persisted on inspect (V14).
+    compareWorking = alignMetafieldResolvedValues(local.workingSnapshot, shopifySnapshot);
+    differences = diffShopifyProjections(compareWorking, shopifySnapshot).map((item) => ({
+      field: item.field,
+      local: item.local,
+      shopify: item.shopify,
+      path: item.path,
+    }));
   }
 
-  // Align category display enrichment so missing resolvedValues do not look like
-  // empty-OUR commerce conflicts against a live Shopify fetch.
-  workingSnapshot = alignMetafieldResolvedValues(
-    workingSnapshot,
-    shopifySnapshot,
-  ) as Prisma.JsonValue;
-
+  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
   await db.product.update({
     where: { id: productId },
     data: {
       shopifySnapshot,
-      workingSnapshot: workingSnapshot as Prisma.InputJsonValue,
       shopifyUpdatedAt: new Date(remote.updatedAt),
+      ...(state === "SYNCED"
+        ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
+        : {
+            syncStatus: "CONFLICT" as const,
+            syncError: workingSnapshotMissing
+              ? "Synarava commerce window is missing — Adopt Shopify to create it."
+              : "workingSnapshot and shopifySnapshot differ.",
+          }),
     },
   });
 
-  const differences: ProductSyncDifference[] = diffShopifyProjections(
-    workingSnapshot,
-    shopifySnapshot,
-  ).map((item) => ({
-    field: item.field,
-    local: item.local,
-    shopify: item.shopify,
-    path: item.path,
-  }));
-
-  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
-  if (state === "SYNCED") {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-    });
-  } else {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "CONFLICT", syncError: "workingSnapshot and shopifySnapshot differ." },
-    });
-  }
-
-  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
   const debug: ProductSyncInspectDebug = {
     shopifyResponse: remote,
     shopifySnapshot,
-    workingSnapshot,
+    workingSnapshot: compareWorking,
     differences,
   };
 
@@ -1541,6 +1466,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     remoteUpdatedAt: remote.updatedAt,
     publications: publishedPublications,
     differences,
+    workingSnapshotMissing,
     debug,
   };
 }

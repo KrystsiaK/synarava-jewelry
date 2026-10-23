@@ -56,15 +56,14 @@ describe("normalizeSyncValue", () => {
   });
 });
 
-describe("compareLocalizedFields", () => {
-  const base = { title: "Ring", body: "Old body", details: { material: "Silver" }, sku: "SKU-1" };
+describe("compareLocalizedFields (two-way)", () => {
+  const shared = { title: "Ring", body: "Old body", details: { material: "Silver" }, sku: "SKU-1" };
 
   it("returns only real localized differences and never shared commerce fields", () => {
     const differences = compareLocalizedFields(
       REGISTRY,
-      base,
-      { ...base, title: "New ring", sku: "SKU-2" },
-      { ...base, sku: "SKU-3" },
+      { ...shared, title: "New ring", sku: "SKU-2" },
+      { ...shared, sku: "SKU-3" },
     );
 
     expect(differences).toHaveLength(1);
@@ -72,22 +71,23 @@ describe("compareLocalizedFields", () => {
       fieldKey: "title",
       fieldLabel: "Title",
       targetKind: "native",
-      kind: "local-only",
-      baseValue: "Ring",
+      kind: "conflict",
+      baseValue: null,
       localValue: "New ring",
       shopifyValue: "Ring",
     });
   });
 
-  it("classifies Shopify-only edits and carries remote freshness metadata", () => {
-    const differences = compareLocalizedFields(REGISTRY, base, base, { ...base, body: "Edited in Shopify" }, {
+  it("marks Shopify-only value changes as conflict and carries remote freshness metadata", () => {
+    const differences = compareLocalizedFields(REGISTRY, shared, { ...shared, body: "Edited in Shopify" }, {
       body: { updatedAt: "2026-09-20T09:00:00.000Z", outdated: false },
     });
 
     expect(differences).toHaveLength(1);
     expect(differences[0]).toMatchObject({
       fieldKey: "body",
-      kind: "shopify-only",
+      kind: "conflict",
+      baseValue: null,
       shopifyUpdatedAt: "2026-09-20T09:00:00.000Z",
       shopifyOutdated: false,
     });
@@ -96,19 +96,18 @@ describe("compareLocalizedFields", () => {
   it("marks incompatible two-sided edits as a conflict", () => {
     const differences = compareLocalizedFields(
       REGISTRY,
-      base,
-      { ...base, title: "Synarava title" },
-      { ...base, title: "Shopify title" },
+      { ...shared, title: "Synarava title" },
+      { ...shared, title: "Shopify title" },
     );
 
     expect(differences).toHaveLength(1);
     expect(differences[0].kind).toBe("conflict");
   });
 
-  it("uses a safe first-sync classification when no common base exists", () => {
-    expect(compareLocalizedFields(REGISTRY, null, { title: "Local" }, { title: "" })[0].kind).toBe("local-only");
-    expect(compareLocalizedFields(REGISTRY, null, { title: "" }, { title: "Remote" })[0].kind).toBe("shopify-only");
-    expect(compareLocalizedFields(REGISTRY, null, { title: "Local" }, { title: "Remote" })[0].kind).toBe("conflict");
+  it("treats one-sided empty as a divergence (human picks direction) — never local-only/shopify-only auto-direction", () => {
+    expect(compareLocalizedFields(REGISTRY, { title: "Local" }, { title: "" })[0].kind).toBe("conflict");
+    expect(compareLocalizedFields(REGISTRY, { title: "" }, { title: "Remote" })[0].kind).toBe("conflict");
+    expect(compareLocalizedFields(REGISTRY, { title: "Local" }, { title: "Remote" })[0].kind).toBe("conflict");
   });
 
   it.each([
@@ -118,6 +117,6 @@ describe("compareLocalizedFields", () => {
     ["Shared", STOREFRONT_COPY_FIELD_REGISTRY, "footer.tagline"],
   ])("supports the %s registry without emitting equal fields", (_name, registry, fieldKey) => {
     const value = { [fieldKey]: "Same value" };
-    expect(compareLocalizedFields(registry, value, value, value)).toEqual([]);
+    expect(compareLocalizedFields(registry, value, value)).toEqual([]);
   });
 });

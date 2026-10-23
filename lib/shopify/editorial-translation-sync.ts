@@ -18,7 +18,7 @@ import {
 } from "@/lib/shopify/editorial-metaobjects";
 import { registerPageTranslation } from "@/lib/shopify/page-translations";
 import { upsertShopifyPage } from "@/lib/shopify/page-resource";
-import { ensureTranslationBinding, recordSyncEvent, saveTranslationSnapshot } from "@/lib/shopify/translation-sync";
+import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
 
 export type TargetResult = { target: "PAGE" | "METAOBJECT"; status: "SUCCEEDED" | "FAILED"; error?: string };
@@ -92,8 +92,8 @@ async function recordTargetFailure(bindingId: string, error: unknown, locale: Sy
   });
 }
 
-async function completeTarget(bindingId: string, snapshot: Record<string, unknown>, locale: SyncTargetLocale, actorUsername?: string | null) {
-  await saveTranslationSnapshot({ bindingId, locale: locale.shopifyLocale, values: snapshot });
+async function completeTarget(bindingId: string, _snapshot: Record<string, unknown>, locale: SyncTargetLocale, actorUsername?: string | null) {
+  // No common-ancestor snapshot write — two-way compare uses live Shopify vs Synarava (PR3).
   await recordSyncEvent({ bindingId, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername });
 }
 
