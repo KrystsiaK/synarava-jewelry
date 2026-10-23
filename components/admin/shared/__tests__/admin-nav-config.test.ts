@@ -56,6 +56,7 @@ describe("admin-nav-config", () => {
     const problems = items.find((item) => item.id === "issues");
     const translations = items.find((item) => item.id === "translations");
     const infrastructure = items.find((item) => item.id === "infrastructure");
+    const help = items.find((item) => item.id === "help");
 
     expect(pages?.children).toHaveLength(2);
     expect(pages?.children?.[0]).toMatchObject({ href: "/admin/pages/home", label: "Home" });
@@ -92,6 +93,8 @@ describe("admin-nav-config", () => {
     expect(problems).toBeUndefined();
     expect(translations).toMatchObject({ label: "Translations", badge: { kind: "sync", count: 9 } });
     expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });
+    expect(help).toMatchObject({ href: "/admin/help", label: "Help", code: "HELP" });
+    expect(items.at(-1)?.id).toBe("help");
   });
 
   it("falls back to syncCount total when syncCounts is omitted", () => {

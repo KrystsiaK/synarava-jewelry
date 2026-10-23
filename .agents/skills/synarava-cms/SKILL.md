@@ -66,6 +66,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Admin sidebar tree (config + router sync) | `AdminNavTree` / `buildAdminNavItems` |
 | Section tabs + content well | `AdminSectionTabs` — one compact row. Each language button is its own hue (tint at rest, solid when selected). `AdminLocaleTabs` paints a 3px border of that color on the enclosing panel or form. Section tabs color their background |
 | Dense entity list shell | `AdminEntityList` (`.Root` / `.Header` / `.Row` / `.LoadMore`) |
+| Admin documentation | `AdminHelpIndex` / `AdminHelpArticle` |
 | Sticky list chrome (title / filters / body) | `AdminListWorkspace` (`.Root` / `.Header` / `.Filters` / `.Body`) |
 | Text button (primary/secondary/ghost/danger) | `AdminButton` |
 | Icon action + tooltip | `AdminIconButton` |

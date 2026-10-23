@@ -74,6 +74,14 @@ export {
 export { AdminHelp } from "@/components/admin/shared/admin-help";
 
 export {
+  AdminHelpArticle,
+  parseHelpBlocks,
+  type AdminHelpArticleProps,
+} from "@/components/admin/shared/admin-help-article";
+
+export { AdminHelpIndex } from "@/components/admin/shared/admin-help-index";
+
+export {
   AdminAlert,
   type AdminAlertProps,
   type AdminAlertTone,
