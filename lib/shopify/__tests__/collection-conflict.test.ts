@@ -4,6 +4,17 @@ const mocks = vi.hoisted(() => ({
   getLatestReconcileDifferences: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
   getLatestCollectionPresenceDifferences: vi.fn(),
+  findUniqueCollection: vi.fn(),
+  findManyCollections: vi.fn(),
+}));
+
+vi.mock("@/lib/db", () => ({
+  db: {
+    collection: {
+      findUnique: mocks.findUniqueCollection,
+      findMany: mocks.findManyCollections,
+    },
+  },
 }));
 
 vi.mock("@/lib/shopify/reconciliation-run", () => ({
@@ -71,9 +82,84 @@ describe("getCollectionCatalogConflict", () => {
     mocks.getPublishedStorefrontLocales.mockResolvedValue(locales);
     mocks.getLatestReconcileDifferences.mockResolvedValue([]);
     mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
+    mocks.findUniqueCollection.mockResolvedValue({
+      id: "collection-1",
+      shopifyCollectionId: "gid://shopify/Collection/1",
+      workingSnapshot: {
+        title: "Local name",
+        handle: "local-handle",
+        descriptionHtml: "<p>Local</p>",
+        seo: { title: "Local SEO", description: null },
+      },
+      shopifySnapshot: {
+        title: "Shopify name",
+        handle: "shopify-handle",
+        descriptionHtml: "<p>Shopify</p>",
+        seo: { title: "Shopify SEO", description: null },
+      },
+    });
+    mocks.findManyCollections.mockResolvedValue([]);
+  });
+
+  it("includes SHARED commerce fields from existing windows (title, handle, description, seo)", async () => {
+    const result = await getCollectionCatalogConflict("collection-1");
+
+    const commerce = result.fields.filter((field) => field.origin === "COMMERCE");
+    expect(commerce.map((field) => field.label).sort()).toEqual([
+      "Description",
+      "Handle",
+      "Name",
+      "SEO title",
+    ]);
+    expect(commerce.every((field) => field.scope.kind === "SHARED")).toBe(true);
+    expect(commerce.every((field) =>
+      field.allowedDirections.includes("SHOPIFY_TO_SYNARAVA")
+      && field.allowedDirections.includes("SYNARAVA_TO_SHOPIFY"),
+    )).toBe(true);
+    expect(commerce.find((field) => field.label === "Name")).toMatchObject({
+      synaravaValue: "Local name",
+      shopifyValue: "Shopify name",
+      blockedReason: null,
+    });
+  });
+
+  it("surfaces Adopt Shopify when workingSnapshot is missing", async () => {
+    mocks.findUniqueCollection.mockResolvedValue({
+      id: "collection-1",
+      shopifyCollectionId: "gid://shopify/Collection/1",
+      workingSnapshot: null,
+      shopifySnapshot: { title: "Shopify name", handle: "shopify-handle" },
+    });
+
+    const result = await getCollectionCatalogConflict("collection-1");
+    const commerce = result.fields.filter((field) => field.origin === "COMMERCE");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]).toMatchObject({
+      fieldKey: "commerce:adopt-shopify",
+      label: "Adopt Shopify",
+      path: "_adopt",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    });
   });
 
   it("returns every unresolved COLLECTION translation field, including one-sided changes", async () => {
+    // Matching windows so commerce rows stay out of this translation-focused case.
+    mocks.findUniqueCollection.mockResolvedValue({
+      id: "collection-1",
+      shopifyCollectionId: "gid://shopify/Collection/1",
+      workingSnapshot: {
+        title: "Same",
+        handle: "same",
+        descriptionHtml: "<p>Same</p>",
+        seo: { title: null, description: null },
+      },
+      shopifySnapshot: {
+        title: "Same",
+        handle: "same",
+        descriptionHtml: "<p>Same</p>",
+        seo: { title: null, description: null },
+      },
+    });
     mocks.getLatestReconcileDifferences.mockResolvedValue([
       difference(),
       difference({ id: "diff-2", rootEntityType: "PRODUCT", rootEntityId: "collection-1" }),
@@ -84,25 +170,26 @@ describe("getCollectionCatalogConflict", () => {
 
     const result = await getCollectionCatalogConflict("collection-1");
     expect(result.collectionId).toBe("collection-1");
-    expect(result.fields).toHaveLength(3);
-    expect(result.fields.map((field) => field.fieldKey)).toEqual([
+    const translations = result.fields.filter((field) => field.origin === "TRANSLATION");
+    expect(translations).toHaveLength(3);
+    expect(translations.map((field) => field.fieldKey)).toEqual([
       "translation:pt-PT:title",
       "translation:pt-PT:seoTitle",
       "translation:en:description",
     ]);
-    expect(result.fields[0]).toMatchObject({
+    expect(translations[0]).toMatchObject({
       fieldKey: "translation:pt-PT:title",
       label: "Title",
       origin: "TRANSLATION",
       scope: { kind: "LOCALE", code: "pt" },
       sourceId: "diff-1",
     });
-    expect(result.fields[1]).toMatchObject({
+    expect(translations[1]).toMatchObject({
       fieldKey: "translation:pt-PT:seoTitle",
       label: "SEO title",
       sourceId: "diff-3",
     });
-    expect(result.fields[2]).toMatchObject({
+    expect(translations[2]).toMatchObject({
       fieldKey: "translation:en:description",
       scope: { kind: "LOCALE", code: "en" },
     });
@@ -149,6 +236,7 @@ describe("listConflictedCollectionIds", () => {
   beforeEach(() => {
     mocks.getLatestReconcileDifferences.mockResolvedValue([]);
     mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
+    mocks.findManyCollections.mockResolvedValue([]);
   });
 
   it("deduplicates collection ids for every unresolved kind and presence", async () => {
@@ -167,5 +255,10 @@ describe("listConflictedCollectionIds", () => {
       "collection-2",
       "shopify-collection:42",
     ]);
+  });
+
+  it("includes collections with commerce window CONFLICT syncStatus", async () => {
+    mocks.findManyCollections.mockResolvedValue([{ id: "commerce-conflict-1" }]);
+    await expect(listConflictedCollectionIds()).resolves.toEqual(["commerce-conflict-1"]);
   });
 });
