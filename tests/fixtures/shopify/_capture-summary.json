@@ -1,0 +1,43 @@
+{
+  "apiVersion": "2026-07",
+  "hostname_label": "synarava-shop-staging",
+  "hostname_ends_with_myshopify": true,
+  "scope": "read_products,read_inventory,read_locales,read_translations,read_publications,read_metaobjects,read_metaobject_definitions",
+  "files": [
+    "_meta-shop-probe.json",
+    "products-first-3.json",
+    "products-first-3-shape.json",
+    "write-denied-productUpdate.json",
+    "metaobject-definitions.json",
+    "metaobjects-sample.json",
+    "shop-locales.json"
+  ],
+  "shop_http": 200,
+  "plan": {
+    "displayName": "Basic App Development",
+    "partnerDevelopment": true,
+    "shopifyPlus": false
+  },
+  "shop_errors": null,
+  "products_http": 200,
+  "product_count": 2,
+  "product_errors": null,
+  "denial": {
+    "http_status": 200,
+    "graphql_error_codes": [
+      "ACCESS_DENIED"
+    ],
+    "graphql_error_messages": [
+      "Access denied for productUpdate field. Required access: `write_products` access scope. Also: The user must have a permission to update products."
+    ],
+    "userErrors": [],
+    "interpreted_as_denied": true,
+    "product_mutated": false
+  },
+  "metaobject_definitions_http": 200,
+  "metaobject_definition_count": 1,
+  "metaobject_definitions_errors": null,
+  "metaobjects_http": 200,
+  "metaobject_count": 1,
+  "metaobjects_errors": null
+}
