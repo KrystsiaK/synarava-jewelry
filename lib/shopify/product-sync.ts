@@ -2,7 +2,7 @@ import "server-only";
 
 import { fetchInventoryLevels, selectStockOnHand, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
 
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -74,7 +74,6 @@ import {
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
-import { applyShopifyProductTypeLabel } from "@/lib/catalog/taxonomy-value-labels";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import {
   canonicalizeShopifyProjection,
@@ -930,7 +929,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
+  { pullTranslations = true }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -939,8 +938,9 @@ async function finishPulledProduct(
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
-  // Product webhooks update commerce only — Shopify has no translation-update
-  // webhooks; translations reconcile via explicit conflict check / manual pull.
+  // Pull translations = fetch Shopify copy + flag divergences only.
+  // Never auto APPLY_REMOTE / upsert ProductTranslation / TaxonomyValueLabel —
+  // human Apply (reconcile field apply) is the only Synarava content write path.
   const translationLocales = pullTranslations
     ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
     : [];
@@ -960,17 +960,6 @@ async function finishPulledProduct(
     }
     if (!translationAvailable) continue;
 
-    // Shared taxonomy overlay: PRODUCT.product_type translation → one EN value.
-    // Pull-only; never invent a parallel commerce type. Category SPT has no
-    // Translations API surface — Synarava overlays cover those gaps.
-    if (remoteTranslation?.productType && remote.productType?.trim()) {
-      await applyShopifyProductTypeLabel({
-        enProductType: remote.productType,
-        locale: translationLocale.code,
-        label: remoteTranslation.productType,
-      });
-    }
-
     const localShopifyCopy = localTranslation ? {
       handle: "",
       title: localTranslation.title,
@@ -978,82 +967,28 @@ async function finishPulledProduct(
       seoTitle: localTranslation.seoTitle ?? "",
       seoDescription: localTranslation.seoDescription ?? "",
     } : null;
+    // force:false — never treat pull as APPLY_REMOTE auto-write.
     const decision = decideProductTranslationPull({
       local: localShopifyCopy,
       localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
       localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
       remote: remoteTranslation,
-      force,
+      force: false,
     });
+    if (decision === "UNCHANGED") continue;
 
-    if (decision === "CONFLICT" && localTranslation) {
-      if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "CONFLICT";
+    // Any Synarava ≠ Shopify difference is a divergence; human picks direction.
+    if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) {
+      translationStatus = "CONFLICT";
+    }
+    if (localTranslation) {
       await db.productTranslation.update({
         where: { id: localTranslation.id },
         data: {
           syncStatus: "CONFLICT",
-          syncError: `${translationLocale.name} copy changed in both Synarava and Shopify. Choose Pull or Push to resolve it.`,
+          syncError: `${translationLocale.name} Synarava and Shopify translations differ. Choose which side to keep on Apply.`,
         },
       });
-    } else if (decision === "KEEP_LOCAL") {
-      if (TRANSLATION_STATUS_RANK.LOCAL_CHANGES > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "LOCAL_CHANGES";
-    } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
-      if (remoteTranslation || localTranslation) {
-        const mergedCopy = {
-          localizedHandle: null as string | null,
-          title: remoteTranslation?.title ?? "",
-          shortDescription: localTranslation?.shortDescription ?? null,
-          description: remoteTranslation ? sanitizeRichTextHtml(remoteTranslation.descriptionHtml) || null : null,
-          materialLine: localTranslation?.materialLine ?? null,
-          symbolismLabel: localTranslation?.symbolismLabel ?? null,
-          symbolismTitle: localTranslation?.symbolismTitle ?? null,
-          symbolismBody: localTranslation?.symbolismBody ?? null,
-          symbolismBody2: localTranslation?.symbolismBody2 ?? null,
-          details: localTranslation?.details ?? undefined,
-          seoTitle: remoteTranslation?.seoTitle || null,
-          seoDescription: remoteTranslation?.seoDescription || null,
-        };
-        const contentHash = createHash("sha256").update(JSON.stringify({
-          title: mergedCopy.title,
-          shortDescription: mergedCopy.shortDescription,
-          description: mergedCopy.description,
-          materialLine: mergedCopy.materialLine,
-          symbolismLabel: mergedCopy.symbolismLabel,
-          symbolismTitle: mergedCopy.symbolismTitle,
-          symbolismBody: mergedCopy.symbolismBody,
-          symbolismBody2: mergedCopy.symbolismBody2,
-          seoTitle: mergedCopy.seoTitle,
-          seoDescription: mergedCopy.seoDescription,
-        })).digest("hex");
-        const reviewed = Boolean(
-          remoteTranslation?.title
-          && mergedCopy.description
-          && mergedCopy.shortDescription
-          && localTranslation?.reviewStatus === "REVIEWED"
-          && !remoteTranslation.outdated,
-        );
-        await db.productTranslation.upsert({
-          where: { productId_locale: { productId: product.id, locale: translationLocale.code } },
-          update: {
-            ...mergedCopy,
-            reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-            reviewedAt: reviewed ? localTranslation?.reviewedAt ?? new Date() : null,
-            syncStatus: "SYNCED",
-            syncError: null,
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-          create: {
-            productId: product.id,
-            locale: translationLocale.code,
-            ...mergedCopy,
-            reviewStatus: "DRAFT",
-            syncStatus: "SYNCED",
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-        });
-      }
     }
   }
 

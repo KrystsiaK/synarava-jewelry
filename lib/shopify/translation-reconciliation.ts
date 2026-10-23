@@ -29,38 +29,24 @@ export type ReconcilePlan = {
 };
 
 /**
- * Pure three-way diff — no reads, no writes. `base` is the PT content as of
- * the last successful sync (`ShopifyTranslationBinding.lastSyncedSnapshot`);
- * null before the first sync. With no base, a field differing between local
- * and remote is still a conflict (both sides may have unsynced content and
- * neither is known-authoritative) — only a field matching the untouched
- * side resolves cleanly to push/pull.
+ * Pure two-way diff — no reads, no writes, no common-ancestor base.
+ * Lists divergences (Synarava ≠ Shopify); direction is chosen only at human Apply.
  */
 export function planReconcile<T extends LocalizedRecord>(
   registry: EntityFieldRegistry,
-  base: T | null,
   local: T,
   remote: T,
   remoteMetadata: Record<string, RemoteFieldMetadata> = {},
 ): ReconcilePlan {
-  const differences = compareLocalizedFields(registry, base, local, remote, remoteMetadata);
-  const hasLocal = differences.some(({ kind }) => kind === "local-only");
-  const hasShopify = differences.some(({ kind }) => kind === "shopify-only");
-  const conflicts = differences
-    .filter(({ kind }) => kind === "conflict")
-    .map(({ fieldKey, localValue, shopifyValue }) => ({
-      field: fieldKey,
-      local: String(localValue ?? ""),
-      remote: String(shopifyValue ?? ""),
-    }));
-
-  let direction: SyncDirection = "noop";
-  if (conflicts.length > 0 || (hasLocal && hasShopify)) direction = "conflict";
-  else if (hasLocal) direction = "push";
-  else if (hasShopify) direction = "pull";
+  const differences = compareLocalizedFields(registry, local, remote, remoteMetadata);
+  const conflicts = differences.map(({ fieldKey, localValue, shopifyValue }) => ({
+    field: fieldKey,
+    local: String(localValue ?? ""),
+    remote: String(shopifyValue ?? ""),
+  }));
 
   return {
-    direction,
+    direction: differences.length > 0 ? "conflict" : "noop",
     conflicts,
     differences,
   };
@@ -93,11 +79,10 @@ export function projectRemoteTranslationWithMetadata(
 }
 
 /**
- * Read-only sweep: pages every Shopify resource of `resourceType` with a PT
+ * Read-only sweep: pages every Shopify resource of `resourceType` with a
  * translation, matches it to a known local binding, and plans a reconcile
- * for each. Never writes — applying PUSH/PULL/CONFLICT resolutions is an
- * entity-specific concern (Task 9/11/16 adapters), this only reports what
- * each binding needs.
+ * for each. Never writes — applying resolutions is an entity-specific
+ * human Apply concern; this only reports divergences.
  */
 export async function reconcileResourceType({
   registry,
@@ -122,12 +107,11 @@ export async function reconcileResourceType({
     if (!local) continue;
 
     const remoteProjection = projectRemoteTranslationWithMetadata(registry, remoteTranslations);
-    const base = (binding.lastSyncedSnapshot as LocalizedRecord | null) ?? null;
     results.push({
       bindingId: binding.id,
       entityId: binding.entityId,
       shopifyResourceId: binding.shopifyResourceId,
-      plan: planReconcile(registry, base, local, remoteProjection.values, remoteProjection.metadata),
+      plan: planReconcile(registry, local, remoteProjection.values, remoteProjection.metadata),
     });
   }
   return results;

@@ -3,8 +3,10 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guard: automatic / read paths (webhooks, refresh, inspect, taxonomy load) must not
- * import or call Synarava content writers. Human Apply/Pull keep those writers.
+ * Guard: automatic / read paths (webhooks, refresh, inspect, pull translation loop, AUTO
+ * reconcile, taxonomy load) must not import or call Synarava content writers.
+ * Human Apply/Pull (reconcile field apply / explicit applyShopifyProductToSynarava)
+ * keep those writers.
  */
 
 const root = join(process.cwd());
@@ -13,12 +15,29 @@ function read(rel: string) {
   return readFileSync(join(root, rel), "utf8");
 }
 
-/** Extract a top-level exported async function body by name (brace-balanced). */
-function extractExportedFunction(source: string, name: string): string {
-  const start = source.search(new RegExp(`export async function ${name}\\s*\\(`));
+/** Extract a top-level function body by name (brace-balanced; export optional). */
+function extractFunction(source: string, name: string): string {
+  const start = source.search(new RegExp(`(?:export\\s+)?async function ${name}\\s*\\(`));
   if (start < 0) throw new Error(`Function ${name} not found`);
-  const braceStart = source.indexOf("{", start);
+  // Skip parameter list (may contain `{ id: string }` types) before the body `{`.
+  const paramOpen = source.indexOf("(", start);
   let depth = 0;
+  let paramClose = -1;
+  for (let i = paramOpen; i < source.length; i += 1) {
+    const ch = source[i];
+    if (ch === "(") depth += 1;
+    else if (ch === ")") {
+      depth -= 1;
+      if (depth === 0) {
+        paramClose = i;
+        break;
+      }
+    }
+  }
+  if (paramClose < 0) throw new Error(`No parameter list for ${name}`);
+  const braceStart = source.indexOf("{", paramClose);
+  if (braceStart < 0) throw new Error(`No body for ${name}`);
+  depth = 0;
   for (let i = braceStart; i < source.length; i += 1) {
     const ch = source[i];
     if (ch === "{") depth += 1;
@@ -92,7 +111,7 @@ describe("auto sync paths must not write Synarava data", () => {
 
   it("refreshShopifyProductState body has no Synarava content writers", () => {
     const source = read("lib/shopify/product-sync.ts");
-    const body = extractExportedFunction(source, "refreshShopifyProductState");
+    const body = extractFunction(source, "refreshShopifyProductState");
     for (const pattern of SYNARAVA_WRITER_PATTERNS) {
       expect(body, `refresh must not match ${pattern}`).not.toMatch(pattern);
     }
@@ -110,7 +129,7 @@ describe("auto sync paths must not write Synarava data", () => {
 
   it("pullShopifyInventory no longer writes stockOnHand", () => {
     const source = read("lib/shopify/product-sync.ts");
-    const body = extractExportedFunction(source, "pullShopifyInventory");
+    const body = extractFunction(source, "pullShopifyInventory");
     expect(body).not.toMatch(/stockOnHand\s*:/);
     expect(body).not.toMatch(/productVariant\.update/);
     expect(body).toMatch(/refreshShopifyProductState/);
@@ -125,9 +144,48 @@ describe("auto sync paths must not write Synarava data", () => {
     expect(route).toMatch(/runTranslationReconciliation/);
   });
 
+  it("no automatic path may write translations or taxonomy labels on pull", () => {
+    const source = read("lib/shopify/product-sync.ts");
+    expect(source).not.toMatch(/applyShopifyProductTypeLabel/);
+
+    const finish = extractFunction(source, "finishPulledProduct")
+      .replace(/\/\*[\s\S]*?\*\//g, "")
+      .replace(/\/\/.*$/gm, "");
+    // Flag-only: syncStatus CONFLICT updates are allowed; content upserts are not.
+    expect(finish).not.toMatch(/productTranslation\.upsert/);
+    expect(finish).not.toMatch(/productTranslation\.create/);
+    expect(finish).not.toMatch(/APPLY_REMOTE/);
+    expect(finish).not.toMatch(/applyShopifyProductTypeLabel/);
+    expect(finish).not.toMatch(/taxonomyValueLabel/);
+    // May still flag existing rows via update({ syncStatus: "CONFLICT" }).
+    expect(finish).toMatch(/syncStatus:\s*"CONFLICT"/);
+    // force must stay false on the decision helper — never auto-apply remote copy.
+    expect(finish).toMatch(/force:\s*false/);
+  });
+
+  it("reconcile run/apply never read or write translation snapshot tables", () => {
+    const run = read("lib/shopify/reconciliation-run.ts");
+    const apply = read("lib/shopify/reconciliation-apply.ts");
+    const reconcile = read("lib/shopify/translation-reconciliation.ts");
+
+    for (const [label, source] of [
+      ["reconciliation-run", run],
+      ["reconciliation-apply", apply],
+      ["translation-reconciliation", reconcile],
+    ] as const) {
+      // Strip comments so doc mentions of the retired table do not false-positive.
+      const code = source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
+      expect(code, label).not.toMatch(/ShopifyTranslationSnapshot/);
+      expect(code, label).not.toMatch(/lastSyncedSnapshot/);
+      expect(code, label).not.toMatch(/saveTranslationSnapshot/);
+      expect(code, label).not.toMatch(/\blastSnapshot\b/);
+      expect(code, label).not.toMatch(/FROM\s+"ShopifyTranslationSnapshot"/);
+    }
+  });
+
   it("inspectProductSyncState refreshes Shopify only — never writes Synarava content", () => {
     const source = read("lib/shopify/product-sync.ts");
-    const body = extractExportedFunction(source, "inspectProductSyncState");
+    const body = extractFunction(source, "inspectProductSyncState");
     for (const pattern of SYNARAVA_WRITER_PATTERNS) {
       expect(body, `inspect must not match ${pattern}`).not.toMatch(pattern);
     }
