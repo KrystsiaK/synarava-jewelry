@@ -370,8 +370,8 @@ function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return snapshotForShopifyProduct(remote);
 }
 
-/** L and B agree with live Shopify after successful pull/push. */
-async function agreedProjectionWrite(remote: ShopifyProduct) {
+/** Shopify-side window only (metafield locale overlays included). Never writes Synarava. */
+async function shopifySnapshotOnlyWrite(remote: ShopifyProduct) {
   const snap = snapshotForProduct(remote);
   const { fetchCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
     "@/lib/shopify/product-metafield-translations"
@@ -382,7 +382,12 @@ async function agreedProjectionWrite(remote: ShopifyProduct) {
     metafieldRefsFromNodes(remote.metafields.nodes),
     locales.map((locale) => ({ code: locale.code, shopifyLocale: locale.shopifyLocale })),
   );
-  const withTranslations = withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+  return withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+}
+
+/** L and B agree with live Shopify after successful human pull/push. */
+async function agreedProjectionWrite(remote: ShopifyProduct) {
+  const withTranslations = await shopifySnapshotOnlyWrite(remote);
   return { shopifySnapshot: withTranslations, workingSnapshot: withTranslations };
 }
 
@@ -1262,7 +1267,11 @@ async function finishPulledProduct(
   return { productId: product.id, status: "SYNCED" as const, translationStatus };
 }
 
-export async function pullShopifyProduct(
+/**
+ * Human Apply / Pull: overwrite Synarava columns + workingSnapshot from Shopify.
+ * Webhooks and other automatic paths must call {@link refreshShopifyProductState} instead.
+ */
+export async function applyShopifyProductToSynarava(
   id: string,
   eventId?: string,
   force = false,
@@ -1274,6 +1283,117 @@ export async function pullShopifyProduct(
     force,
     pullTranslations: options.pullTranslations,
   });
+}
+
+/** @deprecated Prefer {@link applyShopifyProductToSynarava} for human Apply/Pull. */
+export async function pullShopifyProduct(
+  id: string,
+  eventId?: string,
+  force = false,
+  options: { pullTranslations?: boolean } = {},
+) {
+  return applyShopifyProductToSynarava(id, eventId, force, options);
+}
+
+/**
+ * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy + divergence
+ * flags only. Never writes Synarava commerce columns, workingSnapshot, translations,
+ * variants, or TaxonomyValueLabel.
+ */
+export async function refreshShopifyProductState(id: string, eventId?: string) {
+  const remote = await fetchShopifyProduct(id);
+  if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
+
+  const existing = await db.product.findUnique({
+    where: { shopifyProductId: remote.id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      vendor: true,
+      productType: true,
+      priceCents: true,
+      syncStatus: true,
+      workingSnapshot: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          priceCents: true,
+          taxable: true,
+          stockOnHand: true,
+        },
+      },
+    },
+  });
+
+  if (!existing) {
+    // Shopify-only catalog row — presence scan owns Create-in-Synarava; do not upsert.
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { productId: null, status: "IGNORED" as const };
+  }
+
+  const shopifySnapshot = await shopifySnapshotOnlyWrite(remote);
+  const variant = existing.variants[0];
+  const synaravaWindow = existing.workingSnapshot
+    ?? writeThroughLocalCommerceToProjection(shopifySnapshot, {
+      title: existing.name,
+      handle: existing.slug,
+      vendor: existing.vendor,
+      productType: existing.productType,
+      variant: variant
+        ? {
+            shopifyVariantId: variant.shopifyVariantId,
+            sku: variant.sku,
+            priceCents: variant.priceCents,
+            taxable: variant.taxable,
+            inventoryQuantity: variant.stockOnHand,
+          }
+        : { priceCents: existing.priceCents },
+    });
+
+  const differences = diffShopifyProjections(synaravaWindow, shopifySnapshot);
+  const diverged = differences.length > 0;
+  const nextStatus = diverged
+    ? "CONFLICT" as const
+    : existing.syncStatus === "PENDING" || existing.syncStatus === "FAILED"
+      ? existing.syncStatus
+      : "SYNCED" as const;
+
+  await db.product.update({
+    where: { id: existing.id },
+    data: {
+      shopifySnapshot,
+      shopifyUpdatedAt: new Date(remote.updatedAt),
+      syncStatus: nextStatus,
+      ...(diverged
+        ? { syncError: "Shopify and Synarava commerce windows differ." }
+        : nextStatus === "SYNCED"
+          ? { syncError: null }
+          : {}),
+    },
+  });
+
+  if (eventId) {
+    await db.productSyncEvent.update({
+      where: { id: eventId },
+      data: {
+        productId: existing.id,
+        status: diverged ? "CONFLICT" : "SUCCEEDED",
+        error: diverged ? "Shopify state diverges from Synarava." : null,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  return { productId: existing.id, status: nextStatus };
 }
 
 export type ProductSyncDifference = {
@@ -1544,28 +1664,45 @@ export async function adoptShopifyProjectionField(
   });
 }
 
+/**
+ * Inventory webhook refresh: update Shopify-side copy + divergence flags only.
+ * Never writes Synarava `ProductVariant.stockOnHand` — that is a human Apply.
+ */
 export async function pullShopifyInventory(inventoryItemId: string, eventId?: string) {
-  const data = await shopifyAdminRequest<{
-    inventoryItem: { inventoryLevels: { nodes: Array<{ location: { id: string }; quantities: Array<{ name: string; quantity: number }> }> } } | null;
-  }>(
-    `query SynaravaInventoryItem($id: ID!) {
-      inventoryItem(id: $id) { inventoryLevels(first: 100) { nodes { location { id } quantities(names: ["available"]) { name quantity } } } }
-    }`,
-    { id: inventoryItemId },
-  );
-  if (!data.inventoryItem) throw new ShopifyAdminError(`Inventory item ${inventoryItemId} was not found.`);
-  const stockOnHand = selectStockOnHand(data.inventoryItem.inventoryLevels.nodes, env.SHOPIFY_LOCATION_ID);
-  const variant = await db.productVariant.findUnique({ where: { shopifyInventoryItemId: inventoryItemId } });
+  const variant = await db.productVariant.findUnique({
+    where: { shopifyInventoryItemId: inventoryItemId },
+    select: { id: true, productId: true },
+  });
   if (!variant) {
-    if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { status: "IGNORED", completedAt: new Date() } });
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
     return { ignored: true as const };
   }
-  // Inventory-only: touches stockOnHand alone. It must not mark the product SYNCED —
-  // that would erase a still-pending commerce/editorial change or an unresolved
-  // CONFLICT that has nothing to do with this webhook (REV-04).
-  await db.productVariant.update({ where: { id: variant.id }, data: { stockOnHand } });
-  if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { productId: variant.productId, status: "SUCCEEDED", completedAt: new Date() } });
-  return { ignored: false as const, productId: variant.productId, stockOnHand };
+
+  const product = await db.product.findUnique({
+    where: { id: variant.productId },
+    select: { shopifyProductId: true },
+  });
+  if (!product?.shopifyProductId) {
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { ignored: true as const };
+  }
+
+  const refreshed = await refreshShopifyProductState(product.shopifyProductId, eventId);
+  return {
+    ignored: refreshed.status === "IGNORED",
+    productId: refreshed.productId ?? variant.productId,
+    status: refreshed.status,
+  };
 }
 
 /**
