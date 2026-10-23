@@ -21,9 +21,11 @@ export function productConflictCompareSummary(
     localeTabs?: ReadonlyArray<{ code: string; label: string }>;
   },
 ): ProductConflictCompareSummary {
-  const count = productConflictBadgeCount(signal, {
-    commerceFieldCount: options?.commerceFieldCount,
-  });
+  const count = signal?.leafCount != null && options?.commerceFieldCount == null
+    ? signal.leafCount
+    : productConflictBadgeCount(signal, {
+      commerceFieldCount: options?.commerceFieldCount,
+    });
   if (count <= 0) return { count: 0, localeLabels: [] };
 
   const commerce = options?.commerceFieldCount != null && options.commerceFieldCount > 0
