@@ -6,6 +6,12 @@ import {
   type LocalizedFieldDefinition,
 } from "@/lib/i18n/admin-field-registry";
 
+/**
+ * Historical three-way kinds remain in the type/DB enum until PR6.
+ * Two-way compare always emits `"conflict"` for any Synarava ≠ Shopify value;
+ * the human picks push vs pull at Apply. Do not use local-only/shopify-only
+ * as auto-direction.
+ */
 export type SyncDifferenceKind = "local-only" | "shopify-only" | "conflict";
 
 export type RemoteFieldMetadata = {
@@ -18,6 +24,7 @@ export type SyncFieldDifference = {
   fieldLabel: string;
   targetKind: "native" | "metafield" | "metaobject";
   kind: SyncDifferenceKind;
+  /** Always null under two-way compare (no common-ancestor base). Column kept until PR6. */
   baseValue: unknown;
   localValue: unknown;
   shopifyValue: unknown;
@@ -126,40 +133,13 @@ export function fingerprintSyncValue(field: LocalizedFieldDefinition, value: unk
   return createHash("sha256").update(normalizeSyncValue(field, value)).digest("hex");
 }
 
-function differenceKind(
-  field: LocalizedFieldDefinition,
-  base: unknown,
-  local: unknown,
-  shopify: unknown,
-  hasBase: boolean,
-): SyncDifferenceKind {
-  const normalizedLocal = normalizeSyncValue(field, local);
-  const normalizedShopify = normalizeSyncValue(field, shopify);
-
-  if (!hasBase) {
-    if (normalizedLocal && !normalizedShopify) return "local-only";
-    if (!normalizedLocal && normalizedShopify) return "shopify-only";
-    return "conflict";
-  }
-
-  const normalizedBase = normalizeSyncValue(field, base);
-  const localChanged = normalizedLocal !== normalizedBase;
-  const shopifyChanged = normalizedShopify !== normalizedBase;
-
-  if (localChanged && !shopifyChanged) return "local-only";
-  if (!localChanged && shopifyChanged) return "shopify-only";
-  return "conflict";
-}
-
 /**
- * Field-level three-way comparison for localized registry fields only.
- * Equal fields are deliberately omitted so the admin sees decisions, not
- * a wall of disabled controls. Shared catalog/media fields never enter this
- * translation workflow.
+ * Field-level two-way comparison for localized registry fields only.
+ * Equal fields are omitted. Any Synarava ≠ Shopify value is a divergence
+ * (`kind: "conflict"`); direction is chosen only at human Apply.
  */
 export function compareLocalizedFields(
   registry: EntityFieldRegistry,
-  base: SyncRecord | null | undefined,
   local: SyncRecord,
   shopify: SyncRecord,
   remoteMetadata: Record<string, RemoteFieldMetadata> = {},
@@ -179,8 +159,8 @@ export function compareLocalizedFields(
       fieldKey: field.key,
       fieldLabel: field.label,
       targetKind: target.kind,
-      kind: differenceKind(field, base?.[field.key], localValue, shopifyValue, base != null),
-      baseValue: base?.[field.key] ?? null,
+      kind: "conflict",
+      baseValue: null,
       localValue: localValue ?? null,
       shopifyValue: shopifyValue ?? null,
       localFingerprint: fingerprintSyncValue(field, localValue),

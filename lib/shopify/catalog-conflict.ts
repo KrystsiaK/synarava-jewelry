@@ -202,9 +202,9 @@ function isVirtualPresenceProductId(productId: string): boolean {
  * product ID, so a single card can show every conflicting field/locale
  * without the caller knowing about two separate subsystems.
  *
- * Only fields with an actual two-sided conflict are included — a
- * one-directional change (local-only edit, or an untouched remote update)
- * has its own existing push/pull flow and is deliberately left out here.
+ * Translation rows with kind CONFLICT are included (PR3 two-way compare emits
+ * only CONFLICT for any Synarava ≠ Shopify value). Legacy LOCAL_ONLY /
+ * SHOPIFY_ONLY rows from pre-PR3 reconciles are ignored until re-checked.
  *
  * `getLatestReconcileDifferences()` always returns the current, per-field
  * state of everything ever checked (see its doc comment) — it is not

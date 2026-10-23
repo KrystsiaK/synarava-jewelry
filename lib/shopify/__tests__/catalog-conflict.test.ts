@@ -312,16 +312,20 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields).toEqual([]);
   });
 
-  it("does not treat a missing translation (LOCAL_ONLY/SHOPIFY_ONLY) as a conflict", async () => {
+  it("surfaces every two-way translation divergence (kind CONFLICT) as a catalog conflict field", async () => {
+    // PR3: compare emits only CONFLICT; one-sided empty is still a divergence.
+    // Legacy LOCAL_ONLY/SHOPIFY_ONLY rows (pre-PR3) stay filtered out until re-reconcile.
     mocks.inspectProductSyncState.mockResolvedValue(inspection());
     mocks.getLatestReconcileDifferences.mockResolvedValue([
-      translationDiff({ kind: "SHOPIFY_ONLY" }),
-      translationDiff({ kind: "LOCAL_ONLY" }),
+      translationDiff({ kind: "CONFLICT", fieldKey: "title" }),
+      translationDiff({ kind: "SHOPIFY_ONLY", fieldKey: "description" }),
+      translationDiff({ kind: "LOCAL_ONLY", fieldKey: "seoTitle" }),
     ]);
 
     const result = await getProductCatalogConflict("product-1");
 
-    expect(result.fields).toEqual([]);
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0]).toMatchObject({ origin: "TRANSLATION", fieldKey: "translation:pt-PT:title" });
   });
 
   it("still surfaces a translation conflict even when the most recent reconcile run elsewhere was scoped/failed", async () => {

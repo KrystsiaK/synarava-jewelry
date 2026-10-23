@@ -72,7 +72,6 @@ function claimRow(local: string, shopify: string, locale = "pt-PT") {
     bindingResourceType: "PRODUCT",
     bindingEntityId: "product-1",
     shopifyResourceId: "gid://shopify/Product/1",
-    lastSyncedSnapshot: { title: "Old title" },
   };
 }
 
@@ -114,9 +113,9 @@ describe("applyReconcileChoice", () => {
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
   });
 
-  it("pushes one selected field, reads it back, and only then records the new base", async () => {
+  it("pushes one selected field, reads it back, and does not write ShopifyTranslationSnapshot", async () => {
     const row = claimRow("Local title", "Remote title");
-    mocks.queryRaw.mockResolvedValueOnce([row]).mockResolvedValueOnce([{ values: { title: "Old title" } }]);
+    mocks.queryRaw.mockResolvedValueOnce([row]);
     mocks.loadSubject.mockResolvedValue(subject("Local title"));
     mocks.fetchTranslation
       .mockResolvedValueOnce([{ key: "title", value: "Remote title", updatedAt: "2026-09-20T10:00:00Z", outdated: false }])
@@ -136,11 +135,7 @@ describe("applyReconcileChoice", () => {
       locale: "pt-PT",
       values: { title: "Local title" },
     });
-    expect(mocks.saveSnapshot).toHaveBeenCalledWith({
-      bindingId: row.bindingId,
-      locale: "pt-PT",
-      values: { title: "Local title" },
-    });
+    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ direction: "PUSH", status: "SUCCEEDED" }));
     expect(mocks.recordAuditDetails).toHaveBeenCalledWith(expect.objectContaining({
       eventId: "event-1",
@@ -153,7 +148,7 @@ describe("applyReconcileChoice", () => {
 
   it("pulls one selected field and verifies the local reload", async () => {
     const row = claimRow("Local title", "Remote title");
-    mocks.queryRaw.mockResolvedValueOnce([row]).mockResolvedValueOnce([{ values: { title: "Old title" } }]);
+    mocks.queryRaw.mockResolvedValueOnce([row]);
     mocks.loadSubject
       .mockResolvedValueOnce(subject("Local title"))
       .mockResolvedValueOnce(subject("Remote title"));
@@ -176,12 +171,13 @@ describe("applyReconcileChoice", () => {
       shopifyValue: "Remote title",
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
+    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ direction: "PULL", status: "SUCCEEDED" }));
   });
 
   it("updates English as Shopify source content instead of registering a translation", async () => {
     const row = claimRow("Local title", "Remote title", "en");
-    mocks.queryRaw.mockResolvedValueOnce([row]).mockResolvedValueOnce([{ values: { title: "Old title" } }]);
+    mocks.queryRaw.mockResolvedValueOnce([row]);
     mocks.loadSubject.mockResolvedValue(subject("Local title"));
     mocks.fetchState
       .mockResolvedValueOnce({ translatableContent: [{ key: "title", value: "Remote title", locale: "en" }], translations: [] })
@@ -202,6 +198,7 @@ describe("applyReconcileChoice", () => {
       value: "Local title",
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
+    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
     expect(mocks.adoptProjection).toHaveBeenCalledWith("product-1", "title");
   });

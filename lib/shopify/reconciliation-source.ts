@@ -21,7 +21,6 @@ export type ReconcileBindingSource = {
   resourceType: TranslationResourceType;
   entityId: string;
   shopifyResourceId: string;
-  lastSyncedSnapshot: unknown;
 };
 
 export type ReconcileSubject = {

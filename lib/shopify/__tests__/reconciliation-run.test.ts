@@ -102,7 +102,6 @@ describe("runTranslationReconciliation", () => {
       id: "binding-1",
       shopifyResourceId: "gid://shopify/Product/1",
       entityId: "product-1",
-      lastSyncedSnapshot: null,
       createdAt: new Date(),
     }]);
     mocks.loadReconcileSubject.mockResolvedValue({
@@ -115,11 +114,8 @@ describe("runTranslationReconciliation", () => {
     mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
     mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
     mocks.planReconcile.mockReturnValue({ differences: [] });
-    // lastSnapshot: one $queryRaw per locale, none found.
+    // Two-way: no ShopifyTranslationSnapshot read between locales.
     mocks.queryRaw
-      .mockResolvedValueOnce([]) // lastSnapshot(en)
-      .mockResolvedValueOnce([]) // lastSnapshot(pt-PT)
-      .mockResolvedValueOnce([]) // lastSnapshot(ru)
       .mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 3, differenceCount: 0 })]); // runById after finishRun
 
     const result = await runTranslationReconciliation({ trigger: "MANUAL" });
@@ -131,6 +127,16 @@ describe("runTranslationReconciliation", () => {
     expect(mocks.loadReconcileSubject).toHaveBeenCalledTimes(3);
     const checkedLocales = mocks.loadReconcileSubject.mock.calls.map((call) => call[1]);
     expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
+    expect(mocks.planReconcile).toHaveBeenCalledTimes(3);
+    // planReconcile(registry, local, remote, metadata) — no base/snapshot arg.
+    for (const call of mocks.planReconcile.mock.calls) {
+      expect(call).toHaveLength(4);
+    }
+    const snapshotQueries = mocks.queryRaw.mock.calls.filter(
+      ([query]) => typeof query === "object" && query !== null && "sql" in query
+        && String((query as { sql: string }).sql).includes("ShopifyTranslationSnapshot"),
+    );
+    expect(snapshotQueries).toHaveLength(0);
   });
 
   function setUpSingleBindingSingleLocaleCheck(differences: Array<Record<string, unknown>>) {
@@ -138,7 +144,6 @@ describe("runTranslationReconciliation", () => {
       id: "binding-1",
       shopifyResourceId: "gid://shopify/Product/1",
       entityId: "product-1",
-      lastSyncedSnapshot: null,
       createdAt: new Date(),
     }]);
     mocks.loadReconcileSubject.mockResolvedValue({
@@ -151,7 +156,6 @@ describe("runTranslationReconciliation", () => {
     mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
     mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
     mocks.planReconcile.mockReturnValue({ differences });
-    mocks.queryRaw.mockResolvedValueOnce([]); // lastSnapshot(en)
   }
 
   it("retires every unresolved row for the (binding, locale) and inserts the fresh ones in the same transaction — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
