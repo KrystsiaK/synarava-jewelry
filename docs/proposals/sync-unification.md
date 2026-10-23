@@ -2,7 +2,7 @@
 
 **Status:** proposal rewrite (docs only; no app code)  
 **Supersedes:** earlier “three pipelines / one engine” draft merged via #234  
-**Audited:** `origin/staging` @ `b7044f13` (2026-10-23)  
+**Audited:** `origin/staging` @ `b7044f13` (2026-10-23); GraphQL check via Shopify Admin schema / docs (API **2026-07**, same as `SHOPIFY_ADMIN_API_VERSION` default)  
 **Related:** [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [commerce-sync](../wiki/commerce-sync.md), [languages-as-data](./languages-as-data.md), Mission Control [§0 Simplicity Contract](../runbooks/mission-control-hub-plan.md), skill `shopify-commerce-compare`
 
 ## Owner model (hard)
@@ -21,6 +21,21 @@ Exactly **two** states per Shopify-synced resource:
 - Fields Shopify cannot hold stay **local-only** (no fake Shopify state).
 - **Languages:** adding a language adds a locale tab everywhere in the admin tree. Translations page = add / hide / export / import language bundle with **diff preview before import** — not a second conflict workstation.
 
+### Waterfall on **every** sync action (hard)
+
+Every sync action (admin load, after local Save, after webhook refresh flag, after any Apply leaf, manual Check) runs this loop — no shortcuts:
+
+```text
+1. Fetch full Shopify state
+2. Read our Synarava state
+3. Compare in ONE function
+4. Render the whole admin tree from that SINGLE result
+```
+
+After resolving **any** single leaf (one field, one translation, one entity, one section, or all), **repeat steps 1–4**.
+
+**One result → one selector:** nav badge, list chip, editor banner, locale tab, section chip — every counter is derived from that single compare result by **one** selector function (e.g. `selectSyncCounts(result, view)`). **No second counting path** (no parallel “reconcile differences length” vs “commerce inspect length” vs “store conflictReport”).
+
 Simplicity (§0): no new runtime deps; prefer delete over new tables/abstractions; stop and ask the owner only when the code cannot decide.
 
 ---
@@ -28,28 +43,31 @@ Simplicity (§0): no new runtime deps; prefer delete over new tables/abstraction
 ## 1. Target shape (after migration)
 
 ```text
-Admin load / after local save
+  sync action (load | save | webhook refresh | apply leaf | check)
         │
         ▼
-  refresh Shopify state only  ──►  Product.shopifySnapshot (etc.)
-        │
-        ▼
-  compare(Shopify state, Synarava state)  ──►  show divergences
+  1. fetch full Shopify state   ──►  shopifySnapshot (+ translation copies)
+  2. read Synarava state        ──►  workingSnapshot / columns / translations
+  3. compare (ONE function)     ──►  SyncResult
+  4. render admin tree          ──►  selectSyncCounts(SyncResult, view)
         │
         ▼
   human chooses (field | translation | entity | section | all)
         │
         ├── apply Shopify → Synarava   (only path that writes Synarava from remote)
         └── apply Synarava → Shopify   (push)
+        │
+        └── then waterfall 1–4 again
 ```
 
 **Single module layout** (names illustrative; keep functions small):
 
 ```text
 lib/sync/
-  refresh-shopify-state.ts   # fetch + persist Shopify copy only
-  compare.ts                 # normalize once + deep-diff (ADR-0003) + locale registry adapter
-  divergence.ts              # read model / flags (reuse or thin ShopifyFieldDivergence)
+  refresh-shopify-state.ts   # step 1 — fetch + persist Shopify copy only
+  compare.ts                 # step 3 — THE one compare function
+  select.ts                  # step 4 — one selector for every counter/view
+  result.ts                  # SyncResult type (single tree SoT for UI)
   apply/
     product.ts
     collection.ts
@@ -58,12 +76,12 @@ lib/sync/
   types.ts
 
 components/admin/shared/
-  field-conflict-panel.tsx   # one inline field-level UI
+  field-conflict-panel.tsx   # one inline field-level UI (reads SyncResult)
 ```
 
 Entity columns (`name`, `priceCents`, …) remain Synarava **projections for UI**, written only by human Save or human Apply — never by webhook refresh. Shopify-shaped Synarava window = `workingSnapshot` (or renamed `synaravaSnapshot`); Shopify window = `shopifySnapshot`.
 
-Translations page keeps: languages lifecycle + export/import **with dry-run diff before import** + optional sync **summary** (counts + links). Conflict apply lives on entity/catalog UIs.
+Translations page keeps: languages lifecycle + export/import **with dry-run diff before import** + optional sync **summary** (counts from the same `selectSyncCounts`, links only). Conflict apply lives on entity/catalog UIs.
 
 ---
 
@@ -140,8 +158,9 @@ Owner model: **no third state.** Divergence is two-way only.
 | # | Location | What it is | Disposition |
 | --- | --- | --- | --- |
 | D1 | `CommerceSyncStore.ourSnapshot` / `shopifySnapshot` / `conflictReport` (`prisma/schema.prisma:237–243`, `lib/commerce-store/refresh.ts:28–53`) | Full-catalog duplicate of per-entity windows + cached diffs | **Change → delete store table** after badges/compare read entity windows (or a cheap derived query). Until then, treat store as **cache only**, rebuilt from entity Shopify/Synarava states — never a third SoT. Prefer delete (Simplicity). |
-| D2 | Parallel pipelines: translation reconcile table vs live `inspectProductSyncState` vs collection conflict omitting commerce | Same resource, different compare UIs | **Change** — one compare module (`lib/sync/compare.ts`); one field UI; Translations page summary-only. |
+| D2 | Parallel pipelines: translation reconcile table vs live `inspectProductSyncState` vs collection conflict omitting commerce | Same resource, different compare UIs **and multiple counters** | **Change** — one compare (`lib/sync/compare.ts`) → one `SyncResult` → one `selectSyncCounts`; one field UI; Translations summary-only. |
 | D3 | `decideProductTranslationPull` path **and** `ShopifyFieldDivergence` reconcile | Two translation conflict engines | **Delete** auto decision engine from pull; one compare + human Apply. |
+| D4 | Nav badges from `getLatestReconcileDifferences` **vs** catalog chips from `getCatalogConflictSignals` **vs** banner/icon from inspect+signals | Second/third counting paths | **Delete** all but `selectSyncCounts(SyncResult, view)` (waterfall step 4). |
 
 ---
 
@@ -188,11 +207,12 @@ Each PR: characterization tests for current behavior first where behavior change
 1. Same refresh vs apply split (V15/V16).
 2. Surface collection commerce divergences in the same Field Conflict UI (today’s gap: windows exist, conflict read model often translation+presence only).
 
-### PR5 — Module layout + one UI
+### PR5 — Module layout + waterfall + one UI
 
-1. Move compare/refresh/apply behind `lib/sync/*` (thin re-exports OK during move).
-2. One `FieldConflictPanel`; product/collection workspaces become wrappers.
-3. Translations page: languages + export/import **diff preview** + summary; remove merge/apply list.
+1. Move refresh / **one** `compare` / **one** `selectSyncCounts` / apply behind `lib/sync/*` (thin re-exports OK during move).
+2. Wire admin load, post-Save, post-Apply, and Check through the waterfall; delete parallel counter builders (D4).
+3. One `FieldConflictPanel`; product/collection workspaces become wrappers.
+4. Translations page: languages + export/import **diff preview** + summary from the same selector; remove merge/apply list.
 
 ### PR6 — Delete dead weight
 
@@ -231,21 +251,54 @@ Conflict field Apply does **not** live on this page.
 
 ---
 
-## 9. Simplicity Contract checklist
+## 9. Shopify Admin GraphQL (API **2026-07**) — fetch shape
+
+Verified against the live Admin GraphQL schema (Shopify MCP `graphql_schema`) and [manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content) / [rate limits](https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits). Store default version: `SHOPIFY_ADMIN_API_VERSION` → `2026-07` (`lib/shopify/admin.ts`).
+
+### Can existing translations per locale ride the same paginated query?
+
+**Yes.**
+
+| Mechanism | What the API allows |
+| --- | --- |
+| `translatableResources(first:, after:, resourceType:)` | Paginated list of `TranslatableResource`. Each node exposes `translations(locale: String!)` (also `marketId`, `outdated`). Nesting `translations(locale:)` under the connection is the documented pattern ([translatableResource / TranslatableResource](https://shopify.dev/docs/api/admin-graphql/latest/objects/TranslatableResource)). Our code already does this in `fetchTranslatableResourceIndex` (`lib/shopify/translations.ts:341–346`). |
+| `Product.translations(locale: String!)` / `Collection.translations(locale: String!)` | Same locale-filtered field on the commerce objects themselves (schema). A `products(first:)` / `collections(first:)` page can request commerce fields **and** `translations(locale:)` in **one** GraphQL operation. |
+| Multiple locales | `translations` takes a **single required** `locale: String!` per field selection. Multiple locales in one document = GraphQL **aliases** (e.g. `tPt: translations(locale: "pt-PT")`, `tRu: translations(locale: "ru")`) or one request per locale. No multi-locale array argument on the field. |
+
+**Implication for waterfall step 1:** “Full Shopify state” for catalog sync can include commerce + per-locale translations without a separate Bulk Operation. Prefer nesting on `products` / `collections` (and/or one `translatableResources` pass per resource type) so step 1 stays a small number of paginated Admin queries.
+
+### Is Bulk Operation required at our size (~52 products, ~12 collections)?
+
+**No.**
+
+- Single GraphQL query hard cap: **1000 cost points**; pagination up to **250** nodes per page ([rate limits](https://shopify.dev/docs/apps/build/apis/graphql-admin/rate-limits)).
+- 52 products and 12 collections each fit in **one page** (`first: 100` is enough).
+- Shopify positions bulk ops for **large** catalogs (thousands of products / avoiding max cost), not for this scale.
+- At ~2–3 published non-default locales, even aliased multi-locale selections stay far under the 1000-point single-query ceiling for this catalog size.
+
+**Use bulk only if** catalog growth or nested metafield/translation fan-out later pushes requested cost near 1000 or page counts become large — not as part of the initial unification design.
+
+---
+
+## 10. Simplicity Contract checklist
 
 - [ ] No new npm dependency
 - [ ] Prefer **deleting** `CommerceSyncStore` / snapshot tables over adding a fourth store
 - [ ] No interface-with-one-impl for “ISyncEngine” — plain functions in `lib/sync/`
+- [ ] One compare + one selector (no parallel counters)
+- [ ] No Bulk Operation dependency for current catalog size
 - [ ] Schema changes: offline `migrate diff` only; deploy via pipeline
 - [ ] Agents stay read-only on real DBs
 
 ---
 
-## 10. Open questions (only what code cannot decide)
+## 11. Open questions (only what code / API cannot decide)
 
 1. **Inventory:** Should Synarava `stockOnHand` remain an editable Synarava field (human Apply from Shopify), or become a read-only mirror of Shopify with no local override?
 2. **Taxonomy product_type labels** written by `applyShopifyProductTypeLabel`: Treat as Synarava local-only editorial, or as Shopify state that only lands in Synarava on Apply?
 3. **First-time link / Shopify-only adopt:** Is one human confirmation (“Create Synarava from Shopify”) enough, or should Adopt always go through the same field-level Apply UI?
 4. **`products/delete`:** Prefer soft-flag forever until human archives, or auto-archive after an explicit grace policy? (Code cannot invent the policy.)
 
-Everything else in §§2–7 follows from the owner model + current call sites.
+GraphQL same-query / bulk questions are **answered** in §9 — not open.
+
+Everything else in §§2–8 follows from the owner model + current call sites + Admin API.
