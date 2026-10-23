@@ -8,7 +8,13 @@ import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-regist
 
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
 import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
-import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
+import {
+  ADOPT_SHOPIFY_FIELD_KEY,
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+  COMMERCE_UNSUPPORTED_REASON,
+  isScopedCommerceFieldLabel,
+} from "./catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "./catalog-presence";
 import { getLatestCatalogPresenceDifferences } from "./catalog-presence-server";
 
@@ -105,6 +111,32 @@ function commerceField(difference: ProductSyncDifference): CatalogConflictField 
     sourceId: null,
     path: difference.path ?? null,
   };
+}
+
+/** Missing Synarava commerce window — ordinary one-way Apply (human Pull). */
+function adoptShopifyField(difference: ProductSyncDifference): CatalogConflictField {
+  return {
+    fieldKey: ADOPT_SHOPIFY_FIELD_KEY,
+    label: ADOPT_SHOPIFY_FIELD_LABEL,
+    scope: { kind: "SHARED" },
+    origin: "COMMERCE",
+    targetKind: "NATIVE",
+    synaravaValue: difference.local,
+    shopifyValue: difference.shopify,
+    baseValue: null,
+    localFingerprint: commerceFingerprint(difference.local),
+    shopifyFingerprint: commerceFingerprint(difference.shopify),
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    blockedReason: null,
+    sourceId: null,
+    path: ADOPT_SHOPIFY_FIELD_PATH,
+  };
+}
+
+export function isAdoptShopifyConflictField(field: Pick<CatalogConflictField, "fieldKey" | "path" | "label">): boolean {
+  return field.fieldKey === ADOPT_SHOPIFY_FIELD_KEY
+    || field.path === ADOPT_SHOPIFY_FIELD_PATH
+    || field.label === ADOPT_SHOPIFY_FIELD_LABEL;
 }
 
 function resolveLocale(differenceLocale: string, locales: StorefrontLocaleRecord[]): StorefrontLocaleRecord | undefined {
@@ -224,7 +256,10 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
     return { productId, fields: [] };
   }
 
-  const local = await db.product.findUnique({ where: { id: productId }, select: { id: true } });
+  const local = await db.product.findUnique({
+    where: { id: productId },
+    select: { id: true, workingSnapshot: true },
+  });
   if (!local) {
     return { productId, fields: [] };
   }
@@ -243,11 +278,27 @@ export async function getProductCatalogConflict(productId: string): Promise<Prod
   );
 
   const fields: CatalogConflictField[] = [];
+  const workingMissing = local.workingSnapshot == null || inspection.workingSnapshotMissing === true;
 
-  if (inspection.state === "CONFLICT" || inspection.state === "LOCAL_CHANGES" || inspection.state === "REMOTE_CHANGES") {
+  if (workingMissing) {
+    // Only the adopt row for commerce — never path-level diffs (unsafe partial seed).
+    const adoptDiff = inspection.differences.find(
+      (difference) => difference.path === ADOPT_SHOPIFY_FIELD_PATH || difference.field === ADOPT_SHOPIFY_FIELD_LABEL,
+    ) ?? {
+      field: ADOPT_SHOPIFY_FIELD_LABEL,
+      local: "— No Synarava commerce window —",
+      shopify: "—",
+      path: ADOPT_SHOPIFY_FIELD_PATH,
+    };
+    fields.push(adoptShopifyField(adoptDiff));
+  } else if (inspection.state === "CONFLICT" || inspection.state === "LOCAL_CHANGES" || inspection.state === "REMOTE_CHANGES") {
     for (const difference of inspection.differences) {
       const translationFieldKey = COMMERCE_TRANSLATION_FIELD_KEY[difference.field];
       if (translationFieldKey && enConflictFieldKeys.has(translationFieldKey)) continue;
+      if (difference.path === ADOPT_SHOPIFY_FIELD_PATH || difference.field === ADOPT_SHOPIFY_FIELD_LABEL) {
+        fields.push(adoptShopifyField(difference));
+        continue;
+      }
       fields.push(commerceField(difference));
     }
   }

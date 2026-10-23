@@ -36,6 +36,10 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_presence", field: "Presence" })).toBe("shopify");
   });
 
+  it("maps Adopt Shopify to Sync", () => {
+    expect(productEditorSectionForCommerceDiff({ path: "_adopt", field: "Adopt Shopify" })).toBe("shopify");
+  });
+
   it("maps media diffs to the Media tab (path and unlabeled path-as-label)", () => {
     expect(productEditorSectionForCommerceDiff({ path: "media[0].id", field: "Media gallery (image 1)" })).toBe("media");
     expect(productEditorSectionForCommerceDiff({ field: "media[0].preview.image.url" })).toBe("media");

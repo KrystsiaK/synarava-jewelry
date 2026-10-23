@@ -13,6 +13,7 @@ export function productEditorSectionForCommerceDiff(diff: {
   const field = diff.field;
 
   if (path === "_presence" || field === "Presence") return "shopify";
+  if (path === "_adopt" || field === "Adopt Shopify") return "shopify";
 
   if (
     /^variants\[\d+\]\.(price|compareAtPrice|taxable)(\.|$)/.test(path)
