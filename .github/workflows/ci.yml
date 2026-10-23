@@ -49,6 +49,8 @@ jobs:
               - 'next.config.*'
               - 'vitest.config.*'
               - 'vitest.setup.ts'
+              # Workflow-only PRs still need smoke (Playwright cache/install).
+              - '.github/workflows/ci.yml'
             sku:
               - 'services/sku-api/**'
               - 'packages/sku-core/**'
@@ -180,5 +182,34 @@ jobs:
       # Build before smoke so Playwright starts `next start` (fast, deterministic)
       # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
       - run: pnpm build
-      - run: pnpm exec playwright install --with-deps chromium webkit
+
+      # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
+      - name: Cache Playwright browsers
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: |
+            playwright-${{ runner.os }}-
+
+      - name: Install Playwright browsers
+        run: |
+          set -euo pipefail
+          attempt=1
+          max_attempts=3
+          while [ "$attempt" -le "$max_attempts" ]; do
+            echo "Playwright install attempt ${attempt}/${max_attempts}"
+            if timeout 300 pnpm exec playwright install --with-deps chromium webkit; then
+              exit 0
+            fi
+            status=$?
+            # timeout(1) exits 124 on deadline; other non-zero = install failure
+            echo "Playwright install attempt ${attempt} failed (exit ${status})"
+            if [ "$attempt" -eq "$max_attempts" ]; then
+              exit "$status"
+            fi
+            attempt=$((attempt + 1))
+            sleep 5
+          done
+
       - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
