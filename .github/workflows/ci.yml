@@ -3,14 +3,17 @@ name: CI
 on:
   pull_request:
   push:
+    # Feature/bot branches are covered by pull_request only — avoid double runs.
     branches:
-      - "**"
+      - main
+      - staging
     tags:
       - "v*"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # Per-PR cancel; push/tag runs never cancel each other.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read

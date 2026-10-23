@@ -133,3 +133,11 @@ correctly on the production site.
 - [Configure Shopify Inbox](https://help.shopify.com/en/manual/inbox/configure-inbox)
 - [Customize chat settings and appearance](https://help.shopify.com/en/manual/inbox/chat-settings-and-appearance/settings)
 - [Shopify custom storefronts](https://shopify.dev/docs/storefronts/headless/getting-started)
+
+---
+
+## Closed (not in open register)
+
+| Closed | What | Note |
+|---|---|---|
+| 2026-10-23 | Duplicate/cancelled CI on PR commits (`ci.yml` / `ci-sku.yml` ran `push` on `**` plus `pull_request`, so `cancel-in-progress` red-flagged required checks) | Push limited to `main`/`staging`/`v*`; cancel-in-progress only for `pull_request`. **No new dependencies.** |
