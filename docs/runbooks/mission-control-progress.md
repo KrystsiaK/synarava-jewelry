@@ -264,3 +264,25 @@ v1 complete after Stage 6 lands (see plan §4 Definition of Done).
   integration tests failed closed because `127.0.0.1:55432` is unavailable, and
   five unrelated UI cases timed out only in the fully parallel run. Those five
   were rerun serially and passed 24/24. No database command or access was used.
+
+### Owner-review spacing follow-up
+
+- [2026-10-23] Replaced the floating overview overlay with a contained desktop
+  split view. Its toggle now stays inside the rail, status counts use a 2×2
+  grid, and the canvas always receives its own unclipped column.
+- [2026-10-23] Added direct bottom-right resizing for expanded group frames.
+  Frames cannot shrink through their contents; larger dimensions and node
+  positions persist per environment/config version in localStorage only and
+  reset with **Reset layout**, preserving ADR-0006.
+- [2026-10-23] Increased the default group grid and Commerce spacing. Collapsed
+  reference-only groups form a compact system rail instead of stretching the
+  initial viewport, while configured cross-group relationships are projected to
+  their collapsed group chips and remain directional. No relationship was
+  invented beyond `architectureBindings`.
+- [2026-10-23] Scope remains read-only: links and clipboard only. No dependency,
+  table, schema, database, provider, collector, or service behavior change.
+- [2026-10-23] Verification: TypeScript, scoped ESLint, and 22 focused Mission
+  Control tests pass. The full suite passed 2,139 tests; six database integration
+  files could not start without `DATABASE_URL`, and five unrelated UI cases timed
+  out only under full parallel load. Those UI cases passed 24/24 when rerun
+  serially. No database command or access was used.

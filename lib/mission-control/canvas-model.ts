@@ -17,9 +17,11 @@ export type MissionControlNodeData = {
   accentColor: string; fixHint: string | null; fixPrompt: string | null; placeholder: boolean;
   kind: MissionControlNodeKind; nodeType: MissionControlNodeType; group: string;
   value: string | null; checkedAt: string | null; count?: number;
+  minWidth?: number; minHeight?: number;
+  onGroupResize?: (groupKey: string, width: number, height: number) => void;
 };
 export type MissionControlCanvasNode = Node<MissionControlNodeData>;
-export type MissionControlCanvasEdge = Edge<{ busKey: string; level: ServiceStatusLevel; flow: string }>;
+export type MissionControlCanvasEdge = Edge<{ busKey: string; level: ServiceStatusLevel; flow: string; crossGroup: boolean }>;
 
 export function statusLevelColor(level: ServiceStatusLevel): string { return STATUS_LEVEL_COLORS[level]; }
 export function isFlowFresh(lastFlowAt: Date | null | undefined, nowMs = Date.now(), freshMs = FLOW_FRESH_MS): boolean {
@@ -35,6 +37,7 @@ export type BuildCanvasGraphInput = {
   config: MissionControlWiringConfig; catalog: readonly WidgetPortManifest[];
   nodeStatuses?: readonly ServiceNodeStatusRecord[]; flowStatuses?: readonly ServiceFlowStatusRecord[];
   nowMs?: number; environment?: MissionControlEnvironment; positions?: Readonly<Record<string, { x: number; y: number }>>;
+  groupSizes?: Readonly<Record<string, { width: number; height: number }>>;
 };
 
 const LEVEL_WEIGHT: Record<ServiceStatusLevel, number> = { down: 3, warn: 2, unknown: 1, ok: 0 };
@@ -46,24 +49,24 @@ function primaryValue(counters: ServiceNodeStatusRecord["counters"] | undefined)
 }
 
 /** Pure projection from versioned architecture config + request-time health into React Flow. */
-export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatuses = [], nowMs = Date.now(), environment = "production", positions = {} }: BuildCanvasGraphInput): { nodes: MissionControlCanvasNode[]; edges: MissionControlCanvasEdge[] } {
+export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatuses = [], nowMs = Date.now(), environment = "production", positions = {}, groupSizes = {} }: BuildCanvasGraphInput): { nodes: MissionControlCanvasNode[]; edges: MissionControlCanvasEdge[] } {
   const manifests = new Map(catalog.map((entry) => [entry.widgetKey, entry]));
   const statuses = new Map(nodeStatuses.map((row) => [row.nodeKey, row]));
   const flows = new Map(flowStatuses.map((row) => [row.busKey, row]));
   const nodeConfig = new Map(config.nodes.map((node) => [node.widgetKey, node]));
   const groupMetrics = config.groups.map((group) => {
     const children = config.nodes.filter((node) => node.group === group.key);
-    const width = Math.max(group.size.width, ...children.map((node) => {
+    const minWidth = Math.max(group.size.width, ...children.map((node) => {
       const position = positions[node.widgetKey] ?? node.position;
       return position.x + MISSION_CONTROL_NODE_SIZE[node.kind].width + MISSION_CONTROL_GROUP_PADDING;
     }));
-    const height = Math.max(group.size.height, ...children.map((node) => {
+    const minHeight = Math.max(group.size.height, ...children.map((node) => {
       const position = positions[node.widgetKey] ?? node.position;
       return position.y + MISSION_CONTROL_NODE_SIZE[node.kind].height + MISSION_CONTROL_GROUP_PADDING;
     }));
-    return { group, children, width, height };
+    return { group, children, minWidth, minHeight, width: Math.max(minWidth, groupSizes[group.key]?.width ?? 0), height: Math.max(minHeight, groupSizes[group.key]?.height ?? 0) };
   });
-  const groupNodes: MissionControlCanvasNode[] = groupMetrics.map(({ group, children, width, height }) => {
+  const groupNodes: MissionControlCanvasNode[] = groupMetrics.map(({ group, children, minWidth, minHeight, width, height }) => {
     const childLevels = children.filter((node) => node.kind === "live").map((node) => statuses.get(node.widgetKey)?.level ?? "unknown");
     const worst = childLevels.sort((a, b) => LEVEL_WEIGHT[b] - LEVEL_WEIGHT[a])[0] ?? "unknown";
     const x = group.position.x + groupMetrics
@@ -77,8 +80,8 @@ export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatu
     return ({
     id: `group:${group.key}`, type: "group", position: { x, y: group.position.y + rowOffsets },
     style: { width, height },
-    data: { widgetKey: `group:${group.key}`, label: `${group.label} · ${children.length} · ${childLevels.length ? worst : "reference"}`, level: worst, message: null, href: null, accentColor: statusLevelColor(worst), fixHint: null, fixPrompt: null, placeholder: false, kind: "info", nodeType: "platform", group: group.key, value: null, checkedAt: null, count: children.length },
-    draggable: false, connectable: false, selectable: false,
+    data: { widgetKey: `group:${group.key}`, label: `${group.label} · ${children.length} · ${childLevels.length ? worst : "reference"}`, level: worst, message: null, href: null, accentColor: statusLevelColor(worst), fixHint: null, fixPrompt: null, placeholder: false, kind: "info", nodeType: "platform", group: group.key, value: null, checkedAt: null, count: children.length, minWidth, minHeight },
+    draggable: false, connectable: false, selectable: true,
   }); });
   const serviceNodes: MissionControlCanvasNode[] = collectWidgetKeys(config, catalog).flatMap((widgetKey) => {
     const definition = nodeConfig.get(widgetKey);
@@ -107,7 +110,7 @@ export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatu
       id: `${binding.busKey}:${binding.source.widgetKey}->${sink.widgetKey}`, source: binding.source.widgetKey, target: sink.widgetKey,
       type: "smoothstep", animated: binding.flow === "continuous" || isFlowFresh(flowStatus?.lastFlowAt, nowMs),
       markerEnd: { type: "arrowclosed", width: 14, height: 14 }, selectable: false, focusable: false,
-      data: { busKey: binding.busKey, level: flowStatus?.level ?? "unknown", flow: binding.flow },
+      data: { busKey: binding.busKey, level: flowStatus?.level ?? "unknown", flow: binding.flow, crossGroup: nodeConfig.get(binding.source.widgetKey)?.group !== nodeConfig.get(sink.widgetKey)?.group },
     });
   }
   return { nodes: [...groupNodes, ...serviceNodes], edges };

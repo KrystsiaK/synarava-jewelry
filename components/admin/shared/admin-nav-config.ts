@@ -281,7 +281,7 @@ export function buildAdminNavItems({
       code: "MC",
     },
     { id: "account", href: "/admin/account", label: "Account", code: "ACC" },
-
+    { id: "help", href: "/admin/help", label: "Help", code: "HELP" },
   ];
 }
 

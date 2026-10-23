@@ -1,19 +1,23 @@
 import { describe, expect, it, vi } from "vitest";
-import { loadMissionControlLayout, missionControlLayoutKey, resetMissionControlLayout, saveMissionControlLayout } from "@/lib/mission-control/layout-storage";
+import { loadMissionControlGroupSizes, loadMissionControlLayout, missionControlGroupSizesKey, missionControlLayoutKey, resetMissionControlLayout, saveMissionControlGroupSizes, saveMissionControlLayout } from "@/lib/mission-control/layout-storage";
 
 describe("Mission Control local layout", () => {
   it("keys positions by environment and config version", () => {
     expect(missionControlLayoutKey("1.1.0", "production")).not.toBe(missionControlLayoutKey("1.1.0", "staging"));
     expect(missionControlLayoutKey("1.1.0", "production")).not.toBe(missionControlLayoutKey("1.2.0", "production"));
+    expect(missionControlGroupSizesKey("1.1.0", "production")).not.toBe(missionControlLayoutKey("1.1.0", "production"));
   });
 
   it("round-trips positions and resets without affecting services", () => {
     const values = new Map<string, string>();
     const storage = { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => { values.set(key, value); }, removeItem: (key: string) => { values.delete(key); } };
     expect(saveMissionControlLayout(storage, "1.1.0", "staging", { api: { x: 12, y: 24 } })).toBe(true);
+    expect(saveMissionControlGroupSizes(storage, "1.1.0", "staging", { commerce: { width: 960, height: 520 } })).toBe(true);
     expect(loadMissionControlLayout(storage, "1.1.0", "staging")).toEqual({ api: { x: 12, y: 24 } });
+    expect(loadMissionControlGroupSizes(storage, "1.1.0", "staging")).toEqual({ commerce: { width: 960, height: 520 } });
     expect(resetMissionControlLayout(storage, "1.1.0", "staging")).toBe(true);
     expect(loadMissionControlLayout(storage, "1.1.0", "staging")).toEqual({});
+    expect(loadMissionControlGroupSizes(storage, "1.1.0", "staging")).toEqual({});
   });
 
   it("fails closed when storage is unavailable or corrupt", () => {

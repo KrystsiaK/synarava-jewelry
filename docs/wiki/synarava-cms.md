@@ -40,6 +40,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminSignalChip` | Locale / problem / conflict glyph + tooltip (`empty`/`partial`/`progress`/`ok`; `danger` only for real errors) |
 | `AdminSortChips` | Compact sort chip bar |
 | `AdminStatusBadge` | Workflow / sync status pill (`published`/`draft`/`archived`/`unlisted`/…; `error` only for real faults) |
+| `AdminHelpIndex` / `AdminHelpArticle` | Read-only admin documentation index and article surface (safe Markdown, status, TOC, diagrams, steps, callouts, recovery cards) |
 | `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
 | `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
 | `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
