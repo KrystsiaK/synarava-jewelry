@@ -1,11 +1,16 @@
-# Commerce sync — current freeze (main)
+# Commerce sync — two-state owner model
 
-**Status:** shipped foundation on main. Later work continues on **separate feature branches**.  
-**Date:** 2026-10-10
+**Status:** live on staging/main (sync-unification PR1–PR3; cleanup PR6).  
+**Date:** 2026-10-23  
+**Contract:** [`docs/proposals/sync-unification.md`](../proposals/sync-unification.md) Owner model; [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
+
+**Two states only:** Synarava `workingSnapshot` (OUR) ↔ Shopify `shopifySnapshot` (last fetched).  
+**Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy + flags; humans Apply.  
+**One compare module:** `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor.
 
 This is the only admin sync architecture doc for the current model. Older drafts
-(`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation)
-were removed; do not resurrect them as parallel sources of truth.
+(`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation,
+`projection-merge`, `shopifyBaseSnapshot`) were removed; do not resurrect them.
 
 UX dialogs / field spines: [`catalog-conflict-resolution-ux.md`](./catalog-conflict-resolution-ux.md).  
 Field ownership: [`product-data-ownership.md`](product-data-ownership.md).\
@@ -75,12 +80,13 @@ Translation axis in the catalog conflict signal: only two-sided `CONFLICT` rows 
 | Dual store types / setProductWindow | `lib/commerce-store/types.ts` |
 | Compare | `lib/commerce-store/compare.ts` |
 | Build OUR / fetch Shopify / refresh | `lib/commerce-store/build-our-store.ts`, `fetch-shopify-store.ts`, `refresh.ts` |
-| Projection / merge / diff | `lib/shopify/local-commerce-projection.ts`, `projection-merge.ts`, `shopify-projection-diff.ts` |
-| Inspect / write-through | `lib/shopify/product-sync.ts` |
+| Projection / write-through / diff | `lib/shopify/local-commerce-projection.ts`, `shopify-projection-diff.ts` |
+| Inspect / refresh (Shopify copy + flags) | `lib/shopify/product-sync.ts` (`refreshShopifyProductState`, human Apply separate) |
 | Admin refresh action | `refreshCommerceSyncStoreAction` in `app/admin/actions/sync.ts` |
 | Editor re-inspect after save | `components/admin/products/product-edit-form.tsx` |
 
-Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commerce_sync_store`, `collection_commerce_windows`.
+Migrations: `product_working_snapshot`, `commerce_sync_store`, `collection_commerce_windows`.  
+Dropped (PR6): `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`.
 
 Collection projection: `lib/shopify/collection-commerce-projection.ts`, fetch `collection-commerce-fetch.ts`, push/pull windows in `collection-presence-server.ts`.
 

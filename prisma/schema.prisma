@@ -185,8 +185,6 @@ model Product {
   shopifySnapshot     Json?
   /// Synarava working commerce window (same Shopify-shaped JSON as shopifySnapshot).
   workingSnapshot     Json?
-  /// @deprecated dual-snapshot model — unused; drop in a later migration.
-  shopifyBaseSnapshot Json?
   shopifyProductId    String?                 @unique
   shopifyHandle       String?
   shopifyUpdatedAt    DateTime?
@@ -765,37 +763,13 @@ model ShopifyTranslationBinding {
   resourceType       TranslationResourceType
   entityId           String
   shopifyResourceId  String
-  // Legacy, single-locale field values (registry key -> value) as of the
-  // last successful push/pull, from before per-locale ShopifyTranslationSnapshot
-  // rows existed — only ever populated for one locale and no longer written
-  // (Task U5), kept as a read-only fallback for bindings that predate it.
-  lastSyncedSnapshot Json?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   syncEvents         TranslationSyncEvent[]
-  snapshots          ShopifyTranslationSnapshot[]
   divergences        ShopifyFieldDivergence[]
 
   @@unique([resourceType, entityId])
   @@unique([resourceType, shopifyResourceId])
-}
-
-// Locale-specific common ancestors for three-way comparison, one row per
-// (binding, locale). The legacy lastSyncedSnapshot column on
-// ShopifyTranslationBinding remains only so bindings created before this
-// table existed still have a fallback base to diff against.
-model ShopifyTranslationSnapshot {
-  id        String                    @id @default(cuid())
-  bindingId String
-  binding   ShopifyTranslationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
-  locale    String
-  values    Json
-  syncedAt  DateTime                  @default(now())
-  createdAt DateTime                  @default(now())
-  updatedAt DateTime                  @updatedAt
-
-  @@unique([bindingId, locale])
-  @@index([locale, syncedAt])
 }
 
 // A read-only observation of Shopify/local state. Reconcile runs are kept
