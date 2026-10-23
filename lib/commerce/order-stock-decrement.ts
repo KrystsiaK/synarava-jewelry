@@ -1,7 +1,5 @@
 import "server-only";
 
-import type { Prisma } from "@prisma/client";
-
 import { db } from "@/lib/db";
 import { variantGidFromNumericId } from "@/lib/shopify/cart-permalink";
 
@@ -47,11 +45,18 @@ export function paidOrderStockLinesFromPayload(payload: {
   }));
 }
 
-type StockTx = Pick<Prisma.TransactionClient, "productVariant"> | typeof db;
+/** Prisma client / interactive tx — only `$executeRaw` is required for the atomic decrement. */
+type StockTx = {
+  $executeRaw: (
+    strings: TemplateStringsArray,
+    ...values: unknown[]
+  ) => Promise<number>;
+};
 
 /**
- * Decrement Synarava `stockOnHand` for paid order lines (floor 0).
- * Unknown variants are ignored. Does not touch Shopify, snapshots, or status.
+ * Atomically decrement Synarava `stockOnHand` for paid order lines (floor 0).
+ * One `UPDATE ... GREATEST(stock - qty, 0)` per variant so concurrent paid
+ * deliveries cannot lose a decrement. Unknown variants are ignored.
  * Idempotency is the caller's responsibility (webhook delivery claim).
  */
 export async function decrementStockForPaidOrderLines(
@@ -62,23 +67,13 @@ export async function decrementStockForPaidOrderLines(
   let ignored = 0;
 
   for (const line of lines) {
-    const variant = await tx.productVariant.findUnique({
-      where: { shopifyVariantId: line.shopifyVariantId },
-      select: { id: true, stockOnHand: true },
-    });
-    if (!variant) {
-      ignored += 1;
-      continue;
-    }
-
-    const next = Math.max(0, variant.stockOnHand - line.quantity);
-    if (next !== variant.stockOnHand) {
-      await tx.productVariant.update({
-        where: { id: variant.id },
-        data: { stockOnHand: next },
-      });
-    }
-    decremented += 1;
+    const updated = await tx.$executeRaw`
+      UPDATE "ProductVariant"
+      SET "stockOnHand" = GREATEST("stockOnHand" - ${line.quantity}, 0)
+      WHERE "shopifyVariantId" = ${line.shopifyVariantId}
+    `;
+    if (updated === 0) ignored += 1;
+    else decremented += 1;
   }
 
   return { decremented, ignored };
