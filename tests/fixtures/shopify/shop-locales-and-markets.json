@@ -1,0 +1,61 @@
+{
+  "source": "live",
+  "notes": "Full markets selection may have failed; see errors",
+  "full_query_errors": [
+    {
+      "message": "Access denied for markets field. Required access: `read_markets` for queries and both `read_markets` as well as `write_markets` for mutations.",
+      "locations": [
+        {
+          "line": 4,
+          "column": 3
+        }
+      ],
+      "extensions": {
+        "code": "ACCESS_DENIED",
+        "documentation": "https://shopify.dev/api/usage/access-scopes",
+        "requiredAccess": "`read_markets` for queries and both `read_markets` as well as `write_markets` for mutations."
+      },
+      "path": [
+        "markets"
+      ]
+    }
+  ],
+  "shopLocales": [
+    {
+      "locale": "en",
+      "name": "REDACTED_NAME",
+      "primary": true,
+      "published": true
+    }
+  ],
+  "markets": null,
+  "extensions": {
+    "locales_markets_attempt_cost": {
+      "requestedQueryCost": 93,
+      "actualQueryCost": 3,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1997,
+        "restoreRate": 100.0
+      }
+    },
+    "markets_light_cost": {
+      "requestedQueryCost": 8,
+      "actualQueryCost": 2,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1998,
+        "restoreRate": 100.0
+      }
+    },
+    "shop_locales_cost": {
+      "requestedQueryCost": 1,
+      "actualQueryCost": 1,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1999,
+        "restoreRate": 100.0
+      }
+    }
+  }
+}
