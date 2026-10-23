@@ -1,0 +1,242 @@
+{
+  "query": "GroundTruthProducts",
+  "why": "First ~3 products shape for Admin GraphQL 2026-07 ground truth; IDs/handles/titles/URLs redacted.",
+  "apiVersion": "2026-07",
+  "response": {
+    "data": {
+      "products": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "cursor_redacted_797fea95583a"
+        },
+        "nodes": [
+          {
+            "id": "gid://shopify/Product/1000001",
+            "title": "Title 920411",
+            "handle": "handle-da7fc2ff",
+            "status": "DRAFT",
+            "vendor": "Vendor-Redacted",
+            "productType": "",
+            "tags": [],
+            "updatedAt": "2026-10-14T08:28:35Z",
+            "totalInventory": 0,
+            "descriptionHtml": "",
+            "seo": {
+              "title": null,
+              "description": null
+            },
+            "options": [
+              {
+                "id": "gid://shopify/ProductOption/1000001",
+                "name": "Title 7e8cd2",
+                "position": 1,
+                "values": [
+                  "Default Title"
+                ]
+              }
+            ],
+            "featuredMedia": {
+              "id": "gid://shopify/MediaImage/1000001",
+              "preview": {
+                "image": {
+                  "url": "https://cdn.shopify.com/redacted/example.jpg",
+                  "width": 1536,
+                  "height": 1024
+                }
+              }
+            },
+            "media": {
+              "nodes": [
+                {
+                  "id": "gid://shopify/MediaImage/1000001",
+                  "alt": "ChatGPT Image Sep 29, 2026, 07_04_07 PM",
+                  "mediaContentType": "IMAGE",
+                  "status": "READY",
+                  "preview": {
+                    "image": {
+                      "url": "https://cdn.shopify.com/redacted/example.jpg",
+                      "width": 1536,
+                      "height": 1024
+                    }
+                  },
+                  "image": {
+                    "url": "https://cdn.shopify.com/redacted/example.jpg",
+                    "width": 1536,
+                    "height": 1024
+                  }
+                }
+              ]
+            },
+            "variants": {
+              "pageInfo": {
+                "hasNextPage": false,
+                "endCursor": "cursor_redacted_532ab5d3c69d"
+              },
+              "nodes": [
+                {
+                  "id": "gid://shopify/ProductVariant/1000001",
+                  "title": "Title 3dc154",
+                  "sku": "SKU-REDACTED-9e1dcc",
+                  "barcode": null,
+                  "price": "12.00",
+                  "compareAtPrice": null,
+                  "inventoryPolicy": "DENY",
+                  "taxable": true,
+                  "inventoryQuantity": 0,
+                  "selectedOptions": [
+                    {
+                      "name": "Title 7e8cd2",
+                      "value": "Default Title"
+                    }
+                  ],
+                  "inventoryItem": {
+                    "id": "gid://shopify/InventoryItem/1000001",
+                    "requiresShipping": true,
+                    "tracked": false,
+                    "measurement": {
+                      "weight": {
+                        "value": 0,
+                        "unit": "KILOGRAMS"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "metafields": {
+              "pageInfo": {
+                "hasNextPage": false,
+                "endCursor": null
+              },
+              "nodes": []
+            },
+            "collections": {
+              "nodes": [
+                {
+                  "id": "gid://shopify/Collection/1000001",
+                  "handle": "handle-a80e4934",
+                  "title": "Title 11d58b"
+                }
+              ]
+            }
+          },
+          {
+            "id": "gid://shopify/Product/1000002",
+            "title": "Title 8c3d3a",
+            "handle": "handle-7df1b40e",
+            "status": "ACTIVE",
+            "vendor": "Vendor-Redacted",
+            "productType": "",
+            "tags": [],
+            "updatedAt": "2026-10-22T15:52:16Z",
+            "totalInventory": 4,
+            "descriptionHtml": "",
+            "seo": {
+              "title": null,
+              "description": null
+            },
+            "options": [
+              {
+                "id": "gid://shopify/ProductOption/1000002",
+                "name": "Title 7e8cd2",
+                "position": 1,
+                "values": [
+                  "Default Title"
+                ]
+              }
+            ],
+            "featuredMedia": {
+              "id": "gid://shopify/MediaImage/1000002",
+              "preview": {
+                "image": {
+                  "url": "https://cdn.shopify.com/redacted/example.jpg",
+                  "width": 1536,
+                  "height": 1024
+                }
+              }
+            },
+            "media": {
+              "nodes": [
+                {
+                  "id": "gid://shopify/MediaImage/1000002",
+                  "alt": "",
+                  "mediaContentType": "IMAGE",
+                  "status": "READY",
+                  "preview": {
+                    "image": {
+                      "url": "https://cdn.shopify.com/redacted/example.jpg",
+                      "width": 1536,
+                      "height": 1024
+                    }
+                  },
+                  "image": {
+                    "url": "https://cdn.shopify.com/redacted/example.jpg",
+                    "width": 1536,
+                    "height": 1024
+                  }
+                }
+              ]
+            },
+            "variants": {
+              "pageInfo": {
+                "hasNextPage": false,
+                "endCursor": "cursor_redacted_64b14f74da6b"
+              },
+              "nodes": [
+                {
+                  "id": "gid://shopify/ProductVariant/1000002",
+                  "title": "Title 3dc154",
+                  "sku": "SKU-REDACTED-09e70d",
+                  "barcode": null,
+                  "price": "10.00",
+                  "compareAtPrice": null,
+                  "inventoryPolicy": "DENY",
+                  "taxable": true,
+                  "inventoryQuantity": 4,
+                  "selectedOptions": [
+                    {
+                      "name": "Title 7e8cd2",
+                      "value": "Default Title"
+                    }
+                  ],
+                  "inventoryItem": {
+                    "id": "gid://shopify/InventoryItem/1000002",
+                    "requiresShipping": true,
+                    "tracked": true,
+                    "measurement": {
+                      "weight": {
+                        "value": 0,
+                        "unit": "KILOGRAMS"
+                      }
+                    }
+                  }
+                }
+              ]
+            },
+            "metafields": {
+              "pageInfo": {
+                "hasNextPage": false,
+                "endCursor": null
+              },
+              "nodes": []
+            },
+            "collections": {
+              "nodes": []
+            }
+          }
+        ]
+      }
+    },
+    "extensions": {
+      "cost": {
+        "requestedQueryCost": 118,
+        "actualQueryCost": 34,
+        "throttleStatus": {
+          "maximumAvailable": 2000,
+          "currentlyAvailable": 1966,
+          "restoreRate": 100
+        }
+      }
+    }
+  }
+}

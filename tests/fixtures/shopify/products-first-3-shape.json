@@ -1,0 +1,115 @@
+{
+  "note": "Structural shape of first product node (types only; no live values).",
+  "apiVersion": "2026-07",
+  "productNodeShape": {
+    "id": "string",
+    "title": "string",
+    "handle": "string",
+    "status": "string",
+    "vendor": "string",
+    "productType": "string",
+    "tags": [],
+    "updatedAt": "string",
+    "totalInventory": "number",
+    "descriptionHtml": "string",
+    "seo": {
+      "title": "null",
+      "description": "null"
+    },
+    "options": [
+      {
+        "id": "string",
+        "name": "string",
+        "position": "number",
+        "values": [
+          "string"
+        ]
+      }
+    ],
+    "featuredMedia": {
+      "id": "string",
+      "preview": {
+        "image": {
+          "url": "string",
+          "width": "number",
+          "height": "number"
+        }
+      }
+    },
+    "media": {
+      "nodes": [
+        {
+          "id": "string",
+          "alt": "string",
+          "mediaContentType": "string",
+          "status": "string",
+          "preview": {
+            "image": {
+              "url": "string",
+              "width": "number",
+              "height": "number"
+            }
+          },
+          "image": {
+            "url": "string",
+            "width": "number",
+            "height": "number"
+          }
+        }
+      ]
+    },
+    "variants": {
+      "pageInfo": {
+        "hasNextPage": "boolean",
+        "endCursor": "string"
+      },
+      "nodes": [
+        {
+          "id": "string",
+          "title": "string",
+          "sku": "string",
+          "barcode": "null",
+          "price": "string",
+          "compareAtPrice": "null",
+          "inventoryPolicy": "string",
+          "taxable": "boolean",
+          "inventoryQuantity": "number",
+          "selectedOptions": [
+            {
+              "name": "string",
+              "value": "string"
+            }
+          ],
+          "inventoryItem": {
+            "id": "string",
+            "requiresShipping": "boolean",
+            "tracked": "boolean",
+            "measurement": {
+              "weight": {
+                "value": "number",
+                "unit": "string"
+              }
+            }
+          }
+        }
+      ]
+    },
+    "metafields": {
+      "pageInfo": {
+        "hasNextPage": "boolean",
+        "endCursor": "null"
+      },
+      "nodes": []
+    },
+    "collections": {
+      "nodes": [
+        {
+          "id": "string",
+          "handle": "string",
+          "title": "string"
+        }
+      ]
+    }
+  },
+  "productCount": 2
+}
