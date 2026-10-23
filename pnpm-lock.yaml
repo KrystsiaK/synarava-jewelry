@@ -243,9 +243,6 @@ importers:
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
-      d3-array:
-        specifier: ^3.2.4
-        version: 3.2.4
       d3-shape:
         specifier: ^3.2.0
         version: 3.2.0
@@ -279,9 +276,6 @@ importers:
       zod:
         specifier: ^4.4.3
         version: 4.4.3
-      zustand:
-        specifier: ^4.5.7
-        version: 4.5.7(@types/react@19.2.15)(react@19.2.4)
     devDependencies:
       '@axe-core/playwright':
         specifier: ^4.13.0
