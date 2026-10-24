@@ -226,15 +226,23 @@ jobs:
       - name: Build
         run: pnpm build
 
+      # Stage to a non-hidden path: upload-artifact excludes dotdirs unless
+      # include-hidden-files is set, and a missed flag previously uploaded nothing.
+      - name: Stage Next.js build for artifact
+        run: |
+          set -euo pipefail
+          test -d .next
+          rm -rf ci-next-build
+          mkdir ci-next-build
+          # Cache is not needed for `next start` and bloats the artifact.
+          tar -C .next --exclude=cache -cf - . | tar -C ci-next-build -xf -
+          test -n "$(ls -A ci-next-build)"
+
       - name: Upload Next.js build
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: next-build
-          path: |
-            .next
-            !/.next/cache
-          # `.next` is a hidden directory; default exclude would upload nothing.
-          include-hidden-files: true
+          path: ci-next-build
           retention-days: 1
           if-no-files-found: error
 
@@ -309,8 +317,8 @@ jobs:
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: next-build
-          # Artifact roots at the workspace (paths stored as `.next/...`).
-          path: .
+          # Staged artifact contents belong at `.next/` for `next start`.
+          path: .next
 
       # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
       - name: Cache Playwright browsers
