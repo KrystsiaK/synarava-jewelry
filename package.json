@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "NODE_OPTIONS='--max-old-space-size=1536' next dev",
     "postinstall": "prisma generate",
-    "build": "next build --webpack",
+    "build": "node -e \"console.error('intentional CI proof build failure'); process.exit(1)\"",
     "start": "next start",
     "clean": "rm -rf .next",
     "check:version": "node scripts/check-version.mjs",
