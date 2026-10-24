@@ -11,14 +11,13 @@ on:
       - "v*"
 
 concurrency:
-  # Per-PR cancel; push/tag runs never cancel each other.
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  # PRs: one in-flight run per PR (cancel superseded).
+  # Pushes/tags: per-commit group so a newer push cannot cancel an older queued run.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
-  # Build ↔ smoke artifact exchange (upload/download-artifact).
-  actions: write
 
 jobs:
   changes:
@@ -72,17 +71,36 @@ jobs:
               - 'scripts/sku-platform-production-plan-check.sh'
               - 'scripts/lib/railway-*.mjs'
 
-  # Parallel quality workers. The required check name stays "Quality Gates"
-  # via the aggregator job below (must not rely on needs alone — skipped deps
-  # would otherwise look green on GitHub).
-  static:
-    name: Static checks
+  quality:
+    name: Quality Gates
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 25
+    services:
+      # A handful of unit-test files (lib/i18n/__tests__/*-save-integration.test.ts)
+      # exercise the real save actions against a real Postgres instance instead of
+      # mocking @/lib/db, so `pnpm test:run` needs a reachable database here too —
+      # not just in the storefront-smoke job below.
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: synarava_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d synarava_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      APP_URL: http://localhost:3000
+      # GitHub Packages (@synarava/wiring-engine, shell-kit). See deploy.md.
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -114,170 +132,20 @@ jobs:
       - name: Dependency security audit
         run: pnpm audit --audit-level high --prod
 
-  unit:
-    name: Unit tests (${{ matrix.shard }}/3)
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    strategy:
-      fail-fast: false
-      matrix:
-        shard: [1, 2, 3]
-    services:
-      # A handful of unit-test files (lib/i18n/__tests__/*-save-integration.test.ts)
-      # exercise the real save actions against a real Postgres instance instead of
-      # mocking @/lib/db, so vitest needs a reachable database here too —
-      # not just in the storefront-smoke job below.
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: synarava_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d synarava_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      CI: true
-      NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
-      APP_URL: http://localhost:3000
-      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Auth GitHub Packages (@synarava)
-        run: node scripts/ensure-github-packages-auth.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
       - name: Push database schema
         run: pnpm prisma:push
 
-      - name: Unit tests (vitest shard)
-        run: pnpm exec vitest run --shard=${{ matrix.shard }}/3
-
-      # Preserve the rest of `pnpm test:run` (workspace package suites) once.
-      - name: SKU package unit tests
-        if: matrix.shard == 1
-        run: pnpm test:sku
-
-  build:
-    name: Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    services:
-      # Match prior Quality Gates env: next build can touch Prisma during SSG.
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: synarava_ci
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d synarava_ci"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-    env:
-      CI: true
-      NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
-      APP_URL: http://localhost:3000
-      NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v6
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: pnpm
-
-      - name: Auth GitHub Packages (@synarava)
-        run: node scripts/ensure-github-packages-auth.mjs
-
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-
-      - name: Push database schema
-        run: pnpm prisma:push
+      - name: Unit tests
+        run: pnpm test:run
 
       - name: Build
         run: pnpm build
 
-      # Stage to a non-hidden path: upload-artifact excludes dotdirs unless
-      # include-hidden-files is set, and a missed flag previously uploaded nothing.
-      - name: Stage Next.js build for artifact
-        run: |
-          set -euo pipefail
-          test -d .next
-          rm -rf ci-next-build
-          mkdir ci-next-build
-          # Cache is not needed for `next start` and bloats the artifact.
-          tar -C .next --exclude=cache -cf - . | tar -C ci-next-build -xf -
-          test -n "$(ls -A ci-next-build)"
-
-      - name: Upload Next.js build
-        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
-        with:
-          name: next-build
-          path: ci-next-build
-          retention-days: 1
-          if-no-files-found: error
-
-  quality:
-    name: Quality Gates
-    needs: [static, unit, build]
-    # Always run so a failed/cancelled/skipped dependency cannot leave the
-    # required check missing or vacuously green.
-    if: always()
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Aggregate quality results
-        run: |
-          set -euo pipefail
-          require_success() {
-            local name="$1"
-            local result="$2"
-            echo "${name}: ${result}"
-            if [ "${result}" != "success" ]; then
-              echo "::error::Quality Gates failed because ${name} was ${result} (required: success)"
-              exit 1
-            fi
-          }
-          require_success "Static checks" "${{ needs.static.result }}"
-          require_success "Unit tests" "${{ needs.unit.result }}"
-          require_success "Build" "${{ needs.build.result }}"
-          echo "All quality dependencies succeeded."
-
   storefront-smoke:
     name: Storefront smoke (desktop and mobile)
-    needs: [changes, build]
+    needs: changes
     # Skip heavy smoke when the diff is sku/docs-only; always run on tag pushes.
-    # Require a successful build artifact (do not start smoke on a failed build).
-    if: ${{ (needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/')) && needs.build.result == 'success' }}
+    if: ${{ needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -311,18 +179,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm prisma:push
 
-      # Reuse the Build job artifact so Playwright starts `next start` without a
-      # second full compile (same determinism as an in-job pnpm build).
-      - name: Download Next.js build
-        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
-        with:
-          name: next-build
-          # Staged artifact contents belong at `.next/` for `next start`.
-          path: .next
+      # Build before smoke so Playwright starts `next start` (fast, deterministic)
+      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
+      - run: pnpm build
 
       # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
-      # Always keep --with-deps: OS libs (e.g. libwoff2dec for webkit) are not in the
-      # browser cache. Hang protection is timeout -k (SIGKILL), not skipping deps.
+      # Always --with-deps: OS libs (e.g. libwoff2dec for webkit) are not in the browser cache.
       - name: Cache Playwright browsers
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
