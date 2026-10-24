@@ -68,7 +68,7 @@ cases that need a real browser remain as e2e work.
 | AUTH-17 | Session cookie is `httpOnly` (and `Secure` in prod config) | security | P3 | **E2E** | Flag assertion from `context.cookies()`. |
 | AUTH-18 | Unconfigured `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` blocks all logins | negative | P3 | ✔ action | `actions.test.ts` "returns a configuration error". |
 | AUTH-19 | Expired session (>8 h) behaves like a guest | negative | P2 | **action** | Manipulate `expiresAt`; not worth a browser. |
-| AUTH-20 | A Server Action from a tab whose admin cookie expired navigates to login without replaying the POST there | negative | P1 | ✔ unit + **E2E** | `__tests__/proxy.test.ts` covers the action-redirect protocol. Browser coverage should clear cookies on an open product editor and click `Refresh from Shopify`; no React error boundary should appear. |
+| AUTH-20 | A Server Action from a tab whose admin cookie expired navigates to login without replaying the POST there | negative | P1 | ✔ unit + **E2E** | `__tests__/proxy.test.ts` covers the action-redirect protocol. Browser coverage should clear cookies on an open product editor and click the top-bar Shopify sync control; no React error boundary should appear. |
 
 Browser coverage is still required for every case marked **E2E**, including the
 long-lived-tab recovery path in AUTH-20.
@@ -208,7 +208,7 @@ and SYNC-16 asserts that state is handled gracefully.
 
 | ID | Scenario | Type | Prio | Layer | Notes |
 |----|----------|------|------|-------|-------|
-| SYNC-01 | "Run conflict check" validates access, creates the initial store binding, registers available webhooks, and saves reconciliation state | positive | P1 | **E2E** | Sandbox. |
+| SYNC-01 | Top-bar Shopify sync control validates access, creates the initial store binding, registers available webhooks, and saves reconciliation state | positive | P1 | **E2E** | Sandbox. Same full catalog check as post-Save. |
 | SYNC-02 | Conflict check reports missing configuration variables without replacing saved state with a false zero | negative | P2 | **action** | Runs without a sandbox. |
 | SYNC-03 | Conflict check reports missing required scopes before reconciliation | negative | P2 | **E2E** | Needs a deliberately under-scoped token. |
 | SYNC-04 | Credentials for a different shop return an explicit rebind choice and never rebind automatically | negative | P1 | **E2E** | |
@@ -235,7 +235,7 @@ and SYNC-16 asserts that state is handled gracefully.
 | CATCONF-08 | Synarava-only product appears with Push as its sole row action | positive | P1 | ✔ unit / **E2E round trip** | Component and resolver covered; sandbox confirms Shopify create. |
 | CATCONF-09 | Mixed one-sided bulk scopes include only compatible products and explain exclusions | edge | P1 | ✔ unit | Opposite direction stays Not included with reason. |
 | CATCONF-10 | Live EN/PT (and RU when filled) apply round trip on a sandbox product | positive | P1 | **E2E** | Stage 7 gate. Skip without Shopify sandbox credentials. Do not mock. |
-| CATCONF-11 | Collections Show conflicts / Run conflict check include every unresolved translation kind (both sides, Synarava-only, Shopify-only) + presence, matching the Collections nav badge | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, `collection-presence*.test.ts`, signals `rootEntityType: COLLECTION`. |
+| CATCONF-11 | Collections Show conflicts / top-bar full catalog check include every unresolved translation kind (both sides, Synarava-only, Shopify-only) + presence, matching the Collections nav badge | positive | P1 | ✔ unit | `collection-conflict.test.ts`, `collection-conflict-apply.test.ts`, `collection-presence*.test.ts`, signals `rootEntityType: COLLECTION`. |
 | CATCONF-12 | Collection editor opens scoped conflict workspace after check | positive | P2 | ✔ render | `collection-edit-form.test.tsx` + Collections CMS wiring. |
 | CATCONF-13 | Shopify-only / Synarava-only collection appears with Pull or Push as sole row action | positive | P1 | ✔ unit | `collection-presence.test.ts`, `collection-presence-apply.test.ts`, conflict workspace presence labels. |
 

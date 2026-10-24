@@ -16,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminButton, AdminCheckboxControl } from "@/components/synarava-cms";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -215,6 +216,8 @@ export function FieldConflictListModal({
   ariaLabel: string;
   onAction: (action: FieldConflictListAction) => void;
 }) {
+  const checkRunning = useAdminShopifyCheckRunning();
+  const actionsBusy = busy || checkRunning;
   const focusedRef = useRef<HTMLElement>(null);
   const entitiesById = useMemo(
     () => new Map(entities.map((entity) => [entity.id, entity])),
@@ -320,7 +323,7 @@ export function FieldConflictListModal({
                     <AdminButton
                       variant="secondary"
                       className="grid size-11 place-items-center p-0"
-                      disabled={busy}
+                      disabled={actionsBusy}
                       onClick={() =>
                         onAction({
                           kind: "entity",
@@ -339,7 +342,7 @@ export function FieldConflictListModal({
                     <AdminButton
                       variant="secondary"
                       className="grid size-11 place-items-center p-0"
-                      disabled={busy}
+                      disabled={actionsBusy}
                       onClick={() =>
                         onAction({
                           kind: "entity",
@@ -380,7 +383,7 @@ export function FieldConflictListModal({
             <AdminButton
               variant="secondary"
               className="inline-flex items-center gap-2"
-              disabled={busy || entityIds.length === 0}
+              disabled={actionsBusy || entityIds.length === 0}
               onClick={() => onAction({ kind: "bulk", direction: "SHOPIFY_TO_SYNARAVA" })}
             >
               <ArrowDownToLine className="size-4" aria-hidden="true" />
@@ -389,7 +392,7 @@ export function FieldConflictListModal({
             <AdminButton
               variant="primary"
               className="inline-flex items-center gap-2"
-              disabled={busy || entityIds.length === 0}
+              disabled={actionsBusy || entityIds.length === 0}
               onClick={() => onAction({ kind: "bulk", direction: "SYNARAVA_TO_SHOPIFY" })}
             >
               <ArrowUpFromLine className="size-4" aria-hidden="true" />
@@ -451,7 +454,9 @@ export function FieldConflictDetailsModal({
     && (needsWholeRecordSync || hasBlockedCommerce)
     && (onWholeRecordTakeShopify || onWholeRecordKeepOurs),
   );
+  const checkRunning = useAdminShopifyCheckRunning();
   const busy = applying;
+  const actionsBusy = busy || checkRunning;
 
   return (
     <AnimatedModal
@@ -551,14 +556,14 @@ export function FieldConflictDetailsModal({
             <div className="flex flex-wrap items-center gap-2">
               <AdminButton
                 variant="ghost"
-                disabled={busy || loading || actionable.length === 0}
+                disabled={actionsBusy || loading || actionable.length === 0}
                 onClick={() => onSelectAll("SHOPIFY_TO_SYNARAVA")}
               >
                 Take Shopify for visible fields
               </AdminButton>
               <AdminButton
                 variant="ghost"
-                disabled={busy || loading || actionable.length === 0}
+                disabled={actionsBusy || loading || actionable.length === 0}
                 onClick={() => onSelectAll("SYNARAVA_TO_SHOPIFY")}
               >
                 Keep ours for visible fields
@@ -582,7 +587,7 @@ export function FieldConflictDetailsModal({
               <AdminButton
                 variant="secondary"
                 className="inline-flex items-center gap-2"
-                disabled={busy}
+                disabled={actionsBusy}
                 onClick={() => onWholeRecordTakeShopify(entityId)}
               >
                 <ArrowDownToLine className="size-4" aria-hidden="true" />
@@ -593,7 +598,7 @@ export function FieldConflictDetailsModal({
               <AdminButton
                 variant="primary"
                 className="inline-flex items-center gap-2"
-                disabled={busy}
+                disabled={actionsBusy}
                 onClick={() => onWholeRecordKeepOurs(entityId)}
               >
                 <ArrowUpFromLine className="size-4" aria-hidden="true" />

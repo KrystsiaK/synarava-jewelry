@@ -22,8 +22,13 @@ async function signalsFromWaterfall(
   requestedBy: string,
   rootEntityType: "PRODUCT" | "COLLECTION",
   options?: { skipRefresh?: boolean; trigger?: "AUTO" | "MANUAL" },
-): Promise<{ signals: CatalogConflictSignals; warning?: string; result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"] }> {
-  const { result, warning } = await runSyncWaterfall({
+): Promise<{
+  signals: CatalogConflictSignals;
+  warning?: string;
+  alreadyRunning?: boolean;
+  result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"];
+}> {
+  const { result, warning, alreadyRunning } = await runSyncWaterfall({
     scope,
     requestedBy,
     skipRefresh: options?.skipRefresh,
@@ -34,7 +39,7 @@ async function signalsFromWaterfall(
     rootEntityType,
     await localeMeta(),
   );
-  return { signals, warning, result };
+  return { signals, warning, alreadyRunning, result };
 }
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
@@ -93,6 +98,7 @@ export async function runCatalogConflictCheck(
 ): Promise<{
   signals: CatalogConflictSignals;
   warning?: string;
+  alreadyRunning?: boolean;
   result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"];
 }> {
   return signalsFromWaterfall(

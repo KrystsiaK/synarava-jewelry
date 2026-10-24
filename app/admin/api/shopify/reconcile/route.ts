@@ -103,6 +103,14 @@ export async function POST(request: NextRequest) {
       if (parsed.data.trigger === "AUTO") await markSessionReconciled(session.sessionId);
 
       const run = await getLatestReconcileRun();
+      if (checked.alreadyRunning) {
+        return NextResponse.json({
+          run,
+          reused: true,
+          alreadyRunning: true,
+          warning: "already running",
+        });
+      }
       const navCounts = selectAdminNavSyncCounts(checked.result);
       return NextResponse.json({
         run,

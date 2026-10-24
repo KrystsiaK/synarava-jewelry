@@ -26,7 +26,10 @@ human **Apply** after preview.
 There are two copies of commerce fields: a **Shopify** copy (fetched, read-only
 in the conflict UI) and a **Synarava** copy (editable). Nothing is written
 automatically when you open the page. Webhooks update the Shopify-side copy and
-conflict flags; a full check runs from the top bar.
+conflict flags. A full catalog check runs from the admin top-bar Shopify control
+(once at login, on click, and after every product / collection / language-setting
+Save). While a check runs, Save and Take Shopify / Keep ours stay disabled;
+fields stay editable. Sync status lives only on that top-bar control.
 :::
 
 ## Steps
@@ -67,9 +70,12 @@ counts and editors match the new windows.
 :::
 
 :::warning
-The banner is display-only. Run a full check from the admin top-bar Shopify
-control when you need a fresh compare. Use **Show conflicts** to review or
-resolve differences.
+The banner is display-only (saved conflict counts and last full-check time). It
+does not show check progress. Use the admin top-bar Shopify control for status
+(**Shopify current \<time\>**, **Checking Shopify…**, **Check failed**, or
+**Shopify disconnected**) and to start a manual full check. Saving a collection
+also runs that same full check. Use **Show conflicts** to review or resolve
+differences.
 :::
 
 ## What if...
@@ -82,8 +88,8 @@ resolve differences.
 **What happens:** The banner shows **No conflicts** and hides
 **Show conflicts**.
 
-**What to do:** Run the top-bar Shopify check if you expect new differences, or
-continue editing — there is nothing to resolve in the list.
+**What to do:** Use the top-bar Shopify control (or Save) if you expect new
+differences, or continue editing — there is nothing to resolve in the list.
 
 ### Banner looks outdated
 

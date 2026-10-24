@@ -12,10 +12,12 @@ import {
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
+import { AdminShopifyCheckProvider } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
 import { selectAdminNavSyncCounts, runSyncWaterfall } from "@/lib/sync";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
@@ -56,9 +58,16 @@ export default async function AdminLayout({
   const syncNavHrefs = Array.from(
     new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),
   );
+  const shopifyConnected = hasShopifyAdminConfig();
+  const initialCheckRunning = Boolean(
+    shopifyConnected
+    && latestReconcileRun
+    && (latestReconcileRun.status === "QUEUED" || latestReconcileRun.status === "RUNNING"),
+  );
 
   return (
     <AdminToastProvider>
+      <AdminShopifyCheckProvider initialRunning={initialCheckRunning}>
       <div className="admin-terminal">
         <AdminThemeShell />
 
@@ -86,7 +95,7 @@ export default async function AdminLayout({
           <div className="hidden sm:block">
             <AdminThemeToggle />
           </div>
-          <AdminShopifySyncSignal initialRun={latestReconcileRun} />
+          <AdminShopifySyncSignal initialRun={latestReconcileRun} connected={shopifyConnected} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">
             Live CMS
@@ -140,6 +149,7 @@ export default async function AdminLayout({
           </main>
         </div>
       </div>
+      </AdminShopifyCheckProvider>
     </AdminToastProvider>
   );
 }

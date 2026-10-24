@@ -20,8 +20,8 @@ vi.mock("@/lib/media/local-upload", () => ({ saveProductImageUpload: vi.fn() }))
 vi.mock("@/lib/s3", () => ({ getS3Bucket: vi.fn(), getS3PublicUrl: vi.fn() }));
 vi.mock("@/lib/shopify/config", () => ({ isShopifyConfigured: vi.fn(() => false) }));
 vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: vi.fn(() => false) }));
-vi.mock("@/lib/shopify/catalog-conflict-signals-server", () => ({
-  runProductConflictCheck: vi.fn(),
+vi.mock("@/lib/shopify/after-save-catalog-check", () => ({
+  runAfterSaveCatalogConflictCheck: vi.fn(),
 }));
 vi.mock("@/lib/shopify/product-sync", () => ({ deleteShopifyProduct: vi.fn() }));
 

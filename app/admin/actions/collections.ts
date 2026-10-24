@@ -2,7 +2,6 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -20,7 +19,7 @@ import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { runCollectionConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import { writeThroughLocalCollectionToProjection } from "@/lib/shopify/collection-commerce-projection";
 import { validateCollectionInput, type CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import {
@@ -529,15 +528,8 @@ export async function saveCollectionAction(
   revalidateStorefront();
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
 
-  if (finalCollection.shopifyCollectionId && hasShopifyAdminConfig()) {
-    after(() => {
-      void runCollectionConflictCheck({
-        collectionId: finalCollection.id,
-        requestedBy: currentUser.username,
-      }).catch((error) => {
-        console.error("[saveCollection] scoped conflict check failed", error);
-      });
-    });
+  if (hasShopifyAdminConfig()) {
+    await runAfterSaveCatalogConflictCheck(currentUser.username);
   }
 
   return {

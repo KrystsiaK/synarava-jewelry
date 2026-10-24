@@ -162,6 +162,26 @@ export async function getLatestEntityReconcileState({
   return { run, differenceCount: differences.length, differences };
 }
 
+/** Running checks older than this are treated as dead and may be superseded. */
+export const CATALOG_CHECK_LEASE_MS = 10 * 60 * 1000;
+
+export type BeginCatalogCheckResult =
+  | { status: "started"; run: ReconcileRunSummary }
+  | { status: "already_running"; run: ReconcileRunSummary }
+  | { status: "reused_recent_auto"; run: ReconcileRunSummary };
+
+type CreateOrReuseResult = {
+  run: ReconcileRunSummary | null;
+  reused: boolean;
+  /** Why createOrReuse returned without starting fresh work. */
+  reason?: "already_running" | "reused_recent_auto";
+};
+
+function isRunPastLease(row: { startedAt: Date | null; createdAt: Date }, nowMs: number) {
+  const anchor = row.startedAt ?? row.createdAt;
+  return nowMs - anchor.getTime() > CATALOG_CHECK_LEASE_MS;
+}
+
 async function createOrReuseRun({
   trigger,
   scope,
@@ -170,20 +190,44 @@ async function createOrReuseRun({
   trigger: ReconcileTrigger;
   scope?: ReconcileScope;
   requestedBy?: string | null;
-}) {
+}): Promise<CreateOrReuseResult> {
   return db.$transaction(async (transaction) => {
     // One short database lock protects the check/create window across tabs
     // and app instances. It does not cover the Shopify network work.
     await transaction.$executeRaw(Prisma.sql`SELECT pg_advisory_xact_lock(730921441)`);
 
-    const active = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-      SELECT "id"
+    const active = await transaction.$queryRaw<Array<{
+      id: string;
+      startedAt: Date | null;
+      createdAt: Date;
+    }>>(Prisma.sql`
+      SELECT "id", "startedAt", "createdAt"
       FROM "ShopifyReconcileRun"
       WHERE "status" IN ('QUEUED', 'RUNNING')
       ORDER BY "createdAt" DESC
       LIMIT 1
     `);
-    if (active[0]) return { run: await runById(transaction, active[0].id), reused: true };
+    if (active[0]) {
+      if (isRunPastLease(active[0], Date.now())) {
+        // Stale lease: mark dead so a new check can start.
+        await transaction.$executeRaw(Prisma.sql`
+          UPDATE "ShopifyReconcileRun"
+          SET
+            "status" = CAST('FAILED' AS "ShopifyReconcileStatus"),
+            "error" = ${"Check timed out (lease expired after 10 minutes)."},
+            "completedAt" = CURRENT_TIMESTAMP,
+            "updatedAt" = CURRENT_TIMESTAMP
+          WHERE "id" = ${active[0].id}
+            AND "status" IN ('QUEUED', 'RUNNING')
+        `);
+      } else {
+        return {
+          run: await runById(transaction, active[0].id),
+          reused: true,
+          reason: "already_running" as const,
+        };
+      }
+    }
 
     if (trigger === "AUTO") {
       const recent = await transaction.$queryRaw<Array<{ id: string }>>(Prisma.sql`
@@ -193,7 +237,13 @@ async function createOrReuseRun({
         ORDER BY "createdAt" DESC
         LIMIT 1
       `);
-      if (recent[0]) return { run: await runById(transaction, recent[0].id), reused: true };
+      if (recent[0]) {
+        return {
+          run: await runById(transaction, recent[0].id),
+          reused: true,
+          reason: "reused_recent_auto" as const,
+        };
+      }
     }
 
     const id = randomUUID();
@@ -214,6 +264,43 @@ async function createOrReuseRun({
     `);
     return { run: await runById(transaction, id), reused: false };
   });
+}
+
+/**
+ * Single-flight gate for the full catalog check (top-bar + post-save).
+ * Reuses ShopifyReconcileRun; a RUNNING/QUEUED row younger than the lease
+ * blocks a second start with `already_running`.
+ */
+export async function beginCatalogCheckRun({
+  trigger,
+  requestedBy,
+}: {
+  trigger: "AUTO" | "MANUAL";
+  requestedBy?: string | null;
+}): Promise<BeginCatalogCheckResult> {
+  const created = await createOrReuseRun({ trigger, requestedBy });
+  if (!created.run) {
+    throw new Error("Could not create a Shopify check run.");
+  }
+  if (created.reason === "already_running") {
+    return { status: "already_running", run: created.run };
+  }
+  if (created.reason === "reused_recent_auto") {
+    return { status: "reused_recent_auto", run: created.run };
+  }
+  return { status: "started", run: created.run };
+}
+
+export async function finishCatalogCheckRun(
+  id: string,
+  result: {
+    status: Exclude<ReconcileRunStatus, "QUEUED" | "RUNNING">;
+    checkedCount: number;
+    differenceCount: number;
+    error?: string | null;
+  },
+) {
+  return finishRun(id, result);
 }
 
 function json(value: unknown) {
@@ -327,39 +414,51 @@ export async function runTranslationReconciliation({
   trigger,
   requestedBy,
   scope,
+  /**
+   * When set, differences attach to this run and the caller owns finish.
+   * Used by the full catalog waterfall so RUNNING covers translations +
+   * presence + commerce refresh, not only the translation loop.
+   */
+  attachToRunId,
 }: {
   trigger: ReconcileTrigger;
   requestedBy?: string | null;
   scope?: ReconcileScope;
+  attachToRunId?: string;
 }) {
-  const created = await createOrReuseRun({ trigger, scope, requestedBy });
-  if (!created.run || created.reused) return created;
+  let runId: string;
+  if (attachToRunId) {
+    runId = attachToRunId;
+  } else {
+    const created = await createOrReuseRun({ trigger, scope, requestedBy });
+    if (!created.run || created.reused) return created;
+    runId = created.run.id;
+  }
 
-  const runId = created.run.id;
+  const closeOwnRun = !attachToRunId;
+
   if (!hasShopifyAdminConfig()) {
-    return {
-      run: await finishRun(runId, {
-        status: "FAILED",
-        checkedCount: 0,
-        differenceCount: 0,
-        error: "Shopify connection is not configured. Add Admin API access before checking translations.",
-      }),
-      reused: false,
+    const failed = {
+      status: "FAILED" as const,
+      checkedCount: 0,
+      differenceCount: 0,
+      error: "Shopify connection is not configured. Add Admin API access before checking translations.",
     };
+    if (!closeOwnRun) throw new Error(failed.error);
+    return { run: await finishRun(runId, failed), reused: false };
   }
 
   const availableLocales = await reconcileLocales();
   const locales = scope?.locale ? [scope.locale] : availableLocales;
   if (locales.some((locale) => !availableLocales.includes(locale))) {
-    return {
-      run: await finishRun(runId, {
-        status: "FAILED",
-        checkedCount: 0,
-        differenceCount: 0,
-        error: `Locale ${scope?.locale} is not configured for Shopify reconciliation.`,
-      }),
-      reused: false,
+    const failed = {
+      status: "FAILED" as const,
+      checkedCount: 0,
+      differenceCount: 0,
+      error: `Locale ${scope?.locale} is not configured for Shopify reconciliation.`,
     };
+    if (!closeOwnRun) throw new Error(failed.error);
+    return { run: await finishRun(runId, failed), reused: false };
   }
   // translatableContent (the source/EN copy) comes back from
   // fetchResourceTranslationState regardless of which locale is requested —
@@ -425,6 +524,17 @@ export async function runTranslationReconciliation({
       : null;
     const status: ReconcileRunStatus = failures.length === 0 ? "SUCCEEDED" : checkedCount > 0 ? "PARTIAL" : "FAILED";
 
+    if (!closeOwnRun) {
+      return {
+        run: await runById(db, runId),
+        reused: false,
+        checkedCount,
+        differenceCount,
+        translationError: error,
+        translationStatus: status,
+      };
+    }
+
     return {
       run: await finishRun(runId, { status, checkedCount, differenceCount, error }),
       reused: false,
@@ -434,6 +544,7 @@ export async function runTranslationReconciliation({
     // run — otherwise it's stuck RUNNING forever and every future check
     // (auto or manual) just reuses that dead run instead of retrying.
     const message = error instanceof Error ? error.message : String(error);
+    if (!closeOwnRun) throw error;
     return {
       run: await finishRun(runId, {
         status: "FAILED",

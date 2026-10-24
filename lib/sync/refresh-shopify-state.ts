@@ -15,7 +15,11 @@ import {
   refreshShopifyCollectionState,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
-import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
+import {
+  beginCatalogCheckRun,
+  finishCatalogCheckRun,
+  runTranslationReconciliation,
+} from "@/lib/shopify/reconciliation-run";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { db } from "@/lib/db";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
@@ -36,6 +40,8 @@ export type RefreshShopifyStateResult = {
   ok: boolean;
   warning?: string;
   runId: string | null;
+  /** Another full catalog check is already RUNNING/QUEUED (within lease). */
+  alreadyRunning?: boolean;
 };
 
 export type RefreshShopifyStateOptions = {
@@ -157,54 +163,105 @@ export async function refreshShopifyState(
     };
   }
 
-  // catalog — one full check: translations + both presence scans + all commerce windows
-  const translationRun = await runTranslationReconciliation({ trigger: catalogTrigger, requestedBy });
+  // catalog — one full check: translations + both presence scans + all commerce windows.
+  // Single-flight: ShopifyReconcileRun stays RUNNING until this whole path finishes.
+  const began = await beginCatalogCheckRun({ trigger: catalogTrigger, requestedBy });
+  if (began.status === "already_running") {
+    return {
+      ok: true,
+      alreadyRunning: true,
+      warning: "already running",
+      runId: began.run.id,
+    };
+  }
+  if (began.status === "reused_recent_auto") {
+    return {
+      ok: true,
+      runId: began.run.id,
+      warning: undefined,
+    };
+  }
+
+  const runId = began.run.id;
+  let checkedCount = 0;
+  let differenceCount = 0;
   try {
-    await scanAndSaveCatalogPresence(translationRun.run?.id ?? null);
-  } catch (error) {
-    await getLatestCatalogPresenceDifferences();
-    warnings.push(error instanceof Error ? error.message : "Catalog presence could not be checked.");
-  }
-  try {
-    await scanAndSaveCollectionPresence(translationRun.run?.id ?? null);
-  } catch (error) {
-    await getLatestCollectionPresenceDifferences();
-    warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
-  }
+    const translationRun = await runTranslationReconciliation({
+      trigger: catalogTrigger,
+      requestedBy,
+      attachToRunId: runId,
+    });
+    checkedCount = translationRun.checkedCount ?? 0;
+    differenceCount = translationRun.differenceCount ?? 0;
+    if (translationRun.translationError) warnings.push(translationRun.translationError);
 
-  const linkedProducts = await db.product.findMany({
-    where: { shopifyProductId: { not: null } },
-    select: { shopifyProductId: true },
-    orderBy: { createdAt: "asc" },
-  });
-  // Sequential: explicit admin check — prefer predictable Shopify throttling.
-  for (const product of linkedProducts) {
-    if (!product.shopifyProductId) continue;
     try {
-      await refreshShopifyProductState(product.shopifyProductId);
+      await scanAndSaveCatalogPresence(runId);
     } catch (error) {
-      warnings.push(error instanceof Error ? error.message : "Product Shopify refresh failed.");
+      await getLatestCatalogPresenceDifferences();
+      warnings.push(error instanceof Error ? error.message : "Catalog presence could not be checked.");
     }
-  }
-
-  const linkedCollections = await db.collection.findMany({
-    where: { shopifyCollectionId: { not: null } },
-    select: { shopifyCollectionId: true },
-    orderBy: { createdAt: "asc" },
-  });
-  for (const collection of linkedCollections) {
-    if (!collection.shopifyCollectionId) continue;
     try {
-      await refreshShopifyCollectionState(collection.shopifyCollectionId);
+      await scanAndSaveCollectionPresence(runId);
     } catch (error) {
-      warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
+      await getLatestCollectionPresenceDifferences();
+      warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
-  }
 
-  if (translationRun.run?.error) warnings.push(translationRun.run.error);
-  return {
-    ok: true,
-    warning: warnings.length > 0 ? warnings.join(" ") : undefined,
-    runId: translationRun.run?.id ?? null,
-  };
+    const linkedProducts = await db.product.findMany({
+      where: { shopifyProductId: { not: null } },
+      select: { shopifyProductId: true },
+      orderBy: { createdAt: "asc" },
+    });
+    // Sequential: explicit admin check — prefer predictable Shopify throttling.
+    for (const product of linkedProducts) {
+      if (!product.shopifyProductId) continue;
+      try {
+        await refreshShopifyProductState(product.shopifyProductId);
+      } catch (error) {
+        warnings.push(error instanceof Error ? error.message : "Product Shopify refresh failed.");
+      }
+    }
+
+    const linkedCollections = await db.collection.findMany({
+      where: { shopifyCollectionId: { not: null } },
+      select: { shopifyCollectionId: true },
+      orderBy: { createdAt: "asc" },
+    });
+    for (const collection of linkedCollections) {
+      if (!collection.shopifyCollectionId) continue;
+      try {
+        await refreshShopifyCollectionState(collection.shopifyCollectionId);
+      } catch (error) {
+        warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
+      }
+    }
+
+    const translationStatus = translationRun.translationStatus ?? "SUCCEEDED";
+    const status = warnings.length > 0 && translationStatus === "FAILED"
+      ? "FAILED"
+      : warnings.length > 0 || translationStatus === "PARTIAL"
+        ? "PARTIAL"
+        : "SUCCEEDED";
+    await finishCatalogCheckRun(runId, {
+      status,
+      checkedCount,
+      differenceCount,
+      error: warnings.length > 0 ? warnings.join(" ") : null,
+    });
+    return {
+      ok: true,
+      warning: warnings.length > 0 ? warnings.join(" ") : undefined,
+      runId,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await finishCatalogCheckRun(runId, {
+      status: "FAILED",
+      checkedCount,
+      differenceCount,
+      error: message,
+    });
+    return { ok: false, warning: message, runId };
+  }
 }

@@ -14,6 +14,8 @@ const mocks = vi.hoisted(() => ({
   scanAndSaveCollectionPresence: vi.fn(),
   getLatestCollectionPresenceDifferences: vi.fn(async () => []),
   runTranslationReconciliation: vi.fn(),
+  beginCatalogCheckRun: vi.fn(),
+  finishCatalogCheckRun: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(async () => []),
   getStorefrontLocales: vi.fn(async () => [
     { code: "en", name: "English", nativeName: "English", shopifyLocale: "en", isDefault: true, sortOrder: 0 },
@@ -50,6 +52,8 @@ vi.mock("@/lib/shopify/catalog-presence-server", () => ({
 }));
 vi.mock("@/lib/shopify/reconciliation-run", () => ({
   runTranslationReconciliation: mocks.runTranslationReconciliation,
+  beginCatalogCheckRun: mocks.beginCatalogCheckRun,
+  finishCatalogCheckRun: mocks.finishCatalogCheckRun,
   getLatestReconcileDifferences: mocks.getLatestReconcileDifferences,
   getLatestReconcileRun: mocks.getLatestReconcileRun,
 }));
@@ -75,8 +79,25 @@ describe("top-bar full catalog waterfall", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.hasShopifyAdminConfig.mockReturnValue(true);
+    mocks.beginCatalogCheckRun.mockResolvedValue({
+      status: "started",
+      run: { id: "run-1", error: null, status: "RUNNING", trigger: "MANUAL", completedAt: null, differenceCount: 0 },
+    });
+    mocks.finishCatalogCheckRun.mockResolvedValue({
+      id: "run-1",
+      error: null,
+      status: "SUCCEEDED",
+      trigger: "MANUAL",
+      completedAt: "2026-10-24T12:00:00.000Z",
+      differenceCount: 0,
+    });
     mocks.runTranslationReconciliation.mockResolvedValue({
-      run: { id: "run-1", error: null, status: "SUCCEEDED", trigger: "MANUAL", completedAt: "2026-10-24T12:00:00.000Z", differenceCount: 0 },
+      run: { id: "run-1", error: null, status: "RUNNING", trigger: "MANUAL", completedAt: null, differenceCount: 0 },
+      reused: false,
+      checkedCount: 0,
+      differenceCount: 0,
+      translationStatus: "SUCCEEDED",
+      translationError: null,
     });
     mocks.scanAndSaveCatalogPresence.mockResolvedValue(undefined);
     mocks.scanAndSaveCollectionPresence.mockResolvedValue(undefined);
@@ -91,22 +112,33 @@ describe("top-bar full catalog waterfall", () => {
   it("catalog refresh updates Shopify copies for products AND collections", async () => {
     const result = await refreshShopifyState({ kind: "catalog" }, "admin", { trigger: "MANUAL" });
 
+    expect(mocks.beginCatalogCheckRun).toHaveBeenCalledWith({
+      trigger: "MANUAL",
+      requestedBy: "admin",
+    });
     expect(mocks.runTranslationReconciliation).toHaveBeenCalledWith({
       trigger: "MANUAL",
       requestedBy: "admin",
+      attachToRunId: "run-1",
     });
     expect(mocks.scanAndSaveCatalogPresence).toHaveBeenCalledOnce();
     expect(mocks.scanAndSaveCollectionPresence).toHaveBeenCalledOnce();
     expect(mocks.refreshShopifyProductState).toHaveBeenCalledWith("gid://shopify/Product/1");
     expect(mocks.refreshShopifyCollectionState).toHaveBeenCalledWith("gid://shopify/Collection/1");
+    expect(mocks.finishCatalogCheckRun).toHaveBeenCalled();
     expect(result.ok).toBe(true);
   });
 
   it("AUTO trigger is forwarded to the translation reconcile run", async () => {
     await refreshShopifyState({ kind: "catalog" }, "admin", { trigger: "AUTO" });
+    expect(mocks.beginCatalogCheckRun).toHaveBeenCalledWith({
+      trigger: "AUTO",
+      requestedBy: "admin",
+    });
     expect(mocks.runTranslationReconciliation).toHaveBeenCalledWith({
       trigger: "AUTO",
       requestedBy: "admin",
+      attachToRunId: "run-1",
     });
   });
 

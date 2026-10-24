@@ -2707,11 +2707,8 @@ html[data-theme="dark"] .ephemeral-toast {
   --adm-sync-color: var(--adm-success);
 }
 
-.adm-sync-signal[data-state="differences"],
-.adm-sync-signal[data-state="partial"] {
-  --adm-sync-color: var(--adm-warning);
-}
-
+.adm-sync-signal[data-state="failed"],
+.adm-sync-signal[data-state="disconnected"],
 .adm-sync-signal[data-state="unavailable"] {
   --adm-sync-color: var(--adm-danger);
 }
