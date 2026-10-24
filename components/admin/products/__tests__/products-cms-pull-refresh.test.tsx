@@ -27,9 +27,7 @@ vi.mock("@/components/admin/shared/admin-toast", () => ({
 }));
 
 vi.mock("@/app/admin/actions/sync", () => ({
-  checkCatalogConflictsAction: vi.fn(),
   loadCatalogConflictSignalsAction: mocks.loadSignals,
-  rebindShopifyStoreAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({

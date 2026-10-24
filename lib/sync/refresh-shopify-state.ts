@@ -38,21 +38,31 @@ export type RefreshShopifyStateResult = {
   runId: string | null;
 };
 
+export type RefreshShopifyStateOptions = {
+  /** Full-catalog top-bar AUTO/MANUAL; defaults to MANUAL. */
+  trigger?: "AUTO" | "MANUAL";
+};
+
 /**
  * Refresh Shopify-side state for the given scope.
  * Products and collections both refresh commerce windows via
  * `refreshShopifyProductState` / `refreshShopifyCollectionState`, then
  * translations (+ presence on catalog-wide scopes).
+ *
+ * Catalog scope is the full owner-model check: translations + product and
+ * collection presence + every linked commerce window.
  */
 export async function refreshShopifyState(
   scope: RefreshShopifyStateScope,
   requestedBy: string,
+  options?: RefreshShopifyStateOptions,
 ): Promise<RefreshShopifyStateResult> {
   if (!hasShopifyAdminConfig()) {
     return { ok: false, warning: "Shopify Admin API credentials are not configured.", runId: null };
   }
 
   const warnings: string[] = [];
+  const catalogTrigger = options?.trigger ?? "MANUAL";
 
   if (scope.kind === "product") {
     const product = await db.product.findUnique({
@@ -147,13 +157,19 @@ export async function refreshShopifyState(
     };
   }
 
-  // catalog
-  const translationRun = await runTranslationReconciliation({ trigger: "MANUAL", requestedBy });
+  // catalog — one full check: translations + both presence scans + all commerce windows
+  const translationRun = await runTranslationReconciliation({ trigger: catalogTrigger, requestedBy });
   try {
     await scanAndSaveCatalogPresence(translationRun.run?.id ?? null);
   } catch (error) {
     await getLatestCatalogPresenceDifferences();
     warnings.push(error instanceof Error ? error.message : "Catalog presence could not be checked.");
+  }
+  try {
+    await scanAndSaveCollectionPresence(translationRun.run?.id ?? null);
+  } catch (error) {
+    await getLatestCollectionPresenceDifferences();
+    warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
   }
 
   const linkedProducts = await db.product.findMany({
@@ -168,6 +184,20 @@ export async function refreshShopifyState(
       await refreshShopifyProductState(product.shopifyProductId);
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "Product Shopify refresh failed.");
+    }
+  }
+
+  const linkedCollections = await db.collection.findMany({
+    where: { shopifyCollectionId: { not: null } },
+    select: { shopifyCollectionId: true },
+    orderBy: { createdAt: "asc" },
+  });
+  for (const collection of linkedCollections) {
+    if (!collection.shopifyCollectionId) continue;
+    try {
+      await refreshShopifyCollectionState(collection.shopifyCollectionId);
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
     }
   }
 

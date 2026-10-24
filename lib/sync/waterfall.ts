@@ -30,12 +30,16 @@ export async function runSyncWaterfall(input: {
   requestedBy: string;
   /** Skip network refresh (e.g. layout badge from already-persisted state). */
   skipRefresh?: boolean;
+  /** Top-bar AUTO/MANUAL; forwarded to catalog refresh translation run. */
+  trigger?: "AUTO" | "MANUAL";
 }): Promise<SyncWaterfallResult> {
   let warning: string | undefined;
   let checkedAt: string | null | undefined;
 
   if (!input.skipRefresh) {
-    const refreshed = await refreshShopifyState(input.scope, input.requestedBy);
+    const refreshed = await refreshShopifyState(input.scope, input.requestedBy, {
+      trigger: input.trigger,
+    });
     warning = refreshed.warning;
     checkedAt = new Date().toISOString();
   }

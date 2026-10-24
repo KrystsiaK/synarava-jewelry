@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   saveCollectionAction: vi.fn(),
   deleteCollectionAction: vi.fn(),
-  checkOneCollectionConflictsAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/collections", () => ({
@@ -14,7 +13,6 @@ vi.mock("@/app/admin/actions/collections", () => ({
 }));
 
 vi.mock("@/app/admin/actions/sync", () => ({
-  checkOneCollectionConflictsAction: mocks.checkOneCollectionConflictsAction,
   loadCollectionCatalogConflictAction: vi.fn(),
   previewCollectionConflictResolutionAction: vi.fn(),
   applyCollectionConflictResolutionAction: vi.fn(),

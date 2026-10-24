@@ -141,7 +141,8 @@ describe("auto sync paths must not write Synarava data", () => {
     expect(route).not.toMatch(/applyShopifyProductToSynarava/);
     expect(route).not.toMatch(/savePulledProduct/);
     expect(route).not.toMatch(/applyShopifyProductTypeLabel/);
-    expect(route).toMatch(/runTranslationReconciliation/);
+    // Top-bar AUTO/MANUAL → single full waterfall entry (not a second compare path).
+    expect(route).toMatch(/runCatalogConflictCheck/);
   });
 
   it("refreshShopifyCollectionState never writes Synarava content", () => {

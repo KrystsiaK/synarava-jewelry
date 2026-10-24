@@ -120,12 +120,11 @@ function syncPresentation(product: ProductRecord, dirty: boolean, inspection: Pr
   return { syncState, healthy, failed, stateLabel, stateDescription, actionable, actionLabel };
 }
 
-export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck, onOpenDetail }: {
+export function ProductSyncStrip({ product, dirty, inspection, pending, onOpenDetail }: {
   product: ProductRecord;
   dirty: boolean;
   inspection: ProductSyncInspection | null;
   pending: boolean;
-  onCheck: () => void;
   onOpenDetail: () => void;
 }) {
   const { healthy, failed, stateLabel, stateDescription, actionable, actionLabel } =
@@ -159,18 +158,6 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onCheck,
           </div>
         </div>
         <div className="flex flex-wrap justify-end gap-2">
-          {product.shopifyProductId ? (
-            <AdminButton
-              variant="ghost"
-              className="inline-flex items-center justify-center gap-2"
-              onClick={onCheck}
-              disabled={pending || dirty}
-              aria-label="Check Shopify"
-              title="Check Shopify"
-            >
-              <RefreshCw className={`size-4 ${pending ? "animate-spin" : ""}`} />
-            </AdminButton>
-          ) : null}
           {actionable ? (
             <AdminButton
               variant={failed ? "danger" : "secondary"}
@@ -249,13 +236,8 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
 }) {
   const { syncState, stateLabel, stateDescription } = syncPresentation(product, dirty, inspection);
   const canPush = !dirty && product.variants.length > 0 && (syncState === "LOCAL_CHANGES" || syncState === "UNLINKED");
-  // A linked Shopify product can always be refreshed. Timestamp equality only
-  // means no remote edit was detected; it does not guarantee that a newer
-  // local projection (for example shopifySnapshot) has already been hydrated.
-  // The server action still blocks destructive pulls when saved local commerce
-  // changes or a conflict are present.
-  const canPull = !dirty && Boolean(product.shopifyProductId) && syncState !== "REMOTE_MISSING";
-  const pullLabel = syncState === "REMOTE_CHANGES" ? "Pull Shopify update" : "Refresh from Shopify";
+  // Human Apply only — full Shopify fetch+compare is the admin top-bar control.
+  const canPull = !dirty && Boolean(product.shopifyProductId) && syncState === "REMOTE_CHANGES";
 
   return (
     <AnimatedModal
@@ -280,7 +262,7 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
           onClick={onPull}
           disabled={pending || !canPull}
         >
-          {pending ? "Refreshing..." : pullLabel}
+          {pending ? "Pulling..." : "Pull Shopify update"}
         </AdminButton>
         <AdminButton
           variant="secondary"

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import {
   Archive,
   ChevronDown,
@@ -25,19 +24,15 @@ import {
 } from "@/app/admin/actions/products";
 import { reorderCollectionProductAction } from "@/app/admin/actions/catalog-order";
 import {
-  checkCatalogConflictsAction,
   loadCatalogConflictSignalsAction,
-  rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { useCatalogConflictCheck } from "@/components/admin/shared/use-catalog-conflict-check";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
-  AdminButton,
   AdminAlert,
   AdminEntityList,
   AdminIconButton,
@@ -140,31 +135,15 @@ export function ProductsCms({
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
   const [editingProduct, setEditingProduct] = useState<AdminProductListItem | null>(null);
   const [rowActionState, setRowActionState] = useState<ProductActionState>({});
-  const [shopifyStoreMismatch, setShopifyStoreMismatch] = useState<{
-    boundShopDomain: string;
-    currentShopDomain: string;
-  } | null>(null);
-  const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "catalog" });
   const [focusedConflictProductId, setFocusedConflictProductId] = useState<string | null>(null);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
-  const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
   const [isOrderPending, startOrderTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
-  const {
-    signals: conflictSignals,
-    setSignals: setConflictSignals,
-    isChecking: isConflictCheckPending,
-    runConflictCheck,
-  } = useCatalogConflictCheck({
-    initialSignals: initialConflictSignals,
-    runCheck: checkCatalogConflictsAction,
-    onStoreMismatch: setShopifyStoreMismatch,
-    onAfterCheck: () => refreshPreservingScroll(router),
-  });
+  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictProductId(null);
@@ -311,21 +290,6 @@ export function ProductsCms({
     });
   }
 
-  function handleStoreRebind() {
-    if (!shopifyStoreMismatch) return;
-    startStoreRebindTransition(async () => {
-      const result = await rebindShopifyStoreAction(shopifyStoreMismatch.currentShopDomain);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) {
-        pushToast({ message: result.success, tone: "success" });
-        setShopifyStoreMismatch(null);
-        await reloadProductList();
-        refreshPreservingScroll(router);
-      }
-      setConfirmStoreRebind(false);
-    });
-  }
-
   const modalCopy = rowAction ? productActionCopy(rowAction) : null;
   const selectedCollection = collections.find((collection) => collection.id === collectionFilter);
   const priorityMode = Boolean(selectedCollection) && sortBy === "collection-priority";
@@ -394,7 +358,7 @@ export function ProductsCms({
           <h1 className="adm-page-title">Catalog</h1>
           <p className="adm-page-subtitle">Products, categories, tags, media, and site publishing state.</p>
         </div>
-        <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={runConflictCheck} checking={isConflictCheckPending} />
+        <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} />
       </div>
       <AdminListWorkspace.Root>
         <AdminListWorkspace.Header
@@ -403,12 +367,7 @@ export function ProductsCms({
           meta={`${products.length} of ${totalCount} · ${categories.length} categories · ${tags.length} tags · ${collections.length} collections`}
           actions={
             <>
-              <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={runConflictCheck} checking={isConflictCheckPending} compact />
-              {shopifyStoreMismatch ? (
-                <AdminButton variant="danger" className="inline-flex items-center justify-center gap-2" onClick={() => setConfirmStoreRebind(true)} disabled={isStoreRebindPending}>
-                  Rebind to {shopifyStoreMismatch.currentShopDomain}
-                </AdminButton>
-              ) : null}
+              <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} compact />
               <Link href="/admin/products/new" className="adm-btn-primary">
                 New product
               </Link>
@@ -692,19 +651,6 @@ export function ProductsCms({
         onToast={(message, tone) => pushToast({ message, tone })}
         onApplied={() => { handleConflictsApplied(); }}
       />
-
-      {shopifyStoreMismatch ? (
-        <AdminConfirmModal
-          open={confirmStoreRebind}
-          title="Rebind catalog to another Shopify store"
-          description={`Synarava is linked to ${shopifyStoreMismatch.boundShopDomain}. Rebinding to ${shopifyStoreMismatch.currentShopDomain} clears the old store-specific product, variant, inventory, and collection IDs. It does not delete local content or Shopify products. Existing records will reconnect through normal product saves, webhooks, and conflict checks.`}
-          confirmLabel="Rebind store IDs"
-          tone="danger"
-          pending={isStoreRebindPending}
-          onCancel={() => setConfirmStoreRebind(false)}
-          onConfirm={handleStoreRebind}
-        />
-      ) : null}
 
       <AdminRecordMetaModal
         open={Boolean(editingProduct)}
