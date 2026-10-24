@@ -22,7 +22,7 @@ describe("catalog conflict signals", () => {
     const open = vi.fn();
     render(<><CatalogConflictStatus signals={signals} onShow={open} onCheck={vi.fn()} /><CatalogConflictStatus signals={signals} onShow={open} onCheck={vi.fn()} compact /></>);
     expect(screen.getByText(/2 products with conflicts/)).toBeTruthy();
-    expect(screen.getByText("2 saved conflict products")).toBeTruthy();
+    expect(screen.queryByText(/saved conflict/)).toBeNull();
     expect(screen.getByText("2 conflict products")).toBeTruthy();
     expect(screen.getByText(/Last full check/)).toBeTruthy();
     expect(screen.getByTitle("Last full conflict check")).toBeTruthy();
@@ -41,7 +41,8 @@ describe("catalog conflict signals", () => {
       />,
     );
     expect(screen.getByText(/2 collections with conflicts/)).toBeTruthy();
-    expect(screen.getByText("2 saved conflict collections")).toBeTruthy();
+    expect(screen.queryByText(/saved conflict/)).toBeNull();
+    expect(screen.getByText(/Last full check/)).toBeTruthy();
   });
 
   it("compacts extra locales and opens the focused product", () => {

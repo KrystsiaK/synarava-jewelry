@@ -21,7 +21,6 @@ import {
   fetchShopifyShopIdentity,
   hasShopifyAdminConfig,
   testShopifyAdminConnection,
-  type MissingLocalePublication,
 } from "@/lib/shopify/admin";
 import {
   assertShopifyStoreBinding,
@@ -45,33 +44,10 @@ import {
   type CollectionConflictApplyScope,
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
-import {
-  conflictCheckSuccessMessage,
-  publicConflictCheckWarning,
-  type ConflictCheckEntity,
-} from "@/lib/admin/conflict-check-messages";
-import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
-
-/** One sentence naming every registered translation locale Shopify hasn't enabled/published yet, or "" if none. */
-function translationLocaleNotice(missingTranslationScopes: string[], unpublishedLocales: MissingLocalePublication[]) {
-  if (missingTranslationScopes.length > 0) {
-    return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
-  }
-  if (unpublishedLocales.length === 0) return "";
-  const names = unpublishedLocales.map((locale) => `${locale.name} (${locale.shopifyLocale})`).join(", ");
-  return ` ${names} ${unpublishedLocales.length === 1 ? "is" : "are"} not enabled/published in Shopify Markets; translation sync will be skipped for ${unpublishedLocales.length === 1 ? "it" : "them"}.`;
-}
-
-/** Shared success/warning envelope for product + collection conflict checks. */
-function conflictCheckPayload(
-  entity: ConflictCheckEntity,
-  result: { signals: CatalogConflictSignals; warning?: string },
-): { signals: CatalogConflictSignals; warning?: string; success: string } {
-  return {
-    ...result,
-    warning: publicConflictCheckWarning(result.warning),
-    success: conflictCheckSuccessMessage(entity, result.signals.totalCount),
-  };
+/** Missing translation API scopes only — never Markets / unpublished-locale jargon. */
+function translationScopeNotice(missingTranslationScopes: string[]) {
+  if (missingTranslationScopes.length === 0) return "";
+  return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
 }
 
 async function assertConfiguredShopifyStore() {
@@ -146,7 +122,7 @@ export async function checkCatalogConflictsAction() {
 
     const result = await runCatalogConflictCheck(session.username);
     revalidatePath("/admin/products");
-    return conflictCheckPayload("product", result);
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
   }
@@ -165,7 +141,7 @@ export async function checkProductConflictsAction(input: { productId: string; lo
     });
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${input.productId}`);
-    return conflictCheckPayload("product", result);
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check product conflicts." };
   }
@@ -249,7 +225,7 @@ export async function checkCollectionConflictsAction() {
     }
     const result = await runCollectionsConflictCheck(session.username);
     revalidatePath("/admin/collections");
-    return conflictCheckPayload("collection", result);
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
   }
@@ -267,7 +243,7 @@ export async function checkOneCollectionConflictsAction(input: { collectionId: s
     });
     revalidatePath("/admin/collections");
     revalidatePath(`/admin/collections/${input.collectionId}`);
-    return conflictCheckPayload("collection", result);
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
   }
@@ -485,7 +461,7 @@ export async function rebindShopifyStoreAction(expectedShopDomain: string) {
     }
     const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
     revalidatePath("/admin/products");
-    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
+    const translationNotice = translationScopeNotice(connection.missingTranslationScopes);
     return {
       success: `Catalog is now bound to ${result.shopDomain}. Product saves, Shopify webhooks, and conflict checks will establish the new store identities.${translationNotice}`,
       result,

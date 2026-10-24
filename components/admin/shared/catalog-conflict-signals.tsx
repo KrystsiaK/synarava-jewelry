@@ -75,15 +75,6 @@ export function CatalogConflictStatus({
     >
       <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
       <span className="font-semibold">{statusText(signals, entityNoun)}</span>
-      {signals.totalCount !== null && hasConflicts ? (
-        <span className="text-[var(--adm-muted)]">
-          {plural(
-            signals.totalCount,
-            `saved conflict ${entityNoun.singular}`,
-            `saved conflict ${entityNoun.plural}`,
-          )}
-        </span>
-      ) : null}
       {signals.checkedAt ? (
         <time
           className="text-[var(--adm-muted)]"

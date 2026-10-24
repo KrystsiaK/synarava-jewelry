@@ -38,8 +38,6 @@ On **Catalog → Collections**, the banner shows the saved conflict status:
   **No saved conflicts** when the count is zero.
 - **check may be outdated** when the last successful full check is older than
   30 minutes (`STALE_AFTER_MS`).
-- **N saved conflict collections** when conflicts exist (entity noun matches
-  Products → products).
 - **Last full check \<date\>** whenever a check timestamp is stored (including
   when status is ready). Hover shows “Last full conflict check”.
 - Other states: **checking Shopify now**, **conflict status unavailable (last

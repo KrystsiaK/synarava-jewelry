@@ -108,7 +108,6 @@ beforeEach(() => {
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
   mocks.checkProductConflictsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
-    success: "Conflict check finished",
   });
   mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
   mocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });

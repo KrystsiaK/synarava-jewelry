@@ -36,8 +36,8 @@ async function loadProductCommerceWindows(productId?: string): Promise<SyncComme
 }
 
 async function loadCollectionCommerceWindows(collectionId?: string): Promise<SyncCommerceWindow[]> {
-  // Windows exist on Collection (schema). Refresh/write of shopifySnapshot
-  // for collections is sync-unification PR4 (#245); compare still reads what is stored.
+  // Windows exist on Collection (schema). Shopify copy refresh uses
+  // refreshShopifyCollectionState (same owner model as products).
   const collections = await db.collection.findMany({
     where: {
       shopifyCollectionId: { not: null },
