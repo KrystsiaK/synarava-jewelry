@@ -203,7 +203,7 @@ describe("ConflictResolver", () => {
     expect(confirm).toBeEnabled();
   });
 
-  it("shows blocked commerce fields without choice cells", async () => {
+  it("makes blocked commerce fields selectable when whole-record is supported", async () => {
     const blocked: CatalogConflictField = {
       ...field,
       fieldKey: "commerce:status",
@@ -214,8 +214,12 @@ describe("ConflictResolver", () => {
       blockedReason: "No safe field-by-field write yet",
       sourceId: null,
     };
+    const applyWholeRecord = vi.fn(async () => ({ ok: true, success: "Whole item synced." }));
     const adapter = createAdapter({
+      supportsWholeRecord: true,
+      applyWholeRecord,
       loadEntityFields: vi.fn(async () => ({ fields: [blocked] })),
+      previewSelections: vi.fn(async () => ({ preview: { truncated: false, excluded: [], entries: [] } })),
     });
     render(
       <ConflictResolver
@@ -226,13 +230,52 @@ describe("ConflictResolver", () => {
         entities={[{ id: "p1", name: "Lava Ring" }]}
         focusedEntityId={null}
         onToast={vi.fn()}
+        onApplied={vi.fn()}
+      />,
+    );
+    expect(await screen.findByText("Status")).toBeInTheDocument();
+    expect(screen.getByText(/Whole-item sync/)).toBeInTheDocument();
+    const statusSection = screen.getByText("Status").closest("section") as HTMLElement;
+    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
+
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    expect(within(preview).getByText(/Whole-item sync: Take Shopify/)).toBeInTheDocument();
+    fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
+
+    await waitFor(() => {
+      expect(applyWholeRecord).toHaveBeenCalledWith("p1", "SHOPIFY_TO_SYNARAVA");
+    });
+  });
+
+  it("keeps blocked commerce non-selectable without whole-record support", async () => {
+    const blocked: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:status",
+      label: "Status",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      allowedDirections: [],
+      blockedReason: "No safe field-by-field write yet for this collection field.",
+      sourceId: null,
+    };
+    const adapter = createAdapter({
+      supportsWholeRecord: false,
+      loadEntityFields: vi.fn(async () => ({ fields: [blocked] })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["c1"]}
+        entities={[{ id: "c1", name: "Kits" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
       />,
     );
     expect(await screen.findByText("Status")).toBeInTheDocument();
     expect(screen.getByText(/Cannot choose here/)).toBeInTheDocument();
-    // Footer bulk select stays; no per-row Shopify/Synarava choice cells.
-    expect(screen.queryByRole("button", { name: /Selected|Choose this value/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Take Shopify for all" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Apply (0)" })).toBeDisabled();
   });
 });

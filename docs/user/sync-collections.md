@@ -110,13 +110,13 @@ again.
 
 ### A commerce field says “Cannot choose here”
 
-**Cause:** That field has no safe field-by-field writer yet (blocked commerce).
+**Cause:** That collection commerce field has no safe field-by-field writer, and
+collections have no whole-item pull/push path (products do — see products doc).
 
-**What happens:** The row is visible but not selectable. It stays a conflict
-until scoped apply exists for that field.
+**What happens:** The row is visible but not selectable. It stays a conflict.
 
-**What to do:** Resolve the selectable fields that you can. Do not look for a
-second Pull/Push conflict UI — there is only ConflictResolver.
+**What to do:** Resolve selectable fields (scoped commerce, translations,
+presence). Do not look for a second conflict UI — there is only ConflictResolver.
 :::
 
 ## Known limits
@@ -126,8 +126,9 @@ second Pull/Push conflict UI — there is only ConflictResolver.
   Synarava-only and are not resolved through this conflict list.
 - Which products belong to a collection is product-driven membership sync, not
   part of the collection commerce window yet.
-- Blocked commerce fields cannot be chosen cell-by-cell until scoped writers
-  exist; whole-record conflict pull/push was removed from this UI.
+- Blocked collection commerce fields stay non-selectable until a collection
+  whole-item apply path exists (products already resolve blocked fields via
+  whole-item sync inside the same ConflictResolver).
 
 ## Verified on
 

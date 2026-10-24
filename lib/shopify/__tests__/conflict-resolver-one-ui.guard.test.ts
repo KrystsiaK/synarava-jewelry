@@ -74,7 +74,7 @@ describe("ONE ConflictResolver UI guard", () => {
     const offenders: string[] = [];
     for (const { full, rel } of files) {
       if (rel.startsWith("components/synarava-cms/conflict-resolver")) continue;
-      if (isAdapter(rel)) continue; // adapters bridge preview/apply into ConflictResolver
+      if (isAdapter(rel)) continue; // adapters bridge preview/apply (+ product whole-record pull/push)
       if (rel.includes("/__tests__/") || rel.includes(".test.") || rel.includes(".stories.")) continue;
       if (rel.startsWith("lib/") || rel.startsWith("app/admin/actions/")) continue;
       const source = readFileSync(full, "utf8");
@@ -102,14 +102,16 @@ describe("ONE ConflictResolver UI guard", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("pushSingle remains only for non-conflict create/push in product-edit-form", () => {
+  it("pushSingle remains only for create/push and whole-record Keep ours", () => {
     const offenders: string[] = [];
     for (const { full, rel } of files) {
       if (rel.includes("/__tests__/") || rel.includes(".test.")) continue;
       if (rel.startsWith("app/admin/actions/")) continue;
       const source = readFileSync(full, "utf8");
       if (!/pushSingleProductToShopifyAction\s*\(/.test(source)) continue;
+      // Create/Push (LOCAL/UNLINKED) + ConflictResolver whole-record Keep ours.
       if (rel === "components/admin/products/product-edit-form.tsx") continue;
+      if (rel === "components/admin/products/product-conflict-adapter.tsx") continue;
       offenders.push(rel);
     }
     expect(offenders).toEqual([]);

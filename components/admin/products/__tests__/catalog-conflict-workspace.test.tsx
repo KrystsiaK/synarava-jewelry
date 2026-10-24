@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   preview: vi.fn(),
   refresh: vi.fn(),
   push: vi.fn(),
+  pullProduct: vi.fn(),
+  pushProduct: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
@@ -16,6 +18,8 @@ vi.mock("@/app/admin/actions/sync", () => ({
   loadCatalogConflictSignalsAction: mocks.loadSignals,
   loadProductCatalogConflictAction: mocks.load,
   previewCatalogConflictResolutionAction: mocks.preview,
+  pullSingleProductFromShopifyAction: mocks.pullProduct,
+  pushSingleProductToShopifyAction: mocks.pushProduct,
 }));
 
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
@@ -141,7 +145,7 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     expect(mocks.apply).not.toHaveBeenCalled();
   });
 
-  it("does not offer whole-record pull/push buttons", async () => {
+  it("selects blocked commerce via whole-record pull on confirm", async () => {
     mocks.load.mockResolvedValue({
       conflict: {
         productId: "p1",
@@ -157,9 +161,19 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
         }],
       },
     });
+    mocks.pullProduct.mockResolvedValue({ success: "Pulled." });
+
     renderWorkspace();
-    expect(await screen.findByText("Status")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /whole item/i })).not.toBeInTheDocument();
-    expect(screen.queryByText("Pull Shopify update")).not.toBeInTheDocument();
+    const statusSection = (await screen.findByText("Status")).closest("section") as HTMLElement;
+    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    expect(within(preview).getByText(/Whole-item sync/)).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
+    });
+    await waitFor(() => {
+      expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true);
+    });
   });
 });

@@ -200,6 +200,7 @@ export {
   ConflictLocaleMark,
   CONFLICT_DIRECTIONS,
   CONFLICT_DIRECTION_COPY,
+  isWholeRecordField,
   type ConflictEntitySummary,
   type ConflictRowModel,
   type ConflictPreviewEntry,

@@ -74,6 +74,11 @@ the conflict chip). One shared UI — ConflictResolver — lists every differing
 field with **Shopify** on the left and **Synarava** on the right. Click a cell
 to choose that side; Apply opens the preview of only the chosen changes. There
 is no second Take/Keep or quick-pull dialog in the Sync strip.
+
+Commerce fields that cannot be written field-by-field (for example Status or
+tags) still use the same cells. Choosing a side means a **whole-item** commerce
+sync for that product. The preview lists every blocked commerce field that will
+change before you confirm.
 :::
 
 :::warning

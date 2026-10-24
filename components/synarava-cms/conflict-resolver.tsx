@@ -11,6 +11,7 @@ import { GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
 
@@ -52,6 +53,8 @@ export type ConflictPreviewEntry = {
   direction: CatalogConflictDirection;
   willClearNonEmptyValue: boolean;
   impactNote?: string | null;
+  /** True when confirm will run whole-record pull/push for this entity (blocked commerce). */
+  wholeRecord?: boolean;
 };
 
 export type ConflictPreviewModel = {
@@ -78,13 +81,18 @@ export type ConflictResolverAdapter = {
   entityNoun: string;
   entityNounPlural: string;
   ariaLabel: string;
+  /**
+   * When true, blocked commerce rows are selectable and confirm uses
+   * `applyWholeRecord` (product pull/push). Collections omit this.
+   */
+  supportsWholeRecord?: boolean;
   /** Load live field conflicts for one entity (filtered by the caller’s view scope). */
   loadEntityFields: (entityId: string) => Promise<{ fields: CatalogConflictField[]; error?: string }>;
-  /** Preview only the chosen MANUAL selections — existing server preview, unchanged. */
+  /** Preview field-level MANUAL selections — existing server preview, unchanged. */
   previewSelections: (
     selections: Array<{ entityId: string; fieldKey: string; direction: CatalogConflictDirection }>,
   ) => Promise<{ preview: ConflictPreviewModel | null; error?: string }>;
-  /** Write only the previewed entries — existing server apply, unchanged. */
+  /** Write field-level previewed entries — existing server apply, unchanged. */
   applySelections: (args: {
     acknowledgeClears: boolean;
     entries: ConflictApplyEntry[];
@@ -94,7 +102,17 @@ export type ConflictResolverAdapter = {
     error?: string;
     warning?: string;
   }>;
+  /** Whole-record pull (Take Shopify) / push (Keep ours) for blocked commerce. */
+  applyWholeRecord?: (
+    entityId: string,
+    direction: CatalogConflictDirection,
+  ) => Promise<{ ok: boolean; success?: string; error?: string }>;
 };
+
+/** Commerce fields with no scoped writer — resolved only via whole-record pull/push. */
+export function isWholeRecordField(field: CatalogConflictField): boolean {
+  return field.origin === "COMMERCE" && Boolean(field.blockedReason);
+}
 
 function pluralFields(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
@@ -122,8 +140,19 @@ function orderedConflictFields(fields: CatalogConflictField[]) {
   });
 }
 
-function isSelectableField(field: CatalogConflictField): boolean {
-  return !field.blockedReason && field.allowedDirections.length > 0;
+function effectiveDirections(
+  field: CatalogConflictField,
+  supportsWholeRecord: boolean,
+): CatalogConflictDirection[] {
+  if (supportsWholeRecord && isWholeRecordField(field)) {
+    return [CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA, CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY];
+  }
+  if (field.blockedReason) return [];
+  return field.allowedDirections;
+}
+
+function isSelectableField(field: CatalogConflictField, supportsWholeRecord: boolean): boolean {
+  return effectiveDirections(field, supportsWholeRecord).length > 0;
 }
 
 function displaySideValue(field: CatalogConflictField, side: "shopify" | "synarava"): string {
@@ -233,16 +262,19 @@ export function ConflictRow({
   field,
   selectedDirection,
   busy,
+  supportsWholeRecord,
   onToggle,
 }: {
   field: CatalogConflictField;
   selectedDirection: CatalogConflictDirection | undefined;
   busy: boolean;
+  supportsWholeRecord: boolean;
   onToggle: (direction: CatalogConflictDirection) => void;
 }) {
-  const selectable = isSelectableField(field);
-  const canTakeShopify = selectable && field.allowedDirections.includes(CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA);
-  const canKeepOurs = selectable && field.allowedDirections.includes(CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY);
+  const directions = effectiveDirections(field, supportsWholeRecord);
+  const canTakeShopify = directions.includes(CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA);
+  const canKeepOurs = directions.includes(CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY);
+  const wholeRecord = supportsWholeRecord && isWholeRecordField(field);
 
   return (
     <section className="rounded-xl border border-[var(--adm-border)] p-4">
@@ -251,6 +283,9 @@ export function ConflictRow({
         <h3 className="text-sm font-semibold">{field.label}</h3>
         {field.origin === "TRANSLATION" ? (
           <span className="text-xs text-[var(--adm-muted)]">Only this language</span>
+        ) : null}
+        {wholeRecord ? (
+          <span className="text-xs text-[var(--adm-muted)]">Whole-item sync</span>
         ) : null}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
@@ -279,7 +314,12 @@ export function ConflictRow({
           <ConflictValueCell label="Synarava (ours)" value={displaySideValue(field, "synarava")} />
         )}
       </div>
-      {field.blockedReason ? (
+      {wholeRecord ? (
+        <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
+          No field-by-field write for this commerce field. Choosing a side applies a whole-item
+          sync for this product (preview lists every commerce field that will change).
+        </p>
+      ) : field.blockedReason ? (
         <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
           Cannot choose here: {field.blockedReason}
         </p>
@@ -501,6 +541,8 @@ export function ConflictResolver({
   const [preview, setPreview] = useState<ConflictPreviewModel | null>(null);
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const focusedRef = useRef<HTMLElement>(null);
+  const checkRunning = useAdminShopifyCheckRunning();
+  const supportsWholeRecord = Boolean(adapter.supportsWholeRecord && adapter.applyWholeRecord);
   const entitiesById = useMemo(
     () => new Map(entities.map((entity) => [entity.id, entity])),
     [entities],
@@ -528,11 +570,11 @@ export function ConflictResolver({
   }, [loadIds, rowsByEntity]);
 
   const selectableRows = useMemo(
-    () => allRows.filter((row) => isSelectableField(row.field)),
-    [allRows],
+    () => allRows.filter((row) => isSelectableField(row.field, supportsWholeRecord)),
+    [allRows, supportsWholeRecord],
   );
   const selectedCount = Object.keys(selections).length;
-  const busy = applying || loading || previewLoading;
+  const busy = applying || loading || previewLoading || checkRunning;
 
   useEffect(() => {
     if (!open) return;
@@ -584,9 +626,25 @@ export function ConflictResolver({
   }
 
   function toggleSelection(entityId: string, field: CatalogConflictField, direction: CatalogConflictDirection) {
-    if (busy || !isSelectableField(field) || !field.allowedDirections.includes(direction)) return;
-    const key = selectionKey(entityId, field.fieldKey);
+    if (busy) return;
+    const directions = effectiveDirections(field, supportsWholeRecord);
+    if (!directions.includes(direction)) return;
+    const wholeRecord = supportsWholeRecord && isWholeRecordField(field);
     setSelections((current) => {
+      if (wholeRecord) {
+        // One direction for all blocked commerce rows on this item (whole-record intent).
+        const blockedKeys = (rowsByEntity[entityId] ?? [])
+          .filter((candidate) => isWholeRecordField(candidate))
+          .map((candidate) => selectionKey(entityId, candidate.fieldKey));
+        const clearing = blockedKeys.some((key) => current[key] === direction);
+        const next = { ...current };
+        for (const key of blockedKeys) {
+          if (clearing) delete next[key];
+          else next[key] = direction;
+        }
+        return next;
+      }
+      const key = selectionKey(entityId, field.fieldKey);
       if (current[key] === direction) {
         const { [key]: _removed, ...rest } = current;
         return rest;
@@ -600,7 +658,7 @@ export function ConflictResolver({
     setSelections((current) => {
       const next = { ...current };
       for (const row of selectableRows) {
-        if (!row.field.allowedDirections.includes(direction)) continue;
+        if (!effectiveDirections(row.field, supportsWholeRecord).includes(direction)) continue;
         next[selectionKey(row.entityId, row.field.fieldKey)] = direction;
       }
       return next;
@@ -617,7 +675,7 @@ export function ConflictResolver({
 
   function runApplyPreview() {
     if (busy || selectedCount === 0 || guardFormBlocked()) return;
-    const manual = Object.entries(selections).map(([key, direction]) => {
+    const picked = Object.entries(selections).map(([key, direction]) => {
       const sep = key.indexOf("::");
       return {
         entityId: key.slice(0, sep),
@@ -625,17 +683,72 @@ export function ConflictResolver({
         direction,
       };
     });
+    const fieldLevel = picked.filter((item) => {
+      const field = (rowsByEntity[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
+      return field && !isWholeRecordField(field);
+    });
+    const wholeRecordPicks = picked.filter((item) => {
+      const field = (rowsByEntity[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
+      return field && isWholeRecordField(field);
+    });
+    if (wholeRecordPicks.length > 0 && !supportsWholeRecord) {
+      onToast(
+        "These commerce fields need a whole-item sync path that is not available for this entity type.",
+        "error",
+      );
+      return;
+    }
     setResultMessage(null);
     setPreviewLoading(true);
-    void adapter.previewSelections(manual)
-      .then((result) => {
-        if (result.error) {
-          onToast(result.error, "error");
-          return;
+    void (async () => {
+      try {
+        let fieldPreview: ConflictPreviewModel = { entries: [], excluded: [], truncated: false };
+        if (fieldLevel.length > 0) {
+          const result = await adapter.previewSelections(fieldLevel);
+          if (result.error) {
+            onToast(result.error, "error");
+            return;
+          }
+          if (result.preview) fieldPreview = result.preview;
         }
-        if (result.preview) setPreview(result.preview);
-      })
-      .finally(() => setPreviewLoading(false));
+        const wholeRecordEntries: ConflictPreviewEntry[] = [];
+        const wholeByEntity = new Map<string, CatalogConflictDirection>();
+        for (const pick of wholeRecordPicks) {
+          const existing = wholeByEntity.get(pick.entityId);
+          if (existing && existing !== pick.direction) {
+            onToast(
+              "Choose one side for whole-item commerce fields on the same product (Take Shopify or Keep ours, not both).",
+              "error",
+            );
+            return;
+          }
+          wholeByEntity.set(pick.entityId, pick.direction);
+        }
+        for (const [entityId, direction] of wholeByEntity) {
+          const blockedFields = (rowsByEntity[entityId] ?? []).filter((field) => isWholeRecordField(field));
+          const impactNote = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
+            ? "Whole-item sync: Take Shopify pulls the entire commerce record into Synarava (including these fields)."
+            : "Whole-item sync: Keep ours pushes the entire Synarava commerce record to Shopify (including these fields).";
+          for (const field of blockedFields) {
+            wholeRecordEntries.push({
+              entityId,
+              field,
+              direction,
+              willClearNonEmptyValue: false,
+              impactNote,
+              wholeRecord: true,
+            });
+          }
+        }
+        setPreview({
+          truncated: fieldPreview.truncated,
+          excluded: fieldPreview.excluded,
+          entries: [...fieldPreview.entries, ...wholeRecordEntries],
+        });
+      } finally {
+        setPreviewLoading(false);
+      }
+    })();
   }
 
   function confirm(acknowledgeClears: boolean) {
@@ -645,42 +758,71 @@ export function ConflictResolver({
     setApplying(true);
     void (async () => {
       try {
-        const result = await adapter.applySelections({
-          acknowledgeClears,
-          entries: submitted.entries.map((entry) => ({
-            entityId: entry.entityId,
-            fieldKey: entry.field.fieldKey,
-            direction: entry.direction,
-            expectedLocalFingerprint: entry.field.localFingerprint,
-            expectedShopifyFingerprint: entry.field.shopifyFingerprint,
-          })),
-        });
-        if (!result.outcome) {
-          const message = result.error ?? "Could not apply the changes.";
+        const fieldEntries = submitted.entries.filter((entry) => !entry.wholeRecord);
+        const wholeEntries = submitted.entries.filter((entry) => entry.wholeRecord);
+        let appliedCount = 0;
+        let failedCount = 0;
+        const results: ConflictApplyOutcome["results"] = [];
+        const successNotes: string[] = [];
+
+        if (fieldEntries.length > 0) {
+          const result = await adapter.applySelections({
+            acknowledgeClears,
+            entries: fieldEntries.map((entry) => ({
+              entityId: entry.entityId,
+              fieldKey: entry.field.fieldKey,
+              direction: entry.direction,
+              expectedLocalFingerprint: entry.field.localFingerprint,
+              expectedShopifyFingerprint: entry.field.shopifyFingerprint,
+            })),
+          });
+          if (!result.outcome) {
+            const message = result.error ?? "Could not apply the changes.";
+            setResultMessage(message);
+            onToast(message, "error");
+            return;
+          }
+          appliedCount += result.outcome.appliedCount;
+          failedCount += result.outcome.failedCount;
+          results.push(...result.outcome.results);
+          if (result.success) successNotes.push(result.success);
+          if (result.error) onToast(result.error, result.outcome.appliedCount > 0 ? "info" : "error");
+          if (result.warning) onToast(result.warning, "info");
+        }
+
+        const wholeByEntity = new Map<string, CatalogConflictDirection>();
+        for (const entry of wholeEntries) {
+          wholeByEntity.set(entry.entityId, entry.direction);
+        }
+        for (const [entityId, direction] of wholeByEntity) {
+          const whole = await adapter.applyWholeRecord?.(entityId, direction);
+          if (!whole?.ok) {
+            failedCount += 1;
+            const message = whole?.error ?? "Whole-item sync failed.";
+            results.push({ entityId, ok: false, message });
+            onToast(message, "error");
+            continue;
+          }
+          appliedCount += 1;
+          results.push({ entityId, ok: true, message: whole.success });
+          if (whole.success) successNotes.push(whole.success);
+        }
+
+        const outcome: ConflictApplyOutcome = { appliedCount, failedCount, results };
+        if (successNotes.length > 0) {
+          const message = successNotes[0]!;
+          setResultMessage(message);
+          onToast(message, failedCount ? "info" : "success");
+        } else if (appliedCount === 0 && failedCount > 0) {
+          const message = "Could not apply the changes.";
           setResultMessage(message);
           onToast(message, "error");
-          return;
         }
-        const failureDetail = result.outcome.results
-          .filter((item) => !item.ok)
-          .map((item) => item.message)
-          .filter(Boolean)
-          .slice(0, 2)
-          .join(" · ");
-        if (result.error) {
-          const message = failureDetail ? `${result.error} ${failureDetail}` : result.error;
-          setResultMessage(message);
-          onToast(message, result.outcome.appliedCount > 0 ? "info" : "error");
-        } else if (result.success) {
-          setResultMessage(result.success);
-          onToast(result.success, result.outcome.failedCount ? "info" : "success");
-        }
-        if (result.warning) onToast(result.warning, "info");
         setSelections({});
         setApplying(false);
-        if (result.outcome.appliedCount > 0) {
-          const ids = [...new Set(result.outcome.results.filter((item) => item.ok).map((item) => item.entityId))];
-          onApplied?.({ entityIds: ids, appliedCount: result.outcome.appliedCount });
+        if (outcome.appliedCount > 0) {
+          const ids = [...new Set(outcome.results.filter((item) => item.ok).map((item) => item.entityId))];
+          onApplied?.({ entityIds: ids, appliedCount: outcome.appliedCount });
           onClose();
         }
       } catch (error) {
@@ -743,7 +885,7 @@ export function ConflictResolver({
           ) : null}
           {!loading && entityIds.length === 0 ? (
             <p className="adm-copy py-8 text-center">
-              Nothing differs right now. Run a check to refresh Shopify’s copy.
+              Nothing differs right now. Use the Shopify button in the top bar to refresh.
             </p>
           ) : null}
           {truncatedLoad ? (
@@ -775,6 +917,7 @@ export function ConflictResolver({
                   field={field}
                   selectedDirection={selections[selectionKey(entityId, field.fieldKey)]}
                   busy={busy}
+                  supportsWholeRecord={supportsWholeRecord}
                   onToggle={(direction) => toggleSelection(entityId, field, direction)}
                 />
               ))}

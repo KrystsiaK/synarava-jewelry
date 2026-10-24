@@ -1,26 +1,27 @@
 "use client";
 
 /**
- * Collection adapter for ConflictResolver — data → rows + preview/apply only.
- * No choice chrome here; the ONE UI lives in components/synarava-cms/conflict-resolver.
+ * Collection adapter for ConflictResolver — load/preview/apply only.
+ * No whole-record pull/push exists for collections (STOP gap for blocked commerce).
  */
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   applyCollectionConflictResolutionAction,
   loadCollectionCatalogConflictAction,
   previewCollectionConflictResolutionAction,
 } from "@/app/admin/actions/sync";
-import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import {
   CONFLICT_DIRECTIONS,
-  ConflictResolver,
-  type ConflictEntitySummary,
   type ConflictPreviewModel,
   type ConflictResolverAdapter,
 } from "@/components/synarava-cms/conflict-resolver";
+import {
+  ConflictResolverWorkspace,
+  mergeConflictEntities,
+  useConflictEntityIds,
+} from "@/components/admin/shared/conflict-resolver-workspace";
 import {
   filterCollectionFieldsForView,
   filterCollectionSignalsForView,
@@ -69,6 +70,8 @@ function createCollectionAdapter(viewScope: CollectionConflictViewScope): Confli
     entityNoun: "collection",
     entityNounPlural: "collections",
     ariaLabel: "Collection conflicts",
+    // No collection pullSingle/pushSingle — blocked commerce stays non-selectable.
+    supportsWholeRecord: false,
     async loadEntityFields(entityId) {
       const result = await loadCollectionCatalogConflictAction(entityId);
       if (result.error) return { fields: [], error: result.error };
@@ -139,65 +142,49 @@ export function CollectionConflictWorkspace({
   viewScope?: CollectionConflictViewScope;
   onToast: (message: string, tone: ToastTone) => void;
 }) {
-  const router = useRouter();
   const scopedSignals = useMemo(
     () => filterCollectionSignalsForView(signals, viewScope),
     [signals, viewScope],
   );
   const scopedFocusId = isCollectionScoped(viewScope) ? viewScope.collectionId : focusedCollectionId;
   const adapter = useMemo(() => createCollectionAdapter(viewScope), [viewScope]);
-  const entitiesById = useMemo(() => {
-    const map = new Map<string, ConflictEntitySummary>();
-    for (const collection of collections) {
-      map.set(collection.id, {
-        id: collection.id,
-        name: collection.name,
-        detail: collection.slug ? `/${collection.slug}` : null,
-      });
-    }
-    for (const [collectionId, signal] of Object.entries(scopedSignals.products)) {
-      if (!map.has(collectionId) && signal.name) {
-        map.set(collectionId, {
-          id: collectionId,
-          name: signal.name,
-          detail: signal.handle ? `/${signal.handle}` : null,
-        });
-      }
-    }
-    return map;
-  }, [collections, scopedSignals.products]);
-  const entityList = useMemo(() => [...entitiesById.values()], [entitiesById]);
-  const entityIds = useMemo(() => {
-    const ids = Object.keys(scopedSignals.products);
-    if (isCollectionScoped(viewScope) && !ids.includes(viewScope.collectionId)) {
-      return [viewScope.collectionId, ...ids];
-    }
-    return ids;
-  }, [scopedSignals.products, viewScope]);
+  const listed = useMemo(
+    () => collections.map((collection) => ({
+      id: collection.id,
+      name: collection.name,
+      detail: collection.slug ? `/${collection.slug}` : null,
+    })),
+    [collections],
+  );
+  const entities = useMemo(
+    () => mergeConflictEntities(listed, scopedSignals, (signal) => (
+      signal.handle ? `/${signal.handle}` : null
+    )),
+    [listed, scopedSignals],
+  );
+  const ensureId = isCollectionScoped(viewScope) ? viewScope.collectionId : null;
+  const entityIds = useConflictEntityIds(scopedSignals, ensureId);
 
   return (
-    <ConflictResolver
+    <ConflictResolverWorkspace
       open={open}
       onClose={onClose}
-      adapter={adapter}
+      signals={scopedSignals}
       entityIds={entityIds}
-      entities={entityList}
+      entities={entities}
       focusedEntityId={scopedFocusId}
+      adapter={adapter}
       onToast={onToast}
       onApplied={(info) => {
         if (info.appliedCount > 0) {
           const nextProducts = { ...signals.products };
-          for (const entityId of info.entityIds) {
-            const stillFailed = false;
-            if (!stillFailed) delete nextProducts[entityId];
-          }
+          for (const entityId of info.entityIds) delete nextProducts[entityId];
           onSignalsChange({
             ...signals,
             products: nextProducts,
             totalCount: Object.keys(nextProducts).length,
           });
         }
-        refreshPreservingScroll(router);
       }}
     />
   );

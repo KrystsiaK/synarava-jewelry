@@ -1,26 +1,30 @@
 "use client";
 
 /**
- * Product adapter for ConflictResolver — data → rows + preview/apply only.
- * No choice chrome here; the ONE UI lives in components/synarava-cms/conflict-resolver.
+ * Product adapter for ConflictResolver — load/preview/apply + whole-record pull/push.
+ * Choice chrome lives only in components/synarava-cms/conflict-resolver.
  */
 
 import { useMemo } from "react";
-import { useRouter } from "next/navigation";
 
 import {
   applyCatalogConflictResolutionAction,
   loadCatalogConflictSignalsAction,
   loadProductCatalogConflictAction,
   previewCatalogConflictResolutionAction,
+  pullSingleProductFromShopifyAction,
+  pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
-import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import {
-  ConflictResolver,
-  type ConflictEntitySummary,
+  CONFLICT_DIRECTIONS,
   type ConflictPreviewModel,
   type ConflictResolverAdapter,
 } from "@/components/synarava-cms/conflict-resolver";
+import {
+  ConflictResolverWorkspace,
+  mergeConflictEntities,
+  useConflictEntityIds,
+} from "@/components/admin/shared/conflict-resolver-workspace";
 import {
   filterConflictFieldsForView,
   filterSignalsForView,
@@ -75,6 +79,7 @@ function createProductAdapter(viewScope: CatalogConflictViewScope): ConflictReso
     entityNoun: "product",
     entityNounPlural: "products",
     ariaLabel: "Product conflicts",
+    supportsWholeRecord: true,
     async loadEntityFields(entityId) {
       const result = await loadProductCatalogConflictAction(entityId);
       if (result.error) return { fields: [], error: result.error };
@@ -123,6 +128,13 @@ function createProductAdapter(viewScope: CatalogConflictViewScope): ConflictReso
         warning: result.warning,
       };
     },
+    async applyWholeRecord(entityId, direction) {
+      const result = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
+        ? await pullSingleProductFromShopifyAction(entityId, true)
+        : await pushSingleProductToShopifyAction(entityId, true);
+      if (result.error) return { ok: false, error: result.error };
+      return { ok: true, success: result.success };
+    },
   };
 }
 
@@ -150,43 +162,35 @@ export function CatalogConflictWorkspace({
   onToast: (message: string, tone: ToastTone) => void;
   onApplied?: (info: { productIds: string[]; appliedCount: number }) => void;
 }) {
-  const router = useRouter();
   const scopedSignals = useMemo(() => filterSignalsForView(signals, viewScope), [signals, viewScope]);
   const scopedFocusId = isProductScoped(viewScope) ? viewScope.productId : focusedProductId;
   const adapter = useMemo(() => createProductAdapter(viewScope), [viewScope]);
-  const entitiesById = useMemo(() => {
-    const map = new Map<string, ConflictEntitySummary>();
-    for (const product of products) {
-      map.set(product.id, { id: product.id, name: product.name, detail: product.sku ? `SKU ${product.sku}` : null });
-    }
-    for (const [productId, signal] of Object.entries(scopedSignals.products)) {
-      if (!map.has(productId) && signal.name) {
-        map.set(productId, {
-          id: productId,
-          name: signal.name,
-          detail: signal.sku ? `SKU ${signal.sku}` : null,
-        });
-      }
-    }
-    return map;
-  }, [products, scopedSignals.products]);
-  const entityList = useMemo(() => [...entitiesById.values()], [entitiesById]);
-  const entityIds = useMemo(() => {
-    const ids = Object.keys(scopedSignals.products);
-    if (isProductScoped(viewScope) && !ids.includes(viewScope.productId)) {
-      return [viewScope.productId, ...ids];
-    }
-    return ids;
-  }, [scopedSignals.products, viewScope]);
+  const listed = useMemo(
+    () => products.map((product) => ({
+      id: product.id,
+      name: product.name,
+      detail: product.sku ? `SKU ${product.sku}` : null,
+    })),
+    [products],
+  );
+  const entities = useMemo(
+    () => mergeConflictEntities(listed, scopedSignals, (signal) => (
+      signal.sku ? `SKU ${signal.sku}` : null
+    )),
+    [listed, scopedSignals],
+  );
+  const ensureId = isProductScoped(viewScope) ? viewScope.productId : null;
+  const entityIds = useConflictEntityIds(scopedSignals, ensureId);
 
   return (
-    <ConflictResolver
+    <ConflictResolverWorkspace
       open={open}
       onClose={onClose}
-      adapter={adapter}
+      signals={scopedSignals}
       entityIds={entityIds}
-      entities={entityList}
+      entities={entities}
       focusedEntityId={scopedFocusId}
+      adapter={adapter}
       formBlocked={formBlocked}
       onToast={onToast}
       onApplied={async (info) => {
@@ -197,7 +201,6 @@ export function CatalogConflictWorkspace({
           if (refreshed.signals) onSignalsChange(refreshed.signals);
           else if (refreshed.error) onToast(refreshed.error, "info");
         }
-        refreshPreservingScroll(router);
       }}
     />
   );
