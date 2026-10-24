@@ -56,7 +56,6 @@ export default async function AdminLayout({
   const syncNavHrefs = Array.from(
     new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),
   );
-  if (syncCounts.total > 0) syncNavHrefs.push("/admin/translations");
 
   return (
     <AdminToastProvider>

@@ -91,18 +91,16 @@ describe("admin-nav-config", () => {
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems).toBeUndefined();
-    expect(translations).toMatchObject({ label: "Translations", badge: { kind: "sync", count: 9 } });
+    expect(translations).toMatchObject({ label: "Translations" });
+    expect(translations?.badge).toBeUndefined();
     expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });
     expect(help).toMatchObject({ href: "/admin/help", label: "Help", code: "HELP" });
     expect(items.at(-1)?.id).toBe("help");
   });
 
-  it("falls back to syncCount total when syncCounts is omitted", () => {
+  it("does not put a hub badge on Translations when only syncCount total is passed", () => {
     const items = buildAdminNavItems({ syncCount: 4 });
-    expect(items.find((item) => item.id === "translations")?.badge).toEqual({
-      kind: "sync",
-      count: 4,
-    });
+    expect(items.find((item) => item.id === "translations")?.badge).toBeUndefined();
     expect(items.find((item) => item.id === "products")?.badge).toBeUndefined();
   });
 

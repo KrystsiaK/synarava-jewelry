@@ -290,11 +290,7 @@ export function AdminNavTree({
                       <AdminNavCountBadge
                         count={item.badge.count}
                         kind={item.badge.kind}
-                        label={
-                          item.id === "translations"
-                            ? `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} to review`
-                            : `${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} in ${item.label}`
-                        }
+                        label={`${item.badge.count} Shopify conflict${item.badge.count === 1 ? "" : "s"} in ${item.label}`}
                       />
                     ) : item.showChildCount && hasChildren && !open ? (
                       <AdminNavCountBadge

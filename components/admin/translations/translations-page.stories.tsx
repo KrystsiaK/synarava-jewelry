@@ -1,12 +1,10 @@
 import type { CSSProperties, ReactNode } from "react";
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { TranslationsSyncSummary } from "@/components/admin/translations/translations-sync-summary";
-
 /**
  * Presentational Translations page composition for Storybook.
- * LanguagesPanel pulls server actions and breaks the static iframe; the live page
- * mounts LanguagesPanel + this summary. Chromatic viewports: 390 / 768 / 1440.
+ * LanguagesPanel pulls server actions and breaks the static iframe; this shell
+ * mirrors languages + export/import only. Chromatic viewports: 390 / 768 / 1440.
  */
 
 const lightVars = {
@@ -102,28 +100,18 @@ function LanguagesShell() {
   );
 }
 
-function TranslationsPageStory({ total = 3 }: { total?: number }) {
+function TranslationsPageStory() {
   return (
     <div className="mx-auto grid max-w-6xl gap-7">
       <header>
         <h1 className="adm-page-title">Translations</h1>
         <p className="adm-page-subtitle">
-          Manage languages and see where Synarava and Shopify differ. Choose Keep ours or Take Shopify
-          on the product, collection, or page that owns the field.
+          Manage languages: add, hide, restore, export, or import a language bundle. Import always
+          shows a preview before anything is written. Resolve Shopify field differences on the
+          Catalog, Collections, Pages, or Shared section that owns the field.
         </p>
       </header>
       <LanguagesShell />
-      <TranslationsSyncSummary
-        counts={{
-          total,
-          products: total > 0 ? 2 : 0,
-          collections: total > 0 ? 1 : 0,
-          pages: 0,
-          settings: 0,
-        }}
-        checkedAt="2026-10-23T10:00:00.000Z"
-        state="ready"
-      />
     </div>
   );
 }
@@ -141,7 +129,7 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const LightAndDarkViewports: Story = {
-  name: "Languages + summary (light/dark · 390/768/1440)",
+  name: "Languages only (light/dark · 390/768/1440)",
   render: () => (
     <div className="grid gap-8">
       <Frame label="Light" style={lightVars} width={1440}>
@@ -155,9 +143,6 @@ export const LightAndDarkViewports: Story = {
       </Frame>
       <Frame label="Light" style={lightVars} width={390}>
         <TranslationsPageStory />
-      </Frame>
-      <Frame label="Light empty" style={lightVars} width={768}>
-        <TranslationsPageStory total={0} />
       </Frame>
     </div>
   ),

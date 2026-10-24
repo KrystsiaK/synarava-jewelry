@@ -328,7 +328,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 
 - **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
-- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
+- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared). Translations has no hub badge — languages + export/import only; the topbar shows the total from `lib/sync`. Muted child count when Pages is collapsed and has no conflicts.
 - **Meaning:** amber = unresolved Shopify field conflicts / divergences.
 - **Truncation:** long labels ellipsize; tooltip on long titles.
 - **Focus:** no outline ring on nav items — soft background only.

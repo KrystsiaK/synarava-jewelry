@@ -43,7 +43,7 @@ const demoPages = [
   { slug: "privacy", title: "Privacy Policy" },
 ];
 
-/** Amber Shopify conflict markers on Catalog / Pages / Shared / Localization. */
+/** Amber Shopify conflict markers on Catalog / Collections / Pages / Shared. */
 export const TreeWithSignals: Story = {
   args: {
     items: buildAdminNavItems({
@@ -61,7 +61,6 @@ export const TreeWithSignals: Story = {
       "/admin/collections",
       "/admin/pages/care",
       "/admin/settings",
-      "/admin/translations",
     ],
   },
 };
