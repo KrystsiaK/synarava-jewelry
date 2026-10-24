@@ -20,21 +20,14 @@ import {
 import {
   fetchShopifyShopIdentity,
   hasShopifyAdminConfig,
-  testShopifyAdminConnection,
 } from "@/lib/shopify/admin";
 import {
   assertShopifyStoreBinding,
-  ensureShopifyStoreBinding,
-  rebindShopifyStore,
 } from "@/lib/shopify/store-binding";
-import { applyShopifyProductToSynarava, ensureProductWebhookSubscriptions, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
-import { ensureProductReviewWebhookSubscriptions } from "@/lib/shopify/product-reviews";
-import { ensureOrderLifecycleWebhookSubscriptions } from "@/lib/shopify/order-lifecycle-webhooks";
-import { ensureOrdersPaidWebhookSubscription } from "@/lib/shopify/orders-paid-webhook";
-import { env } from "@/lib/env";
+import { applyShopifyProductToSynarava, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
-import { runCatalogConflictCheck, runProductConflictCheck, getCatalogConflictSignals, getCollectionConflictSignals, runCollectionConflictCheck, runCollectionsConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runProductConflictCheck, getCatalogConflictSignals, getCollectionConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
 import { getProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
 import { getCollectionCatalogConflict } from "@/lib/shopify/collection-conflict";
 import {
@@ -44,11 +37,6 @@ import {
   type CollectionConflictApplyScope,
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
-/** Missing translation API scopes only — never Markets / unpublished-locale jargon. */
-function translationScopeNotice(missingTranslationScopes: string[]) {
-  if (missingTranslationScopes.length === 0) return "";
-  return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
-}
 
 async function assertConfiguredShopifyStore() {
   const shop = await fetchShopifyShopIdentity();
@@ -63,87 +51,6 @@ export async function inspectProductSyncAction(productId: string) {
     return { inspection: await inspectProductSyncState(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not inspect Shopify changes." };
-  }
-}
-
-export async function checkCatalogConflictsAction() {
-  const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) {
-    const missingVariables = [
-      !env.SHOPIFY_STORE_DOMAIN ? "SHOPIFY_STORE_DOMAIN" : null,
-      !env.SHOPIFY_CLIENT_ID && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_ID" : null,
-      !env.SHOPIFY_CLIENT_SECRET && !env.SHOPIFY_ADMIN_ACCESS_TOKEN ? "SHOPIFY_CLIENT_SECRET" : null,
-    ].filter((value): value is string => Boolean(value));
-    return { error: `Shopify Admin API is not configured. Missing: ${missingVariables.join(", ")}.` };
-  }
-  try {
-    const connection = await testShopifyAdminConnection();
-    if (connection.missingScopes.length > 0) {
-      return { error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.` };
-    }
-    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
-    if (binding.status === "MISMATCH") {
-      return {
-        error: `This catalog is linked to ${binding.boundShopDomain}, while the current credentials point to ${binding.currentShopDomain}. Rebind before checking conflicts.`,
-        storeMismatch: {
-          boundShopDomain: binding.boundShopDomain,
-          currentShopDomain: binding.currentShopDomain,
-        },
-      };
-    }
-
-    // Side-effect webhook ensure stays here; do not surface setup notices as conflict-check toasts.
-    if (env.APP_URL && env.SHOPIFY_WEBHOOK_SECRET) {
-      try {
-        await ensureProductWebhookSubscriptions(env.APP_URL);
-      } catch {
-        /* non-blocking */
-      }
-      try {
-        await ensureOrdersPaidWebhookSubscription(env.APP_URL);
-      } catch {
-        /* non-blocking */
-      }
-      try {
-        await ensureOrderLifecycleWebhookSubscriptions(env.APP_URL, {
-          includeReturns: connection.missingReturnsScopes.length === 0,
-        });
-      } catch {
-        /* non-blocking */
-      }
-      if (connection.missingReviewScopes.length === 0) {
-        try {
-          await ensureProductReviewWebhookSubscriptions(env.APP_URL);
-        } catch {
-          /* non-blocking */
-        }
-      }
-    }
-
-    const result = await runCatalogConflictCheck(session.username);
-    revalidatePath("/admin/products");
-    return result;
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
-  }
-}
-
-/** Scoped product(+locale) conflict check — same engine as catalog, not a full catalog sweep. */
-export async function checkProductConflictsAction(input: { productId: string; locale?: string }) {
-  const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  if (!input.productId.trim()) return { error: "Product id is required." };
-  try {
-    const result = await runProductConflictCheck({
-      productId: input.productId,
-      locale: input.locale,
-      requestedBy: session.username,
-    });
-    revalidatePath("/admin/products");
-    revalidatePath(`/admin/products/${input.productId}`);
-    return result;
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not check product conflicts." };
   }
 }
 
@@ -200,52 +107,6 @@ export async function createProductMetafieldDefinitionAction(input: {
     return { definition, success: `Definition “${definition.name}” created in Shopify.` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the metafield definition." };
-  }
-}
-
-export async function checkCollectionConflictsAction() {
-  const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) {
-    return { error: "Shopify Admin API is not configured." };
-  }
-  try {
-    const connection = await testShopifyAdminConnection();
-    if (connection.missingScopes.length > 0) {
-      return { error: `Connected to ${connection.shopName}, but required scopes are missing: ${connection.missingScopes.join(", ")}.` };
-    }
-    const binding = await ensureShopifyStoreBinding(connection.shopDomain);
-    if (binding.status === "MISMATCH") {
-      return {
-        error: `This catalog is linked to ${binding.boundShopDomain}, while the current credentials point to ${binding.currentShopDomain}. Rebind from Products before checking collection conflicts.`,
-        storeMismatch: {
-          boundShopDomain: binding.boundShopDomain,
-          currentShopDomain: binding.currentShopDomain,
-        },
-      };
-    }
-    const result = await runCollectionsConflictCheck(session.username);
-    revalidatePath("/admin/collections");
-    return result;
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
-  }
-}
-
-export async function checkOneCollectionConflictsAction(input: { collectionId: string; locale?: string }) {
-  const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  if (!input.collectionId.trim()) return { error: "Collection id is required." };
-  try {
-    const result = await runCollectionConflictCheck({
-      collectionId: input.collectionId,
-      locale: input.locale,
-      requestedBy: session.username,
-    });
-    revalidatePath("/admin/collections");
-    revalidatePath(`/admin/collections/${input.collectionId}`);
-    return result;
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
   }
 }
 
@@ -450,23 +311,3 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
   }
 }
 
-export async function rebindShopifyStoreAction(expectedShopDomain: string) {
-  await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-
-  try {
-    const connection = await testShopifyAdminConnection();
-    if (connection.missingScopes.length > 0) {
-      return { error: `The new Shopify store is missing scopes: ${connection.missingScopes.join(", ")}.` };
-    }
-    const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
-    revalidatePath("/admin/products");
-    const translationNotice = translationScopeNotice(connection.missingTranslationScopes);
-    return {
-      success: `Catalog is now bound to ${result.shopDomain}. Product saves, Shopify webhooks, and conflict checks will establish the new store identities.${translationNotice}`,
-      result,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Shopify store rebind failed." };
-  }
-}

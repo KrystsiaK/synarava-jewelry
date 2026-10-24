@@ -1,6 +1,6 @@
 "use client";
 
-import { GitCompareArrows, RefreshCw, ShieldCheck } from "lucide-react";
+import { GitCompareArrows, ShieldCheck } from "lucide-react";
 
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import {
@@ -28,16 +28,14 @@ const ICON_SIZE = "size-3.5";
 
 /**
  * Compact catalog-conflict entry for the product editor.
- * Same dialogs as `/admin/products`, scoped to the whole product or one locale tab.
+ * Display-only — full Shopify fetch+compare lives on the admin top-bar sync control.
  */
 export function ProductLocaleConflictControl({
   productId,
   locale,
   localeLabel,
   signals,
-  checking,
   onOpen,
-  onCheck,
   scope = "locale",
   checkIconOnly = false,
   /** Live inspect diff count — preferred over signal.shared boolean for commerce badges. */
@@ -47,9 +45,7 @@ export function ProductLocaleConflictControl({
   locale: string;
   localeLabel: string;
   signals: CatalogConflictSignals;
-  checking?: boolean;
   onOpen: () => void;
-  onCheck: () => void;
   /** Whole-product check vs active locale tab. */
   scope?: "product" | "locale";
   /** Icon + tooltip actions (header / locale strip). */
@@ -65,7 +61,6 @@ export function ProductLocaleConflictControl({
   const statusLabel = hasConflicts
     ? `${count} conflict${count === 1 ? "" : "s"} for ${localeLabel}. Open to compare and choose Shopify or Synarava.`
     : `No conflicts for ${localeLabel}. Synarava matches the last Shopify conflict check.`;
-  const checkLabel = `Check ${localeLabel} against Shopify for field differences`;
 
   if (checkIconOnly) {
     return (
@@ -103,17 +98,6 @@ export function ProductLocaleConflictControl({
             </span>
           </Tooltip>
         )}
-        <Tooltip content={checkLabel}>
-          <button
-            type="button"
-            onClick={onCheck}
-            disabled={checking}
-            className={iconBtn}
-            aria-label={checkLabel}
-          >
-            <RefreshCw className={`${ICON_SIZE} ${checking ? "animate-spin" : ""}`} strokeWidth={ICON_STROKE} aria-hidden="true" />
-          </button>
-        </Tooltip>
       </div>
     );
   }
@@ -136,16 +120,6 @@ export function ProductLocaleConflictControl({
           No conflicts
         </span>
       )}
-      <button
-        type="button"
-        onClick={onCheck}
-        disabled={checking}
-        className="inline-flex min-h-11 items-center gap-1.5 rounded-lg border border-[var(--adm-border)] px-3 py-1.5 text-[0.68rem] font-bold uppercase tracking-[0.04em] text-[var(--adm-subtle)] hover:border-[var(--adm-border-strong)] hover:text-[var(--adm-accent)] disabled:opacity-60"
-        aria-label={checkLabel}
-      >
-        <RefreshCw className={`size-3.5 ${checking ? "animate-spin" : ""}`} strokeWidth={ICON_STROKE} aria-hidden="true" />
-        Check
-      </button>
     </div>
   );
 }

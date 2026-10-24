@@ -8,16 +8,12 @@ import {
   saveCollectionAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
-import {
-  checkOneCollectionConflictsAction,
-} from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
 import { AdminAlert, AdminIconButton, AdminListWorkspace, CatalogConflictStatus } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { useCatalogConflictCheck } from "@/components/admin/shared/use-catalog-conflict-check";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
 import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
 import {
@@ -25,7 +21,6 @@ import {
   generateCollectionCode,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
-import { CONFLICT_CHECK_ENTITY_NOUN } from "@/lib/admin/conflict-check-messages";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
@@ -37,7 +32,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
   products: {},
   recentlyUpdatedProducts: {},
 };
-const ENTITY_NOUN = CONFLICT_CHECK_ENTITY_NOUN.collection;
+const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
 
 function DeleteCollectionForm({
   collectionId,
@@ -123,15 +118,7 @@ export function EditCollectionForm({
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
-  const {
-    signals: conflictSignals,
-    setSignals: setConflictSignals,
-    isChecking: isConflictCheckPending,
-    runConflictCheck,
-  } = useCatalogConflictCheck({
-    initialSignals: initialConflictSignals,
-    runCheck: () => checkOneCollectionConflictsAction({ collectionId: collection.id }),
-  });
+  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const collectionConflict = conflictSignals.products[collection.id];
 
   const [scopedCollectionId, setScopedCollectionId] = useState(collection.id);
@@ -210,8 +197,6 @@ export function EditCollectionForm({
                       setConflictViewScope({ kind: "collection", collectionId: collection.id });
                       setConflictListOpen(true);
                     }}
-                    onCheck={runConflictCheck}
-                    checking={isConflictCheckPending}
                     compact={Boolean(collectionConflict)}
                     entityNoun={ENTITY_NOUN}
                   />

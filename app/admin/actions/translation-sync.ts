@@ -13,9 +13,7 @@ import {
   syncStorefrontCopyTranslation,
   type SyncTargetLocale,
 } from "@/lib/shopify/editorial-translation-sync";
-import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
 import { listStorefrontLocales } from "@/lib/i18n/storefront-locale-registry";
-import { syncStorefrontLocalesFromShopify } from "@/lib/shopify/storefront-locale-sync";
 import { registerProductTranslation } from "@/lib/shopify/translations";
 import { ensureTranslationBinding, recordSyncEvent } from "@/lib/shopify/translation-sync";
 
@@ -202,22 +200,3 @@ export async function retryTranslationSyncAction(entityType: TranslationOverview
   }
 }
 
-export async function syncStorefrontLocalesAction() {
-  await requireAdminSession("/admin/translations");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-
-  try {
-    const result = await syncStorefrontLocalesFromShopify();
-    invalidateStorefrontLocaleCache();
-    revalidatePath("/admin/translations");
-    const summary = `Checked ${result.updated.length} locale${result.updated.length === 1 ? "" : "s"} against Shopify.`;
-    return {
-      success: result.unmatched.length > 0
-        ? `${summary} Shopify has ${result.unmatched.length} more not yet in the registry.`
-        : summary,
-      unmatched: result.unmatched,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Locale sync failed." };
-  }
-}

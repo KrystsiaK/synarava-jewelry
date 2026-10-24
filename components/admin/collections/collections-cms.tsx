@@ -19,13 +19,9 @@ import {
   updateCollectionStatusAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
-import {
-  checkCollectionConflictsAction,
-} from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { useCatalogConflictCheck } from "@/components/admin/shared/use-catalog-conflict-check";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
 import {
   collectionActionCopy,
@@ -43,12 +39,11 @@ import {
   CatalogConflictStatus,
   CatalogConflictRowBadges,
 } from "@/components/synarava-cms";
-import { CONFLICT_CHECK_ENTITY_NOUN } from "@/lib/admin/conflict-check-messages";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 const initialState: CollectionActionState = {};
 const COLLECTION_GRID = "xl:grid-cols-[minmax(0,1.6fr)_5.5rem_5rem_9rem]";
-const ENTITY_NOUN = CONFLICT_CHECK_ENTITY_NOUN.collection;
+const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
 
 export function CollectionsCms({
   collections,
@@ -67,15 +62,7 @@ export function CollectionsCms({
   const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
-  const {
-    signals: conflictSignals,
-    setSignals: setConflictSignals,
-    isChecking: isConflictCheckPending,
-    runConflictCheck,
-  } = useCatalogConflictCheck({
-    initialSignals: initialConflictSignals,
-    runCheck: checkCollectionConflictsAction,
-  });
+  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictCollectionId(null);
@@ -151,8 +138,6 @@ export function CollectionsCms({
       <CatalogConflictStatus
         signals={conflictSignals}
         onShow={() => showConflicts()}
-        onCheck={runConflictCheck}
-        checking={isConflictCheckPending}
         entityNoun={ENTITY_NOUN}
       />
 
@@ -165,8 +150,6 @@ export function CollectionsCms({
               <CatalogConflictStatus
                 signals={conflictSignals}
                 onShow={() => showConflicts()}
-                onCheck={runConflictCheck}
-                checking={isConflictCheckPending}
                 compact
                 entityNoun={ENTITY_NOUN}
               />

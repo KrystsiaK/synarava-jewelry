@@ -19,12 +19,14 @@ human **Apply** after preview.
 - Shopify Admin credentials must be configured and the catalog store binding
   must match the current shop.
 - Collections use the same conflict banner and list flow as Products.
+- The **only** place that fetches Shopify and compares is the admin top-bar
+  Shopify sync control. Catalog banners only display the last saved result.
 
 :::good-to-know
 There are two copies of commerce fields: a **Shopify** copy (fetched, read-only
 in the conflict UI) and a **Synarava** copy (editable). Nothing is written
-automatically when you open the page or run a check. Webhooks and refresh only
-update the Shopify-side copy and conflict flags.
+automatically when you open the page. Webhooks update the Shopify-side copy and
+conflict flags; a full check runs from the top bar.
 :::
 
 ## Steps
@@ -35,22 +37,11 @@ update the Shopify-side copy and conflict flags.
 On **Catalog → Collections**, the banner shows the saved conflict status:
 
 - **N collections with conflicts** when at least one collection differs, or
-  **No saved conflicts** when the count is zero.
-- **check may be outdated** when the last successful full check is older than
-  30 minutes (`STALE_AFTER_MS`).
-- **Last full check \<date\>** whenever a check timestamp is stored (including
-  when status is ready). Hover shows “Last full conflict check”.
-- Other states: **checking Shopify now**, **conflict status unavailable (last
-  check failed)**, **Shopify disconnected**.
+  **No conflicts** when the count is zero.
+- **Last full check \<date\>** whenever a check timestamp is stored (same
+  source as the top-bar sync control). Hover shows “Last full conflict check”.
 
 **Show conflicts** appears only when the count is greater than zero.
-**Run conflict check** is disabled while a check is in progress or Shopify is
-disconnected.
-
-### Run conflict check (banner only)
-
-Choose **Run conflict check**. The check refreshes the banner count and
-**Last full check** time. It does **not** open the conflict list by itself.
 
 ### Open the conflict list
 
@@ -76,8 +67,9 @@ counts and editors match the new windows.
 :::
 
 :::warning
-**Run conflict check** only updates the banner. Use **Show conflicts** when you
-want to review or resolve differences.
+The banner is display-only. Run a full check from the admin top-bar Shopify
+control when you need a fresh compare. Use **Show conflicts** to review or
+resolve differences.
 :::
 
 ## What if...
@@ -87,31 +79,22 @@ want to review or resolve differences.
 
 **Cause:** The saved conflict count is zero.
 
-**What happens:** The banner shows **No saved conflicts** and hides
+**What happens:** The banner shows **No conflicts** and hides
 **Show conflicts**.
 
-**What to do:** Run conflict check if the status may be outdated, or continue
-editing — there is nothing to resolve in the list.
+**What to do:** Run the top-bar Shopify check if you expect new differences, or
+continue editing — there is nothing to resolve in the list.
 
-### Run conflict check stays disabled
+### Banner looks outdated
 
-**Cause:** A check is already running, or Shopify is disconnected.
+**Cause:** No successful full check recently, or Shopify changed after the last
+top-bar check.
 
-**What happens:** The button is disabled; the banner may say **checking Shopify
-now** or **Shopify disconnected**.
+**What happens:** The banner still shows the last saved count and
+**Last full check** time (when available).
 
-**What to do:** Wait for the in-flight check, or restore Shopify Admin
-connectivity and store binding before checking again.
-
-### A check fails
-
-**Cause:** Credentials, scopes, store mismatch, or a Shopify error.
-
-**What happens:** One error toast with a human message; the banner may show
-failed status. The conflict list does not open automatically.
-
-**What to do:** Read the toast, fix the connection or binding from Products if
-needed, then run the check again.
+**What to do:** Use the admin top-bar Shopify sync control to fetch and compare
+again.
 :::
 
 ## Known limits
@@ -121,11 +104,9 @@ needed, then run the check again.
   Synarava-only and are not resolved through this conflict list.
 - Which products belong to a collection is product-driven membership sync, not
   part of the collection commerce window yet.
-- A full check older than 30 minutes is marked stale on the banner.
 
 ## Verified on
 
-Draft, grounded in the conflict banner (`CatalogConflictStatus`), collection
-CMS check flow (`useCatalogConflictCheck`), and sync signal age
-(`STALE_AFTER_MS` in `lib/sync/build-signals.ts`). End-to-end admin verification
-still pending.
+Draft, grounded in the conflict banner (`CatalogConflictStatus`) and sync
+signal age (`checkedAt` from the same full-check source as the top-bar control).
+End-to-end admin verification still pending.

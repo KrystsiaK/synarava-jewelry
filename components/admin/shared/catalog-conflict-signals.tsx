@@ -1,6 +1,6 @@
 "use client";
 
-import { GitCompareArrows, Languages, RefreshCw } from "lucide-react";
+import { GitCompareArrows, Languages } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import type { CatalogConflictProductSignal, CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
@@ -11,16 +11,8 @@ function plural(count: number, singular: string, pluralWord: string) {
 
 function statusText(signals: CatalogConflictSignals, entityNoun: { singular: string; plural: string }) {
   const count = signals.totalCount;
-  const saved = count === null
-    ? "Conflict status unavailable"
-    : count === 0
-      ? "No saved conflicts"
-      : `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts`;
-  if (signals.state === "disconnected") return `Shopify disconnected · ${saved.toLowerCase()} may be outdated`;
-  if (signals.state === "failed") return `${saved} · conflict status unavailable (last check failed)`;
-  if (signals.state === "checking") return `${saved} · checking Shopify now`;
-  if (signals.state === "stale") return `${saved} · check may be outdated`;
-  return saved;
+  if (count === null || count === 0) return "No conflicts";
+  return `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts`;
 }
 
 const conflictTone = {
@@ -34,15 +26,11 @@ const conflictTone = {
 export function CatalogConflictStatus({
   signals,
   onShow,
-  onCheck,
-  checking = false,
   compact = false,
   entityNoun = { singular: "product", plural: "products" },
 }: {
   signals: CatalogConflictSignals;
   onShow: () => void;
-  onCheck: () => void;
-  checking?: boolean;
   compact?: boolean;
   entityNoun?: { singular: string; plural: string };
 }) {
@@ -65,7 +53,7 @@ export function CatalogConflictStatus({
   }
   return (
     <div
-      className={`flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 ${compact ? "text-xs" : "text-sm"}`}
+      className="flex flex-wrap items-center gap-2 rounded-xl border px-3 py-2 text-sm"
       style={{
         borderColor: conflictTone.borderSoft,
         background: conflictTone.fillSoft,
@@ -89,17 +77,6 @@ export function CatalogConflictStatus({
           Show conflicts
         </AdminButton>
       ) : null}
-      <AdminButton
-        variant="ghost"
-        onClick={onCheck}
-        disabled={checking || signals.state === "checking" || signals.state === "disconnected"}
-        className="inline-flex min-h-11 items-center gap-1.5 px-3 py-1 text-xs"
-        leadingIcon={
-          <RefreshCw className={`size-3.5 ${(checking || signals.state === "checking") ? "animate-spin" : ""}`} aria-hidden="true" />
-        }
-      >
-        {(checking || signals.state === "checking") ? "Checking conflicts…" : "Run conflict check"}
-      </AdminButton>
     </div>
   );
 }

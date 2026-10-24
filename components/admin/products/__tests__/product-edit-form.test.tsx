@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   inspectProductSyncAction: vi.fn(),
   pullSingleProductFromShopifyAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
-  checkProductConflictsAction: vi.fn(),
+  loadCatalogConflictSignalsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
   listCustomProductMetafieldDefinitionsAction: vi.fn(),
   createProductMetafieldDefinitionAction: vi.fn(),
@@ -45,7 +45,7 @@ vi.mock("@/app/admin/actions/sync", () => ({
   inspectProductSyncAction: mocks.inspectProductSyncAction,
   pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
-  checkProductConflictsAction: mocks.checkProductConflictsAction,
+  loadCatalogConflictSignalsAction: mocks.loadCatalogConflictSignalsAction,
   listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
   createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
 }));
@@ -106,7 +106,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
-  mocks.checkProductConflictsAction.mockResolvedValue({
+  mocks.loadCatalogConflictSignalsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
   });
   mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });

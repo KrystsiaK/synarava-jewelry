@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Download, RefreshCw, Upload, X } from "lucide-react";
+import { Download, Upload, X } from "lucide-react";
 
 import {
   addLanguageAction,
@@ -12,7 +12,6 @@ import {
   previewImportLanguageAction,
   restoreLanguageAction,
 } from "@/app/admin/actions/languages";
-import { syncStorefrontLocalesAction } from "@/app/admin/actions/translation-sync";
 import { AdminButton, AdminCheckboxControl, AdminTextField } from "@/components/synarava-cms";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { LanguageBundle, LanguageBundleImportPreview } from "@/lib/i18n/language-bundle";
@@ -22,7 +21,6 @@ import {
   retentionDaysElapsed,
 } from "@/lib/i18n/storefront-locale-status";
 import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
-import type { ShopifyShopLocale } from "@/lib/shopify/admin";
 
 function downloadBundle(bundle: LanguageBundle) {
   const blob = new Blob([JSON.stringify(bundle, null, 2)], { type: "application/json" });
@@ -47,7 +45,6 @@ export function LanguagesPanel({
 }) {
   const [pending, startTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
-  const [unmatched, setUnmatched] = useState<ShopifyShopLocale[]>([]);
   const [exportChecksums, setExportChecksums] = useState<Record<string, string>>({});
   const [typedCodes, setTypedCodes] = useState<Record<string, string>>({});
   const [showRetired, setShowRetired] = useState(false);
@@ -83,15 +80,6 @@ export function LanguagesPanel({
         parts.push("Shopify write_locales scope is missing — language Shopify writes stay read-only.");
       }
       setMessage(parts.join(" ") || `${label} done.`);
-    });
-  }
-
-  function checkShopify() {
-    setMessage(null);
-    startTransition(async () => {
-      const result = await syncStorefrontLocalesAction();
-      setMessage(result.error ?? result.success ?? null);
-      setUnmatched(result.unmatched ?? []);
     });
   }
 
@@ -133,10 +121,6 @@ export function LanguagesPanel({
             />
             Show retired
           </label>
-          <AdminButton variant="ghost" onClick={checkShopify} disabled={pending}>
-            <RefreshCw size={14} className={pending ? "animate-spin" : undefined} aria-hidden="true" />
-            {pending ? "Working…" : "Check Shopify"}
-          </AdminButton>
         </div>
       </div>
 
@@ -329,27 +313,6 @@ export function LanguagesPanel({
       </div>
 
       {message ? <p className="adm-apply-message" role="status">{message}</p> : null}
-
-      {unmatched.length > 0 ? (
-        <div className="grid gap-2 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
-          <p className="text-sm font-medium">Published in Shopify, not yet in the registry:</p>
-          <ul className="grid gap-1 text-sm">
-            {unmatched.map((locale) => (
-              <li key={locale.locale}>
-                <code>{locale.locale}</code>
-                {" "}
-                —
-                {locale.name}
-                {" "}
-                (
-                {locale.published ? "published" : "not published"}
-                ).
-                Add a route segment for it before it can go live.
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
 
       {importPreview ? (
         <AnimatedModal
