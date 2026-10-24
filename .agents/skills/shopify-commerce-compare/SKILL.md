@@ -25,20 +25,20 @@ patches.
    `updatedAt` for equality, media upload `status`, metafield `definition`,
    CDN URL query/hash). Use that function **before save** into the DB compare
    field **and** **before compare** against a live fetch.
-3. **Dual full stores** (`CommerceSyncStore.ourSnapshot` +
-   `shopifySnapshot`): each is a map of Shopify-shaped windows. Per-product
-   `workingSnapshot` / `shopifySnapshot` are the entity slices that compose
-   those stores. See
+3. **Two states per entity** — Synarava `workingSnapshot` ↔ Shopify
+   `shopifySnapshot`. Counters and badges come from `lib/sync`
+   (`compareSyncState` → `selectSyncCounts`). There is no catalog-level
+   `CommerceSyncStore`. See
    [`docs/wiki/commerce-sync.md`](../../../docs/wiki/commerce-sync.md).
-4. **Deep-diff** windows (and store-level presence). Status is derived from
-   object compare — not “any column≠Shopify = conflict”.
+4. **Deep-diff** windows (and presence). Status is derived from object
+   compare — not “any column≠Shopify = conflict”.
 5. **View columns** on the entity (`priceCents`, `taxable`, name, …) are
    **duplicates for admin UI** projected from Shopify — not a second compare
    axis. **Every local commerce save must write-through those values into the
-   snapshot** (`writeThroughLocalCommerceToProjection`) **and** patch the OUR
-   store slice. Otherwise price edits never appear as conflicts.
-6. **Pull/push** refresh entity windows and **replace the Shopify store
-   snapshot** (full refetch for now) with the same normalize.
+   snapshot** (`writeThroughLocalCommerceToProjection`). Otherwise price edits
+   never appear as conflicts.
+6. **Pull/push** refresh entity Shopify windows with the same normalize;
+   Synarava content writes only on human Apply / Save.
 
 Scoped **apply writers** (safe partial GraphQL mutations) may stay as a small
 capability allowlist. That is **write**, not **detect**. Never reuse write
@@ -66,22 +66,22 @@ Admin owns **projected columns**.
 - [ ] New commerce data is added to the **GraphQL query** + flows into the
       **same normalize → save payload** builder.
 - [ ] Noise stripping lives in **one** function shared by save and compare.
-- [ ] Catalog Conflicts differences come from **deepDiff** of store windows
-      (path → human label is presentation only).
-- [ ] Successful pull/push refreshes entity windows and the Shopify store
-      snapshot; local Save patches OUR store slice.
+- [ ] Catalog Conflicts differences come from **deepDiff** of entity windows
+      via `lib/sync` (path → human label is presentation only).
+- [ ] Successful pull/push refreshes Shopify entity windows; local Save
+      write-throughs `workingSnapshot`; humans Apply Synarava content.
 - [ ] Presence (Only in Shopify / Only in Synarava) stays membership — not
       payload compare.
 
 ## Code anchors
 
-- Dual store: `lib/commerce-store/*` (`refreshCommerceSyncStore`,
-  `compareCommerceStores`, `setProductWindow`)
+- One sync module: `lib/sync/*` (waterfall, compare, select, apply)
 - Payload write + detect: `lib/shopify/product-sync.ts`
   (`snapshotForShopifyProduct` → `canonicalizeShopifyProjection` on save;
-  `inspectProductSyncState` → `diffShopifyProjections(working, shopify)`)
+  `inspectProductSyncState` / `refreshShopifyProductState` →
+  `diffShopifyProjections(working, shopify)`)
 - Normalize + deepDiff: `lib/shopify/shopify-projection-diff.ts`
 - Detection must **not** use `VARIANT_FIELD_COMPARATORS` / Prisma-column allowlists
   (`lib/shopify/reconciliation.ts` may keep helpers for other flows)
 - Ownership doc: `docs/wiki/product-data-ownership.md`
-- Current sync freeze: `docs/wiki/commerce-sync.md`
+- Current sync contract: `docs/wiki/commerce-sync.md`

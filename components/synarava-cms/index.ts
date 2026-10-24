@@ -112,7 +112,6 @@ export {
 
 export {
   buildAdminNavItems,
-  countAdminNavSyncBySection,
   syncDifferenceToNavHref,
   type AdminNavChildConfig,
   type AdminNavItemConfig,

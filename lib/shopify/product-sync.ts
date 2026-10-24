@@ -71,6 +71,7 @@ import {
 import {
   decideProductTranslationPull,
   fetchProductTranslation,
+  hasShopifySharedTranslationCopy,
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
@@ -939,7 +940,7 @@ async function finishPulledProduct(
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
   // Pull translations = fetch Shopify copy + flag divergences only.
-  // Never auto APPLY_REMOTE / upsert ProductTranslation / TaxonomyValueLabel —
+  // Never auto-apply / upsert ProductTranslation / TaxonomyValueLabel —
   // human Apply (reconcile field apply) is the only Synarava content write path.
   const translationLocales = pullTranslations
     ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
@@ -967,11 +968,9 @@ async function finishPulledProduct(
       seoTitle: localTranslation.seoTitle ?? "",
       seoDescription: localTranslation.seoDescription ?? "",
     } : null;
-    // force:false — never treat pull as APPLY_REMOTE auto-write.
+    // force:false — pull only flags divergence; never auto-writes Synarava copy.
     const decision = decideProductTranslationPull({
       local: localShopifyCopy,
-      localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
-      localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
       remote: remoteTranslation,
       force: false,
     });
@@ -1582,12 +1581,6 @@ export async function adoptShopifyProjectionField(
     where: { id: productId },
     data: columnData,
   });
-  const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-  await patchOurProductWindow({
-    shopifyProductId: product.shopifyProductId,
-    localProductId: productId,
-    window: columnData.workingSnapshot,
-  });
 }
 
 /**
@@ -2163,12 +2156,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             seoDescription: translation.seoDescription ?? "",
           };
           const remoteTranslation = await fetchProductTranslation(remote.id, translationLocale.shopifyLocale);
+          // Human Push chose Synarava → Shopify. Authorize APPLY when the operator
+          // forced, or when Shopify has no competing non-empty copy (first push /
+          // empty remote). Divergent non-empty Shopify copy still needs force.
           const decision = decideProductTranslationPull({
             local: localCopy,
-            localSyncStatus: translation.syncStatus,
-            localLastSyncedAt: translation.lastSyncedAt,
             remote: remoteTranslation,
-            force: forceTranslation,
+            force: forceTranslation || !hasShopifySharedTranslationCopy(remoteTranslation),
           });
           if (decision === "CONFLICT") {
             const message = `${translationLocale.name} copy also changed in Shopify. Pull or explicitly force Push to choose a winner.`;
@@ -2183,6 +2177,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
               data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
             });
           } else {
+            // APPLY — human Push (or force) writing Synarava → Shopify.
             await registerProductTranslation(remote.id, localCopy, translationLocale.shopifyLocale);
             await db.productTranslation.update({
               where: { id: translation.id },

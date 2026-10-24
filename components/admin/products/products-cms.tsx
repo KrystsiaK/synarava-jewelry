@@ -29,7 +29,6 @@ import {
   loadCatalogConflictSignalsAction,
   rebindShopifyStoreAction,
 } from "@/app/admin/actions/sync";
-import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
@@ -184,13 +183,6 @@ export function ProductsCms({
     const timer = setTimeout(() => setDebouncedQuery(query), 280);
     return () => clearTimeout(timer);
   }, [query]);
-
-  // Dual full-store foundation: stepped console flow on admin products entry.
-  useEffect(() => {
-    void runCommerceStoreConsoleFlow("products-list").catch((error) => {
-      console.error("[commerce-store] FLOW EXCEPTION", error);
-    });
-  }, []);
 
   const reloadProductList = useCallback(() => {
     const requestId = ++requestIdRef.current;

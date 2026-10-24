@@ -35,7 +35,11 @@ export type ShopifyProductTranslationSnapshot = ShopifyProductTranslationCopy & 
   productType?: string;
 };
 
-type ProductTranslationPullDecision = "APPLY_REMOTE" | "KEEP_LOCAL" | "CONFLICT" | "UNCHANGED";
+/**
+ * Two-way only: equal → UNCHANGED; differs → CONFLICT; force (human Apply/Push) → APPLY.
+ * No three-way auto-direction branches.
+ */
+type ProductTranslationPullDecision = "APPLY" | "CONFLICT" | "UNCHANGED";
 
 export type ProductTranslationSyncStatus = "NOT_APPLICABLE" | "PENDING" | "SYNCED" | "FAILED" | "CONFLICT";
 
@@ -104,43 +108,25 @@ export function resolveProductTranslationSyncStatus({
 
 export function decideProductTranslationPull({
   local,
-  localSyncStatus,
-  localLastSyncedAt,
   remote,
   force = false,
 }: {
   local: ShopifyProductTranslationCopy | null;
-  localSyncStatus: ProductTranslationSyncStatus;
-  localLastSyncedAt: Date | null;
+  /** Kept for call-site compatibility; unused under the two-way rule. */
+  localSyncStatus?: ProductTranslationSyncStatus;
+  /** Kept for call-site compatibility; unused under the two-way rule. */
+  localLastSyncedAt?: Date | null;
   remote: ShopifyProductTranslationSnapshot | null;
   force?: boolean;
 }): ProductTranslationPullDecision {
-  if (force) return "APPLY_REMOTE";
   if (!local && !remote) return "UNCHANGED";
   if (JSON.stringify(normalizedCopy(local)) === JSON.stringify(normalizedCopy(remote))) {
     return "UNCHANGED";
   }
-
-  const localNonEmpty = hasShopifySharedTranslationCopy(local);
-  const remoteNonEmpty = hasShopifySharedTranslationCopy(remote);
-
-  // Never wipe local draft/content with an empty Shopify translation.
-  if (localNonEmpty && !remoteNonEmpty) return "KEEP_LOCAL";
-
-  // Drafts stored as NOT_APPLICABLE still own their non-empty copy.
-  const localIsDirty = ["PENDING", "FAILED", "CONFLICT"].includes(localSyncStatus)
-    || (localSyncStatus === "NOT_APPLICABLE" && localNonEmpty);
-  if (!localIsDirty) return "APPLY_REMOTE";
-
-  const remoteChangedSinceLastSync = remote
-    ? !localLastSyncedAt
-      || !remote.updatedAt
-      || new Date(remote.updatedAt).getTime() > localLastSyncedAt.getTime()
-    : Boolean(localLastSyncedAt);
-
-  // Both sides have divergent non-empty copy (or remote moved) → conflict.
-  if (localNonEmpty && remoteNonEmpty && remoteChangedSinceLastSync) return "CONFLICT";
-  return remoteChangedSinceLastSync ? "CONFLICT" : "KEEP_LOCAL";
+  // Human-authorized Apply / force Push — only path that chooses a side automatically.
+  if (force) return "APPLY";
+  // Differs = divergence; human chooses on the Apply UI.
+  return "CONFLICT";
 }
 
 function productTranslationSnapshot(translations: RemoteTranslation[]): ShopifyProductTranslationSnapshot | null {

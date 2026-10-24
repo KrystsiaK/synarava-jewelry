@@ -232,14 +232,6 @@ model ProductIncomingUpdateView {
 }
 
 /// Dual full-catalog commerce snapshots (Redux-style store persistence).
-model CommerceSyncStore {
-  id              String   @id @default("default")
-  ourSnapshot     Json
-  shopifySnapshot Json
-  conflictReport  Json?
-  updatedAt       DateTime @updatedAt
-}
-
 model ProductTranslation {
   id               String                  @id @default(cuid())
   locale           String

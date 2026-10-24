@@ -19,7 +19,6 @@ import {
 } from "@/components/admin/shared/field-conflict-panel";
 import type {
   CatalogConflictDirection,
-  CatalogConflictField,
 } from "@/lib/shopify/catalog-conflict";
 import type { CollectionCatalogConflict } from "@/lib/shopify/collection-conflict";
 import type {
@@ -27,58 +26,19 @@ import type {
   CollectionConflictPreview,
 } from "@/lib/shopify/collection-conflict-apply";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import {
+  fieldMatchesCollectionViewLocale,
+  filterCollectionFieldsForView,
+  filterCollectionSignalsForView,
+  isCollectionScoped,
+  type CollectionConflictViewScope,
+} from "@/components/admin/collections/collection-conflict-view";
+
+export type { CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-view";
+export { fieldMatchesCollectionViewLocale } from "@/components/admin/collections/collection-conflict-view";
 
 type CollectionSummary = { id: string; name: string; slug?: string | null };
 type ToastTone = "success" | "error" | "info";
-
-export type CollectionConflictViewScope =
-  | { kind: "catalog" }
-  | { kind: "collection"; collectionId: string }
-  | { kind: "collectionLocale"; collectionId: string; locale: string };
-
-function normalizeLocaleCode(locale: string) {
-  return locale.trim().toLowerCase();
-}
-
-/** Shared commerce/presence under every language shell; plus that locale's rows. */
-export function fieldMatchesCollectionViewLocale(field: CatalogConflictField, locale: string): boolean {
-  if (String(field.scope.kind).toUpperCase() === "SHARED") return true;
-  return field.scope.kind === "LOCALE"
-    && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
-}
-
-function filterFieldsForView(fields: CatalogConflictField[], viewScope: CollectionConflictViewScope | undefined) {
-  if (!viewScope || viewScope.kind === "catalog" || viewScope.kind === "collection") return fields;
-  return fields.filter((field) => fieldMatchesCollectionViewLocale(field, viewScope.locale));
-}
-
-function filterSignalsForView(signals: CatalogConflictSignals, viewScope: CollectionConflictViewScope | undefined): CatalogConflictSignals {
-  if (!viewScope || viewScope.kind === "catalog") return signals;
-  const collectionId = viewScope.collectionId;
-  const signal = signals.products[collectionId];
-  if (!signal) return { ...signals, products: {}, totalCount: 0 };
-  if (viewScope.kind === "collection") {
-    return { ...signals, products: { [collectionId]: signal }, totalCount: 1 };
-  }
-  const locale = normalizeLocaleCode(viewScope.locale);
-  const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
-  const shared = Boolean(signal.shared);
-  const hasLocaleConflict = locales.some((entry) => entry.count > 0);
-  if (!hasLocaleConflict && !shared && !signal.presence) {
-    return { ...signals, products: {}, totalCount: 0 };
-  }
-  return {
-    ...signals,
-    products: { [collectionId]: { ...signal, shared, locales } },
-    totalCount: 1,
-  };
-}
-
-function isCollectionScoped(viewScope: CollectionConflictViewScope | undefined): viewScope is
-  | { kind: "collection"; collectionId: string }
-  | { kind: "collectionLocale"; collectionId: string; locale: string } {
-  return viewScope?.kind === "collection" || viewScope?.kind === "collectionLocale";
-}
 
 /** Thin wrapper: orchestration only — UI is FieldConflictPanel. */
 export function CollectionConflictWorkspace({
@@ -109,7 +69,7 @@ export function CollectionConflictWorkspace({
   const [resultMessage, setResultMessage] = useState<string | null>(null);
   const [applying, setApplying] = useState(false);
   const router = useRouter();
-  const scopedSignals = useMemo(() => filterSignalsForView(signals, viewScope), [signals, viewScope]);
+  const scopedSignals = useMemo(() => filterCollectionSignalsForView(signals, viewScope), [signals, viewScope]);
   const scopedFocusId = isCollectionScoped(viewScope) ? viewScope.collectionId : focusedCollectionId;
   const hideBulk = isCollectionScoped(viewScope);
   const entitiesById = useMemo(() => {
@@ -212,7 +172,7 @@ export function CollectionConflictWorkspace({
         if (result.conflict) {
           setDetails({
             ...result.conflict,
-            fields: filterFieldsForView(result.conflict.fields, viewScope),
+            fields: filterCollectionFieldsForView(result.conflict.fields, viewScope),
           });
         }
       })
@@ -232,7 +192,7 @@ export function CollectionConflictWorkspace({
           setPreviewLoading(false);
           return;
         }
-        const visibleFields = filterFieldsForView(result.conflict?.fields ?? [], viewScope);
+        const visibleFields = filterCollectionFieldsForView(result.conflict?.fields ?? [], viewScope);
         const fields = visibleFields
           .filter((field) => !field.blockedReason && field.allowedDirections.includes(direction));
         if (fields.length === 0) {
@@ -277,7 +237,7 @@ export function CollectionConflictWorkspace({
         if (result.conflict) {
           setDetails({
             ...result.conflict,
-            fields: filterFieldsForView(result.conflict.fields, scope),
+            fields: filterCollectionFieldsForView(result.conflict.fields, scope),
           });
         }
       })

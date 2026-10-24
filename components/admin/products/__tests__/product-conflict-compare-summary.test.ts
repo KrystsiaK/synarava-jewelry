@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { productConflictCompareSummary } from "@/components/admin/products/product-conflict-compare-summary";
 
 const LOCALE_TABS = [
