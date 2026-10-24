@@ -1,11 +1,16 @@
-# Commerce sync — current freeze (main)
+# Commerce sync — two-state owner model
 
-**Status:** shipped foundation on main. Later work continues on **separate feature branches**.  
-**Date:** 2026-10-10
+**Status:** live on staging/main (sync-unification PR1–PR7 — **one** sync system).  
+**Date:** 2026-10-24  
+**Contract:** [`docs/proposals/sync-unification.md`](../proposals/sync-unification.md) Owner model; [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
+
+**Two states only:** Synarava `workingSnapshot` (OUR) ↔ Shopify `shopifySnapshot` (last fetched).  
+**Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy + flags; humans Apply.  
+**One compare + one selector:** `lib/sync` (`compareSyncState` → `SyncResult` → `selectSyncCounts`). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor. No `CommerceSyncStore` catalog cache.
 
 This is the only admin sync architecture doc for the current model. Older drafts
-(`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation)
-were removed; do not resurrect them as parallel sources of truth.
+(`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation,
+`projection-merge`, `shopifyBaseSnapshot`, `CommerceSyncStore` / `lib/commerce-store`) were removed; do not resurrect them.
 
 UX dialogs / field spines: [`catalog-conflict-resolution-ux.md`](./catalog-conflict-resolution-ux.md).  
 Field ownership: [`product-data-ownership.md`](product-data-ownership.md).\
@@ -17,24 +22,22 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 
 | Piece | Behavior |
 | --- | --- |
-| Dual catalog store | `CommerceSyncStore.ourSnapshot` + `shopifySnapshot`; compare → `conflictReport` |
 | Per-product windows | `Product.workingSnapshot` (OUR) + `Product.shopifySnapshot` (last Shopify) |
 | Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
-| Detect | One normalize → deep-diff windows. **No** commerce field allowlists for detection |
-| Local Save | Write-through columns into `workingSnapshot`, patch OUR store slice, **re-inspect** so tab markers refresh |
-| SKU assign (Family → Confirm / resume) | Same write-through + OUR patch + scoped conflict re-inspect as Save (`lib/sku/persist-local-sku.ts`). Column-only SKU writes must not skip the compare SoT |
+| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava → `compareSyncState` → `selectSyncCounts` for every badge/chip/banner. **No** commerce field allowlists for detection |
+| Local Save | Write-through columns into `workingSnapshot`, then re-inspect / waterfall so tab markers refresh |
+| SKU assign (Family → Confirm / resume) | Same write-through + scoped conflict re-inspect as Save (`lib/sku/persist-local-sku.ts`). Column-only SKU writes must not skip the compare SoT |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
 | Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
-| Console | DevTools filter `commerce-store` — full OUR + Shopify + conflicts on `/admin/products` and `/admin/collections` entry |
+| Translations | Two-way only: Synarava row ↔ Shopify translation. Differs = divergence; human Apply / force Push chooses. No `KEEP_LOCAL` / `APPLY_REMOTE` / `localIsDirty` auto paths |
+| Product-type labels | Human Apply via Field Conflict preview (`affects N products` confirm) or Settings → Taxonomy. No `applyShopifyProductTypeLabel` auto-write |
 
 ```text
-On /admin/products or /admin/collections entry → refresh both stores → console flow
-On product/collection Save → patch OUR + re-inspect → markers from fresh diffs
-On SKU assign / resume → write-through SKU into workingSnapshot + patch OUR + re-inspect
-On push / pull / apply  → refresh windows + reload editor
+On admin load / Check / after Save / after Apply → runSyncWaterfall (lib/sync)
+On product/collection Save → write-through workingSnapshot + re-inspect → markers from SyncResult
+On SKU assign / resume → write-through SKU into workingSnapshot + re-inspect
+On push / pull / apply  → refresh Shopify windows + reload editor (human only for Synarava writes)
 ```
-
-Shopify catalog fetch for the full store is **paginated** (products + collections — not N× single-entity fetch).
 
 Collection **membership** (which products belong to a collection) stays product-driven push/pull; it is not part of the collection commerce window yet.
 
@@ -49,22 +52,24 @@ all locale shells + **Price** tab only (not every section).
 Opening conflicts from a **section** chip opens only that section’s fields.
 Product and language chrome open the full product / locale set.
 
-Code: `commerce-conflict-section.ts`, `filterSignalsForView` / `filterConflictFieldsForView`
+Code: `commerce-conflict-section.ts`, `catalog-conflict-view.ts` filters
 (`product` · `productLocale` · `productSection`), `AdminLocaleTabs` / section conflict chips.
+Workspaces only wire `FieldConflictPanel` to actions.
 
 ### One compare result (banner · icon · Sync)
 
-Product editor conflict chrome must share **one** compare result:
+Product editor conflict chrome must share **one** compare result from `lib/sync`:
 
 | Surface | Source |
 | --- | --- |
 | Banner (`ProductConflictCompareBanner`) | `productConflictCompareSummary` → same count as icon |
-| Conflict icon badge | `productConflictBadgeCount(signal, { commerceFieldCount })` |
-| Sync tab field list | `inspectProductSyncState` → `diffShopifyProjections(working, shopify)` after `canonicalizeShopifyProjection` |
+| Conflict icon badge | `productConflictBadgeCount` (`lib/sync/badge-count`) |
+| Nav / list chips | `selectSyncCounts(SyncResult, view)` |
+| Sync tab field list | entity windows via waterfall / inspect → deep-diff after canonicalize |
 
 Commerce axis: full Shopify-shaped windows (`workingSnapshot` vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
 
-Translation axis in the catalog conflict signal: only two-sided `CONFLICT` rows (not `LOCAL_ONLY` / `SHOPIFY_ONLY`). Do **not** drive the product banner from raw `getLatestReconcileDifferences()` — that path previously showed “N fields differ” while the icon stayed green.
+Translation axis: two-way diverge rows only. Do **not** drive the product banner from raw `getLatestReconcileDifferences()` or any second counter.
 
 ---
 
@@ -72,15 +77,16 @@ Translation axis in the catalog conflict signal: only two-sided `CONFLICT` rows 
 
 | Piece | Path |
 | --- | --- |
-| Dual store types / setProductWindow | `lib/commerce-store/types.ts` |
-| Compare | `lib/commerce-store/compare.ts` |
-| Build OUR / fetch Shopify / refresh | `lib/commerce-store/build-our-store.ts`, `fetch-shopify-store.ts`, `refresh.ts` |
-| Projection / merge / diff | `lib/shopify/local-commerce-projection.ts`, `projection-merge.ts`, `shopify-projection-diff.ts` |
-| Inspect / write-through | `lib/shopify/product-sync.ts` |
-| Admin refresh action | `refreshCommerceSyncStoreAction` in `app/admin/actions/sync.ts` |
+| Waterfall / compare / select / apply | `lib/sync/*` |
+| Projection / write-through / diff | `lib/shopify/local-commerce-projection.ts`, `shopify-projection-diff.ts` |
+| Inspect / refresh (Shopify copy + flags) | `lib/shopify/product-sync.ts` (`refreshShopifyProductState`, human Apply separate) |
+| Field conflict UI | `components/admin/shared/field-conflict-panel.tsx` |
+| Product / collection wiring | `catalog-conflict-workspace.tsx`, `collection-conflict-workspace.tsx` (+ `*-conflict-view.ts` filters) |
 | Editor re-inspect after save | `components/admin/products/product-edit-form.tsx` |
 
-Migrations: `product_shopify_base_snapshot`, `product_working_snapshot`, `commerce_sync_store`, `collection_commerce_windows`.
+Migrations: `product_working_snapshot`, `collection_commerce_windows`.  
+Dropped (PR6): `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`.  
+Dropped (PR7): `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
 
 Collection projection: `lib/shopify/collection-commerce-projection.ts`, fetch `collection-commerce-fetch.ts`, push/pull windows in `collection-presence-server.ts`.
 
@@ -222,7 +228,7 @@ presence, or an empty set), the UI opens whole-record Pull/Push details instead 
 | --- | --- |
 | `reviewStatus` vs `syncStatus` | Reviewed = ready to Push. Drafts with Shopify-shared copy still get `PENDING` so pulls cannot wipe them. |
 | Shopify-shared fields | `title`, `handle`, `description`, `seoTitle`, `seoDescription` — any edit → `PENDING` regardless of Reviewed |
-| Pull decision | Local non-empty + Shopify empty → `KEEP_LOCAL` (never `APPLY_REMOTE`). Both dirty → `CONFLICT`. |
+| Pull decision | Differs → `CONFLICT` (human Apply). Equal → `UNCHANGED`. `force` → `APPLY`. Never auto-wipe. |
 | `products/*` webhooks | Commerce projection only — **no** translation pull (Shopify has no translation-update webhooks) |
 | Resolve / Push | Blocked while the product form is dirty or Save is in flight |
 | After apply | Refetch server conflict signals — no optimistic badge clear |

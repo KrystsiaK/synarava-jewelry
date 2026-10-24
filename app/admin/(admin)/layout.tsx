@@ -9,13 +9,13 @@ import {
   AdminThemeToggle,
 } from "@/components/admin/shared/admin-primitives";
 import {
-  countAdminNavSyncBySection,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
+import { selectAdminNavSyncCounts, runSyncWaterfall } from "@/lib/sync";
 import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
@@ -26,8 +26,8 @@ export default async function AdminLayout({
   // Path comes from proxy-injected `x-pathname` / return-to cookie — never
   // hardcode `/admin` or a deep link is lost when a signed-but-expired session
   // cookie slips past the edge guard and this layout re-checks the DB.
-  await requireAdminSession();
-  const [latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
+  const session = await requireAdminSession();
+  const [latestReconcileRun, syncDifferences, syncPages, waterfall] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
@@ -35,10 +35,23 @@ export default async function AdminLayout({
       select: { id: true, slug: true, title: true },
       orderBy: { slug: "asc" },
     }),
+    // Waterfall skipRefresh: layout badge from persisted Shopify/Synarava state.
+    runSyncWaterfall({
+      scope: { kind: "catalog" },
+      requestedBy: session.username,
+      skipRefresh: true,
+    }).catch(() => null),
   ]);
   const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
 
-  const syncCounts = countAdminNavSyncBySection(syncDifferences);
+  const syncCounts = waterfall
+    ? selectAdminNavSyncCounts(waterfall.result)
+    : selectAdminNavSyncCounts({
+        checkedAt: null,
+        state: "disconnected",
+        leaves: [],
+        recentlyUpdatedProducts: {},
+      });
   const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
   const syncNavHrefs = Array.from(
     new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),

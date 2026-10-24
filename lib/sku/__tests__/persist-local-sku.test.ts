@@ -8,7 +8,6 @@ const {
   mockFindUniqueOrThrow,
   mockFindUnique,
   mockTransaction,
-  mockPatchOurProductWindow,
 } = vi.hoisted(() => ({
   mockFindFirst: vi.fn(),
   mockProductUpdate: vi.fn(),
@@ -17,7 +16,6 @@ const {
   mockFindUniqueOrThrow: vi.fn(),
   mockFindUnique: vi.fn(),
   mockTransaction: vi.fn(),
-  mockPatchOurProductWindow: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -34,10 +32,6 @@ vi.mock("@/lib/db", () => ({
       create: mockVariantCreate,
     },
   },
-}));
-
-vi.mock("@/lib/commerce-store/refresh", () => ({
-  patchOurProductWindow: mockPatchOurProductWindow,
 }));
 
 import { persistLocalSku } from "@/lib/sku/persist-local-sku";
@@ -62,10 +56,9 @@ describe("persistLocalSku", () => {
     mockFindFirst.mockResolvedValue({ id: "var-1" });
     mockProductUpdate.mockResolvedValue({});
     mockVariantUpdate.mockResolvedValue({});
-    mockPatchOurProductWindow.mockResolvedValue(undefined);
   });
 
-  it("writes SKU columns and write-throughs workingSnapshot + OUR store", async () => {
+  it("writes SKU columns and write-throughs workingSnapshot", async () => {
     mockFindUnique.mockResolvedValue({
       shopifyProductId: "gid://shopify/Product/1",
       workingSnapshot: {
@@ -107,17 +100,9 @@ describe("persistLocalSku", () => {
         },
       },
     });
-    expect(mockPatchOurProductWindow).toHaveBeenCalledWith({
-      shopifyProductId: "gid://shopify/Product/1",
-      localProductId: "prod-1",
-      window: {
-        title: "Ring",
-        variants: [{ id: "gid://shopify/ProductVariant/9", sku: "JW-NECK-001" }],
-      },
-    });
   });
 
-  it("skips OUR store patch when product is not Shopify-linked", async () => {
+  it("write-throughs workingSnapshot when product is not Shopify-linked", async () => {
     mockFindUnique.mockResolvedValue({
       shopifyProductId: null,
       workingSnapshot: { title: "Local", variants: [{ sku: "PENDING-p1-v1" }] },
@@ -141,6 +126,5 @@ describe("persistLocalSku", () => {
         },
       },
     });
-    expect(mockPatchOurProductWindow).not.toHaveBeenCalled();
   });
 });

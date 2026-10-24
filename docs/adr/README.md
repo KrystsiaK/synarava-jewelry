@@ -11,3 +11,4 @@
 | [0005](0005-mission-control-hub.md) | Mission Control — read-only хаб наблюдения на `@synarava/*` виджетах | proposed | 2026-10-16 |
 | [0006](0006-architecture-map.md) | Mission Control — architecture map + read-only operations center | accepted | 2026-10-20 |
 | [0007](0007-languages-as-data.md) | Languages as data — registry-driven Draft/Published/Retired/Deleted | accepted | 2026-10-21 |
+| [0008](0008-sync-two-state-owner-model.md) | Sync: two states, nothing automatic, one compare module | accepted | 2026-10-23 |

@@ -1,18 +1,23 @@
 import "server-only";
 
-import {
-  getCollectionCatalogConflict,
-  listConflictedCollectionIds,
-} from "./collection-conflict";
+import { db } from "@/lib/db";
+
 import type {
   CatalogConflictDirection,
   CatalogConflictField,
 } from "./catalog-conflict";
+import { isAdoptShopifyConflictField } from "./catalog-conflict-policy";
+import { applyCollectionCommerceField, isScopedCollectionCommerceFieldLabel } from "./collection-commerce-field-apply";
+import {
+  getCollectionCatalogConflict,
+  listConflictedCollectionIds,
+} from "./collection-conflict";
+import type { CollectionPresenceDifference } from "./collection-presence";
 import {
   applyCollectionPresenceDifference,
+  applyShopifyCollectionToSynarava,
   scanAndSaveCollectionPresence,
 } from "./collection-presence-server";
-import type { CollectionPresenceDifference } from "./collection-presence";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 const MAX_BULK_COLLECTIONS = 50;
@@ -84,6 +89,9 @@ function unsupportedDirectionReason(field: CatalogConflictField): string {
       ? "This collection only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
       : "This collection only exists in Synarava. Push it to Shopify, or choose Shopify to remove it from Synarava.";
   }
+  if (isAdoptShopifyConflictField(field)) {
+    return "Synarava has no commerce window yet. Adopt Shopify first (Shopify → Synarava).";
+  }
   return field.blockedReason ?? "This direction isn't supported for this field.";
 }
 
@@ -93,9 +101,13 @@ function isPresenceDiscard(field: CatalogConflictField, direction: CatalogConfli
     && direction === "SHOPIFY_TO_SYNARAVA";
 }
 
+function isSelectableCommerceField(field: CatalogConflictField): boolean {
+  return isAdoptShopifyConflictField(field) || isScopedCollectionCommerceFieldLabel(field.label);
+}
+
 /**
  * Same preview contract as catalog products, scoped to collections:
- * TRANSLATION + PRESENCE fields from the collection conflict read model.
+ * COMMERCE + TRANSLATION + PRESENCE fields from the collection conflict read model.
  */
 export async function previewCollectionConflictResolution(scope: CollectionConflictApplyScope): Promise<CollectionConflictPreview> {
   const entries: ResolvedCollectionConflictEntry[] = [];
@@ -110,6 +122,15 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
     const conflict = await getCollectionCatalogConflict(collectionId);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
+      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
+        excluded.push({
+          collectionId,
+          fieldKey: field.fieldKey,
+          label: field.label,
+          reason: field.blockedReason ?? "This collection commerce field cannot be applied field-by-field.",
+        });
+        continue;
+      }
       if (!field.allowedDirections.includes(direction) || field.blockedReason) {
         excluded.push({
           collectionId,
@@ -123,7 +144,6 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
         collectionId,
         direction,
         field,
-        // Choosing Shopify for a Synarava-only collection deletes the local row.
         willClearNonEmptyValue: isPresenceDiscard(field, direction) || willClear(field, direction),
       });
     }
@@ -180,7 +200,7 @@ function staleResult(entry: CollectionConflictApplyEntryInput, message: string):
   return { collectionId: entry.collectionId, fieldKey: entry.fieldKey, ok: false, reason: "STALE", message };
 }
 
-/** Re-validates fingerprints then applies TRANSLATION / PRESENCE fields. */
+/** Re-validates fingerprints then applies COMMERCE / TRANSLATION / PRESENCE fields. */
 export async function applyCollectionConflictResolution({
   entries,
   acknowledgeClears,
@@ -197,6 +217,8 @@ export async function applyCollectionConflictResolution({
   const results: CollectionConflictApplyEntryResult[] = [];
   const readyTranslation: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
   const readyPresence: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyCommerce: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyAdopt: Array<{ input: CollectionConflictApplyEntryInput; field: CatalogConflictField }> = [];
 
   if (entries.some((entry) => entry.fieldKey === "presence:collection")) {
     await scanAndSaveCollectionPresence(null);
@@ -218,6 +240,16 @@ export async function applyCollectionConflictResolution({
     }
     if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+      continue;
+    }
+    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
+      results.push({
+        collectionId: entry.collectionId,
+        fieldKey: entry.fieldKey,
+        ok: false,
+        reason: "UNSUPPORTED",
+        message: field.blockedReason ?? "This collection commerce field cannot be applied field-by-field.",
+      });
       continue;
     }
     if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
@@ -242,13 +274,50 @@ export async function applyCollectionConflictResolution({
     }
     if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
     else if (field.origin === "TRANSLATION" && field.sourceId) readyTranslation.push({ input: entry, field });
+    else if (isAdoptShopifyConflictField(field)) readyAdopt.push({ input: entry, field });
+    else if (field.origin === "COMMERCE") readyCommerce.push({ input: entry, field });
     else {
       results.push({
         collectionId: entry.collectionId,
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: "Only translated or presence collection fields can be resolved here.",
+        message: "Only commerce, translated, or presence collection fields can be resolved here.",
+      });
+    }
+  }
+
+  for (const { input } of readyAdopt) {
+    try {
+      const collection = await db.collection.findUnique({
+        where: { id: input.collectionId },
+        select: { shopifyCollectionId: true },
+      });
+      if (!collection?.shopifyCollectionId) {
+        results.push({
+          collectionId: input.collectionId,
+          fieldKey: input.fieldKey,
+          ok: false,
+          reason: "WRITE_FAILED",
+          message: "This collection is not linked to Shopify.",
+        });
+        continue;
+      }
+      const pulled = await applyShopifyCollectionToSynarava(collection.shopifyCollectionId, input.collectionId);
+      results.push({
+        collectionId: input.collectionId,
+        fieldKey: input.fieldKey,
+        ok: true,
+        message: "Adopted Shopify as the Synarava commerce window.",
+        localCollectionId: pulled.collectionId,
+      });
+    } catch (error) {
+      results.push({
+        collectionId: input.collectionId,
+        fieldKey: input.fieldKey,
+        ok: false,
+        reason: "WRITE_FAILED",
+        message: error instanceof Error ? error.message : "Shopify could not be adopted into Synarava.",
       });
     }
   }
@@ -308,6 +377,31 @@ export async function applyCollectionConflictResolution({
         outcome.ok
           ? { collectionId: input.collectionId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
           : { collectionId: input.collectionId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+      );
+    } catch (error) {
+      results.push({
+        collectionId: input.collectionId,
+        fieldKey: input.fieldKey,
+        ok: false,
+        reason: "WRITE_FAILED",
+        message: error instanceof Error ? error.message : "This change could not be applied.",
+      });
+    }
+  }
+
+  for (const { input, field } of readyCommerce) {
+    try {
+      const outcome = await applyCollectionCommerceField({
+        collectionId: input.collectionId,
+        label: field.label,
+        direction: input.direction,
+        expectedLocalFingerprint: input.expectedLocalFingerprint,
+        expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+      });
+      results.push(
+        outcome.ok
+          ? { collectionId: input.collectionId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
+          : { collectionId: input.collectionId, fieldKey: input.fieldKey, ok: false, reason: outcome.reason, message: outcome.message },
       );
     } catch (error) {
       results.push({

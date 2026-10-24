@@ -78,7 +78,6 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     collectionTranslations,
     pageTranslations,
     handleRedirects,
-    translationSnapshots,
     translationCache,
   ] = await Promise.all([
     db.storefrontLocale.findUnique({ where: { code } }),
@@ -86,16 +85,8 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     db.collectionTranslation.findMany({ where: { locale: code } }),
     db.pageTranslation.findMany({ where: { locale: code } }),
     db.localizedHandleRedirect.findMany({ where: { locale: code } }),
-    db.shopifyTranslationSnapshot.findMany({ where: { locale: code } }),
     db.translationCache.findUnique({ where: { locale: code } }),
   ]);
-
-  const shopifyTranslations = translationSnapshots.map((snapshot) => ({
-    bindingId: snapshot.bindingId,
-    locale: snapshot.locale,
-    values: snapshot.values,
-    syncedAt: snapshot.syncedAt.toISOString(),
-  }));
 
   const payload: LanguageBundlePayload = {
     schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
@@ -126,13 +117,12 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
     handleRedirects: handleRedirects.map((row) =>
       stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
     ),
-    translationSnapshots: translationSnapshots.map((row) =>
-      stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
-    ),
+    // Kept empty for schema v1 checksum shape; third-state translation ancestors are gone.
+    translationSnapshots: [],
     translationCache: translationCache
       ? stripIds(translationCache as unknown as Record<string, unknown>, ["createdAt", "updatedAt"])
       : null,
-    shopifyTranslations,
+    shopifyTranslations: [],
   };
 
   return attachLanguageBundleChecksum(payload);
@@ -144,8 +134,236 @@ export type ImportLanguageBundleResult = {
   collections: number;
   pages: number;
   redirects: number;
-  snapshots: number;
 };
+
+export type LanguageBundleImportFieldChange = {
+  entityType: "product" | "collection" | "page" | "redirect";
+  entityId: string;
+  fieldKey: string;
+  label: string;
+  before: string;
+  after: string;
+};
+
+export type LanguageBundleImportPreview = {
+  locale: string;
+  counts: {
+    products: number;
+    collections: number;
+    pages: number;
+    redirects: number;
+    fieldsChanged: number;
+    fieldsCreated: number;
+  };
+  samples: LanguageBundleImportFieldChange[];
+};
+
+const PREVIEW_SAMPLE_LIMIT = 12;
+
+const PRODUCT_COMPARE_FIELDS = [
+  "title",
+  "localizedHandle",
+  "shortDescription",
+  "description",
+  "seoTitle",
+  "seoDescription",
+] as const;
+
+const COLLECTION_COMPARE_FIELDS = [
+  "name",
+  "localizedHandle",
+  "subtitle",
+  "description",
+  "seoTitle",
+  "seoDescription",
+] as const;
+
+const PAGE_COMPARE_FIELDS = [
+  "title",
+  "localizedHandle",
+  "excerpt",
+  "seoTitle",
+  "seoDescription",
+] as const;
+
+function asDisplay(value: unknown): string {
+  if (value === null || value === undefined || value === "") return "";
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return String(value);
+  }
+}
+
+function friendlyFieldLabel(fieldKey: string): string {
+  return fieldKey
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replaceAll("_", " ")
+    .replace(/^./, (character) => character.toUpperCase());
+}
+
+function collectFieldChanges(
+  entityType: LanguageBundleImportFieldChange["entityType"],
+  entityId: string,
+  before: Record<string, unknown> | null,
+  after: Record<string, unknown>,
+  fields: readonly string[],
+): { changes: LanguageBundleImportFieldChange[]; created: boolean } {
+  const created = !before;
+  const changes: LanguageBundleImportFieldChange[] = [];
+  for (const fieldKey of fields) {
+    const next = asDisplay(after[fieldKey]);
+    const prev = before ? asDisplay(before[fieldKey]) : "";
+    if (prev === next) continue;
+    changes.push({
+      entityType,
+      entityId,
+      fieldKey,
+      label: friendlyFieldLabel(fieldKey),
+      before: prev,
+      after: next,
+    });
+  }
+  return { changes, created };
+}
+
+/**
+ * Read-only dry-run of a language bundle import: counts + sample field deltas.
+ * Does not write. Import stays blocked until the admin confirms this preview.
+ */
+export async function previewLanguageBundleImport(
+  bundle: LanguageBundle,
+  expectedLocale?: string,
+): Promise<LanguageBundleImportPreview> {
+  const verified = verifyLanguageBundle(bundle);
+  if (!verified.ok) throw new Error(verified.error);
+
+  const locale = bundle.locale.trim().toLowerCase();
+  if (expectedLocale && expectedLocale.trim().toLowerCase() !== locale) {
+    throw new Error(`Bundle locale "${locale}" does not match expected "${expectedLocale}".`);
+  }
+
+  const productIds = bundle.productTranslations
+    .map((raw) => (raw as { productId?: string }).productId)
+    .filter((id): id is string => Boolean(id));
+  const collectionIds = bundle.collectionTranslations
+    .map((raw) => (raw as { collectionId?: string }).collectionId)
+    .filter((id): id is string => Boolean(id));
+  const pageIds = bundle.pageTranslations
+    .map((raw) => (raw as { pageId?: string }).pageId)
+    .filter((id): id is string => Boolean(id));
+
+  const [existingProducts, existingCollections, existingPages, existingRedirects] = await Promise.all([
+    productIds.length
+      ? db.productTranslation.findMany({ where: { locale, productId: { in: productIds } } })
+      : Promise.resolve([]),
+    collectionIds.length
+      ? db.collectionTranslation.findMany({ where: { locale, collectionId: { in: collectionIds } } })
+      : Promise.resolve([]),
+    pageIds.length
+      ? db.pageTranslation.findMany({ where: { locale, pageId: { in: pageIds } } })
+      : Promise.resolve([]),
+    db.localizedHandleRedirect.findMany({ where: { locale } }),
+  ]);
+
+  const productById = new Map(existingProducts.map((row) => [row.productId, row as unknown as Record<string, unknown>]));
+  const collectionById = new Map(existingCollections.map((row) => [row.collectionId, row as unknown as Record<string, unknown>]));
+  const pageById = new Map(existingPages.map((row) => [row.pageId, row as unknown as Record<string, unknown>]));
+  const redirectKey = (entityType: string, fromHandle: string) => `${entityType}:${fromHandle}`;
+  const redirectByKey = new Map(
+    existingRedirects.map((row) => [redirectKey(row.entityType, row.fromHandle), row]),
+  );
+
+  let fieldsChanged = 0;
+  let fieldsCreated = 0;
+  const samples: LanguageBundleImportFieldChange[] = [];
+
+  const pushSamples = (changes: LanguageBundleImportFieldChange[]) => {
+    for (const change of changes) {
+      fieldsChanged += 1;
+      if (samples.length < PREVIEW_SAMPLE_LIMIT) samples.push(change);
+    }
+  };
+
+  for (const raw of bundle.productTranslations) {
+    const row = raw as Record<string, unknown> & { productId?: string };
+    if (!row.productId) continue;
+    const { changes, created } = collectFieldChanges(
+      "product",
+      row.productId,
+      productById.get(row.productId) ?? null,
+      row,
+      PRODUCT_COMPARE_FIELDS,
+    );
+    if (created) fieldsCreated += 1;
+    pushSamples(changes);
+  }
+
+  for (const raw of bundle.collectionTranslations) {
+    const row = raw as Record<string, unknown> & { collectionId?: string };
+    if (!row.collectionId) continue;
+    const { changes, created } = collectFieldChanges(
+      "collection",
+      row.collectionId,
+      collectionById.get(row.collectionId) ?? null,
+      row,
+      COLLECTION_COMPARE_FIELDS,
+    );
+    if (created) fieldsCreated += 1;
+    pushSamples(changes);
+  }
+
+  for (const raw of bundle.pageTranslations) {
+    const row = raw as Record<string, unknown> & { pageId?: string };
+    if (!row.pageId) continue;
+    const { changes, created } = collectFieldChanges(
+      "page",
+      row.pageId,
+      pageById.get(row.pageId) ?? null,
+      row,
+      PAGE_COMPARE_FIELDS,
+    );
+    if (created) fieldsCreated += 1;
+    pushSamples(changes);
+  }
+
+  let redirects = 0;
+  for (const raw of bundle.handleRedirects) {
+    const row = raw as { entityType?: string; entityId?: string; fromHandle?: string; toHandle?: string };
+    if (!row.entityType || !row.fromHandle || !row.toHandle) continue;
+    redirects += 1;
+    const existing = redirectByKey.get(redirectKey(row.entityType, row.fromHandle));
+    const before = existing?.toHandle ?? "";
+    if (before === row.toHandle) continue;
+    const change: LanguageBundleImportFieldChange = {
+      entityType: "redirect",
+      entityId: row.entityId ?? row.fromHandle,
+      fieldKey: "toHandle",
+      label: `Redirect ${row.fromHandle}`,
+      before,
+      after: row.toHandle,
+    };
+    fieldsChanged += 1;
+    if (!existing) fieldsCreated += 1;
+    if (samples.length < PREVIEW_SAMPLE_LIMIT) samples.push(change);
+  }
+
+  return {
+    locale,
+    counts: {
+      products: productIds.length,
+      collections: collectionIds.length,
+      pages: pageIds.length,
+      redirects,
+      fieldsChanged,
+      fieldsCreated,
+    },
+    samples,
+  };
+}
 
 /**
  * Idempotent upsert of a verified bundle. Refuses a bundle whose locale does
@@ -405,25 +623,8 @@ export async function importLanguageBundle(
     redirects += 1;
   }
 
-  let snapshots = 0;
-  for (const raw of bundle.translationSnapshots) {
-    const row = raw as { bindingId: string; values: unknown; syncedAt?: string };
-    if (!row.bindingId) continue;
-    await db.shopifyTranslationSnapshot.upsert({
-      where: { bindingId_locale: { bindingId: row.bindingId, locale } },
-      create: {
-        bindingId: row.bindingId,
-        locale,
-        values: row.values as object,
-        syncedAt: row.syncedAt ? new Date(row.syncedAt) : new Date(),
-      },
-      update: {
-        values: row.values as object,
-        syncedAt: row.syncedAt ? new Date(row.syncedAt) : new Date(),
-      },
-    });
-    snapshots += 1;
-  }
+  // Legacy translationSnapshots / shopifyTranslations in older bundles are ignored
+  // (third-state ancestors removed; compare is two-way against live Shopify).
 
   if (bundle.translationCache && typeof bundle.translationCache === "object") {
     const cache = bundle.translationCache as { messages?: unknown };
@@ -461,5 +662,5 @@ export async function importLanguageBundle(
     });
   }
 
-  return { locale, products, collections, pages, redirects, snapshots };
+  return { locale, products, collections, pages, redirects };
 }

@@ -223,7 +223,6 @@ export async function deleteStorefrontLanguageData(input: {
     db.collectionTranslation.deleteMany({ where: { locale: code } }),
     db.pageTranslation.deleteMany({ where: { locale: code } }),
     db.localizedHandleRedirect.deleteMany({ where: { locale: code } }),
-    db.shopifyTranslationSnapshot.deleteMany({ where: { locale: code } }),
     db.translationCache.deleteMany({ where: { locale: code } }),
     db.storefrontLocale.update({
       where: { id: locale.id },

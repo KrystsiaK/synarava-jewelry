@@ -34,7 +34,7 @@ export function taxonomySeedEntries(): Array<{
 
 /**
  * Inserts missing SEED_MAP rows only. Never overwrites SHOPIFY or SYNARAVA edits.
- * Safe to call on admin load / storefront warm path.
+ * Human/write paths only — never call from read/load/inspect (sync-unification PR2).
  */
 export async function ensureTaxonomySeedLabels(): Promise<number> {
   const seeds = taxonomySeedEntries();
@@ -58,8 +58,8 @@ export const getTaxonomyFacetLabelMap = cache(async (locale: Locale): Promise<Ma
   const labels = new Map<string, string>();
   if (locale === "en") return labels;
 
-  // Do not seed on the storefront read path — empty DB falls through to the
-  // code map in localizeShopFacetValue. Admin load/save calls ensureTaxonomySeedLabels.
+  // Do not seed on any read path — empty DB falls through to the code map in
+  // localizeShopFacetValue. Seeding is a human/write concern only.
   const findMany = db.taxonomyValueLabel?.findMany;
   if (!findMany) return labels;
 
@@ -173,41 +173,4 @@ export async function saveSynaravaTaxonomyLabels(
     saved += 1;
   }
   return saved;
-}
-
-/**
- * Shopify PRODUCT.product_type translation pull → shared vocabulary row.
- * Overwrites the shared label for that EN value (Shopify SoT when present).
- * Does not create EN identity — caller must pass the product's EN productType.
- */
-export async function applyShopifyProductTypeLabel(input: {
-  enProductType: string;
-  locale: string;
-  label: string;
-}): Promise<void> {
-  const enValue = input.enProductType.trim();
-  const locale = input.locale.trim();
-  const label = input.label.trim();
-  if (!enValue || !locale || locale === "en" || !label) return;
-
-  await db.taxonomyValueLabel.upsert({
-    where: {
-      kind_enValue_locale: {
-        kind: "PRODUCT_TYPE",
-        enValue,
-        locale,
-      },
-    },
-    create: {
-      kind: "PRODUCT_TYPE",
-      enValue,
-      locale,
-      label,
-      source: "SHOPIFY",
-    },
-    update: {
-      label,
-      source: "SHOPIFY",
-    },
-  });
 }

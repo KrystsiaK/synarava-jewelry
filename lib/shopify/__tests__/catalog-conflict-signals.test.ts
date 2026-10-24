@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
-import { buildCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { buildCatalogConflictSignals } from "@/lib/sync/build-signals";
 
 const locales = [
   { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
@@ -110,7 +110,8 @@ describe("buildCatalogConflictSignals", () => {
 
   it("includes collection presence differences when rootEntityType is COLLECTION", () => {
     const result = buildCatalogConflictSignals({
-      commerceProductIds: ["ignored-product"],
+      commerceProductIds: ["col-commerce"],
+      commerceFieldCounts: { "col-commerce": 2 },
       differences: [
         { ...difference("col-1", "pt-PT", "title"), rootEntityType: "COLLECTION" },
         { ...difference("col-1", "ru", "description"), rootEntityType: "COLLECTION" },
@@ -138,7 +139,8 @@ describe("buildCatalogConflictSignals", () => {
       rootEntityType: "COLLECTION",
     });
 
-    expect(result.totalCount).toBe(2);
+    // Translations (col-1) + presence + commerce windows (col-commerce).
+    expect(result.totalCount).toBe(3);
     expect(result.products["col-1"]).toMatchObject({
       shared: false,
       locales: [
@@ -151,7 +153,10 @@ describe("buildCatalogConflictSignals", () => {
       name: "Shopify kits",
       allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
     });
-    expect(result.products["ignored-product"]).toBeUndefined();
+    expect(result.products["col-commerce"]).toMatchObject({
+      shared: true,
+      sharedCount: 2,
+    });
     expect(result.products["product-1"]).toBeUndefined();
   });
 

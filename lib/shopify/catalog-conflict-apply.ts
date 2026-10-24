@@ -1,15 +1,19 @@
 import "server-only";
 
+import { db } from "@/lib/db";
+
 import {
   getProductCatalogConflict,
+  isAdoptShopifyConflictField,
   listConflictedProductIds,
   type CatalogConflictDirection,
   type CatalogConflictField,
 } from "./catalog-conflict";
 import { applyCommerceField } from "./commerce-field-apply";
 import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
-import { applyReconcileChoice } from "./reconciliation-apply";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
+import { applyShopifyProductToSynarava } from "./product-sync";
+import { applyReconcileChoice } from "./reconciliation-apply";
 
 // A bulk scope resolves every currently conflicted product — capped so one
 // request can't try to preview/apply an unbounded catalog in one go. A
@@ -37,6 +41,10 @@ const MAX_APPLY_ENTRIES = 200;
 // offers inline whole-record Pull/Push for those.
 function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
+}
+
+function isSelectableCommerceField(field: CatalogConflictField): boolean {
+  return isAdoptShopifyConflictField(field) || isScopedCommerceField(field);
 }
 
 export type CatalogConflictApplyScope =
@@ -84,6 +92,9 @@ function unsupportedDirectionReason(field: CatalogConflictField): string {
       ? "This product only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
       : "This product only exists in Synarava. Push it first, or run the Synarava → Shopify bulk action.";
   }
+  if (isAdoptShopifyConflictField(field)) {
+    return "Synarava has no commerce window yet. Adopt Shopify first (Shopify → Synarava).";
+  }
   return field.blockedReason ?? "This direction isn't supported for this field.";
 }
 
@@ -105,7 +116,7 @@ export async function previewCatalogConflictResolution(scope: CatalogConflictApp
     const conflict = await getProductCatalogConflict(productId);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
-      if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
+      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
         excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: COMMERCE_UNSUPPORTED_REASON });
         continue;
       }
@@ -217,6 +228,7 @@ export async function applyCatalogConflictResolution({
   const readyTranslation: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
   const readyCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
   const readyPresence: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  const readyAdopt: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
 
   if (entries.some((entry) => entry.fieldKey === "presence:product")) {
     await scanAndSaveCatalogPresence(null);
@@ -248,12 +260,12 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE" && !isScopedCommerceField(field)) {
+    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
     if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
-      results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: field.blockedReason ?? "This direction isn't supported for this field." });
+      results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: field.blockedReason ?? unsupportedDirectionReason(field) });
       continue;
     }
     if (!acknowledgeClears && willClear(field, entry.direction)) {
@@ -262,7 +274,43 @@ export async function applyCatalogConflictResolution({
     }
     if (field.origin === "TRANSLATION") readyTranslation.push({ input: entry, field });
     else if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
+    else if (isAdoptShopifyConflictField(field)) readyAdopt.push({ input: entry, field });
     else readyCommerce.push({ input: entry, field });
+  }
+
+  for (const { input } of readyAdopt) {
+    try {
+      const product = await db.product.findUnique({
+        where: { id: input.productId },
+        select: { shopifyProductId: true },
+      });
+      if (!product?.shopifyProductId) {
+        results.push({
+          productId: input.productId,
+          fieldKey: input.fieldKey,
+          ok: false,
+          reason: "WRITE_FAILED",
+          message: "This product is not linked to Shopify.",
+        });
+        continue;
+      }
+      const pulled = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, true);
+      results.push({
+        productId: input.productId,
+        fieldKey: input.fieldKey,
+        ok: true,
+        message: "Adopted Shopify as the Synarava commerce window.",
+        localProductId: pulled.productId,
+      });
+    } catch (error) {
+      results.push({
+        productId: input.productId,
+        fieldKey: input.fieldKey,
+        ok: false,
+        reason: "WRITE_FAILED",
+        message: error instanceof Error ? error.message : "Shopify could not be adopted into Synarava.",
+      });
+    }
   }
 
   for (const { input, field } of readyPresence) {

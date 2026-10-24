@@ -1,0 +1,112 @@
+{
+  "apiVersion": "2026-07",
+  "hostname_label": "synarava-shop-staging",
+  "hostname_ends_with_myshopify": true,
+  "part": 2,
+  "mutation_count": 0,
+  "scope": "read_products,read_inventory,read_locales,read_translations,read_publications,read_metaobjects,read_metaobject_definitions",
+  "missing_scopes_for_markets": [
+    "read_markets"
+  ],
+  "part2_files": [
+    "collections.json",
+    "products-full-window.json",
+    "products-full-window.query.graphql",
+    "inventory-levels-sample.json",
+    "translatable-resources.json",
+    "shop-locales-and-markets.json",
+    "_capture-cost-summary.json",
+    "webhook-products-update.docs.json",
+    "webhook-products-delete.docs.json",
+    "webhook-inventory-levels-update.docs.json"
+  ],
+  "catalog_cost": {
+    "note": "Single first-page fetch of products(full PRODUCT_FIELDS) + collections(with products/seo/metafields). Shop has few entities so this approximates full catalog.",
+    "request_count": 2,
+    "actualQueryCost_sum": 21,
+    "requestedQueryCost_sum": 1096,
+    "per_request": [
+      {
+        "name": "collections",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 122,
+          "actualQueryCost": 6,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1994,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "products_full_window",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 974,
+          "actualQueryCost": 15,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1985,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      }
+    ]
+  },
+  "translations_cost": {
+    "note": "First page of PRODUCT+COLLECTION+PAGE translatableResources with translations(locale: en)",
+    "locale": "en",
+    "request_count": 3,
+    "actualQueryCost_sum": 10,
+    "requestedQueryCost_sum": 60,
+    "per_request": [
+      {
+        "name": "translatable_PRODUCT",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 4,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1996,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "translatable_COLLECTION",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      },
+      {
+        "name": "translatable_PAGE",
+        "http": 200,
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        },
+        "errors": null
+      }
+    ]
+  },
+  "auth_http": 200,
+  "notes": "Part 2 queries only. markets ACCESS_DENIED. Translation.digest undefinedField on translations()."
+}

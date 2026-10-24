@@ -28,42 +28,16 @@ export async function findTranslationBinding(resourceType: TranslationResourceTy
 }
 
 /**
- * Writes the locale-aware common ancestor snapshot. `ShopifyTranslationBinding.lastSyncedSnapshot`
- * (a single JSON column, one binding wide) used to get a parallel write here
- * for Portuguese specifically, as a rollout-era fallback for readers before
- * every (binding, locale) pair had its own `ShopifyTranslationSnapshot` row.
- * That column can only ever hold one locale's data, so it can't be
- * generalized to N locales — it's left unwritten (but still read as a
- * last-resort fallback by older bindings) rather than kept accurate for
- * only one arbitrary locale.
+ * @deprecated PR3 stopped all hot-path readers/writers. Table stays until PR6.
+ * Kept as a no-op so any stray import fails closed without resurrecting the third state.
  */
-export async function saveTranslationSnapshot({
-  bindingId,
-  locale,
-  values,
-}: {
+export async function saveTranslationSnapshot(args: {
   bindingId: string;
   locale: string;
   values: Record<string, unknown>;
-}) {
-  const serialized = JSON.stringify(values);
-  await db.$executeRaw(Prisma.sql`
-    INSERT INTO "ShopifyTranslationSnapshot" (
-      "id", "bindingId", "locale", "values", "syncedAt", "createdAt", "updatedAt"
-    ) VALUES (
-      ${`${bindingId}:${locale}`},
-      ${bindingId},
-      ${locale},
-      CAST(${serialized} AS JSONB),
-      CURRENT_TIMESTAMP,
-      CURRENT_TIMESTAMP,
-      CURRENT_TIMESTAMP
-    )
-    ON CONFLICT ("bindingId", "locale") DO UPDATE SET
-      "values" = EXCLUDED."values",
-      "syncedAt" = CURRENT_TIMESTAMP,
-      "updatedAt" = CURRENT_TIMESTAMP
-  `);
+}): Promise<void> {
+  void args;
+  // Intentionally empty — two-way compare uses live Shopify vs Synarava only.
 }
 
 /** Every push/pull/reconcile attempt gets its own event row — the audit trail docs/history/2026-09-en-pt-translation-plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */

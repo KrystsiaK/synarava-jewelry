@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { shopifyAdminRequest } from "@/lib/shopify/admin";
-import { pullShopifyProduct, pushProductToShopify } from "@/lib/shopify/product-sync";
+import { applyShopifyProductToSynarava, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 import {
   classifyCatalogPresence,
@@ -159,7 +159,7 @@ export async function applyCatalogPresenceDifference({
       if (!difference.shopifyProductId) {
         return { ok: false, reason: "STALE", message: "The Shopify product is no longer available." };
       }
-      const pulled = await pullShopifyProduct(difference.shopifyProductId, undefined, true);
+      const pulled = await applyShopifyProductToSynarava(difference.shopifyProductId, undefined, true);
       await ensureTranslationBinding({
         resourceType: "PRODUCT",
         entityId: pulled.productId,

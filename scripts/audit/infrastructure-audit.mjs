@@ -1042,7 +1042,6 @@ async function main() {
       const growthNames = new Set([
         "AuditLog",
         "TranslationSyncEvent",
-        "ShopifyTranslationSnapshot",
         "ShopifyReconcileRun",
         "ProductIncomingUpdate",
         "ProductIncomingUpdateView",

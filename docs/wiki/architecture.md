@@ -45,8 +45,10 @@ There is no local `Order`/`OrderItem` model. Cart, checkout, and order history a
 Shopify's — Shopify is the only commerce backend (see
 [`docs/adr/0001-shopify-hybrid-commerce.md`](../adr/0001-shopify-hybrid-commerce.md)). An earlier local cart/checkout/Stripe path and
 its models were removed once Shopify covered the same ground. Production `ORDERS_PAID` is handled
-as an HMAC-verified, idempotent ops signal (`ShopifyWebhookDelivery` receipt + structured log),
-not a second Order store — see [`payment-checkout-test-matrix.md`](../testing/payment-checkout-test-matrix.md).
+as an HMAC-verified, idempotent delivery (`ShopifyWebhookDelivery` claim) that also decrements
+Synarava `ProductVariant.stockOnHand` for ordered variants (floor 0; cancel/refund do not
+auto-restock). It is not a second Order store — see
+[`payment-checkout-test-matrix.md`](../testing/payment-checkout-test-matrix.md).
 
 ### CMS
 

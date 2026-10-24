@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   applyCommerceField: vi.fn(),
   applyCatalogPresenceDifference: vi.fn(),
   scanAndSaveCatalogPresence: vi.fn(),
+  applyShopifyProductToSynarava: vi.fn(),
+  findUniqueProduct: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/catalog-conflict", async () => {
@@ -30,6 +32,20 @@ vi.mock("@/lib/shopify/commerce-field-apply", async () => {
 vi.mock("@/lib/shopify/catalog-presence-server", () => ({
   applyCatalogPresenceDifference: mocks.applyCatalogPresenceDifference,
   scanAndSaveCatalogPresence: mocks.scanAndSaveCatalogPresence,
+}));
+vi.mock("@/lib/shopify/product-sync", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/shopify/product-sync")>("@/lib/shopify/product-sync");
+  return {
+    ...actual,
+    applyShopifyProductToSynarava: mocks.applyShopifyProductToSynarava,
+  };
+});
+vi.mock("@/lib/db", () => ({
+  db: {
+    product: {
+      findUnique: mocks.findUniqueProduct,
+    },
+  },
 }));
 
 import { applyCatalogConflictResolution, previewCatalogConflictResolution } from "@/lib/shopify/catalog-conflict-apply";
@@ -84,6 +100,26 @@ function translationField(overrides: Partial<CatalogConflictField> = {}): Catalo
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
     sourceId: "divergence-1",
+    ...overrides,
+  };
+}
+
+function adoptShopifyField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return {
+    fieldKey: "commerce:adopt-shopify",
+    label: "Adopt Shopify",
+    scope: { kind: "SHARED" },
+    origin: "COMMERCE",
+    targetKind: "NATIVE",
+    synaravaValue: "— No Synarava commerce window —",
+    shopifyValue: "Shopify title · handle shopify-handle",
+    baseValue: null,
+    localFingerprint: "adopt-local-fp",
+    shopifyFingerprint: "adopt-shopify-fp",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    blockedReason: null,
+    sourceId: null,
+    path: "_adopt",
     ...overrides,
   };
 }
@@ -144,6 +180,29 @@ describe("previewCatalogConflictResolution", () => {
     expect(pull.entries).toHaveLength(1);
     expect(push.entries).toHaveLength(0);
     expect(push.excluded[0].reason).toMatch(/only exists in Shopify/i);
+  });
+
+  it("includes Adopt Shopify in Shopify→Synarava preview and excludes Push", async () => {
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([adoptShopifyField()]));
+
+    const pull = await previewCatalogConflictResolution({
+      kind: "PRODUCT",
+      productId: "product-1",
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    const push = await previewCatalogConflictResolution({
+      kind: "PRODUCT",
+      productId: "product-1",
+      direction: "SYNARAVA_TO_SHOPIFY",
+    });
+
+    expect(pull.entries).toHaveLength(1);
+    expect(pull.entries[0].field.fieldKey).toBe("commerce:adopt-shopify");
+    expect(push.entries).toHaveLength(0);
+    expect(push.excluded[0]).toMatchObject({
+      fieldKey: "commerce:adopt-shopify",
+      reason: expect.stringMatching(/Adopt Shopify first/i),
+    });
   });
 
   it("resolves a PRODUCT scope to translation and scoped-commerce fields, excluding an unsupported commerce field", async () => {
@@ -267,6 +326,29 @@ describe("applyCatalogConflictResolution", () => {
       direction: "SHOPIFY_TO_SYNARAVA",
     });
     expect(outcome.results[0]).toMatchObject({ ok: true, productId: "shopify:42", localProductId: "product-new" });
+  });
+
+  it("applies Adopt Shopify via applyShopifyProductToSynarava, not scoped commerce adopt", async () => {
+    const field = adoptShopifyField();
+    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/99" });
+    mocks.applyShopifyProductToSynarava.mockResolvedValue({ productId: "product-1", status: "SYNCED" });
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field)],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(mocks.applyShopifyProductToSynarava).toHaveBeenCalledWith("gid://shopify/Product/99", undefined, true);
+    expect(mocks.applyCommerceField).not.toHaveBeenCalled();
+    expect(mocks.applyCatalogPresenceDifference).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({ appliedCount: 1, failedCount: 0 });
+    expect(outcome.results[0]).toMatchObject({
+      ok: true,
+      fieldKey: "commerce:adopt-shopify",
+      localProductId: "product-1",
+    });
   });
 
   it("applies Shopify-only pull after re-scan even when membership fingerprints changed", async () => {

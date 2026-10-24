@@ -14,9 +14,6 @@ const mocks = vi.hoisted(() => ({
   pushSingleProductToShopifyAction: vi.fn(),
   checkProductConflictsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
-  buildOurCommerceStoreAction: vi.fn(),
-  fetchShopifyCommerceStoreAction: vi.fn(),
-  compareAndPersistCommerceStoresAction: vi.fn(),
   listCustomProductMetafieldDefinitionsAction: vi.fn(),
   createProductMetafieldDefinitionAction: vi.fn(),
   updateProductMediaAltAction: vi.fn(),
@@ -49,9 +46,6 @@ vi.mock("@/app/admin/actions/sync", () => ({
   pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
   checkProductConflictsAction: mocks.checkProductConflictsAction,
-  buildOurCommerceStoreAction: mocks.buildOurCommerceStoreAction,
-  fetchShopifyCommerceStoreAction: mocks.fetchShopifyCommerceStoreAction,
-  compareAndPersistCommerceStoresAction: mocks.compareAndPersistCommerceStoresAction,
   listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
   createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
 }));
@@ -115,12 +109,6 @@ beforeEach(() => {
   mocks.checkProductConflictsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
     success: "Conflict check complete. No conflicts found.",
-  });
-  mocks.buildOurCommerceStoreAction.mockResolvedValue({ our: { version: 1, products: {} } });
-  mocks.fetchShopifyCommerceStoreAction.mockResolvedValue({ shopify: { version: 1, products: {} } });
-  mocks.compareAndPersistCommerceStoresAction.mockResolvedValue({
-    conflicts: [],
-    debug: { ourProductCount: 0, shopifyProductCount: 0, conflictCount: 0 },
   });
   mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
   mocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });

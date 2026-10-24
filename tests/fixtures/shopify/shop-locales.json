@@ -1,0 +1,28 @@
+{
+  "query": "shopLocales",
+  "why": "Locale list under read_locales.",
+  "apiVersion": "2026-07",
+  "response": {
+    "data": {
+      "shopLocales": [
+        {
+          "locale": "en",
+          "name": "Title ba118b",
+          "primary": true,
+          "published": true
+        }
+      ]
+    },
+    "extensions": {
+      "cost": {
+        "requestedQueryCost": 1,
+        "actualQueryCost": 1,
+        "throttleStatus": {
+          "maximumAvailable": 2000,
+          "currentlyAvailable": 1999,
+          "restoreRate": 100
+        }
+      }
+    }
+  }
+}

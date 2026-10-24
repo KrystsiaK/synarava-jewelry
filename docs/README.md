@@ -32,7 +32,7 @@
 
 ## Индекс
 
-**Wiki** — [architecture](wiki/architecture.md) · [product-data-ownership](wiki/product-data-ownership.md) · [commerce-sync](wiki/commerce-sync.md) · [catalog-conflict-resolution-ux](wiki/catalog-conflict-resolution-ux.md) · [portable-sku-service](wiki/portable-sku-service.md) · [portable-sku-current-status](wiki/portable-sku-current-status.md) · [synarava-cms](wiki/synarava-cms.md) · [ui-kit](wiki/ui-kit.md) · [ephemeral-toast](wiki/ephemeral-toast.md) · [storefront-locale-urls](wiki/storefront-locale-urls.md) · [translation-field-registry](wiki/translation-field-registry.md) · [privacy-operations](wiki/privacy-operations.md) · [analytics/ga4-ecommerce-setup](wiki/analytics/ga4-ecommerce-setup.md) · [ecc-skills](wiki/ecc-skills.md)
+**Wiki** — [architecture](wiki/architecture.md) · [product-data-ownership](wiki/product-data-ownership.md) · [commerce-sync](wiki/commerce-sync.md) · [catalog-conflict-resolution-ux](wiki/catalog-conflict-resolution-ux.md) · [translation-operations](wiki/translation-operations.md) · [portable-sku-service](wiki/portable-sku-service.md) · [portable-sku-current-status](wiki/portable-sku-current-status.md) · [synarava-cms](wiki/synarava-cms.md) · [ui-kit](wiki/ui-kit.md) · [ephemeral-toast](wiki/ephemeral-toast.md) · [storefront-locale-urls](wiki/storefront-locale-urls.md) · [translation-field-registry](wiki/translation-field-registry.md) · [privacy-operations](wiki/privacy-operations.md) · [analytics/ga4-ecommerce-setup](wiki/analytics/ga4-ecommerce-setup.md) · [ecc-skills](wiki/ecc-skills.md)
 
 **Runbooks** — [deploy](runbooks/deploy.md) · [staging](runbooks/staging.md) · [portable-sku current status](runbooks/portable-sku-current-status.md) · [portable-sku-platform-railway](runbooks/portable-sku-platform-railway.md) · [portable-sku-platform-production](runbooks/portable-sku-platform-production.md) · [sku-api-railway-staging](runbooks/sku-api-railway-staging.md) · [sku-catalog-audit-staging](runbooks/sku-catalog-audit-staging.md) · [post-purchase-ops](runbooks/post-purchase-ops.md) · [translation-operations](runbooks/translation-operations.md) · [translation-migration](runbooks/translation-migration.md) · [admin-guide-ru](runbooks/admin-guide-ru.md) · [shopify-automation-playbook](runbooks/shopify-automation-playbook.md) · [database-incident-recovery](runbooks/database-incident-recovery.md) · [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md)
 
@@ -46,6 +46,6 @@
 
 **Strategy** — [growth](strategy/growth.md) · [ecommerce-operating-infrastructure](strategy/ecommerce-operating-infrastructure.md)
 
-**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md)
+**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md) · [2026-10 Shopify API ground truth](audits/2026-10-shopify-api-ground-truth.md)
 
 **History** — см. [`history/`](history/) (по дате в имени файла).

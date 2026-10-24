@@ -19,7 +19,6 @@ import {
   pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
-import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
@@ -236,13 +235,6 @@ export function EditProductForm({
     });
     return () => { cancelled = true; };
   }, [product.id, product.shopifyProductId]);
-
-  // Full dual-store console walkthrough once per editor open (deduped globally).
-  useEffect(() => {
-    void runCommerceStoreConsoleFlow(`product-editor:${product.id}`).catch((error) => {
-      console.error("[commerce-store] FLOW EXCEPTION", error);
-    });
-  }, [product.id]);
 
   useEffect(() => {
     const form = formRef.current;

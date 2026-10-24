@@ -84,6 +84,36 @@ describe("storefront Content Security Policy", () => {
     expect(imageDirective).toContain("https://www.googletagmanager.com");
   });
 
+  it("allows Sentry EU browser ingest on connect-src without widening other origins", async () => {
+    vi.stubEnv(
+      "NEXT_PUBLIC_SHOPIFY_CHECKOUT_ROOT_DOMAIN",
+      "checkout.synarava.test",
+    );
+    // Keep storage optional origins out so the fixed connect-src allowlist is exact.
+    vi.stubEnv("S3_PUBLIC_URL", "");
+    vi.stubEnv("S3_ENDPOINT", "");
+    vi.stubEnv("S3_BUCKET", "");
+    vi.stubEnv("S3_REGION", "");
+
+    const response = await proxy(new NextRequest("https://shop.synarava.test/en/"));
+    const csp = response.headers.get("Content-Security-Policy") ?? "";
+    const connectDirective = csp
+      .split("; ")
+      .find((directive) => directive.startsWith("connect-src "));
+    const connectSources = connectDirective?.slice("connect-src ".length).split(" ") ?? [];
+
+    expect(connectSources).toEqual([
+      "'self'",
+      "https://www.google-analytics.com",
+      "https://region1.google-analytics.com",
+      "https://www.facebook.com",
+      "https://*.clarity.ms",
+      "https://*.ingest.de.sentry.io",
+      "https://checkout.synarava.test",
+    ]);
+    expect(connectSources).not.toContain("https://*.ingest.sentry.io");
+  });
+
   it("allows blob: media for local video previews", async () => {
     const response = await proxy(new NextRequest("https://shop.synarava.test/en/"));
     const csp = response.headers.get("Content-Security-Policy") ?? "";

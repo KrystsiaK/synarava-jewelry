@@ -30,31 +30,34 @@ import { planReconcile, projectRemoteTranslation, reconcileResourceType } from "
 
 beforeEach(() => vi.clearAllMocks());
 
-describe("planReconcile", () => {
-  const base = { title: "Ring", body: "Handmade" };
+describe("planReconcile (two-way)", () => {
+  const shared = { title: "Ring", body: "Handmade" };
 
   it.each([
-    ["noop", base, base, base, "noop", []],
-    ["push", base, { ...base, title: "New Ring" }, base, "push", []],
-    ["pull", base, base, { ...base, title: "Remote Ring" }, "pull", []],
+    ["noop when equal", shared, shared, "noop", []],
     [
-      "conflict on one field, unaffected field ignored",
-      base,
-      { ...base, title: "Local Ring" },
-      { ...base, title: "Remote Ring" },
+      "conflict when only Synarava differs (no auto push)",
+      { ...shared, title: "New Ring" },
+      shared,
+      "conflict",
+      [{ field: "title", local: "New Ring", remote: "Ring" }],
+    ],
+    [
+      "conflict when only Shopify differs (no auto pull)",
+      shared,
+      { ...shared, title: "Remote Ring" },
+      "conflict",
+      [{ field: "title", local: "Ring", remote: "Remote Ring" }],
+    ],
+    [
+      "conflict when both sides differ",
+      { ...shared, title: "Local Ring" },
+      { ...shared, title: "Remote Ring" },
       "conflict",
       [{ field: "title", local: "Local Ring", remote: "Remote Ring" }],
     ],
-    [
-      "no base (first sync) still conflicts when local and remote disagree",
-      null,
-      { ...base, title: "Local Ring" },
-      { ...base, title: "Remote Ring" },
-      "conflict",
-      [{ field: "title", local: "Local Ring", remote: "Remote Ring" }],
-    ],
-  ] as const)("%s", (_name, baseValue, local, remote, direction, conflicts) => {
-    const plan = planReconcile(REGISTRY, baseValue, local, remote);
+  ] as const)("%s", (_name, local, remote, direction, conflicts) => {
+    const plan = planReconcile(REGISTRY, local, remote);
     expect(plan.direction).toBe(direction);
     expect(plan.conflicts).toEqual(conflicts);
   });
@@ -62,7 +65,6 @@ describe("planReconcile", () => {
   it("reports a conflict per differing field when multiple fields diverge", () => {
     const plan = planReconcile(
       REGISTRY,
-      base,
       { title: "Local Ring", body: "Local body" },
       { title: "Remote Ring", body: "Remote body" },
     );
@@ -72,20 +74,20 @@ describe("planReconcile", () => {
       { field: "body", local: "Local body", remote: "Remote body" },
     ]);
     expect(plan.differences).toHaveLength(2);
+    expect(plan.differences.every(({ kind }) => kind === "conflict")).toBe(true);
   });
 
-  it("never reports noop when different fields changed on opposite sides", () => {
+  it("never auto-directs when different fields changed on opposite sides", () => {
     const plan = planReconcile(
       REGISTRY,
-      base,
-      { ...base, title: "Local Ring" },
-      { ...base, body: "Remote body" },
+      { ...shared, title: "Local Ring" },
+      { ...shared, body: "Remote body" },
     );
 
     expect(plan.direction).toBe("conflict");
     expect(plan.differences.map(({ fieldKey, kind }) => ({ fieldKey, kind }))).toEqual([
-      { fieldKey: "title", kind: "local-only" },
-      { fieldKey: "body", kind: "shopify-only" },
+      { fieldKey: "title", kind: "conflict" },
+      { fieldKey: "body", kind: "conflict" },
     ]);
   });
 });
@@ -102,7 +104,7 @@ describe("projectRemoteTranslation", () => {
 });
 
 describe("reconcileResourceType", () => {
-  it("pages Shopify, matches known bindings, and plans each without writing", async () => {
+  it("pages Shopify, matches known bindings, and plans each without writing or reading lastSyncedSnapshot", async () => {
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({ translatableResources: {
         pageInfo: { hasNextPage: true, endCursor: "cursor-1" },
@@ -116,8 +118,8 @@ describe("reconcileResourceType", () => {
       } });
 
     mocks.bindingFindMany.mockResolvedValue([
-      { id: "bind-1", entityId: "widget-1", shopifyResourceId: "gid://shopify/Widget/1", lastSyncedSnapshot: { title: "Old title" } },
-      { id: "bind-2", entityId: "widget-2", shopifyResourceId: "gid://shopify/Widget/2", lastSyncedSnapshot: null },
+      { id: "bind-1", entityId: "widget-1", shopifyResourceId: "gid://shopify/Widget/1" },
+      { id: "bind-2", entityId: "widget-2", shopifyResourceId: "gid://shopify/Widget/2" },
     ]);
 
     const loadLocal = vi.fn(async (entityId: string) =>
@@ -131,8 +133,9 @@ describe("reconcileResourceType", () => {
     });
 
     expect(results).toHaveLength(2);
-    expect(results[0]).toMatchObject({ bindingId: "bind-1", plan: { direction: "pull", conflicts: [] } });
-    expect(results[1]).toMatchObject({ bindingId: "bind-2", plan: { direction: "push", conflicts: [] } });
+    // Two-way: any Synarava ≠ Shopify difference is conflict (human picks direction).
+    expect(results[0]).toMatchObject({ bindingId: "bind-1", plan: { direction: "conflict" } });
+    expect(results[1]).toMatchObject({ bindingId: "bind-2", plan: { direction: "conflict" } });
     expect(mocks.bindingFindMany).toHaveBeenCalledWith({
       where: { resourceType: "WIDGET", shopifyResourceId: { in: ["gid://shopify/Widget/1", "gid://shopify/Widget/2"] } },
     });
@@ -144,7 +147,7 @@ describe("reconcileResourceType", () => {
       nodes: [{ resourceId: "gid://shopify/Widget/1", translations: [] }],
     } });
     mocks.bindingFindMany.mockResolvedValue([
-      { id: "bind-1", entityId: "widget-1", shopifyResourceId: "gid://shopify/Widget/1", lastSyncedSnapshot: null },
+      { id: "bind-1", entityId: "widget-1", shopifyResourceId: "gid://shopify/Widget/1" },
     ]);
 
     const results = await reconcileResourceType({

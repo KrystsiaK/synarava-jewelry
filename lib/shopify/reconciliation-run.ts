@@ -4,7 +4,6 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import type { LocalizedRecord } from "@/lib/i18n/admin-localization";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { loadReconcileSubject } from "@/lib/shopify/reconciliation-source";
@@ -41,8 +40,6 @@ type RunRow = Omit<ReconcileRunSummary, "startedAt" | "completedAt" | "createdAt
   completedAt: Date | null;
   createdAt: Date;
 };
-
-type SnapshotRow = { values: LocalizedRecord };
 
 function serializeRun(row: RunRow): ReconcileRunSummary {
   return {
@@ -217,16 +214,6 @@ async function createOrReuseRun({
     `);
     return { run: await runById(transaction, id), reused: false };
   });
-}
-
-async function lastSnapshot(bindingId: string, locale: string) {
-  const rows = await db.$queryRaw<SnapshotRow[]>(Prisma.sql`
-    SELECT "values"
-    FROM "ShopifyTranslationSnapshot"
-    WHERE "bindingId" = ${bindingId} AND "locale" = ${locale}
-    LIMIT 1
-  `);
-  return rows[0]?.values ?? null;
 }
 
 function json(value: unknown) {
@@ -415,8 +402,8 @@ export async function runTranslationReconciliation({
             ? sourceContentAsRemoteValues(state.translatableContent)
             : state.translations;
           const remote = projectRemoteTranslationWithMetadata(subject.registry, translations);
-          const base = await lastSnapshot(binding.id, locale);
-          const plan = planReconcile(subject.registry, base, subject.local, remote.values, remote.metadata);
+          // Two-way only: Synarava local ↔ live Shopify (no common-ancestor base).
+          const plan = planReconcile(subject.registry, subject.local, remote.values, remote.metadata);
           await persistDifferences({
             runId,
             bindingId: binding.id,

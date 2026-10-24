@@ -55,7 +55,7 @@ const blockedField = {
   ...field,
   fieldKey: "commerce:status",
   label: "Status",
-  scope: { kind: "SHARED" as const },
+  scope: { kind: "Shared" as const },
   origin: "COMMERCE" as const,
   synaravaValue: "ACTIVE",
   shopifyValue: "DRAFT",
@@ -117,55 +117,55 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.getByText(/RU · Русский · 1 field/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Choose which values to keep" })).toBeInTheDocument();
     expect(screen.getByText("RU · Русский")).toBeInTheDocument();
-    expect(screen.getByText(/Only this language value is affected/)).toBeInTheDocument();
+    expect(screen.getByText(/Only this language/)).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: /Shopify.*Кольцо Shopify/s }));
-    fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
+    fireEvent.click(screen.getByRole("button", { name: /Shopify.*Take Shopify/s }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
     await waitFor(() => expect(mocks.preview).toHaveBeenCalledWith({
       kind: "MANUAL",
       selections: [{ productId: "p1", fieldKey: "translation:ru:title", direction: "SHOPIFY_TO_SYNARAVA" }],
     }));
-    expect(await screen.findByRole("dialog", { name: "Confirm conflict resolution" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Confirm changes before writing" })).toBeInTheDocument();
     expect(screen.getAllByText("RU · Русский").length).toBeGreaterThan(1);
   });
 
   it("fills visible fields from Select Shopify without applying yet", async () => {
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByRole("button", { name: "Review merge" })).toBeDisabled();
-    fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
-    expect(screen.getByRole("button", { name: "Review merge" })).toBeEnabled();
+    expect(await screen.findByRole("button", { name: "Preview changes" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify for visible fields" }));
+    expect(screen.getByRole("button", { name: "Preview changes" })).toBeEnabled();
     expect(mocks.preview).not.toHaveBeenCalled();
   });
 
   it("keeps field decisions after cancelling the preview", async () => {
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    await screen.findByRole("dialog", { name: "Choose conflict values" });
-    fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
-    fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
-    const preview = await screen.findByRole("dialog", { name: "Confirm conflict resolution" });
+    await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify for visible fields" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
     expect(await within(preview).findByRole("button", { name: "Confirm changes" })).toBeEnabled();
     fireEvent.click(within(preview).getByRole("button", { name: "Cancel" }));
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: "Confirm conflict resolution" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("dialog", { name: "Confirm changes before writing" })).not.toBeInTheDocument();
     });
-    expect(screen.getByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Choose which values to keep" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Shopify.*Selected/s })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("previews a product-wide Shopify direction before writing", async () => {
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify" }));
     await waitFor(() => expect(mocks.preview).toHaveBeenCalledWith({
       kind: "PRODUCT",
       productId: "p1",
       direction: "SHOPIFY_TO_SYNARAVA",
     }));
     expect(mocks.apply).not.toHaveBeenCalled();
-    expect(await screen.findByRole("dialog", { name: "Confirm conflict resolution" })).toBeInTheDocument();
+    expect(await screen.findByRole("dialog", { name: "Confirm changes before writing" })).toBeInTheDocument();
   });
 
   it("shows a Shopify-only product by name with Pull as its only row action", () => {
@@ -187,8 +187,8 @@ describe("CatalogConflictWorkspace", () => {
 
     expect(screen.getByText("Remote ring")).toBeInTheDocument();
     expect(screen.getByText("Only in Shopify")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Pull product from Shopify" })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Apply Synarava values" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Take Shopify" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Keep ours" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Compare fields side by side" })).not.toBeInTheDocument();
   });
 
@@ -197,9 +197,9 @@ describe("CatalogConflictWorkspace", () => {
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
     expect(await screen.findByText(/Cannot choose here/)).toBeInTheDocument();
-    expect(screen.getByText("SHARED")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Select Shopify for visible fields" }));
-    fireEvent.click(screen.getByRole("button", { name: "Review merge" }));
+    expect(screen.getByText("Shared")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify for visible fields" }));
+    fireEvent.click(screen.getByRole("button", { name: "Preview changes" }));
     await waitFor(() => expect(mocks.preview).toHaveBeenCalledWith({
       kind: "MANUAL",
       selections: [{ productId: "p1", fieldKey: "translation:ru:title", direction: "SHOPIFY_TO_SYNARAVA" }],
@@ -211,10 +211,10 @@ describe("CatalogConflictWorkspace", () => {
     mocks.pullProduct.mockResolvedValue({ success: "Pulled." });
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByRole("button", { name: /Pull from Shopify/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Push to Shopify/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Review merge" })).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Pull from Shopify/i }));
+    expect(await screen.findByRole("button", { name: /Take Shopify \(whole item\)/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Keep ours \(whole item\)/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Preview changes" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /Take Shopify \(whole item\)/i }));
     await waitFor(() => expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true));
   });
 
@@ -223,10 +223,10 @@ describe("CatalogConflictWorkspace", () => {
     mocks.load.mockImplementation(() => new Promise((resolve) => { resolveLoad = resolve; }));
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    expect(await screen.findByText(/Loading live field comparison/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Loading live comparison/i)).toBeInTheDocument();
     expect(screen.queryByLabelText("Working with Shopify")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
-    expect(screen.queryByRole("dialog", { name: "Choose conflict values" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Close field choices" }));
+    expect(screen.queryByRole("dialog", { name: "Choose which values to keep" })).not.toBeInTheDocument();
     await act(async () => {
       resolveLoad({ conflict: { productId: "p1", fields: [field] } });
     });
@@ -234,7 +234,7 @@ describe("CatalogConflictWorkspace", () => {
 
   it("applies a confirmed preview and refreshes conflict signals from the server", async () => {
     const { onSignalsChange, onToast } = renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
     await waitFor(() => expect(mocks.apply).toHaveBeenCalled());
     expect(onToast).toHaveBeenCalledWith("1 change applied.", "success");
@@ -259,7 +259,7 @@ describe("CatalogConflictWorkspace", () => {
         onToast={onToast}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify" }));
     expect(onToast).toHaveBeenCalledWith("Save your product changes before Resolve or Push.", "info");
     expect(mocks.preview).not.toHaveBeenCalled();
   });
@@ -280,7 +280,7 @@ describe("CatalogConflictWorkspace", () => {
         onApplied={onApplied}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
     expect(onClose).toHaveBeenCalled();
     await waitFor(() => expect(onApplied).toHaveBeenCalledWith(expect.objectContaining({
@@ -305,7 +305,7 @@ describe("CatalogConflictWorkspace", () => {
         onApplied={onApplied}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Apply Shopify values" }));
+    fireEvent.click(screen.getByRole("button", { name: "Take Shopify" }));
     fireEvent.click(await screen.findByRole("button", { name: "Confirm changes" }));
     await waitFor(() => expect(onApplied).toHaveBeenCalled());
     expect(screen.queryByLabelText("Working with Shopify")).not.toBeInTheDocument();
@@ -325,8 +325,8 @@ describe("CatalogConflictWorkspace", () => {
     expect(screen.getByText("Amber ring")).toBeInTheDocument();
     expect(screen.queryByText("1 product need a decision")).toBeInTheDocument();
     // Catalog bulk and other products stay out of a row-chip open.
-    expect(screen.queryByRole("button", { name: /Use Shopify for all/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Use Synarava for all/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Take Shopify for all/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Keep ours for all/i })).not.toBeInTheDocument();
   });
 
   it("opens locale-scoped details with that language's fields plus SHARED commerce", async () => {
@@ -348,11 +348,12 @@ describe("CatalogConflictWorkspace", () => {
     });
     renderWorkspace(vi.fn(), vi.fn(), vi.fn(), signals, { kind: "productLocale", productId: "p1", locale: "ru" });
 
-    expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
-    expect(screen.getByText("RU · Русский")).toBeInTheDocument();
-    expect(screen.queryByText("PT · Português")).not.toBeInTheDocument();
+    const details = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(await within(details).findByText("Title")).toBeInTheDocument();
+    expect(within(details).getByText("RU · Русский")).toBeInTheDocument();
+    expect(within(details).queryByText("PT · Português")).not.toBeInTheDocument();
     // Shared commerce belongs under every language shell (commerce-sync marker tree).
-    expect(screen.getByText("SHARED")).toBeInTheDocument();
+    expect(within(details).getByText("Shared")).toBeInTheDocument();
   });
 
   it("opens whole-record choices from a non-EN locale when only SHARED commerce conflicts", async () => {
@@ -362,10 +363,11 @@ describe("CatalogConflictWorkspace", () => {
       ...signals,
       products: { p1: { shared: true, sharedCount: 1, locales: [] } },
     }, { kind: "productLocale", productId: "p1", locale: "ru" });
-    expect(await screen.findByText("Status")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
-    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    const details = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(await within(details).findByText("Status")).toBeInTheDocument();
+    fireEvent.click(within(details).getByRole("button", { name: "Close field choices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep ours" }));
+    expect(await screen.findByRole("button", { name: "Keep ours (whole item)" })).toBeInTheDocument();
     expect(onToast).not.toHaveBeenCalledWith(
       expect.stringMatching(/No supported fields|Nothing left to sync/),
       "info",
@@ -412,10 +414,10 @@ describe("CatalogConflictWorkspace", () => {
       { kind: "productSection", productId: "p1", locale: "en", section: "price" },
     );
 
-    expect(await screen.findByRole("dialog", { name: "Choose conflict values" })).toBeInTheDocument();
-    expect(screen.getByText("Price")).toBeInTheDocument();
-    expect(screen.queryByText("Vendor")).not.toBeInTheDocument();
-    expect(screen.queryByText("Title")).not.toBeInTheDocument();
+    const details = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(await within(details).findByText("Price")).toBeInTheDocument();
+    expect(within(details).queryByText("Vendor")).not.toBeInTheDocument();
+    expect(within(details).queryByText("Title")).not.toBeInTheDocument();
   });
 
   it("lets media gallery rows choose a side under Media (same apply contract)", async () => {
@@ -458,10 +460,11 @@ describe("CatalogConflictWorkspace", () => {
       />,
     );
 
-    expect(await screen.findByText("Media gallery (image 1)")).toBeInTheDocument();
-    expect(screen.queryByText(/Cannot choose here/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Review merge/i })).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Go to Sync/i })).not.toBeInTheDocument();
+    const details = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(await within(details).findByText("Media gallery (image 1)")).toBeInTheDocument();
+    expect(within(details).queryByText(/Cannot choose here/)).not.toBeInTheDocument();
+    expect(within(details).getByRole("button", { name: /Preview changes/i })).toBeInTheDocument();
+    expect(within(details).queryByRole("button", { name: /Go to Sync/i })).not.toBeInTheDocument();
   });
 
   it("offers inline Pull/Push when only blocked fields remain", async () => {
@@ -508,7 +511,7 @@ describe("CatalogConflictWorkspace", () => {
     );
 
     expect(await screen.findByText("Status")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /Pull from Shopify/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Take Shopify \(whole item\)/i }));
     await waitFor(() => expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true));
   });
   it("opens whole-record choices from a scoped direction instead of rejecting blocked fields", async () => {
@@ -517,10 +520,11 @@ describe("CatalogConflictWorkspace", () => {
     renderWorkspace(vi.fn(), onToast, vi.fn(), {
       ...signals, products: { p1: { shared: true, sharedCount: 1, locales: [] } },
     }, { kind: "productLocale", productId: "p1", locale: "en" });
-    expect(await screen.findByText("Status")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Close conflict details" }));
-    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
-    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    const details = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(await within(details).findByText("Status")).toBeInTheDocument();
+    fireEvent.click(within(details).getByRole("button", { name: "Close field choices" }));
+    fireEvent.click(screen.getByRole("button", { name: "Keep ours" }));
+    expect(await screen.findByRole("button", { name: "Keep ours (whole item)" })).toBeInTheDocument();
     expect(onToast).not.toHaveBeenCalledWith(
       expect.stringMatching(/No supported fields|Nothing left to sync/),
       "info",
@@ -532,17 +536,17 @@ describe("CatalogConflictWorkspace", () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [field, blockedField] } });
     renderWorkspace();
     fireEvent.click(screen.getByRole("button", { name: "Compare fields side by side" }));
-    const dialog = await screen.findByRole("dialog", { name: "Choose conflict values" });
-    expect(within(dialog).getByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: /Synarava Кольцо Choose this value/ })).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: /Shopify Кольцо Shopify Choose this value/ })).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog", { name: "Choose which values to keep" });
+    expect(within(dialog).getByRole("button", { name: "Keep ours (whole item)" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Ours \(Synarava\).*Keep ours/s })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: /Shopify.*Take Shopify/s })).toBeInTheDocument();
   });
 
   it("routes a catalog row with blocked commerce to full Pull/Push choices", async () => {
     mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [blockedField] } });
     renderWorkspace();
-    fireEvent.click(screen.getByRole("button", { name: "Apply Synarava values" }));
-    expect(await screen.findByRole("button", { name: "Push to Shopify" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Keep ours" }));
+    expect(await screen.findByRole("button", { name: "Keep ours (whole item)" })).toBeInTheDocument();
     expect(mocks.preview).not.toHaveBeenCalled();
   });
 

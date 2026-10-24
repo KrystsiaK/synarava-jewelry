@@ -500,12 +500,6 @@ export async function saveCollectionAction(
           syncError: null,
         },
       });
-      const { patchOurCollectionWindow } = await import("@/lib/commerce-store/refresh");
-      await patchOurCollectionWindow({
-        shopifyCollectionId: linked.shopifyCollectionId,
-        localCollectionId: savedCollection.id,
-        window: nextWorking,
-      });
     }
   } else {
     await db.collection.updateMany({

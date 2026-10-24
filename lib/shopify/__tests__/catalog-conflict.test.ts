@@ -68,7 +68,7 @@ beforeEach(() => {
   mocks.getPublishedStorefrontLocales.mockResolvedValue(LOCALES);
   mocks.getLatestReconcileDifferences.mockResolvedValue([]);
   mocks.findManyProduct.mockResolvedValue([]);
-  mocks.findUniqueProduct.mockResolvedValue({ id: "product-1" });
+  mocks.findUniqueProduct.mockResolvedValue({ id: "product-1", workingSnapshot: { title: "Local" } });
   mocks.getLatestCatalogPresenceDifferences.mockResolvedValue([]);
 });
 
@@ -159,6 +159,44 @@ describe("getProductCatalogConflict", () => {
 
     expect(result.fields).toHaveLength(1);
     expect(result.fields[0]).toMatchObject({ scope: { kind: "SHARED" }, origin: "COMMERCE", label: "Vendor" });
+  });
+
+  it("surfaces Adopt Shopify as the only commerce row when workingSnapshot is missing", async () => {
+    mocks.findUniqueProduct.mockResolvedValue({ id: "product-1", workingSnapshot: null });
+    mocks.inspectProductSyncState.mockResolvedValue(
+      inspection({
+        state: "CONFLICT",
+        workingSnapshotMissing: true,
+        differences: [
+          {
+            field: "Adopt Shopify",
+            local: "— No Synarava commerce window —",
+            shopify: "Shopify title · handle shopify-handle",
+            path: "_adopt",
+          },
+          // Path-level phantoms must not become choosable commerce rows.
+          { field: "Vendor", local: "—", shopify: "Other", path: "vendor" },
+        ],
+      }),
+    );
+    mocks.getLatestReconcileDifferences.mockResolvedValue([
+      translationDiff({ id: "diff-pt", locale: "pt-PT", fieldKey: "title" }),
+    ]);
+
+    const result = await getProductCatalogConflict("product-1");
+
+    const commerce = result.fields.filter((field) => field.origin === "COMMERCE");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]).toMatchObject({
+      fieldKey: "commerce:adopt-shopify",
+      origin: "COMMERCE",
+      label: "Adopt Shopify",
+      path: "_adopt",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      blockedReason: null,
+    });
+    expect(result.fields.some((field) => field.origin === "TRANSLATION")).toBe(true);
+    expect(result.fields.some((field) => field.label === "Vendor")).toBe(false);
   });
 
   it("gives a commerce field real, stable sha256 fingerprints and no sourceId (whole-product apply, not one row per field)", async () => {
@@ -312,16 +350,20 @@ describe("getProductCatalogConflict", () => {
     expect(result.fields).toEqual([]);
   });
 
-  it("does not treat a missing translation (LOCAL_ONLY/SHOPIFY_ONLY) as a conflict", async () => {
+  it("surfaces every two-way translation divergence (kind CONFLICT) as a catalog conflict field", async () => {
+    // PR3: compare emits only CONFLICT; one-sided empty is still a divergence.
+    // Legacy LOCAL_ONLY/SHOPIFY_ONLY rows (pre-PR3) stay filtered out until re-reconcile.
     mocks.inspectProductSyncState.mockResolvedValue(inspection());
     mocks.getLatestReconcileDifferences.mockResolvedValue([
-      translationDiff({ kind: "SHOPIFY_ONLY" }),
-      translationDiff({ kind: "LOCAL_ONLY" }),
+      translationDiff({ kind: "CONFLICT", fieldKey: "title" }),
+      translationDiff({ kind: "SHOPIFY_ONLY", fieldKey: "description" }),
+      translationDiff({ kind: "LOCAL_ONLY", fieldKey: "seoTitle" }),
     ]);
 
     const result = await getProductCatalogConflict("product-1");
 
-    expect(result.fields).toEqual([]);
+    expect(result.fields).toHaveLength(1);
+    expect(result.fields[0]).toMatchObject({ origin: "TRANSLATION", fieldKey: "translation:pt-PT:title" });
   });
 
   it("still surfaces a translation conflict even when the most recent reconcile run elsewhere was scoped/failed", async () => {

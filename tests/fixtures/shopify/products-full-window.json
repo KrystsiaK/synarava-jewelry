@@ -1,0 +1,319 @@
+{
+  "source": "live",
+  "query_name": "SynaravaCommerceStoreProducts",
+  "query_parity": "lib/shopify/product-sync.ts listShopifyProductWindowsForCommerceStore / PRODUCT_FIELDS",
+  "http": 200,
+  "errors": null,
+  "extensions": {
+    "cost": {
+      "requestedQueryCost": 974,
+      "actualQueryCost": 15,
+      "throttleStatus": {
+        "maximumAvailable": 2000.0,
+        "currentlyAvailable": 1985,
+        "restoreRate": 100.0
+      }
+    }
+  },
+  "data": {
+    "products": {
+      "pageInfo": {
+        "hasNextPage": false,
+        "endCursor": "eyJsYXN0X2lkIjoxNjA3OTIxMTM5NzQ1MSwibGFzdF92YWx1ZSI6IjE2MDc5MjExMzk3NDUxIn0="
+      },
+      "nodes": [
+        {
+          "id": "gid://shopify/Product/REDACTED",
+          "title": "REDACTED_TITLE",
+          "handle": "redacted-handle",
+          "descriptionHtml": "",
+          "vendor": "REDACTED_VENDOR",
+          "productType": "",
+          "tags": [],
+          "status": "DRAFT",
+          "updatedAt": "2026-10-14T08:28:35Z",
+          "totalInventory": 0,
+          "category": null,
+          "seo": {
+            "title": null,
+            "description": null
+          },
+          "media": {
+            "nodes": [
+              {
+                "id": "gid://shopify/MediaImage/REDACTED",
+                "alt": "REDACTED_ALT",
+                "mediaContentType": "IMAGE",
+                "status": "READY",
+                "preview": {
+                  "image": {
+                    "url": "https://cdn.shopify.com/REDACTED",
+                    "width": 1536,
+                    "height": 1024
+                  }
+                },
+                "originalSource": {
+                  "url": "https://cdn.shopify.com/REDACTED"
+                },
+                "image": {
+                  "url": "https://cdn.shopify.com/REDACTED",
+                  "width": 1536,
+                  "height": 1024
+                }
+              }
+            ]
+          },
+          "options": [
+            {
+              "id": "gid://shopify/ProductOption/REDACTED",
+              "name": "REDACTED_NAME",
+              "position": 1,
+              "values": [
+                "Default Title"
+              ]
+            }
+          ],
+          "collections": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "eyJsYXN0X2lkIjo3MDUyMDM1MzYyMDMsImxhc3RfdmFsdWUiOjcwNTIwMzUzNjIwM30="
+            },
+            "nodes": [
+              {
+                "id": "gid://shopify/Collection/REDACTED",
+                "handle": "redacted-handle",
+                "title": "REDACTED_TITLE",
+                "sources": [
+                  {
+                    "__typename": "CollectionConditionsSource",
+                    "id": "gid://shopify/CollectionConditionsSource/REDACTED",
+                    "title": "REDACTED_TITLE",
+                    "targetType": "PRODUCTS"
+                  }
+                ]
+              }
+            ]
+          },
+          "resourcePublicationsV2": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            },
+            "nodes": []
+          },
+          "featuredMedia": {
+            "id": "gid://shopify/MediaImage/REDACTED",
+            "preview": {
+              "image": {
+                "url": "https://cdn.shopify.com/REDACTED"
+              }
+            }
+          },
+          "variants": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "eyJsYXN0X2lkIjo1ODgyNDcyNTM2NTA2NywibGFzdF92YWx1ZSI6MX0="
+            },
+            "nodes": [
+              {
+                "id": "gid://shopify/ProductVariant/REDACTED",
+                "title": "REDACTED_TITLE",
+                "sku": "REDACTED",
+                "barcode": null,
+                "price": "12.00",
+                "compareAtPrice": null,
+                "inventoryPolicy": "DENY",
+                "taxable": true,
+                "inventoryQuantity": 0,
+                "selectedOptions": [
+                  {
+                    "name": "REDACTED_NAME",
+                    "value": "REDACTED"
+                  }
+                ],
+                "inventoryItem": {
+                  "id": "gid://shopify/InventoryItem/REDACTED",
+                  "requiresShipping": true,
+                  "tracked": false,
+                  "countryCodeOfOrigin": null,
+                  "harmonizedSystemCode": null,
+                  "unitCost": null,
+                  "measurement": {
+                    "weight": {
+                      "value": 0.0,
+                      "unit": "KILOGRAMS"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "metafields": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            },
+            "nodes": []
+          }
+        },
+        {
+          "id": "gid://shopify/Product/REDACTED",
+          "title": "REDACTED_TITLE",
+          "handle": "redacted-handle",
+          "descriptionHtml": "",
+          "vendor": "REDACTED_VENDOR",
+          "productType": "",
+          "tags": [],
+          "status": "ACTIVE",
+          "updatedAt": "2026-10-22T15:52:16Z",
+          "totalInventory": 4,
+          "category": {
+            "id": "gid://shopify/TaxonomyCategory/me-7-2",
+            "name": "REDACTED_NAME",
+            "fullName": "Media > Videos > Digital Downloads"
+          },
+          "seo": {
+            "title": null,
+            "description": null
+          },
+          "media": {
+            "nodes": [
+              {
+                "id": "gid://shopify/MediaImage/REDACTED",
+                "alt": "",
+                "mediaContentType": "IMAGE",
+                "status": "READY",
+                "preview": {
+                  "image": {
+                    "url": "https://cdn.shopify.com/REDACTED",
+                    "width": 1536,
+                    "height": 1024
+                  }
+                },
+                "originalSource": {
+                  "url": "https://cdn.shopify.com/REDACTED"
+                },
+                "image": {
+                  "url": "https://cdn.shopify.com/REDACTED",
+                  "width": 1536,
+                  "height": 1024
+                }
+              }
+            ]
+          },
+          "options": [
+            {
+              "id": "gid://shopify/ProductOption/REDACTED",
+              "name": "REDACTED_NAME",
+              "position": 1,
+              "values": [
+                "Default Title"
+              ]
+            }
+          ],
+          "collections": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            },
+            "nodes": []
+          },
+          "resourcePublicationsV2": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "eyJsYXN0X2lkIjoxNjQ4NTM5NzQzMDMwNTEsImxhc3RfdmFsdWUiOjE2NDg1Mzk3NDMwMzA1MX0="
+            },
+            "nodes": [
+              {
+                "isPublished": true,
+                "publishDate": "2026-10-13T20:55:26Z",
+                "publication": {
+                  "id": "gid://shopify/Publication/REDACTED",
+                  "name": "REDACTED_NAME"
+                }
+              },
+              {
+                "isPublished": true,
+                "publishDate": "2026-10-13T20:55:26Z",
+                "publication": {
+                  "id": "gid://shopify/Publication/REDACTED",
+                  "name": "REDACTED_NAME"
+                }
+              },
+              {
+                "isPublished": true,
+                "publishDate": "2026-10-13T20:55:26Z",
+                "publication": {
+                  "id": "gid://shopify/Publication/REDACTED",
+                  "name": "REDACTED_NAME"
+                }
+              },
+              {
+                "isPublished": true,
+                "publishDate": "2026-10-13T20:55:26Z",
+                "publication": {
+                  "id": "gid://shopify/Publication/REDACTED",
+                  "name": "REDACTED_NAME"
+                }
+              }
+            ]
+          },
+          "featuredMedia": {
+            "id": "gid://shopify/MediaImage/REDACTED",
+            "preview": {
+              "image": {
+                "url": "https://cdn.shopify.com/REDACTED"
+              }
+            }
+          },
+          "variants": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": "eyJsYXN0X2lkIjo1ODgyNDc5NjY2ODIzNSwibGFzdF92YWx1ZSI6MX0="
+            },
+            "nodes": [
+              {
+                "id": "gid://shopify/ProductVariant/REDACTED",
+                "title": "REDACTED_TITLE",
+                "sku": "REDACTED",
+                "barcode": null,
+                "price": "10.00",
+                "compareAtPrice": null,
+                "inventoryPolicy": "DENY",
+                "taxable": true,
+                "inventoryQuantity": 4,
+                "selectedOptions": [
+                  {
+                    "name": "REDACTED_NAME",
+                    "value": "REDACTED"
+                  }
+                ],
+                "inventoryItem": {
+                  "id": "gid://shopify/InventoryItem/REDACTED",
+                  "requiresShipping": true,
+                  "tracked": true,
+                  "countryCodeOfOrigin": null,
+                  "harmonizedSystemCode": null,
+                  "unitCost": null,
+                  "measurement": {
+                    "weight": {
+                      "value": 0.0,
+                      "unit": "KILOGRAMS"
+                    }
+                  }
+                }
+              }
+            ]
+          },
+          "metafields": {
+            "pageInfo": {
+              "hasNextPage": false,
+              "endCursor": null
+            },
+            "nodes": []
+          }
+        }
+      ]
+    }
+  }
+}

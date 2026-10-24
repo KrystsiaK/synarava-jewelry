@@ -2,7 +2,7 @@ import "server-only";
 
 import { fetchInventoryLevels, selectStockOnHand, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
 
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -71,10 +71,10 @@ import {
 import {
   decideProductTranslationPull,
   fetchProductTranslation,
+  hasShopifySharedTranslationCopy,
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
-import { applyShopifyProductTypeLabel } from "@/lib/catalog/taxonomy-value-labels";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import {
   canonicalizeShopifyProjection,
@@ -84,6 +84,16 @@ import {
   alignMetafieldResolvedValues,
   writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
+import {
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
+
+export {
+  ADOPT_SHOPIFY_FIELD_KEY,
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
@@ -370,8 +380,8 @@ function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return snapshotForShopifyProduct(remote);
 }
 
-/** L and B agree with live Shopify after successful pull/push. */
-async function agreedProjectionWrite(remote: ShopifyProduct) {
+/** Shopify-side window only (metafield locale overlays included). Never writes Synarava. */
+async function shopifySnapshotOnlyWrite(remote: ShopifyProduct) {
   const snap = snapshotForProduct(remote);
   const { fetchCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
     "@/lib/shopify/product-metafield-translations"
@@ -382,7 +392,12 @@ async function agreedProjectionWrite(remote: ShopifyProduct) {
     metafieldRefsFromNodes(remote.metafields.nodes),
     locales.map((locale) => ({ code: locale.code, shopifyLocale: locale.shopifyLocale })),
   );
-  const withTranslations = withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+  return withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+}
+
+/** L and B agree with live Shopify after successful human pull/push. */
+async function agreedProjectionWrite(remote: ShopifyProduct) {
+  const withTranslations = await shopifySnapshotOnlyWrite(remote);
   return { shopifySnapshot: withTranslations, workingSnapshot: withTranslations };
 }
 
@@ -915,7 +930,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
+  { pullTranslations = true }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -924,8 +939,9 @@ async function finishPulledProduct(
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
-  // Product webhooks update commerce only — Shopify has no translation-update
-  // webhooks; translations reconcile via explicit conflict check / manual pull.
+  // Pull translations = fetch Shopify copy + flag divergences only.
+  // Never auto-apply / upsert ProductTranslation / TaxonomyValueLabel —
+  // human Apply (reconcile field apply) is the only Synarava content write path.
   const translationLocales = pullTranslations
     ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
     : [];
@@ -945,17 +961,6 @@ async function finishPulledProduct(
     }
     if (!translationAvailable) continue;
 
-    // Shared taxonomy overlay: PRODUCT.product_type translation → one EN value.
-    // Pull-only; never invent a parallel commerce type. Category SPT has no
-    // Translations API surface — Synarava overlays cover those gaps.
-    if (remoteTranslation?.productType && remote.productType?.trim()) {
-      await applyShopifyProductTypeLabel({
-        enProductType: remote.productType,
-        locale: translationLocale.code,
-        label: remoteTranslation.productType,
-      });
-    }
-
     const localShopifyCopy = localTranslation ? {
       handle: "",
       title: localTranslation.title,
@@ -963,82 +968,26 @@ async function finishPulledProduct(
       seoTitle: localTranslation.seoTitle ?? "",
       seoDescription: localTranslation.seoDescription ?? "",
     } : null;
+    // force:false — pull only flags divergence; never auto-writes Synarava copy.
     const decision = decideProductTranslationPull({
       local: localShopifyCopy,
-      localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
-      localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
       remote: remoteTranslation,
-      force,
+      force: false,
     });
+    if (decision === "UNCHANGED") continue;
 
-    if (decision === "CONFLICT" && localTranslation) {
-      if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "CONFLICT";
+    // Any Synarava ≠ Shopify difference is a divergence; human picks direction.
+    if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) {
+      translationStatus = "CONFLICT";
+    }
+    if (localTranslation) {
       await db.productTranslation.update({
         where: { id: localTranslation.id },
         data: {
           syncStatus: "CONFLICT",
-          syncError: `${translationLocale.name} copy changed in both Synarava and Shopify. Choose Pull or Push to resolve it.`,
+          syncError: `${translationLocale.name} Synarava and Shopify translations differ. Choose which side to keep on Apply.`,
         },
       });
-    } else if (decision === "KEEP_LOCAL") {
-      if (TRANSLATION_STATUS_RANK.LOCAL_CHANGES > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "LOCAL_CHANGES";
-    } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
-      if (remoteTranslation || localTranslation) {
-        const mergedCopy = {
-          localizedHandle: null as string | null,
-          title: remoteTranslation?.title ?? "",
-          shortDescription: localTranslation?.shortDescription ?? null,
-          description: remoteTranslation ? sanitizeRichTextHtml(remoteTranslation.descriptionHtml) || null : null,
-          materialLine: localTranslation?.materialLine ?? null,
-          symbolismLabel: localTranslation?.symbolismLabel ?? null,
-          symbolismTitle: localTranslation?.symbolismTitle ?? null,
-          symbolismBody: localTranslation?.symbolismBody ?? null,
-          symbolismBody2: localTranslation?.symbolismBody2 ?? null,
-          details: localTranslation?.details ?? undefined,
-          seoTitle: remoteTranslation?.seoTitle || null,
-          seoDescription: remoteTranslation?.seoDescription || null,
-        };
-        const contentHash = createHash("sha256").update(JSON.stringify({
-          title: mergedCopy.title,
-          shortDescription: mergedCopy.shortDescription,
-          description: mergedCopy.description,
-          materialLine: mergedCopy.materialLine,
-          symbolismLabel: mergedCopy.symbolismLabel,
-          symbolismTitle: mergedCopy.symbolismTitle,
-          symbolismBody: mergedCopy.symbolismBody,
-          symbolismBody2: mergedCopy.symbolismBody2,
-          seoTitle: mergedCopy.seoTitle,
-          seoDescription: mergedCopy.seoDescription,
-        })).digest("hex");
-        const reviewed = Boolean(
-          remoteTranslation?.title
-          && mergedCopy.description
-          && mergedCopy.shortDescription
-          && localTranslation?.reviewStatus === "REVIEWED"
-          && !remoteTranslation.outdated,
-        );
-        await db.productTranslation.upsert({
-          where: { productId_locale: { productId: product.id, locale: translationLocale.code } },
-          update: {
-            ...mergedCopy,
-            reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-            reviewedAt: reviewed ? localTranslation?.reviewedAt ?? new Date() : null,
-            syncStatus: "SYNCED",
-            syncError: null,
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-          create: {
-            productId: product.id,
-            locale: translationLocale.code,
-            ...mergedCopy,
-            reviewStatus: "DRAFT",
-            syncStatus: "SYNCED",
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-        });
-      }
     }
   }
 
@@ -1262,7 +1211,11 @@ async function finishPulledProduct(
   return { productId: product.id, status: "SYNCED" as const, translationStatus };
 }
 
-export async function pullShopifyProduct(
+/**
+ * Human Apply / Pull: overwrite Synarava columns + workingSnapshot from Shopify.
+ * Webhooks and other automatic paths must call {@link refreshShopifyProductState} instead.
+ */
+export async function applyShopifyProductToSynarava(
   id: string,
   eventId?: string,
   force = false,
@@ -1274,6 +1227,117 @@ export async function pullShopifyProduct(
     force,
     pullTranslations: options.pullTranslations,
   });
+}
+
+/** @deprecated Prefer {@link applyShopifyProductToSynarava} for human Apply/Pull. */
+export async function pullShopifyProduct(
+  id: string,
+  eventId?: string,
+  force = false,
+  options: { pullTranslations?: boolean } = {},
+) {
+  return applyShopifyProductToSynarava(id, eventId, force, options);
+}
+
+/**
+ * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy + divergence
+ * flags only. Never writes Synarava commerce columns, workingSnapshot, translations,
+ * variants, or TaxonomyValueLabel.
+ */
+export async function refreshShopifyProductState(id: string, eventId?: string) {
+  const remote = await fetchShopifyProduct(id);
+  if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
+
+  const existing = await db.product.findUnique({
+    where: { shopifyProductId: remote.id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      vendor: true,
+      productType: true,
+      priceCents: true,
+      syncStatus: true,
+      workingSnapshot: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          priceCents: true,
+          taxable: true,
+          stockOnHand: true,
+        },
+      },
+    },
+  });
+
+  if (!existing) {
+    // Shopify-only catalog row — presence scan owns Create-in-Synarava; do not upsert.
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { productId: null, status: "IGNORED" as const };
+  }
+
+  const shopifySnapshot = await shopifySnapshotOnlyWrite(remote);
+  const variant = existing.variants[0];
+  const synaravaWindow = existing.workingSnapshot
+    ?? writeThroughLocalCommerceToProjection(shopifySnapshot, {
+      title: existing.name,
+      handle: existing.slug,
+      vendor: existing.vendor,
+      productType: existing.productType,
+      variant: variant
+        ? {
+            shopifyVariantId: variant.shopifyVariantId,
+            sku: variant.sku,
+            priceCents: variant.priceCents,
+            taxable: variant.taxable,
+            inventoryQuantity: variant.stockOnHand,
+          }
+        : { priceCents: existing.priceCents },
+    });
+
+  const differences = diffShopifyProjections(synaravaWindow, shopifySnapshot);
+  const diverged = differences.length > 0;
+  const nextStatus = diverged
+    ? "CONFLICT" as const
+    : existing.syncStatus === "PENDING" || existing.syncStatus === "FAILED"
+      ? existing.syncStatus
+      : "SYNCED" as const;
+
+  await db.product.update({
+    where: { id: existing.id },
+    data: {
+      shopifySnapshot,
+      shopifyUpdatedAt: new Date(remote.updatedAt),
+      syncStatus: nextStatus,
+      ...(diverged
+        ? { syncError: "Shopify and Synarava commerce windows differ." }
+        : nextStatus === "SYNCED"
+          ? { syncError: null }
+          : {}),
+    },
+  });
+
+  if (eventId) {
+    await db.productSyncEvent.update({
+      where: { id: eventId },
+      data: {
+        productId: existing.id,
+        status: diverged ? "CONFLICT" : "SUCCEEDED",
+        error: diverged ? "Shopify state diverges from Synarava." : null,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  return { productId: existing.id, status: nextStatus };
 }
 
 export type ProductSyncDifference = {
@@ -1302,14 +1366,16 @@ export type ProductSyncInspection = {
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];
+  /** True when Synarava has no commerce window yet — human must Adopt Shopify. */
+  workingSnapshotMissing?: boolean;
   debug?: ProductSyncInspectDebug;
 };
 
 /**
- * Dual-snapshot inspect:
- * 1) fetch Shopify → write shopifySnapshot
- * 2) ensure workingSnapshot (seed once from shopify if missing)
- * 3) diff(working, shopify) → state
+ * Dual-snapshot inspect (read path — never writes Synarava content):
+ * 1) fetch Shopify → write shopifySnapshot (+ syncStatus from compare)
+ * 2) read workingSnapshot (do not seed/align-persist)
+ * 3) diff in memory → state; missing window → Adopt Shopify row
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
@@ -1346,73 +1412,51 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
+  const workingSnapshotMissing = local.workingSnapshot == null;
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
-  // working = Synarava window. Seed once; never overwrite on inspect/refresh.
-  let workingSnapshot = local.workingSnapshot;
-  if (workingSnapshot == null) {
-    const variant = local.variants[0];
-    const seeded = writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: local.name,
-      handle: local.slug,
-      vendor: local.vendor,
-      productType: local.productType,
-      variant: variant
-        ? {
-            shopifyVariantId: variant.shopifyVariantId,
-            sku: variant.sku,
-            priceCents: variant.priceCents,
-            taxable: variant.taxable,
-            inventoryQuantity: variant.stockOnHand,
-          }
-        : { priceCents: local.priceCents },
-    });
-    workingSnapshot = seeded as Prisma.JsonValue;
+  let differences: ProductSyncDifference[];
+  let compareWorking: unknown = local.workingSnapshot;
+
+  if (workingSnapshotMissing) {
+    differences = [{
+      field: ADOPT_SHOPIFY_FIELD_LABEL,
+      local: "— No Synarava commerce window —",
+      shopify: [remote.title, remote.handle ? `handle ${remote.handle}` : ""].filter(Boolean).join(" · "),
+      path: ADOPT_SHOPIFY_FIELD_PATH,
+    }];
+  } else {
+    // Display enrichment only — never persisted on inspect (V14).
+    compareWorking = alignMetafieldResolvedValues(local.workingSnapshot, shopifySnapshot);
+    differences = diffShopifyProjections(compareWorking, shopifySnapshot).map((item) => ({
+      field: item.field,
+      local: item.local,
+      shopify: item.shopify,
+      path: item.path,
+    }));
   }
 
-  // Align category display enrichment so missing resolvedValues do not look like
-  // empty-OUR commerce conflicts against a live Shopify fetch.
-  workingSnapshot = alignMetafieldResolvedValues(
-    workingSnapshot,
-    shopifySnapshot,
-  ) as Prisma.JsonValue;
-
+  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
   await db.product.update({
     where: { id: productId },
     data: {
       shopifySnapshot,
-      workingSnapshot: workingSnapshot as Prisma.InputJsonValue,
       shopifyUpdatedAt: new Date(remote.updatedAt),
+      ...(state === "SYNCED"
+        ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
+        : {
+            syncStatus: "CONFLICT" as const,
+            syncError: workingSnapshotMissing
+              ? "Synarava commerce window is missing — Adopt Shopify to create it."
+              : "workingSnapshot and shopifySnapshot differ.",
+          }),
     },
   });
 
-  const differences: ProductSyncDifference[] = diffShopifyProjections(
-    workingSnapshot,
-    shopifySnapshot,
-  ).map((item) => ({
-    field: item.field,
-    local: item.local,
-    shopify: item.shopify,
-    path: item.path,
-  }));
-
-  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
-  if (state === "SYNCED") {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-    });
-  } else {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "CONFLICT", syncError: "workingSnapshot and shopifySnapshot differ." },
-    });
-  }
-
-  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
   const debug: ProductSyncInspectDebug = {
     shopifyResponse: remote,
     shopifySnapshot,
-    workingSnapshot,
+    workingSnapshot: compareWorking,
     differences,
   };
 
@@ -1421,6 +1465,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     remoteUpdatedAt: remote.updatedAt,
     publications: publishedPublications,
     differences,
+    workingSnapshotMissing,
     debug,
   };
 }
@@ -1536,36 +1581,47 @@ export async function adoptShopifyProjectionField(
     where: { id: productId },
     data: columnData,
   });
-  const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-  await patchOurProductWindow({
-    shopifyProductId: product.shopifyProductId,
-    localProductId: productId,
-    window: columnData.workingSnapshot,
-  });
 }
 
+/**
+ * Inventory webhook refresh: update Shopify-side copy + divergence flags only.
+ * Never writes Synarava `ProductVariant.stockOnHand` — that is a human Apply.
+ */
 export async function pullShopifyInventory(inventoryItemId: string, eventId?: string) {
-  const data = await shopifyAdminRequest<{
-    inventoryItem: { inventoryLevels: { nodes: Array<{ location: { id: string }; quantities: Array<{ name: string; quantity: number }> }> } } | null;
-  }>(
-    `query SynaravaInventoryItem($id: ID!) {
-      inventoryItem(id: $id) { inventoryLevels(first: 100) { nodes { location { id } quantities(names: ["available"]) { name quantity } } } }
-    }`,
-    { id: inventoryItemId },
-  );
-  if (!data.inventoryItem) throw new ShopifyAdminError(`Inventory item ${inventoryItemId} was not found.`);
-  const stockOnHand = selectStockOnHand(data.inventoryItem.inventoryLevels.nodes, env.SHOPIFY_LOCATION_ID);
-  const variant = await db.productVariant.findUnique({ where: { shopifyInventoryItemId: inventoryItemId } });
+  const variant = await db.productVariant.findUnique({
+    where: { shopifyInventoryItemId: inventoryItemId },
+    select: { id: true, productId: true },
+  });
   if (!variant) {
-    if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { status: "IGNORED", completedAt: new Date() } });
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
     return { ignored: true as const };
   }
-  // Inventory-only: touches stockOnHand alone. It must not mark the product SYNCED —
-  // that would erase a still-pending commerce/editorial change or an unresolved
-  // CONFLICT that has nothing to do with this webhook (REV-04).
-  await db.productVariant.update({ where: { id: variant.id }, data: { stockOnHand } });
-  if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { productId: variant.productId, status: "SUCCEEDED", completedAt: new Date() } });
-  return { ignored: false as const, productId: variant.productId, stockOnHand };
+
+  const product = await db.product.findUnique({
+    where: { id: variant.productId },
+    select: { shopifyProductId: true },
+  });
+  if (!product?.shopifyProductId) {
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { ignored: true as const };
+  }
+
+  const refreshed = await refreshShopifyProductState(product.shopifyProductId, eventId);
+  return {
+    ignored: refreshed.status === "IGNORED",
+    productId: refreshed.productId ?? variant.productId,
+    status: refreshed.status,
+  };
 }
 
 /**
@@ -2100,12 +2156,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             seoDescription: translation.seoDescription ?? "",
           };
           const remoteTranslation = await fetchProductTranslation(remote.id, translationLocale.shopifyLocale);
+          // Human Push chose Synarava → Shopify. Authorize APPLY when the operator
+          // forced, or when Shopify has no competing non-empty copy (first push /
+          // empty remote). Divergent non-empty Shopify copy still needs force.
           const decision = decideProductTranslationPull({
             local: localCopy,
-            localSyncStatus: translation.syncStatus,
-            localLastSyncedAt: translation.lastSyncedAt,
             remote: remoteTranslation,
-            force: forceTranslation,
+            force: forceTranslation || !hasShopifySharedTranslationCopy(remoteTranslation),
           });
           if (decision === "CONFLICT") {
             const message = `${translationLocale.name} copy also changed in Shopify. Pull or explicitly force Push to choose a winner.`;
@@ -2120,6 +2177,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
               data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
             });
           } else {
+            // APPLY — human Push (or force) writing Synarava → Shopify.
             await registerProductTranslation(remote.id, localCopy, translationLocale.shopifyLocale);
             await db.productTranslation.update({
               where: { id: translation.id },

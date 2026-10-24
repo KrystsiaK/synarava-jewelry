@@ -10,7 +10,7 @@ From the admin: add a language, hide it, bring it back, export it, import it, an
 ## Current state (verified in code)
 
 - Two sources of truth for languages: the database registry `StorefrontLocale` (`isPublished`, `isDefault`, `sortOrder`) and a hardcoded `SUPPORTED_LOCALES` list in `lib/i18n/locales.ts`. The list drives routing (`lib/i18n/routing.ts`), `lib/i18n/context.tsx`, `app/layout.tsx` and `lib/content/revalidate-storefront.ts`. An unknown language gives `notFound()` in `app/[locale]/layout.tsx` (404).
-- Per-language rows live in: `ProductTranslation`, `CollectionTranslation`, `PageTranslation`, `ShopifyTranslationBinding`, `ShopifyTranslationSnapshot`, `TranslationSyncEvent`, `TranslationCache`, plus `LocalizedHandleRedirect` (translated slugs) and translations stored in Shopify itself.
+- Per-language rows live in: `ProductTranslation`, `CollectionTranslation`, `PageTranslation`, `ShopifyTranslationBinding`, `TranslationSyncEvent`, `TranslationCache`, plus `LocalizedHandleRedirect` (translated slugs) and translations stored in Shopify itself. (Third-state `ShopifyTranslationSnapshot` removed — ADR-0008.)
 - The sitemap already emits language alternates from the registry (`app/sitemap.ts`).
 - The Shopify app has `read_locales` only. Interface strings live in `messages/<code>.json` (code); a missing language falls back to English.
 

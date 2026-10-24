@@ -6,6 +6,7 @@ import { requireAdminSession } from "@/lib/auth/admin-session";
 import { writeAuditLog } from "@/app/admin/actions/shared";
 import {
   importLanguageBundle,
+  previewLanguageBundleImport,
   type LanguageBundle,
   verifyLanguageBundle,
 } from "@/lib/i18n/language-bundle";
@@ -20,6 +21,8 @@ import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-ca
 import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
 
 async function revalidateLanguagesAdmin() {
+  // Locale tabs live under every admin section — refresh the whole tree.
+  revalidatePath("/admin", "layout");
   revalidatePath("/admin/translations");
   invalidateStorefrontLocaleCache();
 }
@@ -96,6 +99,19 @@ export async function exportLanguageAction(code: string) {
     metadata: { checksum: bundle.checksum, schemaVersion: bundle.schemaVersion },
   });
   return { bundle };
+}
+
+/** Dry-run import — counts + sample field changes. Does not write. */
+export async function previewImportLanguageAction(bundle: LanguageBundle, expectedLocale?: string) {
+  await requireAdminSession();
+  const verified = verifyLanguageBundle(bundle);
+  if (!verified.ok) return { error: verified.error };
+  try {
+    const preview = await previewLanguageBundleImport(bundle, expectedLocale);
+    return { preview };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
 }
 
 export async function importLanguageAction(bundle: LanguageBundle, expectedLocale?: string) {

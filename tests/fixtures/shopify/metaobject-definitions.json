@@ -1,0 +1,179 @@
+{
+  "query": "metaobjectDefinitions",
+  "why": "Ground truth for read_metaobject_definitions scope.",
+  "apiVersion": "2026-07",
+  "response": {
+    "data": {
+      "metaobjectDefinitions": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "cursor_redacted_120810463cbe"
+        },
+        "nodes": [
+          {
+            "id": "gid://shopify/MetaobjectDefinition/1000001",
+            "type": "shopify--knowledge-base-fact",
+            "name": "Title 82262f",
+            "fieldDefinitions": [
+              {
+                "key": "external_id",
+                "name": "Title 69da56",
+                "type": {
+                  "name": "Title a56145"
+                },
+                "required": false
+              },
+              {
+                "key": "published",
+                "name": "Title 2ef42e",
+                "type": {
+                  "name": "Title bf84d3"
+                },
+                "required": true
+              },
+              {
+                "key": "category",
+                "name": "Title 292c06",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": false
+              },
+              {
+                "key": "source",
+                "name": "Title 0e570c",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": false
+              },
+              {
+                "key": "title",
+                "name": "Title 7e8cd2",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": true
+              },
+              {
+                "key": "value_string",
+                "name": "Title 9e28cf",
+                "type": {
+                  "name": "Title b62774"
+                },
+                "required": false
+              },
+              {
+                "key": "value_string_list",
+                "name": "Title 7bbf84",
+                "type": {
+                  "name": "Title eba307"
+                },
+                "required": false
+              },
+              {
+                "key": "value_boolean",
+                "name": "Title a14632",
+                "type": {
+                  "name": "Title bf84d3"
+                },
+                "required": false
+              },
+              {
+                "key": "value_number",
+                "name": "Title e06818",
+                "type": {
+                  "name": "Title 6d5980"
+                },
+                "required": false
+              },
+              {
+                "key": "value_reference",
+                "name": "Title 4d2dc5",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": false
+              },
+              {
+                "key": "references",
+                "name": "Title 69824d",
+                "type": {
+                  "name": "Title eba307"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_value_string",
+                "name": "Title ebc8f7",
+                "type": {
+                  "name": "Title b62774"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_value_string_list",
+                "name": "Title 3ab2f7",
+                "type": {
+                  "name": "Title eba307"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_value_boolean",
+                "name": "Title d1f7aa",
+                "type": {
+                  "name": "Title bf84d3"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_value_number",
+                "name": "Title 3c3f93",
+                "type": {
+                  "name": "Title 6d5980"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_value_reference",
+                "name": "Title 9fbf39",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": false
+              },
+              {
+                "key": "suggested_references",
+                "name": "Title 6db20a",
+                "type": {
+                  "name": "Title eba307"
+                },
+                "required": false
+              },
+              {
+                "key": "suggestion_state",
+                "name": "Title 5e0d13",
+                "type": {
+                  "name": "Title 84ff00"
+                },
+                "required": false
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "extensions": {
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 7,
+        "throttleStatus": {
+          "maximumAvailable": 2000,
+          "currentlyAvailable": 1993,
+          "restoreRate": 100
+        }
+      }
+    }
+  }
+}

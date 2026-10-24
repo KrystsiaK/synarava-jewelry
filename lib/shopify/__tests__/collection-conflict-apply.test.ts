@@ -6,6 +6,9 @@ const mocks = vi.hoisted(() => ({
   applyReconcileChoice: vi.fn(),
   applyCollectionPresenceDifference: vi.fn(),
   scanAndSaveCollectionPresence: vi.fn(),
+  applyCollectionCommerceField: vi.fn(),
+  applyShopifyCollectionToSynarava: vi.fn(),
+  findUniqueCollection: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/collection-conflict", () => ({
@@ -20,6 +23,17 @@ vi.mock("@/lib/shopify/reconciliation-apply", () => ({
 vi.mock("@/lib/shopify/collection-presence-server", () => ({
   applyCollectionPresenceDifference: mocks.applyCollectionPresenceDifference,
   scanAndSaveCollectionPresence: mocks.scanAndSaveCollectionPresence,
+  applyShopifyCollectionToSynarava: mocks.applyShopifyCollectionToSynarava,
+}));
+vi.mock("@/lib/shopify/collection-commerce-field-apply", () => ({
+  applyCollectionCommerceField: mocks.applyCollectionCommerceField,
+  isScopedCollectionCommerceFieldLabel: (label: string) =>
+    ["Name", "Handle", "Description", "SEO title", "SEO description"].includes(label),
+}));
+vi.mock("@/lib/db", () => ({
+  db: {
+    collection: { findUnique: mocks.findUniqueCollection },
+  },
 }));
 
 import {
@@ -74,6 +88,37 @@ function presenceField(overrides: Partial<CatalogConflictField> = {}): CatalogCo
       localIdentity: null,
       shopifyIdentity: { name: "Remote kits", handle: "remote-kits", sku: "" },
     },
+    ...overrides,
+  });
+}
+
+function commerceField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return field({
+    fieldKey: "commerce:name",
+    label: "Name",
+    scope: { kind: "SHARED" },
+    origin: "COMMERCE",
+    synaravaValue: "Local name",
+    shopifyValue: "Shopify name",
+    localFingerprint: "commerce-local-fp",
+    shopifyFingerprint: "commerce-shopify-fp",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    sourceId: null,
+    path: "title",
+    ...overrides,
+  });
+}
+
+function adoptShopifyField(overrides: Partial<CatalogConflictField> = {}): CatalogConflictField {
+  return commerceField({
+    fieldKey: "commerce:adopt-shopify",
+    label: "Adopt Shopify",
+    synaravaValue: "— No Synarava commerce window —",
+    shopifyValue: "Shopify name · /shopify-handle",
+    localFingerprint: "adopt-local",
+    shopifyFingerprint: "adopt-shopify",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    path: "_adopt",
     ...overrides,
   });
 }
@@ -240,6 +285,73 @@ describe("applyCollectionConflictResolution", () => {
     expect(outcome).toMatchObject({
       appliedCount: 1,
       results: [{ ok: true, localCollectionId: "collection-new" }],
+    });
+  });
+
+  it("previews and applies scoped commerce Name via applyCollectionCommerceField", async () => {
+    const commerce = commerceField();
+    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([commerce]));
+    mocks.applyCollectionCommerceField.mockResolvedValue({ ok: true, message: "Name applied from Shopify." });
+
+    const preview = await previewCollectionConflictResolution({
+      kind: "COLLECTION",
+      collectionId: "collection-1",
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    expect(preview.entries).toHaveLength(1);
+    expect(preview.entries[0].field.fieldKey).toBe("commerce:name");
+
+    const outcome = await applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "collection-1",
+        fieldKey: "commerce:name",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "commerce-local-fp",
+        expectedShopifyFingerprint: "commerce-shopify-fp",
+      }],
+    });
+
+    expect(mocks.applyCollectionCommerceField).toHaveBeenCalledWith({
+      collectionId: "collection-1",
+      label: "Name",
+      direction: "SHOPIFY_TO_SYNARAVA",
+      expectedLocalFingerprint: "commerce-local-fp",
+      expectedShopifyFingerprint: "commerce-shopify-fp",
+    });
+    expect(outcome.appliedCount).toBe(1);
+  });
+
+  it("applies Adopt Shopify via applyShopifyCollectionToSynarava", async () => {
+    const adopt = adoptShopifyField();
+    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([adopt]));
+    mocks.findUniqueCollection.mockResolvedValue({ shopifyCollectionId: "gid://shopify/Collection/9" });
+    mocks.applyShopifyCollectionToSynarava.mockResolvedValue({
+      collectionId: "collection-1",
+      shopifyCollectionId: "gid://shopify/Collection/9",
+    });
+
+    const outcome = await applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "collection-1",
+        fieldKey: "commerce:adopt-shopify",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "adopt-local",
+        expectedShopifyFingerprint: "adopt-shopify",
+      }],
+    });
+
+    expect(mocks.applyShopifyCollectionToSynarava).toHaveBeenCalledWith(
+      "gid://shopify/Collection/9",
+      "collection-1",
+    );
+    expect(mocks.applyCollectionCommerceField).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({
+      appliedCount: 1,
+      results: [{ ok: true, localCollectionId: "collection-1" }],
     });
   });
 });
