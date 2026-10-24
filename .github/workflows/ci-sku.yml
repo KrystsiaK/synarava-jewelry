@@ -38,8 +38,9 @@ on:
       - ".github/workflows/ci-sku.yml"
 
 concurrency:
-  # Per-PR cancel; push/tag runs never cancel each other.
-  group: ci-sku-${{ github.event.pull_request.number || github.ref }}
+  # PRs: one in-flight run per PR (cancel superseded).
+  # Pushes: per-commit group so a newer push cannot cancel an older queued run.
+  group: ci-sku-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
