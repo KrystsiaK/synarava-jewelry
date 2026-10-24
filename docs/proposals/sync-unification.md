@@ -81,7 +81,7 @@ components/admin/shared/
 
 Entity columns (`name`, `priceCents`, …) remain Synarava **projections for UI**, written only by human Save or human Apply — never by webhook refresh. Shopify-shaped Synarava window = `workingSnapshot` (or renamed `synaravaSnapshot`); Shopify window = `shopifySnapshot`.
 
-Translations page keeps: languages lifecycle + export/import **with dry-run diff before import** + optional sync **summary** (counts from the same `selectSyncCounts`, links only). Conflict apply lives on entity/catalog UIs.
+Translations page keeps: languages lifecycle + export/import **with dry-run diff before import**. No sync summary or conflict hub on this page — section badges + topbar total come from `selectSyncCounts`; conflict apply lives on entity/catalog UIs.
 
 ---
 
@@ -158,7 +158,7 @@ Owner model: **no third state.** Divergence is two-way only.
 | # | Location | What it is | Disposition |
 | --- | --- | --- | --- |
 | D1 | `CommerceSyncStore.ourSnapshot` / `shopifySnapshot` / `conflictReport` (`prisma/schema.prisma:237–243`, `lib/commerce-store/refresh.ts:28–53`) | Full-catalog duplicate of per-entity windows + cached diffs | **Change → delete store table** after badges/compare read entity windows (or a cheap derived query). Until then, treat store as **cache only**, rebuilt from entity Shopify/Synarava states — never a third SoT. Prefer delete (Simplicity). |
-| D2 | Parallel pipelines: translation reconcile table vs live `inspectProductSyncState` vs collection conflict omitting commerce | Same resource, different compare UIs **and multiple counters** | **Change** — one compare (`lib/sync/compare.ts`) → one `SyncResult` → one `selectSyncCounts`; one field UI; Translations summary-only. |
+| D2 | Parallel pipelines: translation reconcile table vs live `inspectProductSyncState` vs collection conflict omitting commerce | Same resource, different compare UIs **and multiple counters** | **Change** — one compare (`lib/sync/compare.ts`) → one `SyncResult` → one `selectSyncCounts`; one field UI; Translations = languages only (no summary hub). |
 | D3 | `decideProductTranslationPull` path **and** `ShopifyFieldDivergence` reconcile | Two translation conflict engines | **Delete** auto decision engine from pull; one compare + human Apply. |
 | D4 | Nav badges from `getLatestReconcileDifferences` **vs** catalog chips from `getCatalogConflictSignals` **vs** banner/icon from inspect+signals | Second/third counting paths | **Delete** all but `selectSyncCounts(SyncResult, view)` (waterfall step 4). |
 
@@ -212,7 +212,7 @@ Each PR: characterization tests for current behavior first where behavior change
 1. Move refresh / **one** `compare` / **one** `selectSyncCounts` / apply behind `lib/sync/*` (thin re-exports OK during move).
 2. Wire admin load, post-Save, post-Apply, and Check through the waterfall; delete parallel counter builders (D4).
 3. One `FieldConflictPanel`; product/collection workspaces become wrappers.
-4. Translations page: languages + export/import **diff preview** + summary from the same selector; remove merge/apply list.
+4. Translations page: languages + export/import **diff preview**; remove merge/apply list and the summary hub (PR5b cleanup).
 
 ### PR6 — Delete dead weight
 
@@ -256,10 +256,9 @@ See §7. Dropped `projection-merge` / `shopifyBaseSnapshot` / translation snapsh
 | --- | --- |
 | Add / hide / restore / delete language | Registry + locale tabs everywhere ([languages-as-data](./languages-as-data.md)) |
 | Export / import bundle | `lib/i18n/language-bundle.ts` |
-| **Diff preview before import** | **Gap today:** import upserts immediately (`languages-panel.tsx` import handler). Add dry-run: counts + sample field deltas; confirm before write |
-| Summary only | Unresolved divergence counts + links into Products / Collections / Pages / Settings |
+| **Diff preview before import** | Dry-run: counts + sample field deltas; confirm before write |
 
-Conflict field Apply does **not** live on this page.
+Conflict field Apply and the unresolved-divergence summary do **not** live on this page. Section badges (Catalog / Collections / Pages / Shared) and the topbar total use `selectSyncCounts`; resolve on the owning section or entity.
 
 ---
 
