@@ -53,8 +53,8 @@ describe("catalog conflict signals", () => {
     expect(open).toHaveBeenCalledOnce();
   });
 
-  it("shows No conflicts without stale/failed/checking chrome", () => {
-    render(
+  it("shows No conflicts for zero and Conflict status unavailable for null", () => {
+    const { rerender } = render(
       <CatalogConflictStatus
         signals={{ ...signals, state: "stale", totalCount: 0, products: {} }}
         onShow={vi.fn()}
@@ -62,9 +62,16 @@ describe("catalog conflict signals", () => {
     );
     expect(screen.getByText("No conflicts")).toBeTruthy();
     expect(screen.queryByText(/outdated/i)).toBeNull();
-    expect(screen.queryByText(/status unavailable/i)).toBeNull();
-    expect(screen.queryByText(/checking/i)).toBeNull();
     expect(screen.queryByRole("button", { name: /run conflict check/i })).toBeNull();
+
+    rerender(
+      <CatalogConflictStatus
+        signals={{ ...signals, state: "failed", totalCount: null, products: {} }}
+        onShow={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Conflict status unavailable")).toBeTruthy();
+    expect(screen.queryByText("No conflicts")).toBeNull();
   });
 
   it("updates both counters when the last persisted conflict disappears", () => {

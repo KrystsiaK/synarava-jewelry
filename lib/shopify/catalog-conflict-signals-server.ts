@@ -21,19 +21,20 @@ async function signalsFromWaterfall(
   scope: RefreshShopifyStateScope,
   requestedBy: string,
   rootEntityType: "PRODUCT" | "COLLECTION",
-  options?: { skipRefresh?: boolean },
-): Promise<{ signals: CatalogConflictSignals; warning?: string }> {
+  options?: { skipRefresh?: boolean; trigger?: "AUTO" | "MANUAL" },
+): Promise<{ signals: CatalogConflictSignals; warning?: string; result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"] }> {
   const { result, warning } = await runSyncWaterfall({
     scope,
     requestedBy,
     skipRefresh: options?.skipRefresh,
+    trigger: options?.trigger,
   });
   const signals = catalogConflictSignalsFromSyncResult(
     result,
     rootEntityType,
     await localeMeta(),
   );
-  return { signals, warning };
+  return { signals, warning, result };
 }
 
 export async function getCatalogConflictSignals(adminUsername?: string): Promise<CatalogConflictSignals> {
@@ -80,12 +81,26 @@ export async function runProductConflictCheck({
   );
 }
 
-/** Catalog-wide Check — full waterfall. */
-export async function runCatalogConflictCheck(requestedBy: string): Promise<{
+/**
+ * Catalog-wide Check — single owner-model entry for the admin top-bar.
+ * Full waterfall: Shopify copies (products + collections) + translations +
+ * presence → one compare → counters. Product and collection banners both
+ * derive from this run (via skipRefresh reads afterward).
+ */
+export async function runCatalogConflictCheck(
+  requestedBy: string,
+  options?: { trigger?: "AUTO" | "MANUAL" },
+): Promise<{
   signals: CatalogConflictSignals;
   warning?: string;
+  result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"];
 }> {
-  return signalsFromWaterfall({ kind: "catalog" }, requestedBy, "PRODUCT");
+  return signalsFromWaterfall(
+    { kind: "catalog" },
+    requestedBy,
+    "PRODUCT",
+    { trigger: options?.trigger ?? "MANUAL" },
+  );
 }
 
 /** Scoped collection check. */

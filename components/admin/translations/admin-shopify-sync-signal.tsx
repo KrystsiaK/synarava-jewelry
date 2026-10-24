@@ -2,6 +2,7 @@
 
 import { RefreshCw } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
@@ -38,6 +39,7 @@ async function readResponse(response: Response) {
 }
 
 export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRunSummary | null }) {
+  const router = useRouter();
   const [run, setRun] = useState(initialRun);
   const [requestError, setRequestError] = useState<string | null>(null);
   const [autoChecking, setAutoChecking] = useState(true);
@@ -76,7 +78,9 @@ export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRu
     if (!mounted.current) return;
     setRun(next);
     await poll(next);
-  }, [poll]);
+    // Refresh RSC banners / nav counters from the same waterfall result.
+    router.refresh();
+  }, [poll, router]);
 
   useEffect(() => {
     mounted.current = true;
@@ -115,7 +119,7 @@ export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRu
     ?? run?.error
     ?? (run?.completedAt
       ? `Last checked ${new Date(run.completedAt).toLocaleString("en")}`
-      : "Translation sync is checked when the admin opens.");
+      : "Shopify catalog sync runs once when the admin session opens.");
 
   return (
     <div className="adm-sync-signal" data-state={state.kind} title={title}>

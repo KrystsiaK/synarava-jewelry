@@ -63,14 +63,11 @@ export async function loadCatalogConflictSignalsAction() {
   }
 }
 
+/** Display-only: reads the saved conflict window. Full fetch+compare is the top-bar control. */
 export async function loadProductCatalogConflictAction(productId: string) {
-  const session = await requireAdminSession("/admin/products");
+  await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
-    if (!productId.startsWith("shopify:")) {
-      const checked = await runProductConflictCheck({ productId, requestedBy: session.username });
-      if (checked.warning) return { error: checked.warning };
-    }
     return { conflict: await getProductCatalogConflict(productId) };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };

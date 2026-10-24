@@ -11,7 +11,8 @@ function plural(count: number, singular: string, pluralWord: string) {
 
 function statusText(signals: CatalogConflictSignals, entityNoun: { singular: string; plural: string }) {
   const count = signals.totalCount;
-  if (count === null || count === 0) return "No conflicts";
+  if (count === null) return "Conflict status unavailable";
+  if (count === 0) return "No conflicts";
   return `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts`;
 }
 
