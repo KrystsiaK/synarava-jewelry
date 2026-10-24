@@ -25,7 +25,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
+import { useCatalogConflictCheck } from "@/components/admin/shared/use-catalog-conflict-check";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
 import {
   collectionActionCopy,
@@ -40,12 +40,15 @@ import {
   AdminIconButton,
   AdminListWorkspace,
   AdminStatusBadge,
+  CatalogConflictStatus,
+  CatalogConflictRowBadges,
 } from "@/components/synarava-cms";
+import { CONFLICT_CHECK_ENTITY_NOUN } from "@/lib/admin/conflict-check-messages";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 const initialState: CollectionActionState = {};
 const COLLECTION_GRID = "xl:grid-cols-[minmax(0,1.6fr)_5.5rem_5rem_9rem]";
-const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
+const ENTITY_NOUN = CONFLICT_CHECK_ENTITY_NOUN.collection;
 
 export function CollectionsCms({
   collections,
@@ -59,47 +62,30 @@ export function CollectionsCms({
   const [editingCollection, setEditingCollection] = useState<AdminCollection | null>(null);
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
-  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CollectionConflictViewScope>({ kind: "catalog" });
   const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
-  const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
-    base: initialConflictSignals,
-    value: initialConflictSignals,
-  });
-  const conflictSignals = conflictSignalsOverride.base === initialConflictSignals
-    ? conflictSignalsOverride.value
-    : initialConflictSignals;
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
+  const {
+    signals: conflictSignals,
+    setSignals: setConflictSignals,
+    isChecking: isConflictCheckPending,
+    runConflictCheck,
+  } = useCatalogConflictCheck({
+    initialSignals: initialConflictSignals,
+    runCheck: checkCollectionConflictsAction,
+  });
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictCollectionId(null);
     setConflictViewScope({ kind: "catalog" });
   }, []);
 
-  function setConflictSignals(value: CatalogConflictSignals) {
-    setConflictSignalsOverride({ base: initialConflictSignals, value });
-  }
-
   function showConflicts(collectionId: string | null = null) {
     setFocusedConflictCollectionId(collectionId);
     setConflictViewScope(collectionId ? { kind: "collection", collectionId } : { kind: "catalog" });
     setConflictListOpen(true);
-  }
-
-  function handleConflictCheck() {
-    startConflictCheckTransition(async () => {
-      const result = await checkCollectionConflictsAction();
-      if (!("signals" in result)) {
-        pushToast({ message: result.error, tone: "error" });
-        return;
-      }
-      setConflictSignals(result.signals);
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if ((result.signals.totalCount ?? 0) > 0) showConflicts();
-    });
   }
 
   function handleUpdated(collection: AdminCollection) {
@@ -165,7 +151,7 @@ export function CollectionsCms({
       <CatalogConflictStatus
         signals={conflictSignals}
         onShow={() => showConflicts()}
-        onCheck={handleConflictCheck}
+        onCheck={runConflictCheck}
         checking={isConflictCheckPending}
         entityNoun={ENTITY_NOUN}
       />
@@ -179,7 +165,7 @@ export function CollectionsCms({
               <CatalogConflictStatus
                 signals={conflictSignals}
                 onShow={() => showConflicts()}
-                onCheck={handleConflictCheck}
+                onCheck={runConflictCheck}
                 checking={isConflictCheckPending}
                 compact
                 entityNoun={ENTITY_NOUN}

@@ -189,6 +189,11 @@ export { AdminModal, type AdminModalProps } from "@/components/admin/shared/admi
 export { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 
 export {
+  CatalogConflictStatus,
+  CatalogConflictRowBadges,
+} from "@/components/admin/shared/catalog-conflict-signals";
+
+export {
   AdminSerpPreview,
   type AdminSerpPreviewProps,
 } from "@/components/admin/shared/admin-serp-preview";

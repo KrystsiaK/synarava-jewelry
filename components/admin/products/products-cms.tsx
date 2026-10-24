@@ -32,7 +32,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
+import { useCatalogConflictCheck } from "@/components/admin/shared/use-catalog-conflict-check";
 import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
@@ -45,7 +45,8 @@ import {
   AdminSelectField,
   AdminSortChips,
   AdminStatusBadge,
-  AdminTextField
+  AdminTextField,
+  CatalogConflictStatus,
 } from "@/components/synarava-cms";
 import {
   centsToPrice,
@@ -146,21 +147,24 @@ export function ProductsCms({
   const [confirmStoreRebind, setConfirmStoreRebind] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "catalog" });
-  const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
-    base: initialConflictSignals,
-    value: initialConflictSignals,
-  });
-  const conflictSignals = conflictSignalsOverride.base === initialConflictSignals
-    ? conflictSignalsOverride.value
-    : initialConflictSignals;
   const [focusedConflictProductId, setFocusedConflictProductId] = useState<string | null>(null);
   const [draggedProductId, setDraggedProductId] = useState<string | null>(null);
   const [isRowActionPending, startRowActionTransition] = useTransition();
   const [isStoreRebindPending, startStoreRebindTransition] = useTransition();
   const [isOrderPending, startOrderTransition] = useTransition();
-  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
+  const {
+    signals: conflictSignals,
+    setSignals: setConflictSignals,
+    isChecking: isConflictCheckPending,
+    runConflictCheck,
+  } = useCatalogConflictCheck({
+    initialSignals: initialConflictSignals,
+    runCheck: checkCatalogConflictsAction,
+    onStoreMismatch: setShopifyStoreMismatch,
+    onAfterCheck: () => refreshPreservingScroll(router),
+  });
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictProductId(null);
@@ -168,10 +172,6 @@ export function ProductsCms({
   }, []);
   const requestIdRef = useRef(0);
   const skipFilterFetchRef = useRef(true);
-
-  function setConflictSignals(value: typeof initialConflictSignals) {
-    setConflictSignalsOverride({ base: initialConflictSignals, value });
-  }
 
   function showConflicts(productId: string | null = null) {
     setFocusedConflictProductId(productId);
@@ -255,23 +255,6 @@ export function ProductsCms({
         if (requestIdRef.current === requestId) setLoadingMore(false);
       });
   }, [hasNextPage, loadingMore, endCursor, debouncedQuery, statusFilter, categoryFilter, collectionFilter, sortBy]);
-
-  function handleConflictCheck() {
-    startConflictCheckTransition(async () => {
-      const result = await checkCatalogConflictsAction();
-      if (!("signals" in result)) {
-        pushToast({ message: result.error, tone: "error" });
-        setShopifyStoreMismatch("storeMismatch" in result ? result.storeMismatch ?? null : null);
-        return;
-      }
-      setShopifyStoreMismatch(null);
-      pushToast({ message: result.success, tone: "success" });
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      setConflictSignals(result.signals);
-      if ((result.signals.totalCount ?? 0) > 0) showConflicts();
-      refreshPreservingScroll(router);
-    });
-  }
 
   function applyCollectionOrder(
     current: AdminProductListItem[],
@@ -411,7 +394,7 @@ export function ProductsCms({
           <h1 className="adm-page-title">Catalog</h1>
           <p className="adm-page-subtitle">Products, categories, tags, media, and site publishing state.</p>
         </div>
-        <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} />
+        <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={runConflictCheck} checking={isConflictCheckPending} />
       </div>
       <AdminListWorkspace.Root>
         <AdminListWorkspace.Header
@@ -420,7 +403,7 @@ export function ProductsCms({
           meta={`${products.length} of ${totalCount} · ${categories.length} categories · ${tags.length} tags · ${collections.length} collections`}
           actions={
             <>
-              <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={handleConflictCheck} checking={isConflictCheckPending} compact />
+              <CatalogConflictStatus signals={conflictSignals} onShow={() => showConflicts()} onCheck={runConflictCheck} checking={isConflictCheckPending} compact />
               {shopifyStoreMismatch ? (
                 <AdminButton variant="danger" className="inline-flex items-center justify-center gap-2" onClick={() => setConfirmStoreRebind(true)} disabled={isStoreRebindPending}>
                   Rebind to {shopifyStoreMismatch.currentShopDomain}
