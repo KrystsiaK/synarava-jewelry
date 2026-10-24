@@ -69,7 +69,9 @@ Body`, "check-a-product")).toThrow(HelpArticleFormatError);
 
   it("lists only lowercase article filenames and excludes the template", async () => {
     const articles = await listHelpArticles();
-    expect(articles.map((article) => article.slug)).toContain("add-a-product");
-    expect(articles.map((article) => article.slug)).not.toContain("README");
+    const slugs = articles.map((article) => article.slug);
+    expect(slugs).toContain("add-a-product");
+    expect(slugs).toContain("sync-collections");
+    expect(slugs).not.toContain("README");
   });
 });

@@ -12,6 +12,7 @@ import {
 } from "@/lib/shopify/catalog-presence-server";
 import {
   getLatestCollectionPresenceDifferences,
+  refreshShopifyCollectionState,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
 import { runTranslationReconciliation } from "@/lib/shopify/reconciliation-run";
@@ -39,9 +40,9 @@ export type RefreshShopifyStateResult = {
 
 /**
  * Refresh Shopify-side state for the given scope.
- * Collection commerce refresh lands with sync-unification PR4
- * (`refreshShopifyCollectionState`); until then collections refresh
- * translations + presence only.
+ * Products and collections both refresh commerce windows via
+ * `refreshShopifyProductState` / `refreshShopifyCollectionState`, then
+ * translations (+ presence on catalog-wide scopes).
  */
 export async function refreshShopifyState(
   scope: RefreshShopifyStateScope,
@@ -63,11 +64,8 @@ export async function refreshShopifyState(
     }
     const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
     if (scope.locale && !shopifyLocale) {
-      return {
-        ok: true,
-        warning: `Locale ${scope.locale} is not published in Shopify Markets.`,
-        runId: null,
-      };
+      // Unpublished registry locale: skip translation refresh; do not surface Markets jargon.
+      return { ok: true, runId: null };
     }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
@@ -86,14 +84,16 @@ export async function refreshShopifyState(
   }
 
   if (scope.kind === "collection") {
-    // PR4 adds refreshShopifyCollectionState — until merged, translation + presence only.
+    const collection = await db.collection.findUnique({
+      where: { id: scope.collectionId },
+      select: { shopifyCollectionId: true },
+    });
+    if (collection?.shopifyCollectionId) {
+      await refreshShopifyCollectionState(collection.shopifyCollectionId);
+    }
     const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
     if (scope.locale && !shopifyLocale) {
-      return {
-        ok: true,
-        warning: `Locale ${scope.locale} is not published in Shopify Markets.`,
-        runId: null,
-      };
+      return { ok: true, runId: null };
     }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
@@ -106,8 +106,7 @@ export async function refreshShopifyState(
     });
     return {
       ok: true,
-      warning: translationRun.run?.error
-        ?? "Collection commerce refresh awaits sync-unification PR4 (#245).",
+      warning: translationRun.run?.error ?? undefined,
       runId: translationRun.run?.id ?? null,
     };
   }
@@ -124,8 +123,23 @@ export async function refreshShopifyState(
       await getLatestCollectionPresenceDifferences();
       warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
+
+    const linkedCollections = await db.collection.findMany({
+      where: { shopifyCollectionId: { not: null } },
+      select: { shopifyCollectionId: true },
+      orderBy: { createdAt: "asc" },
+    });
+    // Sequential: same throttling preference as catalog products.
+    for (const collection of linkedCollections) {
+      if (!collection.shopifyCollectionId) continue;
+      try {
+        await refreshShopifyCollectionState(collection.shopifyCollectionId);
+      } catch (error) {
+        warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
+      }
+    }
+
     if (translationRun.run?.error) warnings.push(translationRun.run.error);
-    warnings.push("Collection commerce refresh awaits sync-unification PR4 (#245).");
     return {
       ok: true,
       warning: warnings.length > 0 ? warnings.join(" ") : undefined,

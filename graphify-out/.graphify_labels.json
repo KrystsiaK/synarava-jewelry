@@ -1,7 +1,6 @@
 {
   "0": "live-browser.js",
   "3": "test_parse_instinct.py",
-  "5": "install-executor.js",
   "8": "install-lifecycle.js",
   "13": "helpers.js",
   "24": "bar-chart.tsx",
@@ -72,7 +71,6 @@
   "172": "Vue.js Patterns and Best Practices",
   "173": "5. Re-render Optimization",
   "174": "Windows Desktop E2E Testing",
-  "175": "observer-sessions.js",
   "177": "building-components/SKILL.md",
   "178": "Content Strategy",
   "179": "AI Tells: The Copy Blacklist",

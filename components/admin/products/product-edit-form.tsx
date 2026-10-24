@@ -295,12 +295,9 @@ export function EditProductForm({
         pushToast({ message: result.error, tone: "error" });
         return;
       }
-      if ("warning" in result && result.warning) pushToast({ message: result.warning, tone: "info" });
       if ("signals" in result && result.signals) setConflictSignals(result.signals);
-      if (!options?.quiet && "success" in result && result.success) {
-        pushToast({ message: result.success, tone: "success" });
-      } else if (options?.quiet && "signals" in result && result.signals?.products[currentProduct.id]) {
-        // Product-scoped quiet check still returns catalog-wide totals — don't toast "57 products".
+      // Banner shows the check result; skip success/warning toasts (no Markets/PR jargon).
+      if (options?.quiet && "signals" in result && result.signals?.products[currentProduct.id]) {
         pushToast({ message: "This product differs from Shopify after save.", tone: "info" });
       }
     } finally {

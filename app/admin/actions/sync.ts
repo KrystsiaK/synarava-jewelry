@@ -21,7 +21,6 @@ import {
   fetchShopifyShopIdentity,
   hasShopifyAdminConfig,
   testShopifyAdminConnection,
-  type MissingLocalePublication,
 } from "@/lib/shopify/admin";
 import {
   assertShopifyStoreBinding,
@@ -45,15 +44,10 @@ import {
   type CollectionConflictApplyScope,
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
-
-/** One sentence naming every registered translation locale Shopify hasn't enabled/published yet, or "" if none. */
-function translationLocaleNotice(missingTranslationScopes: string[], unpublishedLocales: MissingLocalePublication[]) {
-  if (missingTranslationScopes.length > 0) {
-    return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
-  }
-  if (unpublishedLocales.length === 0) return "";
-  const names = unpublishedLocales.map((locale) => `${locale.name} (${locale.shopifyLocale})`).join(", ");
-  return ` ${names} ${unpublishedLocales.length === 1 ? "is" : "are"} not enabled/published in Shopify Markets; translation sync will be skipped for ${unpublishedLocales.length === 1 ? "it" : "them"}.`;
+/** Missing translation API scopes only — never Markets / unpublished-locale jargon. */
+function translationScopeNotice(missingTranslationScopes: string[]) {
+  if (missingTranslationScopes.length === 0) return "";
+  return ` Translation sync is unavailable: missing ${missingTranslationScopes.join(", ")}.`;
 }
 
 async function assertConfiguredShopifyStore() {
@@ -98,61 +92,37 @@ export async function checkCatalogConflictsAction() {
       };
     }
 
-    const notices: string[] = [];
-    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales).trim();
-    if (translationNotice) notices.push(translationNotice);
+    // Side-effect webhook ensure stays here; do not surface setup notices as conflict-check toasts.
     if (env.APP_URL && env.SHOPIFY_WEBHOOK_SECRET) {
       try {
         await ensureProductWebhookSubscriptions(env.APP_URL);
-      } catch (error) {
-        notices.push(`Product webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      } catch {
+        /* non-blocking */
       }
       try {
         await ensureOrdersPaidWebhookSubscription(env.APP_URL);
-      } catch (error) {
-        notices.push(`Orders paid webhook could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      } catch {
+        /* non-blocking */
       }
       try {
         await ensureOrderLifecycleWebhookSubscriptions(env.APP_URL, {
           includeReturns: connection.missingReturnsScopes.length === 0,
         });
-      } catch (error) {
-        notices.push(
-          `Order lifecycle webhooks (cancel/refund/return) could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`,
-        );
+      } catch {
+        /* non-blocking */
       }
-    } else {
-      notices.push("Automatic product updates are unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");
-    }
-    if (connection.missingReturnsScopes.length > 0) {
-      notices.push(
-        `Return-request webhook (RETURNS_REQUEST) is unavailable: missing ${connection.missingReturnsScopes.join(", ")}.`,
-      );
-    }
-    if (connection.missingReviewScopes.length > 0) {
-      notices.push(`Product review publishing is unavailable: missing ${connection.missingReviewScopes.join(", ")}.`);
-    } else if (!env.APP_URL || !env.SHOPIFY_WEBHOOK_SECRET) {
-      notices.push("Product review publishing is unavailable until APP_URL and SHOPIFY_WEBHOOK_SECRET are configured.");
-    } else {
-      try {
-        await ensureProductReviewWebhookSubscriptions(env.APP_URL);
-      } catch (error) {
-        notices.push(`Product review webhooks could not be configured: ${error instanceof Error ? error.message : "unknown Shopify error"}.`);
+      if (connection.missingReviewScopes.length === 0) {
+        try {
+          await ensureProductReviewWebhookSubscriptions(env.APP_URL);
+        } catch {
+          /* non-blocking */
+        }
       }
-    }
-    if (connection.missingWishlistScopes.length > 0) {
-      notices.push(`Customer wishlist saving is unavailable: missing ${connection.missingWishlistScopes.join(", ")}.`);
     }
 
     const result = await runCatalogConflictCheck(session.username);
     revalidatePath("/admin/products");
-    return {
-      ...result,
-      warning: [result.warning, ...notices].filter(Boolean).join(" ") || undefined,
-      success: result.signals.totalCount === 0
-        ? "Conflict check complete. No conflicts found."
-        : `Conflict check complete. Review ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} in the conflict list.`,
-    };
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check catalog conflicts." };
   }
@@ -171,12 +141,7 @@ export async function checkProductConflictsAction(input: { productId: string; lo
     });
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${input.productId}`);
-    return {
-      ...result,
-      success: result.signals.totalCount === 0
-        ? "Conflict check complete. No conflicts found."
-        : `Conflict check complete. ${result.signals.totalCount} product${result.signals.totalCount === 1 ? "" : "s"} need a decision.`,
-    };
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check product conflicts." };
   }
@@ -258,19 +223,9 @@ export async function checkCollectionConflictsAction() {
         },
       };
     }
-    const notices: string[] = [];
-    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales).trim();
-    if (translationNotice) notices.push(translationNotice);
-
     const result = await runCollectionsConflictCheck(session.username);
     revalidatePath("/admin/collections");
-    return {
-      ...result,
-      warning: [result.warning, ...notices].filter(Boolean).join(" ") || undefined,
-      success: result.signals.totalCount === 0
-        ? "Conflict check complete. No collection conflicts found."
-        : `Conflict check complete. Review ${result.signals.totalCount} collection${result.signals.totalCount === 1 ? "" : "s"} in the conflict list.`,
-    };
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
   }
@@ -288,12 +243,7 @@ export async function checkOneCollectionConflictsAction(input: { collectionId: s
     });
     revalidatePath("/admin/collections");
     revalidatePath(`/admin/collections/${input.collectionId}`);
-    return {
-      ...result,
-      success: result.signals.totalCount === 0
-        ? "Conflict check complete. No conflicts found."
-        : `Conflict check complete. ${result.signals.totalCount} collection${result.signals.totalCount === 1 ? "" : "s"} need a decision.`,
-    };
+    return result;
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not check collection conflicts." };
   }
@@ -511,7 +461,7 @@ export async function rebindShopifyStoreAction(expectedShopDomain: string) {
     }
     const result = await rebindShopifyStore(expectedShopDomain, connection.shopDomain);
     revalidatePath("/admin/products");
-    const translationNotice = translationLocaleNotice(connection.missingTranslationScopes, connection.unpublishedLocales);
+    const translationNotice = translationScopeNotice(connection.missingTranslationScopes);
     return {
       success: `Catalog is now bound to ${result.shopDomain}. Product saves, Shopify webhooks, and conflict checks will establish the new store identities.${translationNotice}`,
       result,

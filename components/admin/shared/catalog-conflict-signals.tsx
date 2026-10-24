@@ -2,7 +2,7 @@
 
 import { GitCompareArrows, Languages, RefreshCw } from "lucide-react";
 
-import { AdminButton } from "@/components/synarava-cms";
+import { AdminButton } from "@/components/admin/shared/admin-button";
 import type { CatalogConflictProductSignal, CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 function plural(count: number, singular: string, pluralWord: string) {
@@ -75,11 +75,12 @@ export function CatalogConflictStatus({
     >
       <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
       <span className="font-semibold">{statusText(signals, entityNoun)}</span>
-      {signals.totalCount !== null && signals.state !== "ready" && hasConflicts ? (
-        <span className="text-[var(--adm-muted)]">{plural(signals.totalCount, "saved conflict product", "saved conflict products")}</span>
-      ) : null}
-      {signals.state !== "ready" && signals.checkedAt ? (
-        <time className="text-[var(--adm-muted)]" dateTime={signals.checkedAt} title="Last full translation check">
+      {signals.checkedAt ? (
+        <time
+          className="text-[var(--adm-muted)]"
+          dateTime={signals.checkedAt}
+          title="Last full conflict check"
+        >
           Last full check {new Date(signals.checkedAt).toLocaleString()}
         </time>
       ) : null}
