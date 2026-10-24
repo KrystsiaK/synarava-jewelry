@@ -109,13 +109,4 @@ export async function writeThroughAssignedSkuToWorkingSnapshot(input: {
     where: { id: input.productId },
     data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
   });
-
-  if (product.shopifyProductId) {
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: product.shopifyProductId,
-      localProductId: input.productId,
-      window: nextWorking,
-    });
-  }
 }

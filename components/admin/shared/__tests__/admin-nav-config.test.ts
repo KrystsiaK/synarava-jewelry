@@ -4,12 +4,12 @@ import {
   adminHrefMatches,
   adminHrefUnder,
   buildAdminNavItems,
-  countAdminNavSyncBySection,
   pageSlugFromAdminHref,
   resolveAdminNavItemSignal,
   resolveAdminNavSignal,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
+import { countAdminNavSyncBySection } from "@/lib/sync/nav-counts";
 
 describe("admin-nav-config", () => {
   it("matches path and hash for deep links", () => {

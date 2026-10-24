@@ -362,12 +362,6 @@ async function finishProductMediaMutation(productId: string, success: string): P
         workingSnapshot: nextWorking as Prisma.InputJsonValue,
       },
     });
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: linked.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
-    });
   } else {
     await db.product.updateMany({
       where: { id: productId, shopifyProductId: { not: null } },
@@ -536,14 +530,6 @@ export async function updateWorkingSnapshotMediaAltAction(
       workingSnapshot: nextWorking as Prisma.InputJsonValue,
     },
   });
-  if (product.shopifyProductId) {
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: product.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
-    });
-  }
 
   revalidatePath("/admin/products");
   revalidateStorefront();
@@ -598,14 +584,6 @@ export async function removeWorkingSnapshotMediaAction(
       imageUrl: coverUrl,
     },
   });
-  if (product.shopifyProductId) {
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: product.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
-    });
-  }
 
   revalidatePath("/admin/products");
   revalidateStorefront();
@@ -1337,12 +1315,6 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       await db.product.update({
         where: { id: product.id },
         data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
-      });
-      const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-      await patchOurProductWindow({
-        shopifyProductId: linked.shopifyProductId,
-        localProductId: product.id,
-        window: nextWorking,
       });
     }
   }

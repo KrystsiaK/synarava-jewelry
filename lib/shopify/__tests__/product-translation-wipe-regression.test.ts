@@ -63,7 +63,7 @@ describe("product translation wipe regression", () => {
     expect(syncStatus).toBe("PENDING");
   });
 
-  it("Pull keeps the RU draft when Shopify has no translation after Push", () => {
+  it("Pull flags RU draft vs empty Shopify as CONFLICT (never auto-applies empty wipe)", () => {
     expect(decideProductTranslationPull({
       local: {
         handle: "",
@@ -72,10 +72,8 @@ describe("product translation wipe regression", () => {
         seoTitle: "",
         seoDescription: "",
       },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: null,
       remote: null,
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
   });
 
   it("products/update webhook refreshes Shopify state only (no Synarava apply / translation pull)", async () => {

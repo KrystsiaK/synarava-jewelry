@@ -6,8 +6,8 @@ import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-sign
 import {
   filterSignalsForView,
   type CatalogConflictViewScope,
-} from "@/components/admin/products/catalog-conflict-workspace";
-import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
+} from "@/components/admin/products/catalog-conflict-view";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { Tooltip } from "@/components/ui/tooltip";
 
 function conflictCount(

@@ -78,9 +78,6 @@ export function adminNavSyncSectionForEntity(
   return "settings";
 }
 
-/** Tally unresolved divergences into sidebar section buckets via selectSyncCounts. */
-export { countAdminNavSyncBySection } from "@/lib/sync/nav-counts";
-
 /** Map a reconcile difference onto the most specific sidebar href. */
 export function syncDifferenceToNavHref(
   difference: { rootEntityType: AdminNavSyncEntityType; rootEntityId: string },

@@ -147,7 +147,7 @@ const preview: FieldConflictPreviewModel = {
       field: sharedField,
       direction: "SHOPIFY_TO_SYNARAVA",
       willClearNonEmptyValue: false,
-      impactNote: "Product type is a shared label — confirming updates every product that uses this type name.",
+      impactNote: "Product type is a shared label — confirming affects 1 product that uses this type name.",
     },
     {
       entityId: "p1",

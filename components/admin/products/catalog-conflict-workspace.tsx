@@ -26,126 +26,31 @@ import type {
 } from "@/lib/shopify/catalog-conflict-apply";
 import type {
   CatalogConflictDirection,
-  CatalogConflictField,
   ProductCatalogConflict,
 } from "@/lib/shopify/catalog-conflict";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
-import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
-import { productEditorSectionForConflictField } from "@/components/admin/products/commerce-conflict-section";
-import { productConflictBadgeCount } from "@/lib/sync/badge-count";
+import {
+  filterConflictFieldsForView,
+  filterSignalsForView,
+  isLocaleOrSectionScoped,
+  isProductScoped,
+  isProductTypeConflictField,
+  productTypeApplyImpactNote,
+  type CatalogConflictViewScope,
+} from "@/components/admin/products/catalog-conflict-view";
+
+export type { CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-view";
+export {
+  fieldMatchesViewLocale,
+  fieldMatchesViewSection,
+  filterConflictFieldsForView,
+  filterSignalsForView,
+} from "@/components/admin/products/catalog-conflict-view";
 
 type ProductSummary = { id: string; name: string; sku: string | null };
 type ToastTone = "success" | "error" | "info";
 
-/**
- * Same conflict UI, different tree node:
- * full catalog · one product · one product locale · one editor section.
- */
-export type CatalogConflictViewScope =
-  | { kind: "catalog" }
-  | { kind: "product"; productId: string }
-  | { kind: "productLocale"; productId: string; locale: string }
-  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection };
-
-function normalizeLocaleCode(locale: string) {
-  return locale.trim().toLowerCase();
-}
-
-/**
- * Language shells include SHARED commerce under every locale (one price → EN/PT/RU)
- * plus that locale's translation rows. See docs/wiki/commerce-sync.md marker tree.
- */
-function isSharedScope(field: CatalogConflictField): boolean {
-  return String(field.scope.kind).toUpperCase() === "SHARED";
-}
-
-export function fieldMatchesViewLocale(field: CatalogConflictField, locale: string): boolean {
-  if (isSharedScope(field)) return true;
-  return field.scope.kind === "LOCALE"
-    && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
-}
-
-export function fieldMatchesViewSection(
-  field: CatalogConflictField,
-  section: ProductEditorSection,
-  locale: string,
-): boolean {
-  if (productEditorSectionForConflictField(field) !== section) return false;
-  // Shared commerce belongs under every language shell for that section.
-  if (isSharedScope(field)) return true;
-  return fieldMatchesViewLocale(field, locale);
-}
-
-export function filterConflictFieldsForView(
-  fields: CatalogConflictField[],
-  viewScope: CatalogConflictViewScope | undefined,
-): CatalogConflictField[] {
-  if (!viewScope || viewScope.kind === "catalog" || viewScope.kind === "product") return fields;
-  if (viewScope.kind === "productLocale") {
-    return fields.filter((field) => fieldMatchesViewLocale(field, viewScope.locale));
-  }
-  return fields.filter((field) => fieldMatchesViewSection(field, viewScope.section, viewScope.locale));
-}
-
-export function filterSignalsForView(
-  signals: CatalogConflictSignals,
-  viewScope: CatalogConflictViewScope | undefined,
-): CatalogConflictSignals {
-  if (!viewScope || viewScope.kind === "catalog") return signals;
-  const productId = viewScope.productId;
-  const signal = signals.products[productId];
-  if (!signal) {
-    return { ...signals, products: {}, totalCount: 0 };
-  }
-  if (viewScope.kind === "product") {
-    return { ...signals, products: { [productId]: signal }, totalCount: 1 };
-  }
-  const locale = normalizeLocaleCode(viewScope.locale);
-  const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
-  // Shared commerce (price, vendor, …) is one payload under every language shell —
-  // not EN-only. See docs/wiki/commerce-sync.md.
-  const shared = Boolean(signal.shared);
-  const hasLocaleConflict = locales.some((entry) => entry.count > 0);
-  if (!hasLocaleConflict && !shared && !signal.presence) {
-    return { ...signals, products: {}, totalCount: 0 };
-  }
-  const scoped = {
-    ...signal,
-    shared,
-    locales,
-    leafCount: undefined,
-  };
-  // Recompute leafCount for this locale shell (shared + locale rows) —
-  // do not keep the product-wide leafCount.
-  return {
-    ...signals,
-    products: {
-      [productId]: {
-        ...scoped,
-        leafCount: productConflictBadgeCount(scoped),
-      },
-    },
-    totalCount: 1,
-  };
-}
-
-function isProductScoped(viewScope: CatalogConflictViewScope | undefined): viewScope is
-  | { kind: "product"; productId: string }
-  | { kind: "productLocale"; productId: string; locale: string }
-  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection } {
-  return viewScope?.kind === "product"
-    || viewScope?.kind === "productLocale"
-    || viewScope?.kind === "productSection";
-}
-
-function isLocaleOrSectionScoped(
-  viewScope: CatalogConflictViewScope,
-): viewScope is
-  | { kind: "productLocale"; productId: string; locale: string }
-  | { kind: "productSection"; productId: string; locale: string; section: ProductEditorSection } {
-  return viewScope.kind === "productLocale" || viewScope.kind === "productSection";
-}
-
+/** Thin wrapper: orchestration only — UI is FieldConflictPanel. */
 export function CatalogConflictWorkspace({
   open,
   onClose,
@@ -213,20 +118,22 @@ export function CatalogConflictWorkspace({
         label: item.label,
         reason: item.reason,
       })),
-      entries: model.entries.map((entry) => {
-        const isProductType = entry.field.label === "Product type"
-          || entry.field.fieldKey.toLowerCase().includes("product_type")
-          || entry.field.fieldKey.toLowerCase().includes("product-type");
-        return {
+      entries: (() => {
+        const productTypeIds = new Set(
+          model.entries
+            .filter((entry) => isProductTypeConflictField(entry.field))
+            .map((entry) => entry.productId),
+        );
+        return model.entries.map((entry) => ({
           entityId: entry.productId,
           field: entry.field,
           direction: entry.direction,
           willClearNonEmptyValue: entry.willClearNonEmptyValue,
-          impactNote: isProductType
-            ? "Product type is a shared label — confirming updates every product that uses this type name."
+          impactNote: isProductTypeConflictField(entry.field)
+            ? productTypeApplyImpactNote(productTypeIds.size)
             : null,
-        };
-      }),
+        }));
+      })(),
     };
   }
 

@@ -1,6 +1,6 @@
 # Sync unification — two states only (Shopify vs Synarava)
 
-**Status:** proposal rewrite (docs only; no app code)  
+**Status:** **done (PR7 cleanup)** — one sync system on `lib/sync`; `CommerceSyncStore` dropped; two-way translations only; FieldConflictPanel is the Apply UI.  
 **Supersedes:** earlier “three pipelines / one engine” draft merged via #234  
 **Audited:** `origin/staging` @ `b7044f13` (2026-10-23); GraphQL check via Shopify Admin schema / docs (API **2026-07**, same as `SHOPIFY_ADMIN_API_VERSION` default)  
 **Related:** [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [commerce-sync](../wiki/commerce-sync.md), [languages-as-data](./languages-as-data.md), Mission Control [§0 Simplicity Contract](../runbooks/mission-control-hub-plan.md), skill `shopify-commerce-compare`
@@ -216,7 +216,18 @@ Each PR: characterization tests for current behavior first where behavior change
 
 ### PR6 — Delete dead weight
 
-See §7. Drop `CommerceSyncStore` if badges no longer need it (D1). Drop `projection-merge` / `shopifyBaseSnapshot` / translation snapshot tables (T1/T2/T5/T6).
+See §7. Dropped `projection-merge` / `shopifyBaseSnapshot` / translation snapshot tables (T1/T2/T5/T6). `CommerceSyncStore` kept until PR7 (badges still had console/cache callers).
+
+### PR7 — Finish one sync system (cleanup)
+
+1. Drop `CommerceSyncStore` + `lib/commerce-store` + entry console flows (D1) — counters already from `lib/sync`.
+2. Delete dead `applyShopifyProductTypeLabel`; product-type Apply stays on Field Conflict preview (`affects N products`).
+3. Collapse `decideProductTranslationPull` to two-way (`UNCHANGED` / `CONFLICT` / `APPLY` with force).
+4. Thin product/collection conflict workspaces to FieldConflictPanel wiring + view filters.
+5. Remove thin re-exports (`countAdminNavSyncBySection` from admin-nav-config / synarava-cms; `product-conflict-badge-count` shim).
+6. Docs + guard tests updated so removed symbols cannot return.
+
+**Exit:** one module (`lib/sync`), two states, human Apply only for Synarava writes.
 
 ---
 
@@ -230,7 +241,7 @@ See §7. Drop `CommerceSyncStore` if badges no longer need it (D1). Drop `projec
 | `ShopifyTranslationSnapshot` table + `lastSyncedSnapshot` column | PR3/PR6 |
 | Three-way kinds as auto-apply drivers in `sync-comparison` / `planReconcile` | PR3 |
 | `lib/shopify/projection-merge.ts` + `Product.shopifyBaseSnapshot` | PR6 |
-| `CommerceSyncStore` (if replaced) | PR6 |
+| `CommerceSyncStore` (if replaced) | **PR7** (destructive DROP; backup prod first) |
 | `TranslationsCms` field merge/apply UI | PR5 |
 | Duplicate collection/product dialog implementations | PR5 |
 | Parallel counter builders (`countAdminNavSyncBySection` from raw reconcile rows, `commerceFieldCountsFromStore`, badge≠banner paths) | PR5 — replaced by `selectSyncCounts` |
@@ -415,13 +426,13 @@ query SyncProbeCollections($locale: String!) {
 
 ## 10. Simplicity Contract checklist
 
-- [ ] No new npm dependency
-- [ ] Prefer **deleting** `CommerceSyncStore` / snapshot tables over adding a fourth store
-- [ ] No interface-with-one-impl for “ISyncEngine” — plain functions in `lib/sync/`
-- [ ] One compare + one selector (no parallel counters)
-- [ ] No Bulk Operation dependency for current catalog size
-- [ ] Schema changes: offline `migrate diff` only; deploy via pipeline
-- [ ] Agents stay read-only on real DBs
+- [x] No new npm dependency
+- [x] Prefer **deleting** `CommerceSyncStore` / snapshot tables over adding a fourth store
+- [x] No interface-with-one-impl for “ISyncEngine” — plain functions in `lib/sync/`
+- [x] One compare + one selector (no parallel counters)
+- [x] No Bulk Operation dependency for current catalog size
+- [x] Schema changes: offline `migrate diff` only; deploy via pipeline
+- [x] Agents stay read-only on real DBs
 
 ---
 

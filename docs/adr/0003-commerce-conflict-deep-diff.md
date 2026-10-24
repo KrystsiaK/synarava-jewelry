@@ -10,7 +10,7 @@
 
 ## Decision
 
-Каждая сущность хранит Shopify-shaped окна (`workingSnapshot` / `shopifySnapshot`, store `CommerceSyncStore`). Один normalize убирает технический шум и применяется и перед save, и перед compare; конфликт = deep-diff объектов. Allowlist для детекта запрещены. Текущая модель — [`docs/wiki/commerce-sync.md`](../wiki/commerce-sync.md).
+Каждая сущность хранит Shopify-shaped окна (`workingSnapshot` / `shopifySnapshot`). Один normalize убирает технический шум и применяется и перед save, и перед compare; конфликт = deep-diff объектов. Allowlist для детекта запрещены. Counters — только `lib/sync` (`selectSyncCounts`). Текущая модель — [`docs/wiki/commerce-sync.md`](../wiki/commerce-sync.md).
 
 ## Alternatives Considered
 

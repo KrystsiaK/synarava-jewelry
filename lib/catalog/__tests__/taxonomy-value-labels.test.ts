@@ -23,7 +23,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import {
-  applyShopifyProductTypeLabel,
   ensureTaxonomySeedLabels,
   getTaxonomyFacetLabelMap,
   saveSynaravaTaxonomyLabels,
@@ -60,21 +59,6 @@ describe("ensureTaxonomySeedLabels", () => {
     mocks.createMany.mockResolvedValueOnce({ count: 4 });
     await expect(ensureTaxonomySeedLabels()).resolves.toBe(4);
     expect(mocks.createMany).toHaveBeenCalledWith(expect.objectContaining({ skipDuplicates: true }));
-  });
-});
-
-describe("applyShopifyProductTypeLabel", () => {
-  it("upserts PRODUCT_TYPE with SHOPIFY source", async () => {
-    mocks.upsert.mockResolvedValueOnce({});
-    await applyShopifyProductTypeLabel({
-      enProductType: "Brooches",
-      locale: "ru",
-      label: "Броши",
-    });
-    expect(mocks.upsert).toHaveBeenCalledWith(expect.objectContaining({
-      create: expect.objectContaining({ kind: "PRODUCT_TYPE", source: "SHOPIFY", label: "Броши" }),
-      update: expect.objectContaining({ source: "SHOPIFY", label: "Броши" }),
-    }));
   });
 });
 

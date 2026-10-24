@@ -1,4 +1,4 @@
-import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflict-signals";
 
 export type ProductConflictCompareSummary = {

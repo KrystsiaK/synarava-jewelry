@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 
 describe("productConflictBadgeCount", () => {
   it("counts shared commerce fields, not a boolean +1", () => {
