@@ -65,24 +65,32 @@ export function AdminShopifySyncSignal({
   const { checkRunning, setCheckRunning } = useAdminShopifyCheckControls();
   const [run, setRun] = useState(initialRun);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [autoChecking, setAutoChecking] = useState(true);
+  const [autoChecking, setAutoChecking] = useState(connected);
   const [manualChecking, setManualChecking] = useState(false);
+  const [prevConnected, setPrevConnected] = useState(connected);
   const mounted = useRef(true);
   const started = useRef(false);
+
+  if (connected !== prevConnected) {
+    setPrevConnected(connected);
+    if (!connected) setAutoChecking(false);
+  }
+
   const clientChecking = autoChecking || manualChecking;
   const serverChecking = Boolean(
     run && (run.status === "QUEUED" || run.status === "RUNNING"),
   );
-  const isChecking = connected && (clientChecking || serverChecking || checkRunning);
+  // Do not OR context checkRunning here — that would latch true forever when we publish it.
+  const isChecking = connected && (clientChecking || serverChecking);
+  if (checkRunning !== isChecking) {
+    setCheckRunning(isChecking);
+  }
+
   const state = !connected
     ? ({ kind: "disconnected", label: "Shopify disconnected" } as const)
     : isChecking
       ? ({ kind: "checking", label: "Checking Shopify…" } as const)
       : signalState(run, connected, requestError);
-
-  useEffect(() => {
-    setCheckRunning(isChecking);
-  }, [isChecking, setCheckRunning]);
 
   const poll = useCallback(async (candidate: ReconcileRunSummary | null) => {
     let current = candidate;
@@ -110,11 +118,7 @@ export function AdminShopifySyncSignal({
     if (!mounted.current) return;
     const next = payload.run ?? null;
     setRun(next);
-    if (payload.alreadyRunning && next && (next.status === "QUEUED" || next.status === "RUNNING")) {
-      await poll(next);
-    } else {
-      await poll(next);
-    }
+    await poll(next);
     // Refresh RSC banners / nav counters from the same waterfall result.
     router.refresh();
   }, [poll, router]);
@@ -122,7 +126,6 @@ export function AdminShopifySyncSignal({
   useEffect(() => {
     mounted.current = true;
     if (!connected) {
-      setAutoChecking(false);
       return () => {
         mounted.current = false;
       };

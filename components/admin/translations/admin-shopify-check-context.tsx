@@ -4,7 +4,6 @@ import {
   createContext,
   use,
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -26,10 +25,12 @@ export function AdminShopifyCheckProvider({
   children: ReactNode;
 }) {
   const [checkRunning, setCheckRunningState] = useState(initialRunning);
-
-  useEffect(() => {
+  const [prevInitialRunning, setPrevInitialRunning] = useState(initialRunning);
+  // Sync layout prop after reload / RSC refresh without an effect (react-hooks cascading-renders).
+  if (initialRunning !== prevInitialRunning) {
+    setPrevInitialRunning(initialRunning);
     setCheckRunningState(initialRunning);
-  }, [initialRunning]);
+  }
 
   const setCheckRunning = useCallback((running: boolean) => {
     setCheckRunningState(running);

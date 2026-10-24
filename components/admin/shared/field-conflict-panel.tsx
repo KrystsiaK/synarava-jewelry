@@ -438,6 +438,9 @@ export function FieldConflictDetailsModal({
   onWholeRecordKeepOurs?: (entityId: string) => void;
   wholeRecordHint?: ReactNode;
 }) {
+  const checkRunning = useAdminShopifyCheckRunning();
+  const busy = applying;
+  const actionsBusy = busy || checkRunning;
   if (!open) return null;
   const ordered = orderedConflictFields(fields);
   const actionable = ordered.filter(
@@ -454,9 +457,6 @@ export function FieldConflictDetailsModal({
     && (needsWholeRecordSync || hasBlockedCommerce)
     && (onWholeRecordTakeShopify || onWholeRecordKeepOurs),
   );
-  const checkRunning = useAdminShopifyCheckRunning();
-  const busy = applying;
-  const actionsBusy = busy || checkRunning;
 
   return (
     <AnimatedModal
