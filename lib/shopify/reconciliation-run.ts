@@ -410,6 +410,34 @@ function scopeMatches(
   return true;
 }
 
+export type AttachedTranslationReconciliationResult = {
+  run: ReconcileRunSummary | null;
+  reused: false;
+  checkedCount: number;
+  differenceCount: number;
+  translationError: string | null;
+  translationStatus: Exclude<ReconcileRunStatus, "QUEUED" | "RUNNING">;
+};
+
+export type OwnedTranslationReconciliationResult = CreateOrReuseResult | {
+  run: ReconcileRunSummary | null;
+  reused: false;
+};
+
+/** Catalog waterfall: attach to an existing run; caller finishes the run. */
+export async function runTranslationReconciliation(input: {
+  trigger: ReconcileTrigger;
+  requestedBy?: string | null;
+  scope?: ReconcileScope;
+  attachToRunId: string;
+}): Promise<AttachedTranslationReconciliationResult>;
+/** Standalone translation check: creates/reuses and finishes its own run. */
+export async function runTranslationReconciliation(input: {
+  trigger: ReconcileTrigger;
+  requestedBy?: string | null;
+  scope?: ReconcileScope;
+  attachToRunId?: undefined;
+}): Promise<OwnedTranslationReconciliationResult>;
 export async function runTranslationReconciliation({
   trigger,
   requestedBy,
@@ -425,7 +453,7 @@ export async function runTranslationReconciliation({
   requestedBy?: string | null;
   scope?: ReconcileScope;
   attachToRunId?: string;
-}) {
+}): Promise<AttachedTranslationReconciliationResult | OwnedTranslationReconciliationResult> {
   let runId: string;
   if (attachToRunId) {
     runId = attachToRunId;
