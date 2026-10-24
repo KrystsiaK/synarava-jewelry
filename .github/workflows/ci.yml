@@ -322,6 +322,7 @@ jobs:
 
       # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
       - name: Cache Playwright browsers
+        id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
@@ -330,15 +331,25 @@ jobs:
             playwright-${{ runner.os }}-
 
       - name: Install Playwright browsers
+        env:
+          PLAYWRIGHT_CACHE_HIT: ${{ steps.playwright-cache.outputs.cache-hit }}
         run: |
           set -euo pipefail
           attempt=1
           max_attempts=3
+          # Cache hit: skip --with-deps (apt is the usual hang). Miss: install OS deps too.
+          # -k 30: SIGKILL if the child ignores SIGTERM after the 300s budget (otherwise
+          # timeout waits forever and burns the whole job timeout).
+          if [ "${PLAYWRIGHT_CACHE_HIT}" = "true" ]; then
+            install_args=(install chromium webkit)
+          else
+            install_args=(install --with-deps chromium webkit)
+          fi
           while [ "$attempt" -le "$max_attempts" ]; do
-            echo "Playwright install attempt ${attempt}/${max_attempts}"
+            echo "Playwright install attempt ${attempt}/${max_attempts} (cache-hit=${PLAYWRIGHT_CACHE_HIT:-false})"
             status=0
-            # Capture non-zero in || so a failed `if` does not reset $? to 0.
-            timeout 300 pnpm exec playwright install --with-deps chromium webkit || status=$?
+            # Capture non-zero in || so a failed command does not leave status stuck at 0.
+            timeout -k 30 300 pnpm exec playwright "${install_args[@]}" || status=$?
             if [ "$status" -eq 0 ]; then
               exit 0
             fi
