@@ -336,10 +336,12 @@ jobs:
           max_attempts=3
           while [ "$attempt" -le "$max_attempts" ]; do
             echo "Playwright install attempt ${attempt}/${max_attempts}"
-            if timeout 300 pnpm exec playwright install --with-deps chromium webkit; then
+            status=0
+            # Capture non-zero in || so a failed `if` does not reset $? to 0.
+            timeout 300 pnpm exec playwright install --with-deps chromium webkit || status=$?
+            if [ "$status" -eq 0 ]; then
               exit 0
             fi
-            status=$?
             # timeout(1) exits 124 on deadline; other non-zero = install failure
             echo "Playwright install attempt ${attempt} failed (exit ${status})"
             if [ "$attempt" -eq "$max_attempts" ]; then
