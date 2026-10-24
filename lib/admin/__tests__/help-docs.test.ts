@@ -72,6 +72,7 @@ Body`, "check-a-product")).toThrow(HelpArticleFormatError);
     const slugs = articles.map((article) => article.slug);
     expect(slugs).toContain("add-a-product");
     expect(slugs).toContain("sync-collections");
+    expect(slugs).toContain("shopify-sync-button");
     expect(slugs).not.toContain("README");
   });
 });
