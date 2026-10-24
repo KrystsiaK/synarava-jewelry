@@ -19,6 +19,7 @@ import type { SyncResult } from "./types";
 export type SyncWaterfallResult = {
   result: SyncResult;
   warning?: string;
+  alreadyRunning?: boolean;
 };
 
 /**
@@ -40,6 +41,16 @@ export async function runSyncWaterfall(input: {
     const refreshed = await refreshShopifyState(input.scope, input.requestedBy, {
       trigger: input.trigger,
     });
+    if (refreshed.alreadyRunning) {
+      const compareInput = await readSynaravaStateForCompare(input.scope, {
+        adminUsername: input.requestedBy,
+      });
+      return {
+        result: compareSyncState(compareInput),
+        warning: "already running",
+        alreadyRunning: true,
+      };
+    }
     warning = refreshed.warning;
     checkedAt = new Date().toISOString();
   }

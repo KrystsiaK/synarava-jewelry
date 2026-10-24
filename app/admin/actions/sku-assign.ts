@@ -1,7 +1,6 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
-import { after } from "next/server";
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
@@ -25,7 +24,7 @@ import {
   readPendingSkuReservation,
 } from "@/lib/sku/pending-reservation";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 
 export type SkuAssignVariantRow = {
   variantId: string;
@@ -73,22 +72,6 @@ async function loadProductForSku(productId: string) {
         select: { id: true, sku: true, title: true, shopifyVariantId: true },
       },
     },
-  });
-}
-
-function scheduleSkuAssignConflictCheck(input: {
-  productId: string;
-  shopifyProductId: string | null | undefined;
-  requestedBy: string;
-}) {
-  if (!input.shopifyProductId || !hasShopifyAdminConfig()) return;
-  after(() => {
-    void runProductConflictCheck({
-      productId: input.productId,
-      requestedBy: input.requestedBy,
-    }).catch((error) => {
-      console.error("[sku-assign] scoped conflict check failed", error);
-    });
   });
 }
 
@@ -299,12 +282,10 @@ export async function assignProductSkuAction(input: {
     },
   );
 
-  // Persist may have run on Shopify-write failure too — re-inspect whenever linked.
-  scheduleSkuAssignConflictCheck({
-    productId: input.productId,
-    shopifyProductId: product?.shopifyProductId,
-    requestedBy: currentUser.username,
-  });
+  // Persist may have run on Shopify-write failure too — full catalog check after local write.
+  if (hasShopifyAdminConfig()) {
+    await runAfterSaveCatalogConflictCheck(currentUser.username);
+  }
 
   if (!result.ok) {
     revalidatePath(`/admin/products/${input.productId}`);
@@ -345,11 +326,9 @@ export async function resumePendingSkuAction(input: {
     },
   );
 
-  scheduleSkuAssignConflictCheck({
-    productId: input.productId,
-    shopifyProductId: product?.shopifyProductId,
-    requestedBy: currentUser.username,
-  });
+  if (hasShopifyAdminConfig()) {
+    await runAfterSaveCatalogConflictCheck(currentUser.username);
+  }
 
   revalidatePath(`/admin/products/${input.productId}`);
   revalidatePath("/admin/products");

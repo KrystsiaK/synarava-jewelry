@@ -9,6 +9,7 @@ import {
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminAlert, AdminHelp, AdminIconButton, AdminListWorkspace } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
@@ -44,6 +45,8 @@ export function CreateCollectionForm({
   const translationLocaleCodes = translationLocales.map((locale) => locale.code);
   const [draft, setDraft] = useState<CollectionDraft>(() => emptyCollectionDraft(translationLocaleCodes));
   const { pushToast } = useAdminToast();
+  const checkRunning = useAdminShopifyCheckRunning();
+  const saveBlocked = isPending || checkRunning;
 
   useDraftAutosave({
     formRef,
@@ -120,13 +123,15 @@ export function CreateCollectionForm({
               }
               actions={
                 <AdminIconButton
-                  label={isPending ? "Saving collection" : "Save collection"}
+                  label={isPending ? "Saving collection" : checkRunning ? "Save paused" : "Save collection"}
                   tooltip={
                     isPending
                       ? "Saving collection…"
-                      : "Save collection locally. Fields marked with * are required."
+                      : checkRunning
+                        ? "Shopify check in progress. Save is paused until it finishes."
+                        : "Save collection locally. Fields marked with * are required."
                   }
-                  disabled={isPending}
+                  disabled={saveBlocked}
                   onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
                 >
                   {isPending ? (

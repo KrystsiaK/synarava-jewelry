@@ -1,81 +1,122 @@
 "use client";
 
 import { RefreshCw } from "lucide-react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { useAdminShopifyCheckControls } from "@/components/admin/translations/admin-shopify-check-context";
 import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
 
 type SyncSignalState =
-  | { kind: "checking"; label: "Checking Shopify" }
-  | { kind: "current"; label: "Shopify current" }
-  | { kind: "differences"; label: string }
-  | { kind: "partial"; label: "Check incomplete" }
-  | { kind: "unavailable"; label: "Shopify unavailable" };
+  | { kind: "checking"; label: "Checking Shopify…" }
+  | { kind: "current"; label: string }
+  | { kind: "failed"; label: "Check failed" }
+  | { kind: "disconnected"; label: "Shopify disconnected" };
 
-function signalState(run: ReconcileRunSummary | null): SyncSignalState {
+function formatCheckedAt(iso: string | null | undefined): string | null {
+  if (!iso) return null;
+  try {
+    return new Date(iso).toLocaleString("en");
+  } catch {
+    return null;
+  }
+}
+
+function signalState(
+  run: ReconcileRunSummary | null,
+  connected: boolean,
+  requestError: string | null,
+): SyncSignalState {
+  if (!connected) {
+    return { kind: "disconnected", label: "Shopify disconnected" };
+  }
   if (!run || run.status === "QUEUED" || run.status === "RUNNING") {
-    return { kind: "checking", label: "Checking Shopify" };
+    return { kind: "checking", label: "Checking Shopify…" };
   }
-  if (run.status === "FAILED") return { kind: "unavailable", label: "Shopify unavailable" };
-  if (run.status === "PARTIAL") return { kind: "partial", label: "Check incomplete" };
-  if (run.differenceCount > 0) {
-    return {
-      kind: "differences",
-      label: `${run.differenceCount} change${run.differenceCount === 1 ? "" : "s"} to review`,
-    };
+  if (run.status === "FAILED" || run.status === "PARTIAL" || requestError) {
+    return { kind: "failed", label: "Check failed" };
   }
-  return { kind: "current", label: "Shopify current" };
+  const when = formatCheckedAt(run.completedAt);
+  return {
+    kind: "current",
+    label: when ? `Shopify current ${when}` : "Shopify current",
+  };
 }
 
 async function readResponse(response: Response) {
   const payload = await response.json().catch(() => ({})) as {
     run?: ReconcileRunSummary | null;
     error?: string;
+    alreadyRunning?: boolean;
   };
   if (!response.ok) throw new Error(payload.error || "Shopify check could not be completed.");
-  return payload.run ?? null;
+  return payload;
 }
 
-export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRunSummary | null }) {
+export function AdminShopifySyncSignal({
+  initialRun,
+  connected = true,
+}: {
+  initialRun: ReconcileRunSummary | null;
+  /** False when Admin API credentials are missing. */
+  connected?: boolean;
+}) {
   const router = useRouter();
+  const { checkRunning, setCheckRunning } = useAdminShopifyCheckControls();
   const [run, setRun] = useState(initialRun);
   const [requestError, setRequestError] = useState<string | null>(null);
-  const [autoChecking, setAutoChecking] = useState(true);
+  const [autoChecking, setAutoChecking] = useState(connected);
   const [manualChecking, setManualChecking] = useState(false);
+  const [prevConnected, setPrevConnected] = useState(connected);
   const mounted = useRef(true);
   const started = useRef(false);
-  const isChecking = autoChecking || manualChecking;
-  const state = isChecking
-    ? { kind: "checking", label: "Checking Shopify" } as const
-    : requestError
-    ? { kind: "unavailable", label: "Shopify unavailable" } as const
-    : signalState(run);
+
+  if (connected !== prevConnected) {
+    setPrevConnected(connected);
+    if (!connected) setAutoChecking(false);
+  }
+
+  const clientChecking = autoChecking || manualChecking;
+  const serverChecking = Boolean(
+    run && (run.status === "QUEUED" || run.status === "RUNNING"),
+  );
+  // Do not OR context checkRunning here — that would latch true forever when we publish it.
+  const isChecking = connected && (clientChecking || serverChecking);
+  if (checkRunning !== isChecking) {
+    setCheckRunning(isChecking);
+  }
+
+  const state = !connected
+    ? ({ kind: "disconnected", label: "Shopify disconnected" } as const)
+    : isChecking
+      ? ({ kind: "checking", label: "Checking Shopify…" } as const)
+      : signalState(run, connected, requestError);
 
   const poll = useCallback(async (candidate: ReconcileRunSummary | null) => {
     let current = candidate;
     while (mounted.current && current && (current.status === "QUEUED" || current.status === "RUNNING")) {
       await new Promise((resolve) => window.setTimeout(resolve, 1800));
       if (!mounted.current) return current;
-      current = await readResponse(await fetch("/admin/api/shopify/reconcile", {
+      const payload = await readResponse(await fetch("/admin/api/shopify/reconcile", {
         method: "GET",
         cache: "no-store",
         headers: { Accept: "application/json" },
       }));
+      current = payload.run ?? null;
       if (mounted.current) setRun(current);
     }
     return current;
   }, []);
 
   const performCheck = useCallback(async (trigger: "AUTO" | "MANUAL") => {
-    const next = await readResponse(await fetch("/admin/api/shopify/reconcile", {
+    const payload = await readResponse(await fetch("/admin/api/shopify/reconcile", {
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json", Accept: "application/json" },
       body: JSON.stringify({ trigger }),
     }));
     if (!mounted.current) return;
+    const next = payload.run ?? null;
     setRun(next);
     await poll(next);
     // Refresh RSC banners / nav counters from the same waterfall result.
@@ -84,6 +125,11 @@ export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRu
 
   useEffect(() => {
     mounted.current = true;
+    if (!connected) {
+      return () => {
+        mounted.current = false;
+      };
+    }
     if (!started.current) {
       started.current = true;
       void performCheck("AUTO")
@@ -99,9 +145,10 @@ export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRu
     return () => {
       mounted.current = false;
     };
-  }, [performCheck]);
+  }, [connected, performCheck]);
 
   async function checkNow() {
+    if (!connected || state.kind === "checking") return;
     setRequestError(null);
     setManualChecking(true);
     try {
@@ -118,20 +165,36 @@ export function AdminShopifySyncSignal({ initialRun }: { initialRun: ReconcileRu
   const title = requestError
     ?? run?.error
     ?? (run?.completedAt
-      ? `Last checked ${new Date(run.completedAt).toLocaleString("en")}`
-      : "Shopify catalog sync runs once when the admin session opens.");
+      ? `Last checked ${formatCheckedAt(run.completedAt)}`
+      : connected
+        ? "Shopify catalog sync runs once when the admin session opens."
+        : "Shopify Admin API credentials are not configured.");
+
+  const failedClickable = state.kind === "failed";
 
   return (
     <div className="adm-sync-signal" data-state={state.kind} title={title}>
-      <Link href="/admin/translations" className="adm-sync-signal__link" aria-label={`${state.label}. Open Shopify sync.`}>
-        <span className="adm-sync-signal__dot" aria-hidden="true" />
-        <span className="adm-sync-signal__label">{state.label}</span>
-      </Link>
+      {failedClickable ? (
+        <button
+          type="button"
+          className="adm-sync-signal__link"
+          aria-label={`${state.label}. Retry check.`}
+          onClick={() => void checkNow()}
+        >
+          <span className="adm-sync-signal__dot" aria-hidden="true" />
+          <span className="adm-sync-signal__label">{state.label}</span>
+        </button>
+      ) : (
+        <span className="adm-sync-signal__link" aria-label={state.label}>
+          <span className="adm-sync-signal__dot" aria-hidden="true" />
+          <span className="adm-sync-signal__label">{state.label}</span>
+        </span>
+      )}
       <button
         type="button"
         className="adm-sync-signal__refresh"
         aria-label="Check Shopify sync now"
-        disabled={state.kind === "checking"}
+        disabled={state.kind === "checking" || state.kind === "disconnected"}
         onClick={() => void checkNow()}
       >
         <RefreshCw size={13} aria-hidden="true" />

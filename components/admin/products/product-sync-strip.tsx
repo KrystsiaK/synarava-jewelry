@@ -3,6 +3,7 @@
 import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, HardDriveUpload, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminButton, AdminIconButton, AdminStatusBadge } from "@/components/synarava-cms";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import { centsToPrice } from "@/components/admin/products/product-helpers";
@@ -32,15 +33,21 @@ export function SaveButtons({
   pending: boolean;
   iconOnly?: boolean;
 }) {
-  const label = pending ? "Saving product…" : "Save product locally. Shopify does not change until you push.";
+  const checkRunning = useAdminShopifyCheckRunning();
+  const blocked = pending || checkRunning;
+  const label = pending
+    ? "Saving product…"
+    : checkRunning
+      ? "Shopify check in progress. Save is paused until it finishes."
+      : "Save product locally. Shopify does not change until you push.";
 
   if (iconOnly) {
     return (
       <span data-component="SaveButtons">
         <AdminIconButton
-          label={pending ? "Saving product" : "Save product"}
+          label={pending ? "Saving product" : checkRunning ? "Save paused" : "Save product"}
           tooltip={label}
-          disabled={pending}
+          disabled={blocked}
           onClick={onOpenConfirm}
         >
           {pending ? (
@@ -58,8 +65,9 @@ export function SaveButtons({
       data-component="SaveButtons"
       variant="primary"
       busy={pending}
+      disabled={blocked}
       onClick={onOpenConfirm}
-      aria-label={pending ? "Saving product" : "Save product"}
+      aria-label={pending ? "Saving product" : checkRunning ? "Save paused" : "Save product"}
     >
       {pending ? "Saving..." : "Save product"}
     </AdminButton>

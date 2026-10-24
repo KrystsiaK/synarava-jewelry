@@ -12,6 +12,7 @@ import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminAlert, AdminIconButton, AdminListWorkspace, CatalogConflictStatus } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
@@ -117,6 +118,8 @@ export function EditCollectionForm({
   const validation = useCollectionFormValidation(formRef);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
+  const checkRunning = useAdminShopifyCheckRunning();
+  const saveBlocked = isPending || checkRunning;
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
   const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const collectionConflict = conflictSignals.products[collection.id];
@@ -206,13 +209,15 @@ export function EditCollectionForm({
                     onDeleted={onDeleted}
                   />
                   <AdminIconButton
-                    label={isPending ? "Saving collection" : "Save collection"}
+                    label={isPending ? "Saving collection" : checkRunning ? "Save paused" : "Save collection"}
                     tooltip={
                       isPending
                         ? "Saving collection…"
-                        : "Save collection locally. Shopify does not change until you push."
+                        : checkRunning
+                          ? "Shopify check in progress. Save is paused until it finishes."
+                          : "Save collection locally. Shopify does not change until you push."
                     }
-                    disabled={isPending}
+                    disabled={saveBlocked}
                     onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
                   >
                     {isPending ? (
