@@ -233,6 +233,8 @@ jobs:
           path: |
             .next
             !/.next/cache
+          # `.next` is a hidden directory; default exclude would upload nothing.
+          include-hidden-files: true
           retention-days: 1
           if-no-files-found: error
 
