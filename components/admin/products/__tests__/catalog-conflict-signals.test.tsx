@@ -70,4 +70,21 @@ describe("catalog conflict signals", () => {
     expect(screen.queryByRole("button", { name: "Show conflicts" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Show conflict products" })).toBeNull();
   });
+
+  it.each([
+    [{ singular: "product", plural: "products" }, /2 products with conflicts/, "2 saved conflict products", /Show conflict products/],
+    [{ singular: "collection", plural: "collections" }, /2 collections with conflicts/, "2 saved conflict collections", /Show conflict collections/],
+  ] as const)("uses entityNoun %j for page wording", (entityNoun, status, saved, compactLabel) => {
+    const stale: CatalogConflictSignals = { ...signals, state: "stale" };
+    render(
+      <>
+        <CatalogConflictStatus signals={stale} onShow={vi.fn()} onCheck={vi.fn()} entityNoun={entityNoun} />
+        <CatalogConflictStatus signals={stale} onShow={vi.fn()} onCheck={vi.fn()} compact entityNoun={entityNoun} />
+      </>,
+    );
+    expect(screen.getByText(status)).toBeTruthy();
+    expect(screen.getByText(saved)).toBeTruthy();
+    expect(screen.getByRole("button", { name: compactLabel })).toBeTruthy();
+    expect(screen.getByTitle("Last full conflict check")).toBeTruthy();
+  });
 });

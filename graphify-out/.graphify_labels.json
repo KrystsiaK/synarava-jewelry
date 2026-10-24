@@ -1,7 +1,6 @@
 {
   "0": "live-browser.js",
   "3": "test_parse_instinct.py",
-  "5": "install-executor.js",
   "8": "install-lifecycle.js",
   "13": "helpers.js",
   "24": "bar-chart.tsx",

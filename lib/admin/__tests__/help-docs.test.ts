@@ -70,6 +70,22 @@ Body`, "check-a-product")).toThrow(HelpArticleFormatError);
   it("lists only lowercase article filenames and excludes the template", async () => {
     const articles = await listHelpArticles();
     expect(articles.map((article) => article.slug)).toContain("add-a-product");
+    expect(articles.map((article) => article.slug)).toContain("sync-collections");
     expect(articles.map((article) => article.slug)).not.toContain("README");
+  });
+
+  it("loads the collections sync help article", async () => {
+    const article = await loadHelpArticle("sync-collections");
+    expect(article).toMatchObject({
+      slug: "sync-collections",
+      title: "Sync collections",
+      section: "Catalog",
+      status: "draft",
+      verifiedOn: null,
+      updatedOn: "2026-10-24",
+    });
+    expect(article?.headings.map((heading) => heading.label)).toEqual(
+      expect.arrayContaining(["Goal", "Steps", "Known limits"]),
+    );
   });
 });
