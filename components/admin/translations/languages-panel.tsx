@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { Download, RefreshCw, Upload } from "lucide-react";
+import { Download, RefreshCw, Upload, X } from "lucide-react";
 
 import {
   addLanguageAction,
@@ -9,11 +9,13 @@ import {
   exportLanguageAction,
   hideLanguageAction,
   importLanguageAction,
+  previewImportLanguageAction,
   restoreLanguageAction,
 } from "@/app/admin/actions/languages";
 import { syncStorefrontLocalesAction } from "@/app/admin/actions/translation-sync";
-import { AdminButton, AdminTextField } from "@/components/synarava-cms";
-import type { LanguageBundle } from "@/lib/i18n/language-bundle";
+import { AdminButton, AdminCheckboxControl, AdminTextField } from "@/components/synarava-cms";
+import { AnimatedModal } from "@/components/ui/animated-modal";
+import type { LanguageBundle, LanguageBundleImportPreview } from "@/lib/i18n/language-bundle";
 import {
   LOCALE_DELETE_RETENTION_DAYS,
   localeLifecycleState,
@@ -49,6 +51,9 @@ export function LanguagesPanel({
   const [exportChecksums, setExportChecksums] = useState<Record<string, string>>({});
   const [typedCodes, setTypedCodes] = useState<Record<string, string>>({});
   const [showRetired, setShowRetired] = useState(false);
+  const [importPreview, setImportPreview] = useState<LanguageBundleImportPreview | null>(null);
+  const [pendingBundle, setPendingBundle] = useState<LanguageBundle | null>(null);
+  const [confirmImport, setConfirmImport] = useState(false);
   const [draft, setDraft] = useState({
     code: "",
     routeSegment: "",
@@ -90,14 +95,33 @@ export function LanguagesPanel({
     });
   }
 
+  function closeImportPreview() {
+    if (pending) return;
+    setImportPreview(null);
+    setPendingBundle(null);
+    setConfirmImport(false);
+  }
+
+  function confirmImportApply() {
+    if (!pendingBundle || !importPreview || !confirmImport) return;
+    const bundle = pendingBundle;
+    startTransition(async () => {
+      const result = await importLanguageAction(bundle);
+      setMessage(result.error ?? result.success ?? "Import finished.");
+      setImportPreview(null);
+      setPendingBundle(null);
+      setConfirmImport(false);
+    });
+  }
+
   return (
-    <section className="adm-panel grid gap-4 p-5 md:p-6">
+    <section className="adm-panel grid gap-4 p-5 md:p-6" data-component="LanguagesPanel">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold">Languages</h2>
           <p className="text-sm text-[var(--adm-muted)]">
-            Add, hide, restore, export, import, and delete storefront languages.
-            Draft stays in admin only; Published is live; Retired keeps permanent 301s.
+            Add, hide, restore, export, or import a language. Adding a language adds its tab
+            everywhere in admin. Import always shows a preview before anything is written.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -147,6 +171,13 @@ export function LanguagesPanel({
             </tr>
           </thead>
           <tbody>
+            {visible.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-8 text-center text-[var(--adm-muted)]">
+                  No languages to show. Add one below, or turn on “Show retired”.
+                </td>
+              </tr>
+            ) : null}
             {visible.map((locale) => {
               const state = localeLifecycleState(locale);
               const canDelete =
@@ -209,6 +240,9 @@ export function LanguagesPanel({
 
       <div className="grid gap-3 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
         <h3 className="text-sm font-semibold">Add language</h3>
+        <p className="text-xs text-[var(--adm-muted)]">
+          After you add a language, its locale tab appears on products, collections, pages, and settings.
+        </p>
         <div className="grid gap-3 md:grid-cols-3">
           <AdminTextField
             label="Code"
@@ -257,6 +291,9 @@ export function LanguagesPanel({
 
       <div className="grid gap-2 border-t pt-4" style={{ borderColor: "var(--adm-border)" }}>
         <h3 className="text-sm font-semibold">Import language bundle</h3>
+        <p className="text-xs text-[var(--adm-muted)]">
+          Choose a JSON export. You will see what differs and must confirm before Synarava is updated.
+        </p>
         <label className="adm-btn-ghost inline-flex w-fit cursor-pointer items-center gap-2">
           <Upload size={14} aria-hidden="true" />
           Choose JSON file
@@ -264,16 +301,23 @@ export function LanguagesPanel({
             type="file"
             accept="application/json,.json"
             className="sr-only"
+            disabled={pending}
             onChange={(event) => {
               const file = event.target.files?.[0];
               if (!file) return;
               setMessage(null);
+              setConfirmImport(false);
               startTransition(async () => {
                 try {
                   const text = await file.text();
                   const bundle = JSON.parse(text) as LanguageBundle;
-                  const result = await importLanguageAction(bundle);
-                  setMessage(result.error ?? result.success ?? "Import finished.");
+                  const result = await previewImportLanguageAction(bundle);
+                  if (result.error || !result.preview) {
+                    setMessage(result.error ?? "Could not build import preview.");
+                    return;
+                  }
+                  setPendingBundle(bundle);
+                  setImportPreview(result.preview);
                 } catch (error) {
                   setMessage(error instanceof Error ? error.message : String(error));
                 }
@@ -305,6 +349,117 @@ export function LanguagesPanel({
             ))}
           </ul>
         </div>
+      ) : null}
+
+      {importPreview ? (
+        <AnimatedModal
+          open
+          onClose={closeImportPreview}
+          ariaLabel="Import preview — confirm before writing"
+          portalClassName="admin-modal-root"
+          zIndexClassName="z-[400]"
+          backdropZIndexClassName="z-[390]"
+          className="adm-panel pointer-events-auto grid max-h-[min(88vh,40rem)] w-full max-w-3xl grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden p-0"
+        >
+          <header className="flex items-start justify-between gap-3 border-b border-[var(--adm-border)] p-5">
+            <div>
+              <p className="adm-section-tag">[ IMPORT PREVIEW — REQUIRED ]</p>
+              <h2 className="adm-title-sm mt-2">
+                Import
+                {" "}
+                {importPreview.locale.toUpperCase()}
+              </h2>
+              <p className="mt-1 text-xs text-[var(--adm-muted)]">
+                Nothing is written until you confirm. Review the counts and sample changes below.
+              </p>
+            </div>
+            <AdminButton
+              variant="ghost"
+              className="grid size-11 place-items-center p-0"
+              onClick={closeImportPreview}
+              disabled={pending}
+              aria-label="Close import preview"
+            >
+              <X className="size-4" aria-hidden="true" />
+            </AdminButton>
+          </header>
+          <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+            <ul className="grid gap-2 text-sm sm:grid-cols-2">
+              <li className="rounded-lg border border-[var(--adm-border)] p-3">
+                Products: {importPreview.counts.products}
+              </li>
+              <li className="rounded-lg border border-[var(--adm-border)] p-3">
+                Collections: {importPreview.counts.collections}
+              </li>
+              <li className="rounded-lg border border-[var(--adm-border)] p-3">
+                Pages: {importPreview.counts.pages}
+              </li>
+              <li className="rounded-lg border border-[var(--adm-border)] p-3">
+                Redirects: {importPreview.counts.redirects}
+              </li>
+              <li className="rounded-lg border border-[var(--adm-border)] p-3 sm:col-span-2">
+                Fields that differ: {importPreview.counts.fieldsChanged}
+                {" · "}
+                New rows: {importPreview.counts.fieldsCreated}
+              </li>
+            </ul>
+            {importPreview.samples.length === 0 ? (
+              <p className="text-sm text-[var(--adm-muted)]" role="status">
+                No field values differ from what is stored today. You can still confirm to re-apply the bundle.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                <h3 className="text-sm font-semibold">Sample changes</h3>
+                {importPreview.samples.map((sample) => (
+                  <article
+                    key={`${sample.entityType}:${sample.entityId}:${sample.fieldKey}:${sample.label}`}
+                    className="rounded-lg border border-[var(--adm-border)] p-3 text-sm"
+                  >
+                    <p className="font-semibold">
+                      {sample.entityType}
+                      {" · "}
+                      {sample.label}
+                    </p>
+                    <p className="mt-2 text-xs text-[var(--adm-muted)]">
+                      Now:
+                      {" "}
+                      {sample.before || "— empty —"}
+                    </p>
+                    <p className="mt-1 text-xs">
+                      After import:
+                      {" "}
+                      {sample.after || "— empty —"}
+                    </p>
+                  </article>
+                ))}
+                {importPreview.counts.fieldsChanged > importPreview.samples.length ? (
+                  <p className="text-xs text-[var(--adm-muted)]">
+                    Showing {importPreview.samples.length} of {importPreview.counts.fieldsChanged} field changes.
+                  </p>
+                ) : null}
+              </div>
+            )}
+            <AdminCheckboxControl
+              className="max-w-xl text-xs"
+              checked={confirmImport}
+              onChange={(event) => setConfirmImport(event.target.checked)}
+              label="I reviewed this preview and want to update Synarava with this import."
+              labelClassName="text-xs leading-5"
+            />
+          </div>
+          <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
+            <AdminButton variant="secondary" onClick={closeImportPreview} disabled={pending}>
+              Cancel
+            </AdminButton>
+            <AdminButton
+              variant="primary"
+              onClick={confirmImportApply}
+              disabled={pending || !confirmImport}
+            >
+              {pending ? "Importing…" : "Confirm import"}
+            </AdminButton>
+          </footer>
+        </AnimatedModal>
       ) : null}
     </section>
   );

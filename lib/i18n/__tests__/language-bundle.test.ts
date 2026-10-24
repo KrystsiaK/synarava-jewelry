@@ -49,6 +49,7 @@ import {
   exportLanguageBundle,
   importLanguageBundle,
   LANGUAGE_BUNDLE_SCHEMA_VERSION,
+  previewLanguageBundleImport,
   verifyLanguageBundle,
   type LanguageBundle,
 } from "@/lib/i18n/language-bundle";
@@ -130,6 +131,34 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
     expect(mocks.productTranslationUpsert).toHaveBeenCalled();
 
     await expect(importLanguageBundle(bundle, "ru")).rejects.toThrow(/does not match/);
+  });
+
+  it("previews import diffs without writing", async () => {
+    mocks.productTranslationFindMany.mockResolvedValueOnce([
+      {
+        productId: "p1",
+        locale: "pt",
+        title: "Old title",
+        localizedHandle: "anel",
+        shortDescription: null,
+        description: null,
+        seoTitle: null,
+        seoDescription: null,
+      },
+    ]);
+    const bundle = await exportLanguageBundle("pt");
+    const { checksum: _checksum, ...payload } = bundle;
+    void _checksum;
+    // Mutate title so preview reports a field change.
+    const next = attachLanguageBundleChecksum({
+      ...payload,
+      productTranslations: [{ ...(bundle.productTranslations[0] as object), title: "New title" }],
+    });
+    const preview = await previewLanguageBundleImport(next, "pt");
+    expect(preview.counts.products).toBe(1);
+    expect(preview.counts.fieldsChanged).toBeGreaterThan(0);
+    expect(preview.samples.some((sample) => sample.fieldKey === "title")).toBe(true);
+    expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
   });
 
   it("ignores legacy translationSnapshots on import without writing them", async () => {
