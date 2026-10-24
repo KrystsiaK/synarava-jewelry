@@ -3,7 +3,7 @@ title: Shopify sync button
 section: Catalog
 status: draft
 verifiedOn:
-updatedOn: 2026-10-24
+updatedOn: 2026-10-25
 ---
 
 # Shopify sync button
@@ -51,14 +51,17 @@ of this model.
 
 ### Know when a check runs
 
-A full check runs when you:
+A full check (products, collections, and translations) runs when you:
 
 1. **Click** the top-bar button, or
-2. **Save** — Synarava is saved first, then everything is fetched and compared.
+2. **Open admin for this login session** — once per session (`trigger: AUTO`).
+   Navigating between admin pages does **not** start another full check; the
+   session reuses the run already started for that login.
+3. **Save** — Synarava is saved first, then everything is fetched and compared.
 
-A full check does **not** run merely because you opened an admin page. Shopify-side
-edits still refresh the Shopify copy through product webhooks; that updates the
-Shopify-side window and conflict flags without writing Synarava content.
+Shopify-side edits still refresh the Shopify copy through product webhooks;
+that updates the Shopify-side window and conflict flags without writing
+Synarava content.
 
 ### Work while a check runs
 
@@ -124,12 +127,12 @@ disconnected**, fix credentials / app install first.
 
 ### Do I need to press the button after saving?
 
-**Cause:** None — Save already triggers a full check after the Synarava write.
+**Cause:** None — after Save, Synarava is written first, then a full check runs.
 
 **What happens:** Counts refresh without an extra click.
 
-**What to do:** Press the button only when you want an on-demand check without
-saving, or to retry after a failure.
+**What to do:** Press the button for an on-demand check without saving, to
+retry after a failure, or if you want a fresh compare before the next Save.
 :::
 
 ## Known limits
@@ -146,9 +149,11 @@ saving, or to retry after a failure.
 
 ## Verified on
 
-Draft. Grounded in the two-state sync model (`lib/sync`, Shopify vs Synarava
-windows), the top-bar control
-(`components/admin/translations/admin-shopify-sync-signal.tsx`), catalog
+Draft. Grounded in the two-state sync model (`lib/sync`), the top-bar control
+(`components/admin/translations/admin-shopify-sync-signal.tsx`), the reconcile
+route full-catalog path (`app/admin/api/shopify/reconcile/route.ts` →
+`runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), catalog
 conflict banners (`CatalogConflictStatus`), and product webhooks
-(`app/api/shopify/webhooks/products/route.ts`). End-to-end verification against
-the final top-bar-only UX is still pending after the in-flight sync UI PRs merge.
+(`app/api/shopify/webhooks/products/route.ts`). After-Save full check, UI lock
+while checking, and red **Check failed** still depend on the in-flight sync UI
+follow-up.
