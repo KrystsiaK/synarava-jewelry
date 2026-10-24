@@ -1,6 +1,6 @@
 /**
  * View-scope filters for collection conflict UI.
- * Kept out of the workspace component so that file only wires FieldConflictPanel.
+ * Kept out of the collection adapter so that file only maps data → ConflictResolver.
  */
 
 import type { CatalogConflictField } from "@/lib/shopify/catalog-conflict";

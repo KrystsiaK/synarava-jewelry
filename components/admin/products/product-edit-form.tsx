@@ -16,7 +16,6 @@ import {
 import {
   inspectProductSyncAction,
   loadCatalogConflictSignalsAction,
-  pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
@@ -30,7 +29,7 @@ import { ProductDetailFields, ProductFormFields } from "@/components/admin/produ
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
-import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
+import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
   conflictSectionsFromDifferences,
@@ -109,7 +108,6 @@ export function EditProductForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dirtyScopes, setDirtyScopes] = useState<Set<DirtyScopeKey>>(() => new Set());
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
-  const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
   const [syncDetailOpen, setSyncDetailOpen] = useState(false);
   const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -431,14 +429,14 @@ export function EditProductForm({
     onUpdated?.(next);
   }
 
-  function handlePushToShopify(force = false) {
+  /** Non-conflict whole-record create/push only (UNLINKED / LOCAL_CHANGES). Conflict choice uses ConflictResolver. */
+  function handlePushToShopify() {
     if (isDirty) {
       pushToast({ message: "Save your product changes before Push.", tone: "info" });
       return;
     }
-    setConflictResolution(null);
     startTransition(async () => {
-      const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
+      const result = await pushSingleProductToShopifyAction(currentProduct.id, false);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "info" });
@@ -451,23 +449,9 @@ export function EditProductForm({
     });
   }
 
-  function handlePullFromShopify(force = false) {
-    if (isDirty) {
-      pushToast({ message: "Save your product changes before Pull.", tone: "info" });
-      return;
-    }
-    setConflictResolution(null);
-    startTransition(async () => {
-      const result = await pullSingleProductFromShopifyAction(currentProduct.id, force);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.inspection) setInspection(result.inspection);
-      if (result.product) {
-        applySyncedProduct(result.product, result.success);
-        setSyncDetailOpen(false);
-        refreshPreservingScroll(router);
-      }
-    });
+  function openConflictsFromSyncStrip() {
+    setSyncDetailOpen(false);
+    openConflicts({ kind: "product", productId: currentProduct.id });
   }
 
   async function handleDelete(formData: FormData) {
@@ -755,9 +739,8 @@ export function EditProductForm({
         dirty={isDirty}
         inspection={inspection}
         pending={isPending}
-        onPull={() => handlePullFromShopify(false)}
-        onPush={() => handlePushToShopify(false)}
-        onResolve={setConflictResolution}
+        onPush={handlePushToShopify}
+        onOpenConflicts={openConflictsFromSyncStrip}
       />
 
       <AdminConfirmModal
@@ -769,26 +752,6 @@ export function EditProductForm({
         onConfirm={() => {
           submitFormAfterConfirmClose(formRef.current, () => setConfirmOpen(false));
         }}
-        pending={isPending}
-      />
-
-      <AdminConfirmModal
-        open={conflictResolution === "shopify"}
-        title="Use Shopify commerce version"
-        description="Shopify-backed fields saved in Synarava will be replaced by the current Shopify version. Synarava-only content and editorial media will be preserved. Unsaved tab edits stay in the form until you save or discard them."
-        confirmLabel="Use Shopify version"
-        onCancel={() => setConflictResolution(null)}
-        onConfirm={() => handlePullFromShopify(true)}
-        pending={isPending}
-      />
-
-      <AdminConfirmModal
-        open={conflictResolution === "synarava"}
-        title="Keep Synarava commerce version"
-        description="The saved Synarava commerce values will overwrite the corresponding Shopify fields. Synarava-only content will remain unchanged."
-        confirmLabel="Keep Synarava and push"
-        onCancel={() => setConflictResolution(null)}
-        onConfirm={() => handlePushToShopify(true)}
         pending={isPending}
       />
 

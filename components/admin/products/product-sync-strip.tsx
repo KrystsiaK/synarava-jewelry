@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDownToLine, ArrowUpFromLine, Check, Clock3, HardDriveUpload, RefreshCw, TriangleAlert } from "lucide-react";
+import { ArrowUpFromLine, Check, Clock3, HardDriveUpload, RefreshCw, TriangleAlert } from "lucide-react";
 
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
@@ -99,13 +99,13 @@ function syncPresentation(product: ProductRecord, dirty: boolean, inspection: Pr
               ? "Not connected to Shopify"
               : "Shopify commerce core synced";
   const stateDescription = syncState === "UNSAVED"
-    ? "Save locally before Push or Pull. Unsaved form values will never be overwritten."
+    ? "Save locally before Push. Unsaved form values will never be overwritten."
     : syncState === "LOCAL_CHANGES"
       ? "Local commerce is ahead of the last agreed Shopify state. Push when ready."
       : syncState === "REMOTE_CHANGES"
-        ? "Shopify changed fields you have not edited locally. Pull applies them while preserving the Synarava CMS layer."
+        ? "Shopify changed fields you have not edited locally. Open conflicts to choose Shopify or Synarava per field."
         : syncState === "CONFLICT"
-          ? "Both sides changed the same commerce data since the last agreement. Choose which version should win."
+          ? "Both sides changed the same commerce data since the last agreement. Open conflicts to choose which values to keep."
           : syncState === "REMOTE_MISSING"
             ? "The linked Shopify product could not be found. No automatic action was taken."
             : syncState === "UNLINKED"
@@ -120,11 +120,9 @@ function syncPresentation(product: ProductRecord, dirty: boolean, inspection: Pr
     ? "Create in Shopify"
     : syncState === "LOCAL_CHANGES"
       ? "Push to Shopify"
-      : syncState === "REMOTE_CHANGES"
-        ? "Pull update"
-        : syncState === "CONFLICT"
-          ? "Resolve conflict"
-          : "Review";
+      : syncState === "REMOTE_CHANGES" || syncState === "CONFLICT"
+        ? "Resolve conflicts"
+        : "Review";
   return { syncState, healthy, failed, stateLabel, stateDescription, actionable, actionLabel };
 }
 
@@ -231,21 +229,24 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onOpenDe
   );
 }
 
-export function ProductSyncDetailModal({ open, onClose, product, dirty, inspection, pending, onPull, onPush, onResolve }: {
+export function ProductSyncDetailModal({ open, onClose, product, dirty, inspection, pending, onPush, onOpenConflicts }: {
   open: boolean;
   onClose: () => void;
   product: ProductRecord;
   dirty: boolean;
   inspection: ProductSyncInspection | null;
   pending: boolean;
-  onPull: () => void;
   onPush: () => void;
-  onResolve: (resolution: "shopify" | "synarava") => void;
+  /** Opens the shared ConflictResolver — the only Shopify-vs-Synarava choice UI. */
+  onOpenConflicts: () => void;
 }) {
   const { syncState, stateLabel, stateDescription } = syncPresentation(product, dirty, inspection);
   const canPush = !dirty && product.variants.length > 0 && (syncState === "LOCAL_CHANGES" || syncState === "UNLINKED");
-  // Human Apply only — full Shopify fetch+compare is the admin top-bar control.
-  const canPull = !dirty && Boolean(product.shopifyProductId) && syncState === "REMOTE_CHANGES";
+  const needsConflictResolver = !dirty && (
+    syncState === "REMOTE_CHANGES"
+    || syncState === "CONFLICT"
+    || syncState === "REMOTE_MISSING"
+  );
 
   return (
     <AnimatedModal
@@ -255,7 +256,7 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
       portalClassName="admin-modal-root"
       zIndexClassName="z-[200]"
       backdropZIndexClassName="z-[190]"
-      ariaLabel="Resolve Shopify commerce sync"
+      ariaLabel="Shopify commerce sync"
     >
       <div>
         <p className="adm-section-tag">[ COMMERCE SYNC — {stateLabel.toUpperCase()} ]</p>
@@ -263,15 +264,15 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
       </div>
 
       <div className="flex flex-wrap gap-2 border-y border-[var(--adm-border)] py-4">
-        <AdminButton
-          variant="ghost"
-          className="inline-flex items-center justify-center gap-2"
-          leadingIcon={<ArrowDownToLine className="size-4" />}
-          onClick={onPull}
-          disabled={pending || !canPull}
-        >
-          {pending ? "Pulling..." : "Pull Shopify update"}
-        </AdminButton>
+        {needsConflictResolver ? (
+          <AdminButton
+            variant="primary"
+            onClick={onOpenConflicts}
+            disabled={pending || dirty}
+          >
+            Open conflicts
+          </AdminButton>
+        ) : null}
         <AdminButton
           variant="secondary"
           className="inline-flex items-center justify-center gap-2"
@@ -296,23 +297,15 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
 
       {inspection && inspection.differences.length > 0 ? (
         <div className="border-t border-[var(--adm-border)] pt-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div>
-              <p className="adm-section-tag">Changed commerce fields ({inspection.differences.length})</p>
-              <p className="mt-1 text-xs text-[var(--adm-muted)]">
-                {syncState === "LOCAL_CHANGES"
-                  ? "These Synarava values will be pushed to Shopify."
-                  : syncState === "REMOTE_CHANGES"
-                    ? "These Shopify values will be pulled into Synarava."
-                    : "Only Shopify-backed fields are compared. Synarava CMS fields are excluded."}
-              </p>
-            </div>
-            {syncState === "CONFLICT" ? (
-              <div className="flex flex-wrap gap-2">
-                <AdminButton variant="ghost" disabled={pending || dirty} onClick={() => onResolve("shopify")}>Use Shopify version</AdminButton>
-                <AdminButton variant="secondary" disabled={pending || dirty} onClick={() => onResolve("synarava")}>Keep Synarava and push</AdminButton>
-              </div>
-            ) : null}
+          <div>
+            <p className="adm-section-tag">Changed commerce fields ({inspection.differences.length})</p>
+            <p className="mt-1 text-xs text-[var(--adm-muted)]">
+              {syncState === "LOCAL_CHANGES"
+                ? "These Synarava values will be pushed to Shopify."
+                : syncState === "REMOTE_CHANGES" || syncState === "CONFLICT"
+                  ? "Choose Shopify or Synarava per field in the conflict resolver."
+                  : "Only Shopify-backed fields are compared. Synarava CMS fields are excluded."}
+            </p>
           </div>
           <div className="mt-3 overflow-x-auto">
             <div className="grid min-w-[30rem] grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] gap-3 px-2 pb-2 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-subtle)]">
@@ -320,9 +313,7 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
               <span className={syncState === "LOCAL_CHANGES" ? "text-[var(--adm-accent)]" : undefined}>
                 Synarava{syncState === "LOCAL_CHANGES" ? " → wins" : ""}
               </span>
-              <span className={syncState === "REMOTE_CHANGES" ? "text-[var(--adm-accent)]" : undefined}>
-                Shopify{syncState === "REMOTE_CHANGES" ? " → wins" : ""}
-              </span>
+              <span>Shopify</span>
             </div>
             {inspection.differences.map((difference) => (
               <div key={difference.field} className="grid min-w-[30rem] grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] gap-3 border-t border-[var(--adm-border)] px-2 py-2 text-xs text-[var(--adm-muted)]">

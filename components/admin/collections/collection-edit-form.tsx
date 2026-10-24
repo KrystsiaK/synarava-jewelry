@@ -15,7 +15,7 @@ import { useCollectionFormValidation } from "@/components/admin/collections/use-
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminAlert, AdminIconButton, AdminListWorkspace, CatalogConflictStatus } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
+import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-adapter";
 import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
 import {
   collectionToDraft,

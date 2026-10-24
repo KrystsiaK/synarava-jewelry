@@ -194,6 +194,22 @@ export {
 } from "@/components/admin/shared/catalog-conflict-signals";
 
 export {
+  ConflictResolver,
+  ConflictRow,
+  ConflictValueCell,
+  ConflictLocaleMark,
+  CONFLICT_DIRECTIONS,
+  CONFLICT_DIRECTION_COPY,
+  type ConflictEntitySummary,
+  type ConflictRowModel,
+  type ConflictPreviewEntry,
+  type ConflictPreviewModel,
+  type ConflictApplyEntry,
+  type ConflictApplyOutcome,
+  type ConflictResolverAdapter,
+} from "@/components/synarava-cms/conflict-resolver";
+
+export {
   AdminSerpPreview,
   type AdminSerpPreviewProps,
 } from "@/components/admin/shared/admin-serp-preview";

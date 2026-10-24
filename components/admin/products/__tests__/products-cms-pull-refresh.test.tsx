@@ -39,7 +39,7 @@ vi.mock("@/app/admin/actions/catalog-order", () => ({
   reorderCollectionProductAction: vi.fn(),
 }));
 
-vi.mock("@/components/admin/products/catalog-conflict-workspace", () => ({
+vi.mock("@/components/admin/products/product-conflict-adapter", () => ({
   CatalogConflictWorkspace: ({
     open,
     onApplied,

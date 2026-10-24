@@ -10,7 +10,6 @@ const mocks = vi.hoisted(() => ({
   deleteProductAction: vi.fn(),
   getSavedProductPayload: vi.fn(),
   inspectProductSyncAction: vi.fn(),
-  pullSingleProductFromShopifyAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
   loadCatalogConflictSignalsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
@@ -43,7 +42,6 @@ vi.mock("@/lib/admin/preserve-scroll", () => ({
 
 vi.mock("@/app/admin/actions/sync", () => ({
   inspectProductSyncAction: mocks.inspectProductSyncAction,
-  pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
   pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
   loadCatalogConflictSignalsAction: mocks.loadCatalogConflictSignalsAction,
   listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,

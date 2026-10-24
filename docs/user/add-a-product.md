@@ -66,6 +66,14 @@ gallery image is the catalog cover, and gallery images can be reordered.
 Keep the product in **Draft** to hide it. **Published** makes it visible in the
 catalog and at its direct link. **Unlisted** removes it from catalog and search
 but keeps the direct link and cart access available.
+
+### Resolve Shopify conflicts in ConflictResolver
+
+When the products list or editor shows conflicts, open **Show conflicts** (or
+the conflict chip). One shared UI — ConflictResolver — lists every differing
+field with **Shopify** on the left and **Synarava** on the right. Click a cell
+to choose that side; Apply opens the preview of only the chosen changes. There
+is no second Take/Keep or quick-pull dialog in the Sync strip.
 :::
 
 :::warning

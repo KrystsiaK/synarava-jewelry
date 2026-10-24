@@ -1,6 +1,6 @@
 /**
  * View-scope filters for catalog conflict UI (product / locale / section).
- * Kept out of the workspace component so that file only wires FieldConflictPanel.
+ * Kept out of the product adapter so that file only maps data → ConflictResolver.
  */
 
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";

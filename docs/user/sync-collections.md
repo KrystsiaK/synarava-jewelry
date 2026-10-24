@@ -18,13 +18,14 @@ human **Apply** after preview.
 
 - Shopify Admin credentials must be configured and the catalog store binding
   must match the current shop.
-- Collections use the same conflict banner and list flow as Products.
+- Collections use the **same** ConflictResolver UI as Products (one shared
+  control in synarava-cms).
 - The **only** place that fetches Shopify and compares is the admin top-bar
   Shopify sync control. Catalog banners only display the last saved result.
 
 :::good-to-know
-There are two copies of commerce fields: a **Shopify** copy (fetched, read-only
-in the conflict UI) and a **Synarava** copy (editable). Nothing is written
+There are two copies of commerce fields: a **Shopify** copy (left cell in the
+conflict UI) and a **Synarava** copy (right cell). Nothing is written
 automatically when you open the page. Webhooks update the Shopify-side copy and
 conflict flags. A full catalog check runs from the admin top-bar Shopify control
 (once at login, on click, and after every product / collection / language-setting
@@ -46,27 +47,32 @@ On **Catalog → Collections**, the banner shows the saved conflict status:
 
 **Show conflicts** appears only when the count is greater than zero.
 
-### Open the conflict list
+### Open ConflictResolver
 
-Choose **Show conflicts** (or a row badge) to open the list. Presence badges
-include **Only in Synarava** and **Only in Shopify** when a collection exists
-on one side only.
+Choose **Show conflicts** (or a row badge) to open ConflictResolver. Conflicts
+are grouped by collection; each field is one row with two clickable cells:
 
-### Choose a direction, then preview
+- **Left = Shopify**
+- **Right = Synarava (ours)**
 
-For each differing field or row:
+Presence-only items use the same row model. The missing side shows
+**Not in Shopify** or **Not in Synarava**.
 
-- Down arrow (**Take Shopify**) copies Shopify into Synarava.
-- Up arrow (**Keep ours**) keeps Synarava and can send it to Shopify.
-- **Take Shopify for all** / **Keep ours for all** apply that choice to every
-  eligible row.
+### Choose a subset, then Apply
 
-Nothing is written until you confirm the preview.
+- Click a cell to choose that side (highlighted). Click again to clear.
+- You may select any subset — even a single conflict. Unchosen rows stay as
+  conflicts.
+- Footer **Take Shopify for all** / **Keep ours for all** only *select*
+  every eligible row; they do not write.
+- Footer shows **N selected** and **Apply (N)** (disabled when N is 0).
 
-### Confirm Apply and wait for refresh
+### Confirm preview
 
-After Apply, the UI refreshes conflict signals and reloads the page state so
-counts and editors match the new windows.
+Apply opens the existing preview/confirm summary of exactly the chosen
+changes (including the warning that Take Shopify on **Only in Synarava**
+removes the collection from Synarava). Confirm writes only those selections,
+then re-fetches conflict signals.
 :::
 
 :::warning
@@ -101,6 +107,16 @@ top-bar check.
 
 **What to do:** Use the admin top-bar Shopify sync control to fetch and compare
 again.
+
+### A commerce field says “Cannot choose here”
+
+**Cause:** That field has no safe field-by-field writer yet (blocked commerce).
+
+**What happens:** The row is visible but not selectable. It stays a conflict
+until scoped apply exists for that field.
+
+**What to do:** Resolve the selectable fields that you can. Do not look for a
+second Pull/Push conflict UI — there is only ConflictResolver.
 :::
 
 ## Known limits
@@ -110,9 +126,11 @@ again.
   Synarava-only and are not resolved through this conflict list.
 - Which products belong to a collection is product-driven membership sync, not
   part of the collection commerce window yet.
+- Blocked commerce fields cannot be chosen cell-by-cell until scoped writers
+  exist; whole-record conflict pull/push was removed from this UI.
 
 ## Verified on
 
-Draft, grounded in the conflict banner (`CatalogConflictStatus`) and sync
-signal age (`checkedAt` from the same full-check source as the top-bar control).
-End-to-end admin verification still pending.
+Draft, grounded in ConflictResolver (`components/synarava-cms/conflict-resolver`)
+and the conflict banner (`CatalogConflictStatus`). End-to-end admin verification
+still pending.
