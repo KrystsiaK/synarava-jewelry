@@ -960,9 +960,9 @@
     "semantic_hash": ""
   },
   "components/admin/collections/__tests__/collection-edit-form.test.tsx": {
-    "mtime": 1792883331.3921375,
-    "seen": 1792885495.0367348,
-    "ast_hash": "b8cafaa171c63104088814bbe1fd75d7",
+    "mtime": 1792925929.600657,
+    "seen": 1792931126.265535,
+    "ast_hash": "a829261c87beca4e8a499cc34dc0d6c9",
     "semantic_hash": ""
   },
   "components/admin/collections/__tests__/collection-helpers.test.ts": {
@@ -1182,9 +1182,9 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/catalog-conflict-workspace.test.tsx": {
-    "mtime": 1792924763.6782393,
-    "seen": 1792925071.8618596,
-    "ast_hash": "04cdb298ac865d65b0846c8afc978b69",
+    "mtime": 1792925929.600657,
+    "seen": 1792931126.2665472,
+    "ast_hash": "13446d1527dfdb874be88d54b9d43db3",
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/commerce-conflict-section.test.ts": {
@@ -1206,9 +1206,9 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-edit-form.test.tsx": {
-    "mtime": 1792886070.9546666,
-    "seen": 1792925071.8619637,
-    "ast_hash": "51a3fc967e18416202149b5d55eb23df",
+    "mtime": 1792925912.1128383,
+    "seen": 1792931126.2666538,
+    "ast_hash": "eb6e46f89ecba33e1481266d1143ec92",
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-editor-scope.test.ts": {
@@ -2784,9 +2784,9 @@
     "semantic_hash": ""
   },
   "components/synarava-cms/index.ts": {
-    "mtime": 1792886341.6393514,
-    "seen": 1792925071.8676338,
-    "ast_hash": "8fd3131e2ca6eddf65efbc1429c5ced4",
+    "mtime": 1792930894.3396916,
+    "seen": 1792931126.2724936,
+    "ast_hash": "42f5fdcc25722fb9879cc7754849794d",
     "semantic_hash": ""
   },
   "components/telemetry/web-vitals-reporter.tsx": {
@@ -5784,9 +5784,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1792793999.335192,
-    "seen": 1792885495.0379353,
-    "ast_hash": "70085a4153f11efffb0b4a4f0503e68e",
+    "mtime": 1792925748.0514667,
+    "seen": 1792931126.2843447,
+    "ast_hash": "b16a5ada44cbb9a56a33efa5806a1bb5",
     "semantic_hash": ""
   },
   "playwright.config.ts": {
@@ -12366,9 +12366,9 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-metafields-panel.test.tsx": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.0368083,
-    "ast_hash": "8593520a8a8125f83dd28d35130d3f01",
+    "mtime": 1792925929.600657,
+    "seen": 1792931126.2667682,
+    "ast_hash": "51ce6cf95404565bb3944b08b7cdc36c",
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/shopify-product-specs-fields.test.tsx": {
@@ -12540,9 +12540,9 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/products-cms-pull-refresh.test.tsx": {
-    "mtime": 1792886070.9546666,
-    "seen": 1792925071.8621483,
-    "ast_hash": "64b171f300cc316f37c2fb93a6352d6e",
+    "mtime": 1792925929.600657,
+    "seen": 1792931126.2668314,
+    "ast_hash": "d8a9c526462acfa35a2bd0f32be2dc25",
     "semantic_hash": ""
   },
   "components/admin/products/product-sku-assign-panel.tsx": {
@@ -13686,9 +13686,9 @@
     "semantic_hash": ""
   },
   "docs/wiki/synarava-cms.md": {
-    "mtime": 1792886070.9586666,
-    "seen": 1792925071.896184,
-    "ast_hash": "575f836a3c0d18b31a4309c923186064",
+    "mtime": 1792930894.363692,
+    "seen": 1792931126.301642,
+    "ast_hash": "edca44efe31f2846ba48583c480064b0",
     "semantic_hash": ""
   },
   "docs/wiki/translation-field-registry.md": {
@@ -14580,9 +14580,9 @@
     "semantic_hash": ""
   },
   "docs/user/add-a-product.md": {
-    "mtime": 1792886341.6753514,
-    "seen": 1792925071.8959882,
-    "ast_hash": "70c5e29cd248646439de70af0a81e03a",
+    "mtime": 1792930894.3316913,
+    "seen": 1792931126.30142,
+    "ast_hash": "20df5aa16338c21c56c2c303e2031fdf",
     "semantic_hash": ""
   },
   "tests/fixtures/shopify/README.md": {
@@ -14802,9 +14802,9 @@
     "semantic_hash": ""
   },
   "docs/user/sync-collections.md": {
-    "mtime": 1792886341.6593513,
-    "seen": 1792925071.8959918,
-    "ast_hash": "afe3efe5d2a78a4979ef1243fc85388c",
+    "mtime": 1792930894.3396916,
+    "seen": 1792931126.30144,
+    "ast_hash": "fb807ad5a4650ae41f081f70a1ff6986",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/refresh-shopify-state-collections.test.ts": {
@@ -14832,21 +14832,21 @@
     "semantic_hash": ""
   },
   "components/synarava-cms/__tests__/conflict-resolver.test.tsx": {
-    "mtime": 1792886309.1672466,
-    "seen": 1792925071.8676245,
-    "ast_hash": "53ce0302f2bfeab48bf3fd3a4b492c66",
+    "mtime": 1792930938.820417,
+    "seen": 1792931126.272489,
+    "ast_hash": "54fc014d2cf541554edb5ea631819987",
     "semantic_hash": ""
   },
   "components/synarava-cms/conflict-resolver.stories.tsx": {
-    "mtime": 1792886070.9546666,
-    "seen": 1792925071.867628,
-    "ast_hash": "a2300c7148bc15ec28e40951855a63f4",
+    "mtime": 1792930877.3352563,
+    "seen": 1792931126.2724915,
+    "ast_hash": "891428d3474638ad7dc587c2f4b50703",
     "semantic_hash": ""
   },
   "components/synarava-cms/conflict-resolver.tsx": {
-    "mtime": 1792924758.3981638,
-    "seen": 1792925071.867631,
-    "ast_hash": "4162b592cf12cfbcf289ac3ccccbee52",
+    "mtime": 1792930765.0641353,
+    "seen": 1792931126.2724926,
+    "ast_hash": "bd28556d2250bb5cbd18fb8a75117646",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/conflict-resolver-one-ui.guard.test.ts": {
@@ -14862,9 +14862,9 @@
     "semantic_hash": ""
   },
   "components/admin/translations/__tests__/admin-shopify-check-disable.test.tsx": {
-    "mtime": 1792886070.8306663,
-    "seen": 1792925071.8647437,
-    "ast_hash": "773ac56a5babdcaa4333b68a9b2ed497",
+    "mtime": 1792926187.635176,
+    "seen": 1792931126.2697103,
+    "ast_hash": "02a9fd2674b8e25deb42120f126f1239",
     "semantic_hash": ""
   },
   "components/admin/translations/admin-shopify-check-context.tsx": {
@@ -14901,6 +14901,24 @@
     "mtime": 1792886070.8306663,
     "seen": 1792925071.8959901,
     "ast_hash": "a9aee87a3a44950d3e0e440737303ee3",
+    "semantic_hash": ""
+  },
+  "components/synarava-cms/__tests__/conflict-resolver-confirm.test.ts": {
+    "mtime": 1792930818.9549384,
+    "seen": 1792931126.2724867,
+    "ast_hash": "93773132f8bc7d63ebed0413ce0c2dd0",
+    "semantic_hash": ""
+  },
+  "components/synarava-cms/conflict-resolver-confirm.ts": {
+    "mtime": 1792930667.3534071,
+    "seen": 1792931126.2724903,
+    "ast_hash": "337fa5bcee201bce39cb95aaf9185cc8",
+    "semantic_hash": ""
+  },
+  "test/mocks/admin-sync-actions.ts": {
+    "mtime": 1792925896.4810107,
+    "seen": 1792931126.2866352,
+    "ast_hash": "b234dbe4983f836c90a86d1e33e3ec25",
     "semantic_hash": ""
   }
 }

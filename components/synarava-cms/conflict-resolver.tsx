@@ -7,11 +7,18 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
+import { ArrowRight, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
+import {
+  describeConflictConfirmChange,
+  formatConfirmDirectionSummary,
+  isTechnicalEntityId,
+  summarizeConfirmDirections,
+  type ConflictConfirmConsequence,
+} from "@/components/synarava-cms/conflict-resolver-confirm";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
 
@@ -328,9 +335,80 @@ export function ConflictRow({
   );
 }
 
+function confirmConsequenceClass(consequence: ConflictConfirmConsequence): string {
+  if (consequence === "create") return "adm-conflict-confirm__row--create";
+  if (consequence === "remove") return "adm-conflict-confirm__row--remove";
+  return "adm-conflict-confirm__row--update";
+}
+
+function ConflictConfirmFlowArrow() {
+  return (
+    <div className="adm-conflict-flow" aria-hidden="true">
+      <span className="adm-conflict-flow__line" />
+      <span className="adm-conflict-flow__pulse" />
+      <ArrowRight className="adm-conflict-flow__icon size-4" />
+    </div>
+  );
+}
+
+function ConflictConfirmChangeRow({
+  entry,
+  entity,
+  entityNoun,
+}: {
+  entry: ConflictPreviewEntry;
+  entity: ConflictEntitySummary | undefined;
+  entityNoun: string;
+}) {
+  const view = describeConflictConfirmChange(entry, entity, entityNoun);
+  return (
+    <section
+      className={`adm-conflict-confirm__row rounded-xl border p-4 ${confirmConsequenceClass(view.consequence)}`}
+    >
+      <div className="mb-3 flex flex-wrap items-center gap-2">
+        <ConflictLocaleMark field={entry.field} />
+        <h3 className="text-sm font-semibold">{view.headline}</h3>
+      </div>
+      <div className="adm-conflict-confirm__flow">
+        <div className="adm-conflict-confirm__cell">
+          <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--adm-muted)]">
+            {view.sourceLabel}
+          </span>
+          <p className="mt-2 whitespace-pre-wrap break-words text-sm text-[var(--adm-ink)]">
+            {view.sourceValue}
+          </p>
+        </div>
+        <ConflictConfirmFlowArrow />
+        <div className={`adm-conflict-confirm__cell adm-conflict-confirm__cell--target-${view.consequence}`}>
+          <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--adm-muted)]">
+            {view.targetLabel}
+          </span>
+          <p className="adm-conflict-confirm__before mt-2 whitespace-pre-wrap break-words text-sm">
+            {view.beforeValue}
+          </p>
+          <p className="adm-conflict-confirm__after mt-1 whitespace-pre-wrap break-words text-sm">
+            {view.afterValue}
+          </p>
+        </div>
+      </div>
+      {entry.willClearNonEmptyValue && view.consequence !== "remove" ? (
+        <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]">
+          This clears a value that is not empty today.
+        </p>
+      ) : null}
+      {entry.impactNote ? (
+        <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]" role="status">
+          {entry.impactNote}
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
 function ConflictPreviewModal({
   preview,
   entitiesById,
+  entityNoun,
   applying,
   resultMessage,
   onClose,
@@ -338,6 +416,7 @@ function ConflictPreviewModal({
 }: {
   preview: ConflictPreviewModel;
   entitiesById: Map<string, ConflictEntitySummary>;
+  entityNoun: string;
   applying: boolean;
   resultMessage: string | null;
   onClose: () => void;
@@ -353,6 +432,9 @@ function ConflictPreviewModal({
   const clearAckLabel = hasPresenceDelete
     ? "I understand Take Shopify removes these items from Synarava (linked products stay)."
     : "I understand some chosen values are empty and will clear what is stored on the other side.";
+  const directionSummary = formatConfirmDirectionSummary(
+    summarizeConfirmDirections(preview.entries),
+  );
 
   return (
     <AnimatedModal
@@ -384,47 +466,30 @@ function ConflictPreviewModal({
           <X className="size-4" aria-hidden="true" />
         </AdminButton>
       </header>
-      <div className="min-h-0 space-y-4 overflow-y-auto p-5">
+      <div className="adm-conflict-confirm min-h-0 space-y-4 overflow-y-auto p-5">
         {preview.entries.map((entry) => (
-          <section
+          <ConflictConfirmChangeRow
             key={`${entry.entityId}:${entry.field.fieldKey}`}
-            className="rounded-xl border border-[var(--adm-border)] p-4"
-          >
-            <div className="mb-3 flex flex-wrap items-center gap-2">
-              <ConflictLocaleMark field={entry.field} />
-              <h3 className="text-sm font-semibold">
-                {entitiesById.get(entry.entityId)?.name ?? entry.entityId} · {entry.field.label}
-              </h3>
-              <span className="text-xs font-semibold text-[var(--adm-muted)]">
-                {CONFLICT_DIRECTION_COPY[entry.direction].full}
-              </span>
-            </div>
-            <div className="grid gap-3 md:grid-cols-2">
-              <ConflictValueCell label="Shopify" value={displaySideValue(entry.field, "shopify")} />
-              <ConflictValueCell label="Synarava (ours)" value={displaySideValue(entry.field, "synarava")} />
-            </div>
-            {entry.willClearNonEmptyValue ? (
-              <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]">
-                This clears a value that is not empty today.
-              </p>
-            ) : null}
-            {entry.impactNote ? (
-              <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]" role="status">
-                {entry.impactNote}
-              </p>
-            ) : null}
-          </section>
+            entry={entry}
+            entity={entitiesById.get(entry.entityId)}
+            entityNoun={entityNoun}
+          />
         ))}
         {preview.excluded.length > 0 ? (
           <section className="rounded-xl border border-[var(--adm-warning)] p-4">
             <h3 className="text-sm font-semibold">Not included</h3>
             <ul className="mt-2 space-y-2 text-xs text-[var(--adm-muted)]">
-              {preview.excluded.map((item) => (
-                <li key={`${item.entityId}:${item.fieldKey}`}>
-                  {entitiesById.get(item.entityId)?.name ?? item.entityId} · {item.label}:{" "}
-                  {item.reason}
-                </li>
-              ))}
+              {preview.excluded.map((item) => {
+                const name = entitiesById.get(item.entityId)?.name;
+                const title = name && !isTechnicalEntityId(name)
+                  ? name
+                  : `Untitled ${entityNoun}`;
+                return (
+                  <li key={`${item.entityId}:${item.fieldKey}`}>
+                    {title} · {item.label}: {item.reason}
+                  </li>
+                );
+              })}
             </ul>
           </section>
         ) : null}
@@ -436,7 +501,10 @@ function ConflictPreviewModal({
         {resultMessage ? <Notice tone="warning">{resultMessage}</Notice> : null}
       </div>
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-        <div>
+        <div className="min-w-0 space-y-2">
+          <p className="text-xs font-semibold text-[var(--adm-ink)]" role="status">
+            {directionSummary}
+          </p>
           {hasClears ? (
             <AdminCheckboxControl
               className="max-w-xl text-xs"
@@ -974,6 +1042,7 @@ function ConflictResolverSession({
         <ConflictPreviewModal
           preview={preview}
           entitiesById={entitiesById}
+          entityNoun={adapter.entityNoun}
           applying={applying}
           resultMessage={resultMessage}
           onClose={() => { if (!applying) { setPreview(null); setResultMessage(null); } }}

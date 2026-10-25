@@ -278,4 +278,86 @@ describe("ConflictResolver", () => {
     expect(screen.getByText(/Cannot choose here/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Apply (0)" })).toBeDisabled();
   });
+
+  it("confirm preview shows plain-language headlines, before/after, and direction summary", async () => {
+    const createField: CatalogConflictField = {
+      ...field,
+      fieldKey: "presence:collection",
+      label: "Collection exists only in Synarava",
+      scope: { kind: "SHARED" },
+      origin: "PRESENCE",
+      synaravaValue: "Pets · /pets",
+      shopifyValue: "— Collection is missing —",
+      allowedDirections: ["SYNARAVA_TO_SHOPIFY"],
+      sourceId: null,
+      presenceDifference: {
+        id: "c-pets",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "c-pets",
+        shopifyProductId: null,
+        name: "Pets",
+        handle: "pets",
+        sku: "",
+        localFingerprint: "l",
+        shopifyFingerprint: "s",
+        remoteMissing: true,
+        matchReason: null,
+        localIdentity: { name: "Pets", handle: "pets", sku: "" },
+        shopifyIdentity: null,
+      },
+    };
+    const priceField: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:price",
+      label: "Price",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "120.00 EUR",
+      shopifyValue: "110.00 EUR",
+      sourceId: null,
+    };
+    const adapter = createAdapter({
+      entityNoun: "collection",
+      entityNounPlural: "collections",
+      loadEntityFields: vi.fn(async () => ({ fields: [createField, priceField] })),
+      previewSelections: vi.fn(async (selections) => ({
+        preview: {
+          truncated: false,
+          excluded: [],
+          entries: selections.map((item) => ({
+            entityId: item.entityId,
+            field: item.fieldKey === priceField.fieldKey ? priceField : createField,
+            direction: item.direction,
+            willClearNonEmptyValue: false,
+          })),
+        },
+      })),
+    });
+
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["c-pets"]}
+        entities={[{ id: "c-pets", name: "Pets" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+
+    await screen.findByText("Collection exists only in Synarava");
+    fireEvent.click(screen.getByRole("button", { name: "Keep ours for all" }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (2)" }));
+
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    expect(within(preview).getByRole("heading", { name: 'Create "Pets" in Shopify' })).toBeInTheDocument();
+    expect(within(preview).getByRole("heading", { name: "Update price in Shopify" })).toBeInTheDocument();
+    expect(within(preview).getByText("Not in Shopify")).toBeInTheDocument();
+    expect(within(preview).getByText("110.00 EUR")).toBeInTheDocument();
+    expect(within(preview).getAllByText("120.00 EUR").length).toBeGreaterThanOrEqual(2);
+    expect(within(preview).getByText("2 changes to Shopify · 0 changes to Synarava")).toBeInTheDocument();
+    expect(within(preview).getByText("Nothing changes until you confirm.")).toBeInTheDocument();
+    expect(within(preview).getByRole("button", { name: "Confirm changes" })).toBeEnabled();
+  });
 });
