@@ -45,23 +45,14 @@ export async function POST(request: Request) {
       // Refresh Shopify inventory into shopifySnapshot + flag; never write stockOnHand.
       await pullShopifyInventory(shopifyGid("InventoryItem", payload.inventory_item_id!), event.id);
     } else if (topic === "products/delete") {
-      // Presence divergence only — human Apply chooses archive or push-back.
+      // Presence SoT is SyncResult leaves — do not flag product.syncStatus CONFLICT.
       const product = await db.product.findUnique({ where: { shopifyProductId: shopifyProductId! } });
-      if (product) {
-        await db.product.update({
-          where: { id: product.id },
-          data: {
-            syncStatus: "CONFLICT",
-            syncError: "Product was deleted in Shopify.",
-          },
-        });
-      }
       await db.productSyncEvent.update({
         where: { id: event.id },
         data: { productId: product?.id, status: "SUCCEEDED", completedAt: new Date() },
       });
     } else {
-      // products/create|update — Shopify-side copy + divergence flags only.
+      // products/create|update — Shopify-side snapshot refresh only (no syncStatus).
       await refreshShopifyProductState(shopifyProductId!, event.id);
     }
     return NextResponse.json({ ok: true });

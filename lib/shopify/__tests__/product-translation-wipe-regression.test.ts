@@ -23,7 +23,6 @@ vi.mock("@/lib/db", () => ({
 vi.mock("@/lib/shopify/product-sync", () => ({
   refreshShopifyProductState: mocks.refreshShopifyProductState,
   pullShopifyInventory: vi.fn(),
-  pullShopifyProduct: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
 }));
 vi.mock("@/lib/shopify/webhook-event", () => ({

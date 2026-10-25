@@ -10,36 +10,36 @@ const LOCALE_TABS = [
 ];
 
 describe("productConflictCompareSummary", () => {
-  it("stays at zero when only one-sided translation divergences exist (no signal, no commerce)", () => {
-    // Cotton-thread style: AdminSyncInlineWarning used to count LOCAL_ONLY /
-    // SHOPIFY_ONLY reconcile rows while the conflict icon stayed green.
+  it("stays at zero when only one-sided translation divergences exist (no signal)", () => {
     const summary = productConflictCompareSummary(null, {
-      commerceFieldCount: 0,
       localeTabs: LOCALE_TABS,
     });
     expect(summary).toEqual({ count: 0, localeLabels: [] });
-    expect(productConflictBadgeCount(null, { commerceFieldCount: 0 })).toBe(0);
+    expect(productConflictBadgeCount(null)).toBe(0);
   });
 
   it("matches icon badge count for shared commerce field diffs", () => {
     const signal = { shared: true, sharedCount: 2, locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }> };
     const summary = productConflictCompareSummary(signal, {
-      commerceFieldCount: 2,
       localeTabs: LOCALE_TABS,
     });
-    expect(summary.count).toBe(productConflictBadgeCount(signal, { commerceFieldCount: 2 }));
+    expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.count).toBe(2);
     expect(summary.localeLabels).toEqual(["English", "Portuguese", "Russian"]);
   });
 
-  it("matches icon badge when live inspect count differs from saved sharedCount", () => {
-    const signal = { shared: true, sharedCount: 1, locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }> };
+  it("prefers SyncResult leafCount over sharedCount for the badge", () => {
+    const signal = {
+      leafCount: 12,
+      shared: true,
+      sharedCount: 1,
+      locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }>,
+    };
     const summary = productConflictCompareSummary(signal, {
-      commerceFieldCount: 12,
       localeTabs: LOCALE_TABS,
     });
     expect(summary.count).toBe(12);
-    expect(summary.count).toBe(productConflictBadgeCount(signal, { commerceFieldCount: 12 }));
+    expect(summary.count).toBe(productConflictBadgeCount(signal));
   });
 
   it("adds CONFLICT translation locale labels without inventing one-sided rows", () => {
@@ -52,11 +52,10 @@ describe("productConflictCompareSummary", () => {
       ],
     };
     const summary = productConflictCompareSummary(signal, {
-      commerceFieldCount: 0,
       localeTabs: LOCALE_TABS,
     });
     expect(summary.count).toBe(3);
-    expect(summary.count).toBe(productConflictBadgeCount(signal, { commerceFieldCount: 0 }));
+    expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.localeLabels).toEqual(["Portuguese", "Russian"]);
   });
 
@@ -70,11 +69,10 @@ describe("productConflictCompareSummary", () => {
       ],
     };
     const summary = productConflictCompareSummary(signal, {
-      commerceFieldCount: 2,
       localeTabs: LOCALE_TABS,
     });
     expect(summary.count).toBe(5);
-    expect(summary.count).toBe(productConflictBadgeCount(signal, { commerceFieldCount: 2 }));
+    expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.localeLabels).toEqual(["English", "Portuguese", "Russian"]);
   });
 });

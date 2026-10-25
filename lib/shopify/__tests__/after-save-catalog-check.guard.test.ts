@@ -100,7 +100,8 @@ describe("after-save catalog check guard", () => {
     for (const file of ["products.ts", "collections.ts", "sku-assign.ts"]) {
       const source = read(`app/admin/actions/${file}`);
       expect(source).not.toMatch(/void\s+runProductConflictCheck/);
-      expect(source).not.toMatch(/void\s+runCollectionConflictCheck/);
+      expect(source).not.toMatch(/runCollectionConflictCheck/);
+      expect(source).not.toMatch(/runCollectionsConflictCheck/);
     }
   });
 

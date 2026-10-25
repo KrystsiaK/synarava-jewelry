@@ -99,8 +99,9 @@ async function writeLocally(collectionId: string, label: string, value: string) 
     data: {
       ...columnData,
       workingSnapshot: nextWorking as Prisma.InputJsonValue,
-      syncStatus: "CONFLICT",
-      syncError: "workingSnapshot and shopifySnapshot differ.",
+      // Local field write → merchant intent to push; conflict SoT is SyncResult.
+      syncStatus: "PENDING",
+      syncError: null,
     },
   });
 

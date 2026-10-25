@@ -3,7 +3,7 @@ title: Sync collections with Shopify
 section: Catalog
 status: draft
 verifiedOn:
-updatedOn: 2026-10-24
+updatedOn: 2026-10-25
 ---
 
 # Sync collections with Shopify
@@ -20,17 +20,19 @@ human **Apply** after preview.
   must match the current shop.
 - Collections use the **same** ConflictResolver UI as Products (one shared
   control in synarava-cms).
-- The **only** place that fetches Shopify and compares is the admin top-bar
-  Shopify sync control. Catalog banners only display the last saved result.
+- Shopify fetch+compare runs from the admin top-bar Shopify control (once at
+  login, on click) and after Save. Catalog banners and ConflictResolver open
+  only display the last SyncResult leaves (`skipRefresh` — no Shopify fetch).
 
 :::good-to-know
 There are two copies of commerce fields: a **Shopify** copy (left cell in the
 conflict UI) and a **Synarava** copy (right cell). Nothing is written
-automatically when you open the page. Webhooks update the Shopify-side copy and
-conflict flags. A full catalog check runs from the admin top-bar Shopify control
-(once at login, on click, and after every product / collection / language-setting
-Save). While a check runs, Save and Take Shopify / Keep ours stay disabled;
-fields stay editable. Sync status lives only on that top-bar control.
+automatically when you open the page or the conflict list. Webhooks update the
+Shopify-side copy. A full catalog check runs from the admin top-bar Shopify
+control (once at login, on click) and after every product / collection /
+language-setting Save. While a check runs, Save and Take Shopify / Keep ours
+stay disabled; fields stay editable. Conflict counts come from SyncResult
+leaves — not from a `syncStatus: CONFLICT` database flag.
 :::
 
 ## Steps
@@ -38,12 +40,13 @@ fields stay editable. Sync status lives only on that top-bar control.
 :::steps
 ### Read the conflict banner
 
-On **Catalog → Collections**, the banner shows the saved conflict status:
+On **Catalog → Collections**, the banner shows the saved SyncResult status:
 
-- **N collections with conflicts** when at least one collection differs, or
-  **No conflicts** when the count is zero. N is the number of **distinct
-  collections** with ≥1 open conflict (commerce, translation, or presence) —
-  the same `countConflictedItems` figure as the Collections menu badge.
+- **N collections with conflicts** when at least one collection has ≥1 open
+  leaf, or **No conflicts** when the count is zero. N is the number of
+  **distinct collections** with ≥1 open conflict (commerce, translation, or
+  presence) — the same `countConflictedItems` figure as the Collections menu
+  badge (not a `syncStatus` query).
 - **Last full check \<date\>** from `SyncResult.checkedAt`: a fresh waterfall
   stamps the run that produced the counts; skipRefresh reads use the latest
   SUCCEEDED AUTO/MANUAL reconcile `completedAt` (same source as the top-bar
@@ -53,8 +56,10 @@ On **Catalog → Collections**, the banner shows the saved conflict status:
 
 ### Open ConflictResolver
 
-Choose **Show conflicts** (or a row badge) to open ConflictResolver. Conflicts
-are grouped by collection; each field is one row with two clickable cells:
+Choose **Show conflicts** (or a row badge) to open ConflictResolver. Opening
+the list does **not** fetch Shopify again — it maps the saved SyncResult
+leaves into rows. Conflicts are grouped by collection; each field is one row
+with two clickable cells:
 
 - **Left = Shopify**
 - **Right = Synarava (ours)**
@@ -85,16 +90,17 @@ Apply opens the confirm dialog for exactly the chosen changes. Each row shows:
 
 Nothing is written until you **Confirm changes** (the acknowledgement
 checkbox still appears for clears / removals). Confirm writes only those
-selections, then re-fetches conflict signals.
+selections. Apply may refresh that one collection for write safety, then
+rebuilds leaves; after a successful Apply the after-save full check runs.
 :::
 
 :::warning
-The banner is display-only (saved conflict counts and last full-check time). It
-does not show check progress. Use the admin top-bar Shopify control for status
-(**Shopify current \<time\>**, **Checking Shopify…**, **Check failed**, or
-**Shopify disconnected**) and to start a manual full check. Saving a collection
-also runs that same full check. Use **Show conflicts** to review or resolve
-differences.
+The banner is display-only (saved SyncResult counts and last full-check time).
+It does not show check progress. Use the admin top-bar Shopify control for
+status (**Shopify current \<time\>**, **Checking Shopify…**, **Check failed**,
+or **Shopify disconnected**) and to start a manual full check. Saving a
+collection also runs that same full check. Use **Show conflicts** to review or
+resolve differences without starting another fetch.
 :::
 
 ## What if...

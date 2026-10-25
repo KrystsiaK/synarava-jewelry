@@ -15,7 +15,6 @@ describe("ProductConflictCompareBanner", () => {
     const { container } = render(
       <ProductConflictCompareBanner
         signal={null}
-        commerceFieldCount={0}
         localeTabs={LOCALE_TABS}
         onOpen={() => {}}
       />,
@@ -35,7 +34,6 @@ describe("ProductConflictCompareBanner", () => {
             { code: "pt", name: "Portuguese", nativeName: "Português", count: 1 },
           ],
         }}
-        commerceFieldCount={2}
         localeTabs={LOCALE_TABS}
         onOpen={onOpen}
       />,

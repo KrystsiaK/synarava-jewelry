@@ -2,40 +2,15 @@ import "server-only";
 
 import { createHash } from "node:crypto";
 
-import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
-import type { StorefrontLocaleRecord } from "@/lib/i18n/storefront-locale-registry";
-
-import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
-import { inspectProductSyncState, type ProductSyncDifference } from "./product-sync";
 import {
-  ADOPT_SHOPIFY_FIELD_KEY,
-  ADOPT_SHOPIFY_FIELD_LABEL,
-  ADOPT_SHOPIFY_FIELD_PATH,
-  COMMERCE_UNSUPPORTED_REASON,
-  isScopedCommerceFieldLabel,
-} from "./catalog-conflict-policy";
+  catalogConflictFieldsForEntity,
+  runSyncWaterfall,
+} from "@/lib/sync";
+
+import { isAdoptShopifyConflictField as isAdoptShopifyConflictFieldPolicy } from "./catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "./catalog-presence";
 import { getLatestCatalogPresenceDifferences } from "./catalog-presence-server";
-
-// Commerce inspection compares Name/Handle/Description/SEO title/SEO
-// description as flat product attributes read straight off the local
-// Product row (see productSourceCopy in reconciliation-source.ts — the
-// same Product columns feed translation reconcile's "en" locale). So a
-// commerce difference for one of these labels and a translation-reconcile
-// CONFLICT for the matching field key under locale "en" are two views of
-// the exact same drift. Only drop the commerce version when reconcile has
-// actually reported that exact field as conflicting for this product —
-// never merely because a translation binding exists — otherwise a product
-// whose binding exists but hasn't been (re)checked yet would lose the
-// conflict entirely (see catalog-conflict-resolution-plan.md open note).
-const COMMERCE_TRANSLATION_FIELD_KEY: Record<string, string> = {
-  Name: "title",
-  Handle: "localizedHandle",
-  Description: "description",
-  "SEO title": "seoTitle",
-  "SEO description": "seoDescription",
-};
 
 export type CatalogConflictDirection = "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
 
@@ -51,7 +26,6 @@ export type CatalogConflictField = {
   targetKind: "NATIVE" | "METAFIELD" | "METAOBJECT";
   synaravaValue: string;
   shopifyValue: string;
-  baseValue: string | null;
   localFingerprint: string;
   shopifyFingerprint: string;
   allowedDirections: CatalogConflictDirection[];
@@ -68,17 +42,6 @@ export type ProductCatalogConflict = {
   fields: CatalogConflictField[];
 };
 
-function slugFieldKey(label: string): string {
-  return label
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
-function commerceTargetKind(label: string): "NATIVE" | "METAFIELD" {
-  return label.startsWith("Characteristic:") || label.startsWith("Certificate:") ? "METAFIELD" : "NATIVE";
-}
-
 /**
  * Change-detection fingerprint for a commerce value — `inspectProductSyncState`'s
  * `compare()` already trims and normalizes it to a plain string ("—" for
@@ -91,115 +54,8 @@ export function commerceFingerprint(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-function commerceField(difference: ProductSyncDifference): CatalogConflictField {
-  const supported = isScopedCommerceFieldLabel(difference.field);
-  // Prefer path in the key so two "Media gallery (image N)" rows stay distinct.
-  const keySource = difference.path?.trim() || difference.field;
-  return {
-    fieldKey: `commerce:${slugFieldKey(keySource)}`,
-    label: difference.field,
-    scope: { kind: "SHARED" },
-    origin: "COMMERCE",
-    targetKind: commerceTargetKind(difference.field),
-    synaravaValue: difference.local,
-    shopifyValue: difference.shopify,
-    baseValue: null,
-    localFingerprint: commerceFingerprint(difference.local),
-    shopifyFingerprint: commerceFingerprint(difference.shopify),
-    allowedDirections: supported ? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] : [],
-    blockedReason: supported ? null : COMMERCE_UNSUPPORTED_REASON,
-    sourceId: null,
-    path: difference.path ?? null,
-  };
-}
-
-/** Missing Synarava commerce window — ordinary one-way Apply (human Pull). */
-function adoptShopifyField(difference: ProductSyncDifference): CatalogConflictField {
-  return {
-    fieldKey: ADOPT_SHOPIFY_FIELD_KEY,
-    label: ADOPT_SHOPIFY_FIELD_LABEL,
-    scope: { kind: "SHARED" },
-    origin: "COMMERCE",
-    targetKind: "NATIVE",
-    synaravaValue: difference.local,
-    shopifyValue: difference.shopify,
-    baseValue: null,
-    localFingerprint: commerceFingerprint(difference.local),
-    shopifyFingerprint: commerceFingerprint(difference.shopify),
-    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
-    blockedReason: null,
-    sourceId: null,
-    path: ADOPT_SHOPIFY_FIELD_PATH,
-  };
-}
-
 export function isAdoptShopifyConflictField(field: Pick<CatalogConflictField, "fieldKey" | "path" | "label">): boolean {
-  return field.fieldKey === ADOPT_SHOPIFY_FIELD_KEY
-    || field.path === ADOPT_SHOPIFY_FIELD_PATH
-    || field.label === ADOPT_SHOPIFY_FIELD_LABEL;
-}
-
-function resolveLocale(differenceLocale: string, locales: StorefrontLocaleRecord[]): StorefrontLocaleRecord | undefined {
-  return locales.find((locale) => (locale.isDefault ? locale.code : locale.shopifyLocale) === differenceLocale);
-}
-
-function stringifyReconcileValue(value: unknown): string {
-  if (value == null) return "";
-  return typeof value === "string" ? value : JSON.stringify(value);
-}
-
-function translationField(difference: ReconcileDifferenceView, locales: StorefrontLocaleRecord[]): CatalogConflictField {
-  const locale = resolveLocale(difference.locale, locales);
-  return {
-    fieldKey: `translation:${difference.locale}:${difference.fieldKey}`,
-    label: difference.fieldLabel,
-    scope: {
-      kind: "LOCALE",
-      code: locale?.code ?? difference.locale,
-      name: locale?.name ?? difference.locale,
-      nativeName: locale?.nativeName ?? difference.locale,
-    },
-    origin: "TRANSLATION",
-    targetKind: difference.targetKind,
-    synaravaValue: stringifyReconcileValue(difference.localValue),
-    shopifyValue: stringifyReconcileValue(difference.shopifyValue),
-    baseValue: difference.baseValue == null ? null : stringifyReconcileValue(difference.baseValue),
-    localFingerprint: difference.localFingerprint,
-    shopifyFingerprint: difference.shopifyFingerprint,
-    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
-    blockedReason: null,
-    sourceId: difference.id,
-  };
-}
-
-function presenceField(difference: CatalogPresenceDifference): CatalogConflictField {
-  const shopifyOnly = difference.kind === "SHOPIFY_ONLY";
-  const label = shopifyOnly
-    ? difference.localProductId
-      ? "Shopify product is not linked"
-      : "Product exists only in Shopify"
-    : difference.remoteMissing
-      ? "Product is missing in Shopify"
-      : "Product exists only in Synarava";
-  const summarize = (identity: { name: string; sku: string } | null) => identity
-    ? [identity.name, identity.sku ? `SKU ${identity.sku}` : ""].filter(Boolean).join(" · ")
-    : "— Product is missing —";
-  return {
-    fieldKey: "presence:product",
-    label,
-    scope: { kind: "SHARED" },
-    origin: "PRESENCE",
-    targetKind: "NATIVE",
-    synaravaValue: summarize(difference.localIdentity),
-    shopifyValue: summarize(difference.shopifyIdentity),
-    baseValue: null,
-    localFingerprint: difference.localFingerprint,
-    shopifyFingerprint: difference.shopifyFingerprint,
-    allowedDirections: shopifyOnly ? ["SHOPIFY_TO_SYNARAVA"] : ["SYNARAVA_TO_SHOPIFY"],
-    blockedReason: null,
-    sourceId: null,
-    presenceDifference: difference,
-  };
+  return isAdoptShopifyConflictFieldPolicy(field);
 }
 
 /**
@@ -224,118 +80,73 @@ export function findCatalogPresenceDifference(
   });
 }
 
-function isVirtualPresenceProductId(productId: string): boolean {
-  return productId.startsWith("shopify:");
-}
-
 /**
- * Unified per-product conflict read model: links commerce inspection
- * (live Shopify fetch) with the latest translation-reconcile state by
- * product ID, so a single card can show every conflicting field/locale
- * without the caller knowing about two separate subsystems.
- *
- * Translation rows with kind CONFLICT are included (PR3 two-way compare emits
- * only CONFLICT for any Synarava ≠ Shopify value). Legacy LOCAL_ONLY /
- * SHOPIFY_ONLY rows from pre-PR3 reconciles are ignored until re-checked.
- *
- * `getLatestReconcileDifferences()` always returns the current, per-field
- * state of everything ever checked (see its doc comment) — it is not
- * gated on the most recent reconcile run's own status/scope, so a narrow
- * or failed run elsewhere never hides this product's already-known
- * translation conflicts.
+ * ConflictResolver field list from SyncResult leaves (waterfall compare).
+ * Opening the resolver must use `skipRefresh: true` — no Shopify fetch.
+ * Apply/preview may refresh first, then call with skipRefresh after the
+ * only allowed live inspect (see catalog-conflict-apply).
  */
-export async function getProductCatalogConflict(productId: string): Promise<ProductCatalogConflict> {
-  const presenceDifferences = await getLatestCatalogPresenceDifferences();
-  const presence = findCatalogPresenceDifference(presenceDifferences, productId);
-  if (presence) return { productId, fields: [presenceField(presence)] };
-
-  // Virtual Shopify-only ids are not Product rows. After re-scan the presence
-  // row may have disappeared (already linked) — return empty fields (STALE on
-  // apply) instead of calling inspectProductSyncState → findUniqueOrThrow.
-  if (isVirtualPresenceProductId(productId)) {
-    return { productId, fields: [] };
-  }
-
-  const local = await db.product.findUnique({
-    where: { id: productId },
-    select: { id: true, workingSnapshot: true },
-  });
-  if (!local) {
-    return { productId, fields: [] };
-  }
-
-  const [inspection, differences, locales] = await Promise.all([
-    inspectProductSyncState(productId),
-    getLatestReconcileDifferences(),
+export async function loadProductConflictFromSyncResult(
+  productId: string,
+  options: { requestedBy: string; skipRefresh?: boolean },
+): Promise<ProductCatalogConflict> {
+  const [{ result }, locales, presenceDifferences] = await Promise.all([
+    runSyncWaterfall({
+      scope: { kind: "product", productId },
+      requestedBy: options.requestedBy,
+      skipRefresh: options.skipRefresh ?? true,
+    }),
     getPublishedStorefrontLocales(),
+    getLatestCatalogPresenceDifferences(),
   ]);
 
-  const productDifferences = differences.filter((difference) =>
-    difference.rootEntityType === "PRODUCT" && difference.rootEntityId === productId && difference.kind === "CONFLICT",
-  );
-  const enConflictFieldKeys = new Set(
-    productDifferences.filter((difference) => difference.locale === "en").map((difference) => difference.fieldKey),
-  );
+  const presence = findCatalogPresenceDifference(presenceDifferences, productId);
+  // When presence id remapped (shopify:N → local), leaves may key on local id.
+  const resourceId = presence?.id ?? productId;
+  const fields = catalogConflictFieldsForEntity(result, {
+    resourceType: "PRODUCT",
+    resourceId,
+    locales: locales.map((locale) => ({
+      code: locale.code,
+      name: locale.name,
+      nativeName: locale.nativeName,
+    })),
+    presenceDifference: presence,
+  });
 
-  const fields: CatalogConflictField[] = [];
-  const workingMissing = local.workingSnapshot == null || inspection.workingSnapshotMissing === true;
-
-  if (workingMissing) {
-    // Only the adopt row for commerce — never path-level diffs (unsafe partial seed).
-    const adoptDiff = inspection.differences.find(
-      (difference) => difference.path === ADOPT_SHOPIFY_FIELD_PATH || difference.field === ADOPT_SHOPIFY_FIELD_LABEL,
-    ) ?? {
-      field: ADOPT_SHOPIFY_FIELD_LABEL,
-      local: "— No Synarava commerce window —",
-      shopify: "—",
-      path: ADOPT_SHOPIFY_FIELD_PATH,
+  // Virtual id with remapped presence: also try the caller's id if empty.
+  if (fields.length === 0 && resourceId !== productId) {
+    return {
+      productId,
+      fields: catalogConflictFieldsForEntity(result, {
+        resourceType: "PRODUCT",
+        resourceId: productId,
+        locales: locales.map((locale) => ({
+          code: locale.code,
+          name: locale.name,
+          nativeName: locale.nativeName,
+        })),
+        presenceDifference: presence,
+      }),
     };
-    fields.push(adoptShopifyField(adoptDiff));
-  } else if (inspection.state === "CONFLICT" || inspection.state === "LOCAL_CHANGES" || inspection.state === "REMOTE_CHANGES") {
-    for (const difference of inspection.differences) {
-      const translationFieldKey = COMMERCE_TRANSLATION_FIELD_KEY[difference.field];
-      if (translationFieldKey && enConflictFieldKeys.has(translationFieldKey)) continue;
-      if (difference.path === ADOPT_SHOPIFY_FIELD_PATH || difference.field === ADOPT_SHOPIFY_FIELD_LABEL) {
-        fields.push(adoptShopifyField(difference));
-        continue;
-      }
-      fields.push(commerceField(difference));
-    }
-  }
-
-  for (const difference of productDifferences) {
-    fields.push(translationField(difference, locales));
   }
 
   return { productId, fields };
 }
 
 /**
- * Product IDs with at least one unresolved conflict field, for the
- * catalog-wide signal/counter. Deliberately avoids a live Shopify fetch per
- * product: the commerce side reads the `syncStatus` flag webhooks already
- * persist (set to CONFLICT when a remote update lands on unsynced local
- * changes — see product-sync.ts), and the translation side reads
- * `getLatestReconcileDifferences()`, which is always current regardless of
- * whether the most recent reconcile run was a full sweep or scoped to one
- * product/locale. Neither call is a live Shopify round trip.
- *
- * The catalog page's own "checking…"/"failed, retry" banner is a separate
- * concern — read `getLatestReconcileRun()` directly for that; it is not
- * threaded through here because it must never gate which conflicts show.
+ * Product IDs with ≥1 open SyncResult leaf — derived from waterfall
+ * skipRefresh compare, not from `syncStatus: CONFLICT` DB flags.
  */
-export async function listConflictedProductIds(): Promise<string[]> {
-  const [commerceConflicted, differences, presenceDifferences] = await Promise.all([
-    db.product.findMany({ where: { syncStatus: "CONFLICT" }, select: { id: true } }),
-    getLatestReconcileDifferences(),
-    getLatestCatalogPresenceDifferences(),
-  ]);
-
-  const productIds = new Set(commerceConflicted.map((product) => product.id));
-  for (const difference of differences) {
-    if (difference.rootEntityType === "PRODUCT" && difference.kind === "CONFLICT") productIds.add(difference.rootEntityId);
+export async function listConflictedProductIds(requestedBy = "system"): Promise<string[]> {
+  const { result } = await runSyncWaterfall({
+    scope: { kind: "catalog" },
+    requestedBy,
+    skipRefresh: true,
+  });
+  const productIds = new Set<string>();
+  for (const leaf of result.leaves) {
+    if (leaf.resourceType === "PRODUCT") productIds.add(leaf.resourceId);
   }
-  for (const difference of presenceDifferences) productIds.add(difference.id);
-
   return [...productIds];
 }

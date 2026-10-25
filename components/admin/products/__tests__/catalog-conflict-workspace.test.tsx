@@ -34,7 +34,6 @@ const field = {
   targetKind: "NATIVE" as const,
   synaravaValue: "Кольцо",
   shopifyValue: "Кольцо Shopify",
-  baseValue: "Ring",
   localFingerprint: "local",
   shopifyFingerprint: "shopify",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,

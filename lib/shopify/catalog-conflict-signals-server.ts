@@ -109,30 +109,3 @@ export async function runCatalogConflictCheck(
   );
 }
 
-/** Scoped collection check. */
-export async function runCollectionConflictCheck({
-  collectionId,
-  locale,
-  requestedBy,
-}: {
-  collectionId: string;
-  locale?: string;
-  requestedBy: string;
-}): Promise<{
-  signals: CatalogConflictSignals;
-  warning?: string;
-}> {
-  return signalsFromWaterfall(
-    { kind: "collection", collectionId, locale },
-    requestedBy,
-    "COLLECTION",
-  );
-}
-
-/** Full collection conflict sweep. */
-export async function runCollectionsConflictCheck(requestedBy: string): Promise<{
-  signals: CatalogConflictSignals;
-  warning?: string;
-}> {
-  return signalsFromWaterfall({ kind: "collections" }, requestedBy, "COLLECTION");
-}

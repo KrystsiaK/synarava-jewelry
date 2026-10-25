@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 /**
  * PR2 contract: inspectProductSyncState may refresh the Shopify-side copy and
  * compute status in memory. It must never create/change workingSnapshot,
- * product commerce columns, translations, or TaxonomyValueLabel.
+ * product commerce columns, translations, TaxonomyValueLabel, or syncStatus.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -159,7 +159,7 @@ describe("inspectProductSyncState — no Synarava writes", () => {
     expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
   });
 
-  it("refreshes shopifySnapshot and never rewrites an existing workingSnapshot", async () => {
+  it("refreshes shopifySnapshot and never rewrites workingSnapshot or syncStatus", async () => {
     const existingWorking = {
       title: "Local title",
       handle: "local-handle",
@@ -169,14 +169,18 @@ describe("inspectProductSyncState — no Synarava writes", () => {
     };
     mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({ workingSnapshot: existingWorking }));
 
-    await inspectProductSyncState("local-1");
+    const inspection = await inspectProductSyncState("local-1");
 
+    expect(inspection.state).toBe("CONFLICT");
     expect(mocks.updateProduct).toHaveBeenCalled();
     for (const data of allUpdateData()) {
       expect(data.shopifySnapshot).toBeDefined();
       expect((data.shopifySnapshot as { title?: string }).title).toBe("Shopify title");
       expect(data).not.toHaveProperty("workingSnapshot");
       expect(data).not.toHaveProperty("name");
+      expect(data).not.toHaveProperty("syncStatus");
+      expect(data).not.toHaveProperty("syncError");
+      expect(data).not.toHaveProperty("lastSyncedAt");
     }
   });
 

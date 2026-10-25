@@ -13,19 +13,16 @@ import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflic
  */
 export function ProductConflictCompareBanner({
   signal,
-  commerceFieldCount,
   localeTabs,
   onOpen,
   className = "",
 }: {
   signal: CatalogConflictProductSignal | null | undefined;
-  commerceFieldCount?: number;
   localeTabs?: ReadonlyArray<{ code: string; label: string }>;
   onOpen: () => void;
   className?: string;
 }) {
   const summary = productConflictCompareSummary(signal, {
-    commerceFieldCount,
     localeTabs,
   });
   if (summary.count <= 0) return null;

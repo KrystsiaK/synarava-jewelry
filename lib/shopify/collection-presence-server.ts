@@ -90,8 +90,9 @@ export type RefreshShopifyCollectionResult = {
 
 /**
  * Automatic refresh (post-Push finish, future webhooks): persist Shopify-side
- * copy + divergence flags only. Never writes workingSnapshot, Synarava columns,
- * or collectionTranslation rows.
+ * copy only (`shopifySnapshot` / handle / updatedAt). Never writes workingSnapshot,
+ * Synarava columns, collectionTranslation rows, or `syncStatus` from compare —
+ * conflict SoT is SyncResult leaves.
  */
 export async function refreshShopifyCollectionState(
   shopifyCollectionId: string,
@@ -139,12 +140,6 @@ export async function refreshShopifyCollectionState(
       shopifyManualSourceId: shopifyManualSourceId ?? undefined,
       shopifySnapshot: shopifySnapshot as Prisma.InputJsonValue,
       shopifyUpdatedAt: remote.updatedAt ? new Date(remote.updatedAt) : new Date(),
-      ...(status === "SYNCED"
-        ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
-        : {
-            syncStatus: "CONFLICT" as const,
-            syncError: "workingSnapshot and shopifySnapshot differ.",
-          }),
     },
   });
   return { collectionId: existing.id, status };

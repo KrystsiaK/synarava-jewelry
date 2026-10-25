@@ -16,7 +16,6 @@ const field: CatalogConflictField = {
   targetKind: "NATIVE",
   synaravaValue: "Anel",
   shopifyValue: "Anel Shopify",
-  baseValue: "Ring",
   localFingerprint: "local",
   shopifyFingerprint: "shopify",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],

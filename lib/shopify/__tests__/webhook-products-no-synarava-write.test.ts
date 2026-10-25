@@ -28,7 +28,6 @@ vi.mock("@/lib/shopify/product-sync", () => ({
   refreshShopifyProductState: mocks.refreshShopifyProductState,
   pullShopifyInventory: mocks.pullShopifyInventory,
   // Human apply API must remain exported for admin/presence — webhook must not call it.
-  pullShopifyProduct: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
 }));
 vi.mock("@/lib/shopify/webhook-event", () => ({
@@ -68,28 +67,22 @@ describe("products webhook Synarava write contract", () => {
     expect(mocks.pullShopifyInventory).not.toHaveBeenCalled();
   });
 
-  it("inventory_levels/update does not apply Synarava stock via pullShopifyProduct", async () => {
+  it("inventory_levels/update does not apply Synarava stock via applyShopifyProductToSynarava", async () => {
     const response = await POST(webhookRequest("inventory_levels/update", { inventory_item_id: 77 }));
     expect(response.status).toBe(200);
     expect(mocks.pullShopifyInventory).toHaveBeenCalled();
     expect(mocks.refreshShopifyProductState).not.toHaveBeenCalled();
   });
 
-  it("products/delete flags conflict only — no ARCHIVED / PRIVATE / UNLINKED", async () => {
+  it("products/delete records the event without writing product.syncStatus", async () => {
     mocks.findUniqueProduct.mockResolvedValue({ id: "local-1" });
     const response = await POST(webhookRequest("products/delete", { id: 12345 }));
     expect(response.status).toBe(200);
-    expect(mocks.updateProduct).toHaveBeenCalledWith({
-      where: { id: "local-1" },
-      data: {
-        syncStatus: "CONFLICT",
-        syncError: "Product was deleted in Shopify.",
-      },
+    expect(mocks.updateProduct).not.toHaveBeenCalled();
+    expect(mocks.updateEvent).toHaveBeenCalledWith({
+      where: { id: "event-1" },
+      data: { productId: "local-1", status: "SUCCEEDED", completedAt: expect.any(Date) },
     });
-    const data = mocks.updateProduct.mock.calls[0][0].data;
-    expect(data).not.toHaveProperty("status");
-    expect(data).not.toHaveProperty("visibility");
-    expect(data.syncStatus).not.toBe("UNLINKED");
     expect(mocks.refreshShopifyProductState).not.toHaveBeenCalled();
   });
 });
