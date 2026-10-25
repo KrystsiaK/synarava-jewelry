@@ -35,6 +35,11 @@ export {
   catalogConflictSignalsFromSyncResult,
   syncResourceLeafCount,
 } from "./signals-from-result";
+export {
+  catalogConflictFieldsForEntity,
+  catalogConflictFieldsFromLeaves,
+  type ConflictFieldLocaleMeta,
+} from "./conflict-fields-from-leaves";
 export { buildCatalogConflictSignals } from "./build-signals";
 export { productConflictBadgeCount } from "./badge-count";
 export {
