@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getCollectionCatalogConflict: vi.fn(),
+  loadCollectionConflictFromSyncResult: vi.fn(),
   listConflictedCollectionIds: vi.fn(),
   applyReconcileChoice: vi.fn(),
   applyCollectionPresenceDifference: vi.fn(),
@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/shopify/collection-conflict", () => ({
-  getCollectionCatalogConflict: mocks.getCollectionCatalogConflict,
+  loadCollectionConflictFromSyncResult: mocks.loadCollectionConflictFromSyncResult,
   listConflictedCollectionIds: mocks.listConflictedCollectionIds,
 }));
 
@@ -133,7 +133,7 @@ describe("previewCollectionConflictResolution", () => {
   });
 
   it("includes supported translation fields for a collection direction", async () => {
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([field()]));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([field()]));
     const preview = await previewCollectionConflictResolution({
       kind: "COLLECTION",
       collectionId: "collection-1",
@@ -149,7 +149,7 @@ describe("previewCollectionConflictResolution", () => {
 
   it("bulk-previews only conflicted collections", async () => {
     mocks.listConflictedCollectionIds.mockResolvedValue(["collection-1", "collection-2"]);
-    mocks.getCollectionCatalogConflict.mockImplementation(async (collectionId: string) =>
+    mocks.loadCollectionConflictFromSyncResult.mockImplementation(async (collectionId: string) =>
       conflict([field({ fieldKey: `translation:pt-PT:title:${collectionId}` })], collectionId),
     );
     const preview = await previewCollectionConflictResolution({
@@ -157,11 +157,11 @@ describe("previewCollectionConflictResolution", () => {
       direction: "SYNARAVA_TO_SHOPIFY",
     });
     expect(preview.entries).toHaveLength(2);
-    expect(mocks.getCollectionCatalogConflict).toHaveBeenCalledTimes(2);
+    expect(mocks.loadCollectionConflictFromSyncResult).toHaveBeenCalledTimes(2);
   });
 
   it("excludes the impossible presence direction for Shopify-only collections", async () => {
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presenceField()], "shopify-collection:42"));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([presenceField()], "shopify-collection:42"));
     const preview = await previewCollectionConflictResolution({
       kind: "COLLECTION",
       collectionId: "shopify-collection:42",
@@ -194,7 +194,7 @@ describe("previewCollectionConflictResolution", () => {
       localFingerprint: "local",
       shopifyFingerprint: "missing",
     });
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presence], "local-7"));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([presence], "local-7"));
     const preview = await previewCollectionConflictResolution({
       kind: "COLLECTION",
       collectionId: "local-7",
@@ -215,7 +215,7 @@ describe("applyCollectionConflictResolution", () => {
   });
 
   it("applies translation fields through reconcile choice", async () => {
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([field()]));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([field()]));
     const outcome = await applyCollectionConflictResolution({
       acknowledgeClears: false,
       actorUsername: "admin",
@@ -238,7 +238,7 @@ describe("applyCollectionConflictResolution", () => {
   });
 
   it("reports STALE when fingerprints no longer match", async () => {
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([field({ localFingerprint: "changed" })]));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([field({ localFingerprint: "changed" })]));
     const outcome = await applyCollectionConflictResolution({
       acknowledgeClears: false,
       actorUsername: "admin",
@@ -258,7 +258,7 @@ describe("applyCollectionConflictResolution", () => {
   it("refreshes collection presence and applies a one-sided collection through the presence resolver", async () => {
     const presence = presenceField();
     mocks.scanAndSaveCollectionPresence.mockResolvedValue([]);
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([presence], "shopify-collection:42"));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([presence], "shopify-collection:42"));
     mocks.applyCollectionPresenceDifference.mockResolvedValue({
       ok: true,
       localCollectionId: "collection-new",
@@ -290,7 +290,7 @@ describe("applyCollectionConflictResolution", () => {
 
   it("previews and applies scoped commerce Name via applyCollectionCommerceField", async () => {
     const commerce = commerceField();
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([commerce]));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([commerce]));
     mocks.applyCollectionCommerceField.mockResolvedValue({ ok: true, message: "Name applied from Shopify." });
 
     const preview = await previewCollectionConflictResolution({
@@ -325,7 +325,7 @@ describe("applyCollectionConflictResolution", () => {
 
   it("applies Adopt Shopify via applyShopifyCollectionToSynarava", async () => {
     const adopt = adoptShopifyField();
-    mocks.getCollectionCatalogConflict.mockResolvedValue(conflict([adopt]));
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([adopt]));
     mocks.findUniqueCollection.mockResolvedValue({ shopifyCollectionId: "gid://shopify/Collection/9" });
     mocks.applyShopifyCollectionToSynarava.mockResolvedValue({
       collectionId: "collection-1",

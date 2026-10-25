@@ -9,8 +9,9 @@ import type {
 import { isAdoptShopifyConflictField } from "./catalog-conflict-policy";
 import { applyCollectionCommerceField, isScopedCollectionCommerceFieldLabel } from "./collection-commerce-field-apply";
 import {
-  getCollectionCatalogConflict,
   listConflictedCollectionIds,
+  loadCollectionConflictFromSyncResult,
+  type CollectionCatalogConflict,
 } from "./collection-conflict";
 import type { CollectionPresenceDifference } from "./collection-presence";
 import {
@@ -109,7 +110,23 @@ function isSelectableCommerceField(field: CatalogConflictField): boolean {
  * Same preview contract as catalog products, scoped to collections:
  * COMMERCE + TRANSLATION + PRESENCE fields from the collection conflict read model.
  */
-export async function previewCollectionConflictResolution(scope: CollectionConflictApplyScope): Promise<CollectionConflictPreview> {
+async function loadCollectionConflictForApply(
+  collectionId: string,
+  requestedBy: string,
+): Promise<CollectionCatalogConflict> {
+  // Collections already persist dual windows (no live inspect). Map leaves
+  // from the last waterfall — same no-fetch contract as the old loader.
+  return loadCollectionConflictFromSyncResult(collectionId, {
+    requestedBy,
+    skipRefresh: true,
+  });
+}
+
+export async function previewCollectionConflictResolution(
+  scope: CollectionConflictApplyScope,
+  options?: { requestedBy?: string },
+): Promise<CollectionConflictPreview> {
+  const requestedBy = options?.requestedBy ?? "system";
   const entries: ResolvedCollectionConflictEntry[] = [];
   const excluded: ExcludedCollectionConflictEntry[] = [];
   let truncated = false;
@@ -119,7 +136,7 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
     direction: CatalogConflictDirection,
     onlyFieldKeys?: Set<string>,
   ) {
-    const conflict = await getCollectionCatalogConflict(collectionId);
+    const conflict = await loadCollectionConflictForApply(collectionId, requestedBy);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
       if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
@@ -164,7 +181,7 @@ export async function previewCollectionConflictResolution(scope: CollectionConfl
       byCollection.set(selection.collectionId, list);
     }
     for (const [collectionId, selections] of byCollection) {
-      const conflict = await getCollectionCatalogConflict(collectionId);
+      const conflict = await loadCollectionConflictForApply(collectionId, requestedBy);
       const currentFieldKeys = new Set(conflict.fields.map((field) => field.fieldKey));
       for (const selection of selections) {
         if (!currentFieldKeys.has(selection.fieldKey)) {
@@ -227,7 +244,10 @@ export async function applyCollectionConflictResolution({
   const collectionIds = [...new Set(entries.map((entry) => entry.collectionId))];
   const conflictsByCollection = new Map(
     await Promise.all(
-      collectionIds.map(async (collectionId) => [collectionId, await getCollectionCatalogConflict(collectionId)] as const),
+      collectionIds.map(async (collectionId) => [
+        collectionId,
+        await loadCollectionConflictForApply(collectionId, actorUsername),
+      ] as const),
     ),
   );
 

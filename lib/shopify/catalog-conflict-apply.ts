@@ -3,17 +3,45 @@ import "server-only";
 import { db } from "@/lib/db";
 
 import {
-  getProductCatalogConflict,
   isAdoptShopifyConflictField,
   listConflictedProductIds,
+  loadProductConflictFromSyncResult,
   type CatalogConflictDirection,
   type CatalogConflictField,
+  type ProductCatalogConflict,
 } from "./catalog-conflict";
 import { applyCommerceField } from "./commerce-field-apply";
 import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
-import { applyShopifyProductToSynarava } from "./product-sync";
+import { applyShopifyProductToSynarava, inspectProductSyncState } from "./product-sync";
 import { applyReconcileChoice } from "./reconciliation-apply";
+
+function isVirtualPresenceProductId(productId: string): boolean {
+  return productId.startsWith("shopify:");
+}
+
+/**
+ * Re-read conflict fields for apply/preview safety.
+ * Live Shopify inspect for a linked local product is the ONLY allowed network
+ * fetch on this path — then map persisted SyncResult leaves (skipRefresh).
+ */
+async function loadProductConflictForApply(
+  productId: string,
+  requestedBy: string,
+): Promise<ProductCatalogConflict> {
+  if (!isVirtualPresenceProductId(productId)) {
+    // ONLY allowed live Shopify inspect for conflict apply safety.
+    try {
+      await inspectProductSyncState(productId);
+    } catch {
+      // Missing/unlinked product → empty fields / STALE below.
+    }
+  }
+  return loadProductConflictFromSyncResult(productId, {
+    requestedBy,
+    skipRefresh: true,
+  });
+}
 
 // A bulk scope resolves every currently conflicted product — capped so one
 // request can't try to preview/apply an unbounded catalog in one go. A
@@ -31,14 +59,14 @@ const MAX_APPLY_ENTRIES = 200;
 // own per-locale loops in product-sync.ts), using a conflict check
 // (decideProductTranslationPull / push's inline per-locale fetch+compare)
 // that is a *separate* code path from the reconcile system this module's
-// read model (getProductCatalogConflict) is built on. That combination is
-// why those two functions stay off-limits here for structural fields except
-// Media (adopt `media` / push pipeline via applyCommerceField). A
-// narrow slice of plain scalar fields (SCOPED_COMMERCE_FIELD_LABELS —
-// Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at,
-// Charge tax) plus Media gallery labels instead has its own writer.
-// Status, tags, collections, category stay UNSUPPORTED; Field Decisions
-// offers inline whole-record Pull/Push for those.
+// read model (SyncResult leaves) is built on. That combination is why those
+// two functions stay off-limits here for structural fields except Media
+// (adopt `media` / push pipeline via applyCommerceField). A narrow slice of
+// plain scalar fields (SCOPED_COMMERCE_FIELD_LABELS — Name, Handle, Vendor,
+// Product type, Variant SKU, Price, Compare-at, Charge tax) plus Media
+// gallery labels instead has its own writer. Status, tags, collections,
+// category stay UNSUPPORTED; Field Decisions offers inline whole-record
+// Pull/Push for those.
 function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
 }
@@ -107,13 +135,17 @@ function unsupportedDirectionReason(field: CatalogConflictField): string {
  * SCOPED_COMMERCE_FIELD_LABELS (see COMMERCE_UNSUPPORTED_REASON above) are
  * reported in `excluded`, never silently dropped.
  */
-export async function previewCatalogConflictResolution(scope: CatalogConflictApplyScope): Promise<CatalogConflictPreview> {
+export async function previewCatalogConflictResolution(
+  scope: CatalogConflictApplyScope,
+  options?: { requestedBy?: string },
+): Promise<CatalogConflictPreview> {
+  const requestedBy = options?.requestedBy ?? "system";
   const entries: ResolvedCatalogConflictEntry[] = [];
   const excluded: ExcludedCatalogConflictEntry[] = [];
   let truncated = false;
 
   async function resolveProductDirection(productId: string, direction: CatalogConflictDirection, onlyFieldKeys?: Set<string>) {
-    const conflict = await getProductCatalogConflict(productId);
+    const conflict = await loadProductConflictForApply(productId, requestedBy);
     for (const field of conflict.fields) {
       if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
       if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
@@ -147,7 +179,7 @@ export async function previewCatalogConflictResolution(scope: CatalogConflictApp
       selectionsByProduct.set(selection.productId, list);
     }
     for (const [productId, selections] of selectionsByProduct) {
-      const conflict = await getProductCatalogConflict(productId);
+      const conflict = await loadProductConflictForApply(productId, requestedBy);
       const currentFieldKeys = new Set(conflict.fields.map((field) => field.fieldKey));
       for (const selection of selections) {
         if (!currentFieldKeys.has(selection.fieldKey)) {
@@ -236,7 +268,12 @@ export async function applyCatalogConflictResolution({
 
   const productIds = [...new Set(entries.map((entry) => entry.productId))];
   const conflictsByProduct = new Map(
-    await Promise.all(productIds.map(async (productId) => [productId, await getProductCatalogConflict(productId)] as const)),
+    await Promise.all(
+      productIds.map(async (productId) => [
+        productId,
+        await loadProductConflictForApply(productId, actorUsername),
+      ] as const),
+    ),
   );
 
   for (const entry of entries) {

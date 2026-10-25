@@ -1,13 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getProductCatalogConflict: vi.fn(),
+  loadProductConflictFromSyncResult: vi.fn(),
   listConflictedProductIds: vi.fn(),
   applyReconcileChoice: vi.fn(),
   applyCommerceField: vi.fn(),
   applyCatalogPresenceDifference: vi.fn(),
   scanAndSaveCatalogPresence: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
+  inspectProductSyncState: vi.fn(),
   findUniqueProduct: vi.fn(),
 }));
 
@@ -15,7 +16,7 @@ vi.mock("@/lib/shopify/catalog-conflict", async () => {
   const actual = await vi.importActual<typeof import("@/lib/shopify/catalog-conflict")>("@/lib/shopify/catalog-conflict");
   return {
     ...actual,
-    getProductCatalogConflict: mocks.getProductCatalogConflict,
+    loadProductConflictFromSyncResult: mocks.loadProductConflictFromSyncResult,
     listConflictedProductIds: mocks.listConflictedProductIds,
   };
 });
@@ -38,6 +39,7 @@ vi.mock("@/lib/shopify/product-sync", async () => {
   return {
     ...actual,
     applyShopifyProductToSynarava: mocks.applyShopifyProductToSynarava,
+    inspectProductSyncState: mocks.inspectProductSyncState,
   };
 });
 vi.mock("@/lib/db", () => ({
@@ -156,12 +158,18 @@ function conflict(fields: CatalogConflictField[], productId = "product-1"): Prod
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.inspectProductSyncState.mockResolvedValue({
+    state: "SYNCED",
+    remoteUpdatedAt: null,
+    publications: [],
+    differences: [],
+  });
 });
 
 describe("previewCatalogConflictResolution", () => {
   it("resolves a BULK scope from listConflictedProductIds", async () => {
     mocks.listConflictedProductIds.mockResolvedValue(["product-1", "product-2"]);
-    mocks.getProductCatalogConflict.mockImplementation(async (productId: string) => conflict([translationField()], productId));
+    mocks.loadProductConflictFromSyncResult.mockImplementation(async (productId: string) => conflict([translationField()], productId));
 
     const preview = await previewCatalogConflictResolution({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" });
 
@@ -172,7 +180,7 @@ describe("previewCatalogConflictResolution", () => {
 
   it("includes a one-sided product only in its valid bulk direction", async () => {
     mocks.listConflictedProductIds.mockResolvedValue(["shopify:42"]);
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([presenceField()], "shopify:42"));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([presenceField()], "shopify:42"));
 
     const pull = await previewCatalogConflictResolution({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" });
     const push = await previewCatalogConflictResolution({ kind: "BULK", direction: "SYNARAVA_TO_SHOPIFY" });
@@ -183,7 +191,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("includes Adopt Shopify in Shopify→Synarava preview and excludes Push", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([adoptShopifyField()]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([adoptShopifyField()]));
 
     const pull = await previewCatalogConflictResolution({
       kind: "PRODUCT",
@@ -206,7 +214,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("resolves a PRODUCT scope to translation and scoped-commerce fields, excluding an unsupported commerce field", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField(), scopedCommerceField(), translationField()]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([commerceField(), scopedCommerceField(), translationField()]));
 
     const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SHOPIFY_TO_SYNARAVA" });
 
@@ -217,7 +225,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("excludes a commerce field with no scoped write, with a clear reason", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([commerceField()]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([commerceField()]));
 
     const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SYNARAVA_TO_SHOPIFY" });
 
@@ -228,7 +236,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("resolves a scoped commerce field (Vendor) into entries, not excluded", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([scopedCommerceField()]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([scopedCommerceField()]));
 
     const preview = await previewCatalogConflictResolution({ kind: "PRODUCT", productId: "product-1", direction: "SYNARAVA_TO_SHOPIFY" });
 
@@ -238,7 +246,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("resolves a MANUAL scope to only the selected field keys, excluding one no longer conflicting", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([translationField({ fieldKey: "translation:pt-PT:title" })]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([translationField({ fieldKey: "translation:pt-PT:title" })]));
 
     const preview = await previewCatalogConflictResolution({
       kind: "MANUAL",
@@ -254,7 +262,7 @@ describe("previewCatalogConflictResolution", () => {
   });
 
   it("flags a field that would clear a non-empty destination value", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(
       conflict([translationField({ shopifyValue: "—", synaravaValue: "Anel" })]),
     );
 
@@ -266,7 +274,7 @@ describe("previewCatalogConflictResolution", () => {
   it("truncates a BULK scope over the product cap", async () => {
     const manyIds = Array.from({ length: 60 }, (_, index) => `product-${index}`);
     mocks.listConflictedProductIds.mockResolvedValue(manyIds);
-    mocks.getProductCatalogConflict.mockImplementation(async (productId: string) => conflict([translationField()], productId));
+    mocks.loadProductConflictFromSyncResult.mockImplementation(async (productId: string) => conflict([translationField()], productId));
 
     const preview = await previewCatalogConflictResolution({ kind: "BULK", direction: "SHOPIFY_TO_SYNARAVA" });
 
@@ -288,7 +296,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("applies a translation field through applyReconcileChoice with the matching divergenceId and choice", async () => {
     const field = translationField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
     mocks.applyReconcileChoice.mockResolvedValue({ divergenceId: "divergence-1", ok: true, message: "Shopify was applied to Synarava." });
 
     const outcome = await applyCatalogConflictResolution({
@@ -311,7 +319,7 @@ describe("applyCatalogConflictResolution", () => {
   it("refreshes catalog presence and applies a one-sided product through the presence resolver", async () => {
     const field = presenceField();
     mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field], "shopify:42"));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field], "shopify:42"));
     mocks.applyCatalogPresenceDifference.mockResolvedValue({ ok: true, localProductId: "product-new", message: "Product pulled from Shopify." });
 
     const outcome = await applyCatalogConflictResolution({
@@ -330,7 +338,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("applies Adopt Shopify via applyShopifyProductToSynarava, not scoped commerce adopt", async () => {
     const field = adoptShopifyField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/99" });
     mocks.applyShopifyProductToSynarava.mockResolvedValue({ productId: "product-1", status: "SYNCED" });
 
@@ -374,7 +382,7 @@ describe("applyCatalogConflictResolution", () => {
       },
     });
     mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([afterScan], "shopify:42"));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([afterScan], "shopify:42"));
     mocks.applyCatalogPresenceDifference.mockResolvedValue({
       ok: true,
       localProductId: "local-matched",
@@ -397,7 +405,7 @@ describe("applyCatalogConflictResolution", () => {
   it("reports STALE for presence when re-scan removed the membership conflict", async () => {
     const previewField = presenceField();
     mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([], "shopify:42"));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([], "shopify:42"));
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(previewField, "SHOPIFY_TO_SYNARAVA", "shopify:42")],
@@ -411,7 +419,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("never writes an unsupported commerce field — always reports UNSUPPORTED, with no write attempted", async () => {
     const field = commerceField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
@@ -427,7 +435,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("applies a scoped commerce field (Vendor) through applyCommerceField", async () => {
     const field = scopedCommerceField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
     mocks.applyCommerceField.mockResolvedValue({ ok: true, message: "Synarava was applied to Shopify." });
 
     const outcome = await applyCatalogConflictResolution({
@@ -449,7 +457,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("does not lose the batch when applyCommerceField throws instead of returning ok:false", async () => {
     const field = scopedCommerceField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
     mocks.applyCommerceField.mockRejectedValue(new Error("connection reset"));
 
     const outcome = await applyCatalogConflictResolution({
@@ -464,7 +472,7 @@ describe("applyCatalogConflictResolution", () => {
   it("does not let one approved field's write silently carry an unrelated STALE commerce field along — the commerce field is independently rejected regardless of any other field's outcome", async () => {
     const approvedTranslation = translationField({ fieldKey: "translation:pt-PT:title" });
     const staleCommerce = scopedCommerceField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([approvedTranslation, staleCommerce]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([approvedTranslation, staleCommerce]));
     mocks.applyReconcileChoice.mockResolvedValue({ divergenceId: "divergence-1", ok: true, message: "applied" });
 
     const outcome = await applyCatalogConflictResolution({
@@ -485,7 +493,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("reports STALE and writes nothing when the current fingerprint no longer matches what preview showed", async () => {
     const field = translationField();
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([{ ...field, shopifyFingerprint: "changed-fp" }]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([{ ...field, shopifyFingerprint: "changed-fp" }]));
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(field)],
@@ -498,7 +506,7 @@ describe("applyCatalogConflictResolution", () => {
   });
 
   it("reports STALE when the field is no longer present at all (already resolved elsewhere)", async () => {
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([]));
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(translationField())],
@@ -511,7 +519,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("blocks a clearing write without acknowledgeClears, and allows it once acknowledged", async () => {
     const field = translationField({ shopifyValue: "—", synaravaValue: "Anel" });
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
 
     const blocked = await applyCatalogConflictResolution({
       entries: [entryFor(field, "SHOPIFY_TO_SYNARAVA")],
@@ -533,7 +541,7 @@ describe("applyCatalogConflictResolution", () => {
   it("keeps partial success visible: one product's write fails, another's succeeds, independently", async () => {
     const fieldA = translationField({ fieldKey: "translation:pt-PT:title", sourceId: "divergence-a" });
     const fieldB = translationField({ fieldKey: "translation:pt-PT:title", sourceId: "divergence-b" });
-    mocks.getProductCatalogConflict.mockImplementation(async (productId: string) =>
+    mocks.loadProductConflictFromSyncResult.mockImplementation(async (productId: string) =>
       conflict([productId === "product-a" ? fieldA : fieldB], productId),
     );
     mocks.applyReconcileChoice.mockImplementation(async ({ divergenceId }: { divergenceId: string }) =>
@@ -558,7 +566,7 @@ describe("applyCatalogConflictResolution", () => {
     const before = translationField({ fieldKey: "translation:pt-PT:title", sourceId: "divergence-before" });
     const throwing = translationField({ fieldKey: "translation:pt-PT:description", sourceId: "divergence-throws" });
     const after = translationField({ fieldKey: "translation:pt-PT:seoTitle", sourceId: "divergence-after" });
-    mocks.getProductCatalogConflict.mockResolvedValue(conflict([before, throwing, after]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([before, throwing, after]));
     mocks.applyReconcileChoice.mockImplementation(async ({ divergenceId }: { divergenceId: string }) => {
       if (divergenceId === "divergence-throws") throw new Error("connection to database lost");
       return { divergenceId, ok: true, message: "applied" };
@@ -584,7 +592,7 @@ describe("applyCatalogConflictResolution", () => {
 
   it("is idempotent: resubmitting the exact same request after a successful apply reports STALE instead of writing again", async () => {
     const field = translationField();
-    mocks.getProductCatalogConflict.mockResolvedValueOnce(conflict([field]));
+    mocks.loadProductConflictFromSyncResult.mockResolvedValueOnce(conflict([field]));
     mocks.applyReconcileChoice.mockResolvedValue({ divergenceId: "divergence-1", ok: true, message: "applied" });
 
     const first = await applyCatalogConflictResolution({
@@ -596,7 +604,7 @@ describe("applyCatalogConflictResolution", () => {
 
     // After the first apply, the field's fingerprint has moved on — the second
     // call re-fetches and no longer sees the value this request still expects.
-    mocks.getProductCatalogConflict.mockResolvedValueOnce(
+    mocks.loadProductConflictFromSyncResult.mockResolvedValueOnce(
       conflict([{ ...field, localFingerprint: "new-local-fp", shopifyFingerprint: "new-shopify-fp" }]),
     );
     const second = await applyCatalogConflictResolution({
@@ -614,6 +622,6 @@ describe("applyCatalogConflictResolution", () => {
 
     await expect(applyCatalogConflictResolution({ entries, acknowledgeClears: false, actorUsername: "admin" }))
       .rejects.toThrow(/too many/i);
-    expect(mocks.getProductCatalogConflict).not.toHaveBeenCalled();
+    expect(mocks.loadProductConflictFromSyncResult).not.toHaveBeenCalled();
   });
 });
