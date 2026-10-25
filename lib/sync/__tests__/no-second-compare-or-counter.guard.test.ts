@@ -20,6 +20,11 @@ const FORBIDDEN_COUNTER_PATTERNS = [
   /function\s+commerceFieldCountsFromStore\b/,
   /function\s+productConflictBadgeCount\b/,
   /function\s+buildCatalogConflictSignals\b/,
+  // Pre-SoT dual Shopify compares — ConflictResolver uses SyncResult leaves only.
+  /function\s+getProductCatalogConflict\b/,
+  /function\s+getCollectionCatalogConflict\b/,
+  /export\s+(?:async\s+)?function\s+getProductCatalogConflict\b/,
+  /export\s+(?:async\s+)?function\s+getCollectionCatalogConflict\b/,
 ];
 
 /** Symbols / paths removed in sync-unification PR7 — resurrecting them fails the guard. */
@@ -33,6 +38,8 @@ const FORBIDDEN_RESURRECTION_PATTERNS = [
   /\bKEEP_LOCAL\b/,
   /\bAPPLY_REMOTE\b/,
   /\blocalIsDirty\b/,
+  /\bgetProductCatalogConflict\b/,
+  /\bgetCollectionCatalogConflict\b/,
 ];
 
 const FORBIDDEN_RESURRECTION_PATHS = [

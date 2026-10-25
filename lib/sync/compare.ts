@@ -416,6 +416,8 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
   const commerce = compareCommerceWindows(commerceWindows);
   leaves.push(...commerce.leaves);
 
+  // Narrow EN drop lives in translationLeaves(commerce.leaves): skip default-locale
+  // translation leaves only when a commerce leaf covers the same field.
   const translation = translationLeaves(
     input.translationDifferences,
     input.locales,
