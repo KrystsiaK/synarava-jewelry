@@ -41,9 +41,13 @@ fields stay editable. Sync status lives only on that top-bar control.
 On **Catalog → Collections**, the banner shows the saved conflict status:
 
 - **N collections with conflicts** when at least one collection differs, or
-  **No conflicts** when the count is zero.
-- **Last full check \<date\>** whenever a check timestamp is stored (same
-  source as the top-bar sync control). Hover shows “Last full conflict check”.
+  **No conflicts** when the count is zero. N is the number of **distinct
+  collections** with ≥1 open conflict (commerce, translation, or presence) —
+  the same `countConflictedItems` figure as the Collections menu badge.
+- **Last full check \<date\>** from `SyncResult.checkedAt`: a fresh waterfall
+  stamps the run that produced the counts; skipRefresh reads use the latest
+  SUCCEEDED AUTO/MANUAL reconcile `completedAt` (same source as the top-bar
+  Shopify signal). Hover shows “Last full conflict check”.
 
 **Show conflicts** appears only when the count is greater than zero.
 

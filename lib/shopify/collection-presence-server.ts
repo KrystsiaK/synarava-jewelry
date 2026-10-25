@@ -18,6 +18,7 @@ import {
   diffCollectionCommerceWindows,
   plainDescriptionToHtml,
 } from "@/lib/shopify/collection-commerce-projection";
+import { resolveCollectionWorkingSnapshot } from "@/lib/shopify/resolve-working-snapshot";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 
 const SNAPSHOT_ID = "collections";
@@ -122,17 +123,19 @@ export async function refreshShopifyCollectionState(
   }
 
   const shopifySnapshot = collectionWindowFromShopifyRemote(remote);
-  const compareWorking = existing.workingSnapshot
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: remote.id,
-      name: existing.name,
-      slug: existing.slug,
-      description: existing.description,
-      seoTitle: existing.seoTitle,
-      seoDescription: existing.seoDescription,
-      shopifySnapshot: existing.shopifySnapshot,
-    });
-  const differences = diffCollectionCommerceWindows(compareWorking, shopifySnapshot);
+  const compareWorking = resolveCollectionWorkingSnapshot({
+    workingSnapshot: existing.workingSnapshot,
+    shopifySnapshot: existing.shopifySnapshot,
+    shopifyCollectionId: remote.id,
+    name: existing.name,
+    slug: existing.slug,
+    description: existing.description,
+    seoTitle: existing.seoTitle,
+    seoDescription: existing.seoDescription,
+  });
+  const differences = compareWorking == null
+    ? []
+    : diffCollectionCommerceWindows(compareWorking, shopifySnapshot);
   const status = differences.length === 0 ? "SYNCED" as const : "CONFLICT" as const;
   const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
 
@@ -148,13 +151,10 @@ export async function refreshShopifyCollectionState(
         ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
         : {
             syncStatus: "CONFLICT" as const,
-            syncError: existing.workingSnapshot == null
-              ? "Synarava commerce window is missing — Adopt Shopify to create it."
-              : "workingSnapshot and shopifySnapshot differ.",
+            syncError: "workingSnapshot and shopifySnapshot differ.",
           }),
     },
   });
-
   return { collectionId: existing.id, status };
 }
 
@@ -450,13 +450,26 @@ export async function pushCollectionToShopify(collectionId: string) {
   const created = result.collectionCreate.collection;
   if (!created) throw new ShopifyAdminError("Shopify did not return the created collection.");
 
-  // Link + refresh Shopify window only — keep Synarava working/columns as pushed.
+  // Persist the window we just pushed so compare has both sides equal (no Adopt).
+  const workingSnapshot = resolveCollectionWorkingSnapshot({
+    workingSnapshot: window,
+    shopifySnapshot: collection.shopifySnapshot,
+    shopifyCollectionId: created.id,
+    name: collection.name,
+    slug: created.handle || collection.slug,
+    description: collection.description,
+    seoTitle: collection.seoTitle,
+    seoDescription: collection.seoDescription,
+  });
   await db.collection.update({
     where: { id: collection.id },
     data: {
       shopifyCollectionId: created.id,
       shopifyHandle: created.handle,
       shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
+      ...(workingSnapshot != null
+        ? { workingSnapshot: workingSnapshot as Prisma.InputJsonValue }
+        : {}),
     },
   });
   await refreshShopifyCollectionState(created.id);

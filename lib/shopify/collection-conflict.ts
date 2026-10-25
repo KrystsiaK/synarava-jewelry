@@ -21,6 +21,7 @@ import {
 import type { CollectionPresenceDifference } from "./collection-presence";
 import { getLatestCollectionPresenceDifferences } from "./collection-presence-server";
 import { getLatestReconcileDifferences, type ReconcileDifferenceView } from "./reconciliation-run";
+import { resolveCollectionWorkingSnapshot } from "./resolve-working-snapshot";
 
 export type CollectionCatalogConflict = {
   collectionId: string;
@@ -206,16 +207,18 @@ export async function getCollectionCatalogConflict(collectionId: string): Promis
   const fields: CatalogConflictField[] = [];
 
   if (local.shopifyCollectionId) {
-    if (local.workingSnapshot == null) {
-      const shopify = local.shopifySnapshot
-        ?? buildCollectionWindowFromColumns({
-          shopifyCollectionId: local.shopifyCollectionId,
-          name: local.name,
-          slug: local.slug,
-          description: local.description,
-          seoTitle: local.seoTitle,
-          seoDescription: local.seoDescription,
-        });
+    const working = resolveCollectionWorkingSnapshot(local);
+    const shopify = local.shopifySnapshot
+      ?? buildCollectionWindowFromColumns({
+        shopifyCollectionId: local.shopifyCollectionId,
+        name: local.name,
+        slug: local.slug,
+        description: local.description,
+        seoTitle: local.seoTitle,
+        seoDescription: local.seoDescription,
+      });
+    if (working == null) {
+      // Truly no Synarava commerce counterpart (no columns either).
       const record = shopify && typeof shopify === "object" && !Array.isArray(shopify)
         ? shopify as Record<string, unknown>
         : {};
@@ -224,16 +227,7 @@ export async function getCollectionCatalogConflict(collectionId: string): Promis
         .join(" · ");
       fields.push(adoptShopifyField(summary || "—"));
     } else {
-      const shopify = local.shopifySnapshot
-        ?? buildCollectionWindowFromColumns({
-          shopifyCollectionId: local.shopifyCollectionId,
-          name: local.name,
-          slug: local.slug,
-          description: local.description,
-          seoTitle: local.seoTitle,
-          seoDescription: local.seoDescription,
-        });
-      for (const difference of diffCollectionCommerceWindows(local.workingSnapshot, shopify)) {
+      for (const difference of diffCollectionCommerceWindows(working, shopify)) {
         const translationFieldKey = COMMERCE_TRANSLATION_FIELD_KEY[difference.field];
         if (translationFieldKey && enConflictFieldKeys.has(translationFieldKey)) continue;
         fields.push(commerceField(difference));

@@ -1,6 +1,9 @@
 /**
  * Waterfall step 2 — read Synarava windows + latest reconcile / presence rows.
  * No network; no writes.
+ *
+ * Working snapshots: prefer persisted workingSnapshot; otherwise build from
+ * Synarava columns so compare never invents "Adopt Shopify" for a real row.
  */
 
 import "server-only";
@@ -11,6 +14,10 @@ import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { getLatestCatalogPresenceDifferences } from "@/lib/shopify/catalog-presence-server";
 import { getLatestCollectionPresenceDifferences } from "@/lib/shopify/collection-presence-server";
 import { listUnseenIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
+import {
+  resolveCollectionWorkingSnapshot,
+  resolveProductWorkingSnapshot,
+} from "@/lib/shopify/resolve-working-snapshot";
 import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
@@ -25,30 +32,87 @@ async function loadProductCommerceWindows(productId?: string): Promise<SyncComme
       shopifyProductId: { not: null },
       ...(productId ? { id: productId } : {}),
     },
-    select: { id: true, workingSnapshot: true, shopifySnapshot: true },
+    select: {
+      id: true,
+      workingSnapshot: true,
+      shopifySnapshot: true,
+      name: true,
+      slug: true,
+      vendor: true,
+      productType: true,
+      priceCents: true,
+      variants: {
+        orderBy: { createdAt: "asc" },
+        take: 1,
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          priceCents: true,
+          taxable: true,
+          stockOnHand: true,
+        },
+      },
+    },
   });
-  return products.map((product) => ({
-    resourceType: "PRODUCT" as const,
-    resourceId: product.id,
-    workingSnapshot: product.workingSnapshot,
-    shopifySnapshot: product.shopifySnapshot,
-  }));
+  return products.map((product) => {
+    const variant = product.variants?.[0];
+    return {
+      resourceType: "PRODUCT" as const,
+      resourceId: product.id,
+      workingSnapshot: resolveProductWorkingSnapshot({
+        workingSnapshot: product.workingSnapshot,
+        shopifySnapshot: product.shopifySnapshot,
+        name: product.name,
+        slug: product.slug,
+        vendor: product.vendor,
+        productType: product.productType,
+        priceCents: product.priceCents,
+        variant: variant
+          ? {
+              shopifyVariantId: variant.shopifyVariantId,
+              sku: variant.sku,
+              priceCents: variant.priceCents,
+              taxable: variant.taxable,
+              inventoryQuantity: variant.stockOnHand,
+            }
+          : null,
+      }),
+      shopifySnapshot: product.shopifySnapshot,
+    };
+  });
 }
 
 async function loadCollectionCommerceWindows(collectionId?: string): Promise<SyncCommerceWindow[]> {
-  // Windows exist on Collection (schema). Shopify copy refresh uses
-  // refreshShopifyCollectionState (same owner model as products).
   const collections = await db.collection.findMany({
     where: {
       shopifyCollectionId: { not: null },
       ...(collectionId ? { id: collectionId } : {}),
     },
-    select: { id: true, workingSnapshot: true, shopifySnapshot: true },
+    select: {
+      id: true,
+      workingSnapshot: true,
+      shopifySnapshot: true,
+      shopifyCollectionId: true,
+      name: true,
+      slug: true,
+      description: true,
+      seoTitle: true,
+      seoDescription: true,
+    },
   });
   return collections.map((collection) => ({
     resourceType: "COLLECTION" as const,
     resourceId: collection.id,
-    workingSnapshot: collection.workingSnapshot,
+    workingSnapshot: resolveCollectionWorkingSnapshot({
+      workingSnapshot: collection.workingSnapshot,
+      shopifySnapshot: collection.shopifySnapshot,
+      shopifyCollectionId: collection.shopifyCollectionId,
+      name: collection.name,
+      slug: collection.slug,
+      description: collection.description,
+      seoTitle: collection.seoTitle,
+      seoDescription: collection.seoDescription,
+    }),
     shopifySnapshot: collection.shopifySnapshot,
   }));
 }
@@ -97,6 +161,9 @@ export async function readSynaravaStateForCompare(
     || scope.kind === "collection"
     || scope.kind === "collections";
 
+  // checkedAt: fresh waterfall passes the stamp from that run; skipRefresh
+  // falls back to the latest SUCCEEDED AUTO/MANUAL reconcile completedAt —
+  // same source the top-bar Shopify signal uses (`AdminShopifySyncSignal`).
   return {
     commerceWindows,
     translationDifferences: differences,

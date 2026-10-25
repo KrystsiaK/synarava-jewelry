@@ -123,23 +123,28 @@ describe("getCollectionCatalogConflict", () => {
     });
   });
 
-  it("surfaces Adopt Shopify when workingSnapshot is missing", async () => {
+  it("does not surface Adopt Shopify when columns can build a working window", async () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "collection-1",
       shopifyCollectionId: "gid://shopify/Collection/1",
       workingSnapshot: null,
-      shopifySnapshot: { title: "Shopify name", handle: "shopify-handle" },
+      shopifySnapshot: {
+        title: "Shopify name",
+        handle: "shopify-handle",
+        descriptionHtml: "",
+        seo: { title: null, description: null },
+      },
+      name: "Local name",
+      slug: "local-handle",
+      description: null,
+      seoTitle: null,
+      seoDescription: null,
     });
 
     const result = await getCollectionCatalogConflict("collection-1");
     const commerce = result.fields.filter((field) => field.origin === "COMMERCE");
-    expect(commerce).toHaveLength(1);
-    expect(commerce[0]).toMatchObject({
-      fieldKey: "commerce:adopt-shopify",
-      label: "Adopt Shopify",
-      path: "_adopt",
-      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
-    });
+    expect(commerce.some((field) => field.fieldKey === "commerce:adopt-shopify")).toBe(false);
+    expect(commerce.some((field) => field.label === "Name" || field.label === "Handle")).toBe(true);
   });
 
   it("returns every unresolved COLLECTION translation field, including one-sided changes", async () => {

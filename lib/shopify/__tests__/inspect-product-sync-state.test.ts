@@ -137,14 +137,13 @@ describe("inspectProductSyncState — no Synarava writes", () => {
     mocks.updateProduct.mockResolvedValue({ id: "local-1" });
   });
 
-  it("does not seed workingSnapshot when it is missing", async () => {
+  it("builds compare window from columns when workingSnapshot is missing — no Adopt", async () => {
     mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({ workingSnapshot: null }));
 
     const inspection = await inspectProductSyncState("local-1");
 
-    expect(inspection.workingSnapshotMissing).toBe(true);
-    expect(inspection.state).toBe("CONFLICT");
-    expect(inspection.differences.some((d) => d.field === "Adopt Shopify" || d.path === "_adopt")).toBe(true);
+    expect(inspection.workingSnapshotMissing).toBe(false);
+    expect(inspection.differences.some((d) => d.field === "Adopt Shopify" || d.path === "_adopt")).toBe(false);
 
     for (const data of allUpdateData()) {
       expect(data).not.toHaveProperty("workingSnapshot");

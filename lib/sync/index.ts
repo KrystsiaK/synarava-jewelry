@@ -8,7 +8,7 @@ export {
   type SyncCompareInput,
   type SyncLocaleRef,
 } from "./compare";
-export { selectSyncCounts, selectSyncLocaleCodes } from "./select";
+export { countConflictedItems, selectSyncCounts, selectSyncLocaleCodes } from "./select";
 export {
   emptySyncResult,
   EMPTY_SYNC_NAV_COUNTS,
