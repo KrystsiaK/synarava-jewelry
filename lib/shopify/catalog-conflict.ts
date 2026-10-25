@@ -26,7 +26,6 @@ export type CatalogConflictField = {
   targetKind: "NATIVE" | "METAFIELD" | "METAOBJECT";
   synaravaValue: string;
   shopifyValue: string;
-  baseValue: string | null;
   localFingerprint: string;
   shopifyFingerprint: string;
   allowedDirections: CatalogConflictDirection[];

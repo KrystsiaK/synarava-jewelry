@@ -9,7 +9,7 @@ import {
   resolveAdminNavSignal,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
-import { countAdminNavSyncBySection } from "@/lib/sync/nav-counts";
+import { emptySyncResult, selectAdminNavSyncCounts } from "@/lib/sync";
 
 describe("admin-nav-config", () => {
   it("matches path and hash for deep links", () => {
@@ -104,15 +104,18 @@ describe("admin-nav-config", () => {
     expect(items.find((item) => item.id === "products")?.badge).toBeUndefined();
   });
 
-  it("tallies sync differences per sidebar section", () => {
+  it("tallies sync differences per sidebar section via selectAdminNavSyncCounts", () => {
     expect(
-      countAdminNavSyncBySection([
-        { rootEntityType: "PRODUCT" },
-        { rootEntityType: "PRODUCT" },
-        { rootEntityType: "COLLECTION" },
-        { rootEntityType: "PAGE" },
-        { rootEntityType: "STOREFRONT_COPY" },
-      ]),
+      selectAdminNavSyncCounts(emptySyncResult({
+        state: "ready",
+        leaves: [
+          { id: "1", resourceType: "PRODUCT", resourceId: "p1", kind: "commerce", locale: null, fieldKey: "a", label: "A", synaravaValue: "", shopifyValue: "", allowedDirections: [], blockedReason: null, sourceId: null, path: null },
+          { id: "2", resourceType: "PRODUCT", resourceId: "p2", kind: "commerce", locale: null, fieldKey: "b", label: "B", synaravaValue: "", shopifyValue: "", allowedDirections: [], blockedReason: null, sourceId: null, path: null },
+          { id: "3", resourceType: "COLLECTION", resourceId: "c1", kind: "commerce", locale: null, fieldKey: "c", label: "C", synaravaValue: "", shopifyValue: "", allowedDirections: [], blockedReason: null, sourceId: null, path: null },
+          { id: "4", resourceType: "PAGE", resourceId: "pg1", kind: "translation", locale: null, fieldKey: "d", label: "D", synaravaValue: "", shopifyValue: "", allowedDirections: [], blockedReason: null, sourceId: null, path: null },
+          { id: "5", resourceType: "STOREFRONT_COPY", resourceId: "s1", kind: "translation", locale: null, fieldKey: "e", label: "E", synaravaValue: "", shopifyValue: "", allowedDirections: [], blockedReason: null, sourceId: null, path: null },
+        ],
+      })),
     ).toEqual({
       products: 2,
       collections: 1,

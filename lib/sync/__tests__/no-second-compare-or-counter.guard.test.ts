@@ -39,6 +39,9 @@ const FORBIDDEN_RESURRECTION_PATHS = [
   "lib/commerce-store",
   "components/admin/products/commerce-store-console-flow.ts",
   "components/admin/products/product-conflict-badge-count.ts",
+  "lib/sync/build-signals.ts",
+  "lib/sync/apply",
+  "app/admin/api/shopify/reconcile/apply",
 ];
 
 const ALLOWED_PATH_PREFIXES = [
@@ -134,15 +137,17 @@ describe("no second compare or counter outside lib/sync", () => {
     expect(violations).toEqual([]);
   });
 
-  it("does not re-export countAdminNavSyncBySection from admin chrome barrels", () => {
+  it("does not re-export deleted dual-path helpers from admin chrome barrels", () => {
     const barrels = [
       "components/admin/shared/admin-nav-config.ts",
       "components/synarava-cms/index.ts",
+      "lib/sync/index.ts",
     ];
+    const banned = /countAdminNavSyncBySection|buildCatalogConflictSignals|from\s+["'].*\/apply["']/;
     const violations: string[] = [];
     for (const rel of barrels) {
       const source = readFileSync(join(root, rel), "utf8");
-      if (/countAdminNavSyncBySection/.test(source)) {
+      if (banned.test(source)) {
         violations.push(rel);
       }
     }

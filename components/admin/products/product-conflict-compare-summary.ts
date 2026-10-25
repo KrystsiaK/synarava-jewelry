@@ -16,21 +16,14 @@ export type ProductConflictCompareSummary = {
 export function productConflictCompareSummary(
   signal: CatalogConflictProductSignal | null | undefined,
   options?: {
-    commerceFieldCount?: number;
     /** Language shells (EN + published overlays) when shared commerce differs. */
     localeTabs?: ReadonlyArray<{ code: string; label: string }>;
   },
 ): ProductConflictCompareSummary {
-  const count = signal?.leafCount != null && options?.commerceFieldCount == null
-    ? signal.leafCount
-    : productConflictBadgeCount(signal, {
-      commerceFieldCount: options?.commerceFieldCount,
-    });
+  const count = productConflictBadgeCount(signal);
   if (count <= 0) return { count: 0, localeLabels: [] };
 
-  const commerce = options?.commerceFieldCount != null && options.commerceFieldCount > 0
-    ? options.commerceFieldCount
-    : Math.max(0, signal?.sharedCount ?? 0);
+  const commerce = Math.max(0, signal?.sharedCount ?? 0);
   const legacyShared = commerce === 0 && signal?.shared && !signal.presence;
   const labels: string[] = [];
   const seen = new Set<string>();

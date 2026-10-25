@@ -28,7 +28,6 @@ vi.mock("@/lib/shopify/product-sync", () => ({
   refreshShopifyProductState: mocks.refreshShopifyProductState,
   pullShopifyInventory: mocks.pullShopifyInventory,
   // Human apply API must remain exported for admin/presence — webhook must not call it.
-  pullShopifyProduct: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
 }));
 vi.mock("@/lib/shopify/webhook-event", () => ({
@@ -68,7 +67,7 @@ describe("products webhook Synarava write contract", () => {
     expect(mocks.pullShopifyInventory).not.toHaveBeenCalled();
   });
 
-  it("inventory_levels/update does not apply Synarava stock via pullShopifyProduct", async () => {
+  it("inventory_levels/update does not apply Synarava stock via applyShopifyProductToSynarava", async () => {
     const response = await POST(webhookRequest("inventory_levels/update", { inventory_item_id: 77 }));
     expect(response.status).toBe(200);
     expect(mocks.pullShopifyInventory).toHaveBeenCalled();

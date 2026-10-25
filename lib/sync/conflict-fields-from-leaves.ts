@@ -93,7 +93,6 @@ export function catalogConflictFieldsFromLeaves(
       targetKind: leaf.targetKind ?? "NATIVE",
       synaravaValue: presenceValues?.synaravaValue ?? leaf.synaravaValue,
       shopifyValue: presenceValues?.shopifyValue ?? leaf.shopifyValue,
-      baseValue: null,
       localFingerprint: leaf.localFingerprint
         ?? (isPresence && presenceDifference
           ? presenceDifference.localFingerprint

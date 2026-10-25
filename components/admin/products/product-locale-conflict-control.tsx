@@ -13,10 +13,9 @@ import { Tooltip } from "@/components/ui/tooltip";
 function conflictCount(
   signals: CatalogConflictSignals,
   viewScope: Extract<CatalogConflictViewScope, { kind: "product" } | { kind: "productLocale" }>,
-  commerceFieldCount?: number,
 ) {
   const scoped = filterSignalsForView(signals, viewScope);
-  return productConflictBadgeCount(scoped.products[viewScope.productId], { commerceFieldCount });
+  return productConflictBadgeCount(scoped.products[viewScope.productId]);
 }
 
 /** Same square as `.adm-icon-btn` (2rem). Glyph stays ~14px so it doesn't fill the control. */
@@ -38,8 +37,6 @@ export function ProductLocaleConflictControl({
   onOpen,
   scope = "locale",
   checkIconOnly = false,
-  /** Live inspect diff count — preferred over signal.shared boolean for commerce badges. */
-  commerceFieldCount,
 }: {
   productId: string;
   locale: string;
@@ -50,13 +47,12 @@ export function ProductLocaleConflictControl({
   scope?: "product" | "locale";
   /** Icon + tooltip actions (header / locale strip). */
   checkIconOnly?: boolean;
-  commerceFieldCount?: number;
 }) {
   const viewScope =
     scope === "product"
       ? ({ kind: "product", productId } as const)
       : ({ kind: "productLocale", productId, locale } as const);
-  const count = conflictCount(signals, viewScope, commerceFieldCount);
+  const count = conflictCount(signals, viewScope);
   const hasConflicts = count > 0;
   const statusLabel = hasConflicts
     ? `${count} conflict${count === 1 ? "" : "s"} for ${localeLabel}. Open to compare and choose Shopify or Synarava.`

@@ -75,53 +75,53 @@ export function SaveButtons({
   );
 }
 
+type SyncPresentationState =
+  | ProductSyncInspection["state"]
+  | "UNSAVED"
+  | "PENDING";
+
 function syncPresentation(product: ProductRecord, dirty: boolean, inspection: ProductSyncInspection | null) {
-  const fallbackState: ProductSyncInspection["state"] = product.shopifyProductId
+  const fallbackState: SyncPresentationState = product.shopifyProductId
     ? product.syncStatus === "PENDING" || product.syncStatus === "FAILED"
-      ? "LOCAL_CHANGES"
+      ? "PENDING"
       : product.syncStatus === "CONFLICT"
         ? "CONFLICT"
         : "SYNCED"
     : "UNLINKED";
-  const syncState = dirty ? "UNSAVED" : inspection?.state ?? fallbackState;
+  const syncState: SyncPresentationState = dirty ? "UNSAVED" : inspection?.state ?? fallbackState;
   const healthy = syncState === "SYNCED";
   const failed = syncState === "CONFLICT" || syncState === "REMOTE_MISSING" || product.syncStatus === "FAILED";
   const stateLabel = syncState === "UNSAVED"
     ? "Unsaved changes"
-    : syncState === "LOCAL_CHANGES"
+    : syncState === "PENDING"
       ? "Ahead of Shopify"
-      : syncState === "REMOTE_CHANGES"
-        ? "Shopify update available"
-        : syncState === "CONFLICT"
-          ? "Conflict needs a decision"
-          : syncState === "REMOTE_MISSING"
-            ? "Shopify product missing"
-            : syncState === "UNLINKED"
-              ? "Not connected to Shopify"
-              : "Shopify commerce core synced";
+      : syncState === "CONFLICT"
+        ? "Conflict needs a decision"
+        : syncState === "REMOTE_MISSING"
+          ? "Shopify product missing"
+          : syncState === "UNLINKED"
+            ? "Not connected to Shopify"
+            : "Shopify commerce core synced";
   const stateDescription = syncState === "UNSAVED"
     ? "Save locally before Push. Unsaved form values will never be overwritten."
-    : syncState === "LOCAL_CHANGES"
+    : syncState === "PENDING"
       ? "Local commerce is ahead of the last agreed Shopify state. Push when ready."
-      : syncState === "REMOTE_CHANGES"
-        ? "Shopify changed fields you have not edited locally. Open conflicts to choose Shopify or Synarava per field."
-        : syncState === "CONFLICT"
-          ? "Both sides changed the same commerce data since the last agreement. Open conflicts to choose which values to keep."
-          : syncState === "REMOTE_MISSING"
-            ? "The linked Shopify product could not be found. No automatic action was taken."
-            : syncState === "UNLINKED"
-              ? "This local product has not been linked. Its first push creates the Shopify commerce record."
-              : "Shopify commerce data matches the last agreed local state. Synarava CMS content remains local.";
+      : syncState === "CONFLICT"
+        ? "Both sides changed the same commerce data since the last agreement. Open conflicts to choose which values to keep."
+        : syncState === "REMOTE_MISSING"
+          ? "The linked Shopify product could not be found. No automatic action was taken."
+          : syncState === "UNLINKED"
+            ? "This local product has not been linked. Its first push creates the Shopify commerce record."
+            : "Shopify commerce data matches the last agreed local state. Synarava CMS content remains local.";
   const actionable = syncState === "UNLINKED"
-    || syncState === "LOCAL_CHANGES"
-    || syncState === "REMOTE_CHANGES"
+    || syncState === "PENDING"
     || syncState === "CONFLICT"
     || syncState === "REMOTE_MISSING";
   const actionLabel = syncState === "UNLINKED"
     ? "Create in Shopify"
-    : syncState === "LOCAL_CHANGES"
+    : syncState === "PENDING"
       ? "Push to Shopify"
-      : syncState === "REMOTE_CHANGES" || syncState === "CONFLICT"
+      : syncState === "CONFLICT"
         ? "Resolve conflicts"
         : "Review";
   return { syncState, healthy, failed, stateLabel, stateDescription, actionable, actionLabel };
@@ -242,10 +242,9 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
   onOpenConflicts: () => void;
 }) {
   const { syncState, stateLabel, stateDescription } = syncPresentation(product, dirty, inspection);
-  const canPush = !dirty && product.variants.length > 0 && (syncState === "LOCAL_CHANGES" || syncState === "UNLINKED");
+  const canPush = !dirty && product.variants.length > 0 && (syncState === "PENDING" || syncState === "UNLINKED");
   const needsConflictResolver = !dirty && (
-    syncState === "REMOTE_CHANGES"
-    || syncState === "CONFLICT"
+    syncState === "CONFLICT"
     || syncState === "REMOTE_MISSING"
   );
 
@@ -301,9 +300,9 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
           <div>
             <p className="adm-section-tag">Changed commerce fields ({inspection.differences.length})</p>
             <p className="mt-1 text-xs text-[var(--adm-muted)]">
-              {syncState === "LOCAL_CHANGES"
+              {syncState === "PENDING"
                 ? "These Synarava values will be pushed to Shopify."
-                : syncState === "REMOTE_CHANGES" || syncState === "CONFLICT"
+                : syncState === "CONFLICT"
                   ? "Choose Shopify or Synarava per field in the conflict resolver."
                   : "Only Shopify-backed fields are compared. Synarava CMS fields are excluded."}
             </p>
@@ -311,8 +310,8 @@ export function ProductSyncDetailModal({ open, onClose, product, dirty, inspecti
           <div className="mt-3 overflow-x-auto">
             <div className="grid min-w-[30rem] grid-cols-[minmax(8rem,1fr)_minmax(8rem,1fr)_minmax(8rem,1fr)] gap-3 px-2 pb-2 text-[0.62rem] font-bold uppercase tracking-[0.08em] text-[var(--adm-subtle)]">
               <span>Field</span>
-              <span className={syncState === "LOCAL_CHANGES" ? "text-[var(--adm-accent)]" : undefined}>
-                Synarava{syncState === "LOCAL_CHANGES" ? " → wins" : ""}
+              <span className={syncState === "PENDING" ? "text-[var(--adm-accent)]" : undefined}>
+                Synarava{syncState === "PENDING" ? " → wins" : ""}
               </span>
               <span>Shopify</span>
             </div>

@@ -18,7 +18,6 @@ function baseField(overrides: Partial<CatalogConflictField> = {}): CatalogConfli
     targetKind: "NATIVE",
     synaravaValue: "120.00 EUR",
     shopifyValue: "110.00 EUR",
-    baseValue: null,
     localFingerprint: "local",
     shopifyFingerprint: "shopify",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],

@@ -1,5 +1,5 @@
 /**
- * lib/sync — one module for refresh / compare / select / apply (sync-unification PR5).
+ * lib/sync — one module for refresh / compare / select (sync-unification).
  */
 
 export {
@@ -40,20 +40,8 @@ export {
   catalogConflictFieldsFromLeaves,
   type ConflictFieldLocaleMeta,
 } from "./conflict-fields-from-leaves";
-export { buildCatalogConflictSignals } from "./build-signals";
 export { productConflictBadgeCount } from "./badge-count";
 export {
-  countAdminNavSyncBySection,
   selectAdminNavSyncCounts,
   type AdminNavSyncEntityType,
 } from "./nav-counts";
-export {
-  applySync,
-  applyCollectionSync,
-  applyPresenceSync,
-  applyProductSync,
-  applyTranslationSync,
-  previewCollectionSync,
-  previewProductSync,
-  type SyncApplyTarget,
-} from "./apply";

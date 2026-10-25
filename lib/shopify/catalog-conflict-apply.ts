@@ -54,7 +54,7 @@ const MAX_BULK_PRODUCTS = 50;
 const MAX_APPLY_ENTRIES = 200;
 
 // Most commerce fields still have no safe scoped write: pushProductToShopify
-// and pullShopifyProduct are whole-product — a forced push/pull rewrites
+// and applyShopifyProductToSynarava are whole-product — a forced push/pull rewrites
 // every commerce field *and* every published locale's translation (see their
 // own per-locale loops in product-sync.ts), using a conflict check
 // (decideProductTranslationPull / push's inline per-locale fetch+compare)

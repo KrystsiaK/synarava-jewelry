@@ -3,19 +3,18 @@ import { describe, expect, it } from "vitest";
 import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 
 describe("productConflictBadgeCount", () => {
+  it("prefers SyncResult leafCount when present", () => {
+    expect(
+      productConflictBadgeCount(
+        { leafCount: 4, shared: true, sharedCount: 1, locales: [{ count: 9 }] },
+      ),
+    ).toBe(4);
+  });
+
   it("counts shared commerce fields, not a boolean +1", () => {
     expect(
       productConflictBadgeCount(
         { shared: true, sharedCount: 2, locales: [] },
-      ),
-    ).toBe(2);
-  });
-
-  it("prefers live inspect commerceFieldCount over signal.sharedCount", () => {
-    expect(
-      productConflictBadgeCount(
-        { shared: true, sharedCount: 1, locales: [] },
-        { commerceFieldCount: 2 },
       ),
     ).toBe(2);
   });
@@ -52,7 +51,7 @@ describe("productConflictBadgeCount", () => {
     ).toBe(1);
   });
 
-  it("uses commerceFieldCount alone when signals are empty but inspect found diffs", () => {
-    expect(productConflictBadgeCount(null, { commerceFieldCount: 2 })).toBe(2);
+  it("returns 0 for null signals", () => {
+    expect(productConflictBadgeCount(null)).toBe(0);
   });
 });

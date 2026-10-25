@@ -159,10 +159,6 @@ export function EditProductForm({
   const sectionConflictSignals = activeSectionHasConflict || Boolean(productConflict)
     ? conflictSignals
     : { ...conflictSignals, products: {}, totalCount: 0 };
-  const commerceFieldCount = productConflict?.leafCount
-    ?? productConflict?.sharedCount
-    ?? 0;
-  const sectionCommerceFieldCount = activeSectionHasConflict ? commerceFieldCount : 0;
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
 
   useEffect(() => {
@@ -394,7 +390,7 @@ export function EditProductForm({
     onUpdated?.(next);
   }
 
-  /** Non-conflict whole-record create/push only (UNLINKED / LOCAL_CHANGES). Conflict choice uses ConflictResolver. */
+  /** Non-conflict whole-record create/push only (UNLINKED / PENDING). Conflict choice uses ConflictResolver. */
   function handlePushToShopify() {
     if (isDirty) {
       pushToast({ message: "Save your product changes before Push.", tone: "info" });
@@ -481,7 +477,6 @@ export function EditProductForm({
                   locale={SOURCE_LOCALE}
                   localeLabel="this product"
                   signals={conflictSignals}
-                  commerceFieldCount={commerceFieldCount}
                   onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
                 />
               ) : null}
@@ -504,7 +499,6 @@ export function EditProductForm({
           {currentProduct.shopifyProductId ? (
             <ProductConflictCompareBanner
               signal={productConflict}
-              commerceFieldCount={commerceFieldCount}
               localeTabs={localeTabs.map((tab) => ({ code: tab.code, label: tab.label }))}
               onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
             />
@@ -535,7 +529,6 @@ export function EditProductForm({
                       locale={activeLocale}
                       localeLabel={`${activeLocaleLabel} (all sections)`}
                       signals={conflictSignals}
-                      commerceFieldCount={commerceFieldCount}
                       onOpen={() => openConflicts({
                         kind: "productLocale",
                         productId: currentProduct.id,
@@ -566,7 +559,6 @@ export function EditProductForm({
                           : `${activeLocaleLabel} · ${activeSection}`
                       }
                       signals={sectionConflictSignals}
-                      commerceFieldCount={sectionCommerceFieldCount}
                       onOpen={() => openConflicts({
                         kind: "productSection",
                         productId: currentProduct.id,

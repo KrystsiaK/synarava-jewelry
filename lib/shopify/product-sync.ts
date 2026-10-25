@@ -1224,16 +1224,6 @@ export async function applyShopifyProductToSynarava(
   });
 }
 
-/** @deprecated Prefer {@link applyShopifyProductToSynarava} for human Apply/Pull. */
-export async function pullShopifyProduct(
-  id: string,
-  eventId?: string,
-  force = false,
-  options: { pullTranslations?: boolean } = {},
-) {
-  return applyShopifyProductToSynarava(id, eventId, force, options);
-}
-
 /**
  * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy only
  * (`shopifySnapshot` / `shopifyUpdatedAt`). Never writes Synarava commerce columns,
@@ -1347,7 +1337,7 @@ export type ProductSyncInspectDebug = {
 };
 
 export type ProductSyncInspection = {
-  state: "UNLINKED" | "SYNCED" | "LOCAL_CHANGES" | "REMOTE_CHANGES" | "CONFLICT" | "REMOTE_MISSING";
+  state: "UNLINKED" | "SYNCED" | "CONFLICT" | "REMOTE_MISSING";
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];

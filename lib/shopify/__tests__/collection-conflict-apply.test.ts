@@ -51,7 +51,6 @@ function field(overrides: Partial<CatalogConflictField> = {}): CatalogConflictFi
     targetKind: "NATIVE",
     synaravaValue: "Local",
     shopifyValue: "Remote",
-    baseValue: null,
     localFingerprint: "local-fp",
     shopifyFingerprint: "shopify-fp",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],

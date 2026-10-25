@@ -262,7 +262,7 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
   try {
     await assertConfiguredShopifyStore();
     const before = await inspectProductSyncState(productId);
-    if (!force && (before.state === "REMOTE_CHANGES" || before.state === "CONFLICT")) {
+    if (!force && before.state === "CONFLICT") {
       return { error: "Shopify has newer changes. Review the conflict before pushing.", inspection: before };
     }
     if (before.state === "REMOTE_MISSING") {
@@ -294,7 +294,7 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
     const product = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
     if (!product?.shopifyProductId) return { error: "This product is not linked to Shopify." };
     const before = await inspectProductSyncState(productId);
-    if (!force && (before.state === "LOCAL_CHANGES" || before.state === "CONFLICT")) {
+    if (!force && before.state === "CONFLICT") {
       return { error: "Saved local commerce changes would be replaced. Review the conflict before pulling.", inspection: before };
     }
     if (before.state === "REMOTE_MISSING") {
