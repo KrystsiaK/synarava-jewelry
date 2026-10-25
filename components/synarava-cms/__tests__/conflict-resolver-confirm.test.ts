@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  conflictFieldDisplayLabel,
   describeConflictConfirmChange,
+  formatConflictEntityHeader,
   formatConfirmDirectionSummary,
+  groupConfirmEntriesByEntityId,
   isTechnicalEntityId,
   resolveConflictEntitySummary,
   summarizeConfirmDirections,
@@ -60,6 +63,17 @@ describe("conflict-resolver-confirm", () => {
     expect(isTechnicalEntityId("Home page")).toBe(false);
   });
 
+  it("formatConflictEntityHeader shows type · title · handle/SKU, never a technical id", () => {
+    expect(formatConflictEntityHeader(
+      { name: "Pets", detail: "/pets" },
+      "collection",
+    )).toBe("Collection · Pets /pets");
+    expect(formatConflictEntityHeader(
+      { name: "Lava Ring", detail: "SKU LAVA-1" },
+      "product",
+    )).toBe("Product · Lava Ring SKU LAVA-1");
+  });
+
   it("resolveConflictEntitySummary prefers presence title over synthetic id", () => {
     const field = presenceField("SHOPIFY_ONLY", "Home page");
     field.presenceDifference = {
@@ -76,6 +90,9 @@ describe("conflict-resolver-confirm", () => {
     });
     expect(summary.name).toBe("Home page");
     expect(summary.detail).toBe("/frontpage");
+    expect(formatConflictEntityHeader(summary, "collection")).toBe(
+      "Collection · Home page /frontpage",
+    );
   });
 
   it("resolveConflictEntitySummary falls back to Untitled when title missing", () => {
@@ -86,82 +103,111 @@ describe("conflict-resolver-confirm", () => {
     }).name).toBe("Untitled product");
   });
 
-  it("describes create / update / remove headlines and before-after", () => {
+  it("describes collection Name merge with field + direction arrow", () => {
+    const field = baseField({
+      fieldKey: "commerce:name",
+      label: "Name",
+      synaravaValue: "Pets",
+      shopifyValue: "Pets Shopify",
+    });
+    expect(conflictFieldDisplayLabel(field)).toBe("Name");
+    const view = describeConflictConfirmChange(
+      { field, direction: "SHOPIFY_TO_SYNARAVA" },
+      { id: "c1", name: "Pets", detail: "/pets" },
+      "collection",
+    );
+    expect(view.headline).toBe("Name: Shopify → Synarava");
+    expect(view.beforeValue).toBe("Pets");
+    expect(view.afterValue).toBe("Pets Shopify");
+  });
+
+  it("describes product Price merge Synarava → Shopify", () => {
+    const view = describeConflictConfirmChange(
+      { field: baseField(), direction: "SYNARAVA_TO_SHOPIFY" },
+      { id: "p1", name: "Lava Ring", detail: "SKU LAVA-1" },
+      "product",
+    );
+    expect(view.headline).toBe("Price: Synarava → Shopify");
+    expect(view.beforeValue).toBe("110.00 EUR");
+    expect(view.afterValue).toBe("120.00 EUR");
+  });
+
+  it("describes page EN title as a translation leaf with direction arrow", () => {
+    const view = describeConflictConfirmChange(
+      {
+        field: baseField({
+          fieldKey: "translation:en:title",
+          label: "Title",
+          origin: "TRANSLATION",
+          scope: { kind: "LOCALE", code: "en", name: "English", nativeName: "English" },
+          synaravaValue: "About",
+          shopifyValue: "About us",
+        }),
+        direction: "SHOPIFY_TO_SYNARAVA",
+      },
+      { id: "page-1", name: "About" },
+      "page",
+    );
+    expect(view.headline).toBe("Title: Shopify → Synarava");
+    expect(view.beforeValue).toBe("About");
+    expect(view.afterValue).toBe("About us");
+  });
+
+  it("describes create / remove item headlines with direction arrows", () => {
     const create = describeConflictConfirmChange(
       {
         field: presenceField("SYNARAVA_ONLY", "Pets"),
         direction: "SYNARAVA_TO_SHOPIFY",
       },
-      { id: "c1", name: "Pets" },
+      { id: "c1", name: "Pets", detail: "/pets" },
       "collection",
     );
-    expect(create.headline).toBe('Create "Pets" in Shopify');
+    expect(create.headline).toBe("Create item: Synarava → Shopify");
     expect(create.consequence).toBe("create");
     expect(create.beforeValue).toBe("Not in Shopify");
     expect(create.afterValue).toContain("Pets");
-    expect(create.sourceSide).toBe("synarava");
-    expect(create.targetSide).toBe("shopify");
-
-    const update = describeConflictConfirmChange(
-      {
-        field: baseField(),
-        direction: "SYNARAVA_TO_SHOPIFY",
-      },
-      { id: "p1", name: "Lava Ring" },
-      "product",
-    );
-    expect(update.headline).toBe("Update price in Shopify");
-    expect(update.consequence).toBe("update");
-    expect(update.beforeValue).toBe("110.00 EUR");
-    expect(update.afterValue).toBe("120.00 EUR");
-
-    const takeShopify = describeConflictConfirmChange(
-      {
-        field: baseField({
-          fieldKey: "translation:pt:title",
-          label: "Title",
-          origin: "TRANSLATION",
-          synaravaValue: "Anel",
-          shopifyValue: "Anel Shopify",
-        }),
-        direction: "SHOPIFY_TO_SYNARAVA",
-      },
-      { id: "p1", name: "Lava Ring" },
-      "product",
-    );
-    expect(takeShopify.headline).toBe("Take Shopify's title into Synarava");
-    expect(takeShopify.sourceSide).toBe("shopify");
-    expect(takeShopify.targetSide).toBe("synarava");
-    expect(takeShopify.beforeValue).toBe("Anel");
-    expect(takeShopify.afterValue).toBe("Anel Shopify");
 
     const remove = describeConflictConfirmChange(
       {
         field: presenceField("SYNARAVA_ONLY", "Pets"),
         direction: "SHOPIFY_TO_SYNARAVA",
       },
-      { id: "c1", name: "Pets" },
+      { id: "c1", name: "Pets", detail: "/pets" },
       "collection",
     );
-    expect(remove.headline).toBe('Remove "Pets" from Synarava (linked products stay)');
+    expect(remove.headline).toBe("Remove item: Shopify → Synarava");
     expect(remove.consequence).toBe("remove");
     expect(remove.afterValue).toBe("Removed");
   });
 
-  it("uses Untitled when presence title is missing", () => {
+  it("uses Untitled when presence title is missing for the entity header summary", () => {
     const field = presenceField("SHOPIFY_ONLY", "Home page");
     field.presenceDifference = {
       ...field.presenceDifference!,
       name: "",
       shopifyIdentity: { name: "", handle: "frontpage", sku: "" },
     };
-    field.shopifyValue = " · /frontpage";
-    const view = describeConflictConfirmChange(
-      { field, direction: "SHOPIFY_TO_SYNARAVA" },
-      { id: "shopify-collection:1", name: "shopify-collection:1" },
-      "collection",
+    const summary = resolveConflictEntitySummary({
+      id: "shopify-collection:1",
+      entityNoun: "collection",
+      entity: { id: "shopify-collection:1", name: "shopify-collection:1" },
+      fields: [field],
+    });
+    expect(summary.name).toBe("Untitled collection");
+    expect(formatConflictEntityHeader(summary, "collection")).toBe(
+      "Collection · Untitled collection /frontpage",
     );
-    expect(view.headline).toBe('Create "Untitled collection" in Synarava');
+  });
+
+  it("groups confirm entries by item in first-seen order", () => {
+    const groups = groupConfirmEntriesByEntityId([
+      { entityId: "c1", fieldKey: "a" },
+      { entityId: "c2", fieldKey: "b" },
+      { entityId: "c1", fieldKey: "c" },
+    ]);
+    expect(groups.map((group) => group.entityId)).toEqual(["c1", "c2"]);
+    expect(groups[0]?.entries).toHaveLength(2);
+    expect(groups[1]?.entries).toHaveLength(1);
   });
 
   it("summarizes mixed directions", () => {

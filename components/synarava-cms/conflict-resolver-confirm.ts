@@ -136,17 +136,6 @@ export function resolveConflictEntitySummary(input: {
   return { id: input.id, name, detail };
 }
 
-function presenceTitle(
-  field: CatalogConflictField,
-  entity: ConflictConfirmEntity | undefined,
-  entityNoun: string,
-): string {
-  return humanConflictEntityTitle(
-    presenceNameCandidate(field) ?? entity?.name,
-    entityNoun,
-  );
-}
-
 function sideValue(field: CatalogConflictField, side: ConflictConfirmSide): string {
   const raw = side === "shopify" ? field.shopifyValue : field.synaravaValue;
   if (field.origin === "PRESENCE") {
@@ -164,9 +153,33 @@ function isMissingSide(field: CatalogConflictField, side: ConflictConfirmSide): 
   return !raw || raw === "—" || raw.startsWith("— ");
 }
 
-function fieldLabelForCopy(field: CatalogConflictField): string {
-  const label = field.label.trim() || "value";
-  return label.charAt(0).toLowerCase() + label.slice(1);
+/** Capitalized entity noun for list/confirm headers (`collection` → `Collection`). */
+export function conflictEntityTypeLabel(entityNoun: string): string {
+  const trimmed = entityNoun.trim();
+  if (!trimmed) return "Item";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+/**
+ * One-line item header shared by the conflict list and confirm dialog.
+ * Example: `Collection · Pets /pets` — never a technical id.
+ */
+export function formatConflictEntityHeader(
+  summary: Pick<ConflictConfirmEntity, "name" | "detail">,
+  entityNoun: string,
+): string {
+  const type = conflictEntityTypeLabel(entityNoun);
+  const detail = summary.detail?.trim();
+  return detail ? `${type} · ${summary.name} ${detail}` : `${type} · ${summary.name}`;
+}
+
+/** Field name as shown next to the direction arrow (`Name`, `Price`). */
+export function conflictFieldDisplayLabel(field: CatalogConflictField): string {
+  return field.label.trim() || "Field";
+}
+
+function directionHeadline(toShopify: boolean): string {
+  return toShopify ? "Synarava → Shopify" : "Shopify → Synarava";
 }
 
 /**
@@ -175,8 +188,8 @@ function fieldLabelForCopy(field: CatalogConflictField): string {
  */
 export function describeConflictConfirmChange(
   entry: ConflictConfirmEntry,
-  entity: ConflictConfirmEntity | undefined,
-  entityNoun: string,
+  _entity: ConflictConfirmEntity | undefined,
+  _entityNoun: string,
 ): ConflictConfirmChangeView {
   const { field, direction } = entry;
   const toShopify = direction === TO_SHOPIFY;
@@ -184,6 +197,7 @@ export function describeConflictConfirmChange(
   const targetSide: ConflictConfirmSide = toShopify ? "shopify" : "synarava";
   const sourceValue = sideValue(field, sourceSide);
   const targetCurrent = sideValue(field, targetSide);
+  const arrow = directionHeadline(toShopify);
 
   const presenceKind = field.origin === "PRESENCE" ? field.presenceDifference?.kind : null;
   const creating =
@@ -202,32 +216,23 @@ export function describeConflictConfirmChange(
   let afterValue = sourceValue;
   let headline: string;
 
-  const title = presenceTitle(field, entity, entityNoun);
-
   if (creating) {
     consequence = "create";
     beforeValue = isMissingSide(field, targetSide)
       ? (targetSide === "shopify" ? "Not in Shopify" : "Not in Synarava")
       : targetCurrent;
     afterValue = sourceValue;
-    headline = `Create "${title}" in ${targetSide === "shopify" ? "Shopify" : "Synarava"}`;
+    headline = `Create item: ${arrow}`;
   } else if (removing) {
     consequence = "remove";
     beforeValue = targetCurrent;
     afterValue = "Removed";
-    headline = `Remove "${title}" from Synarava (linked products stay)`;
-  } else if (toShopify) {
-    consequence = "update";
-    headline = `Update ${fieldLabelForCopy(field)} in Shopify`;
+    headline = `Remove item: ${arrow}`;
   } else {
     consequence = "update";
-    headline = `Take Shopify's ${fieldLabelForCopy(field)} into Synarava`;
-  }
-
-  if (entry.wholeRecord && consequence === "update") {
-    headline = toShopify
-      ? "Sync whole item to Shopify"
-      : "Take Shopify's whole item into Synarava";
+    headline = entry.wholeRecord
+      ? `Whole item: ${arrow}`
+      : `${conflictFieldDisplayLabel(field)}: ${arrow}`;
   }
 
   return {
@@ -241,6 +246,27 @@ export function describeConflictConfirmChange(
     beforeValue,
     afterValue,
   };
+}
+
+/** Group confirm/preview entries by item, preserving first-seen order. */
+export function groupConfirmEntriesByEntityId<T extends { entityId: string }>(
+  entries: readonly T[],
+): Array<{ entityId: string; entries: T[] }> {
+  const order: string[] = [];
+  const byId = new Map<string, T[]>();
+  for (const entry of entries) {
+    const existing = byId.get(entry.entityId);
+    if (existing) {
+      existing.push(entry);
+      continue;
+    }
+    order.push(entry.entityId);
+    byId.set(entry.entityId, [entry]);
+  }
+  return order.map((entityId) => ({
+    entityId,
+    entries: byId.get(entityId) ?? [],
+  }));
 }
 
 export function summarizeConfirmDirections(
