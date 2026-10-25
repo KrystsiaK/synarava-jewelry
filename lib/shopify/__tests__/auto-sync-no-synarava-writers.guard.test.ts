@@ -97,7 +97,7 @@ function productUpdateDataBlock(fnBody: string): string {
 }
 
 describe("auto sync paths must not write Synarava data", () => {
-  it("webhook products route only refreshes / flags — never applies", () => {
+  it("webhook products route only refreshes — never applies or flags syncStatus", () => {
     const route = read("app/api/shopify/webhooks/products/route.ts");
     expect(route).toMatch(/refreshShopifyProductState/);
     expect(route).toMatch(/pullShopifyInventory/);
@@ -106,7 +106,7 @@ describe("auto sync paths must not write Synarava data", () => {
     expect(route).not.toMatch(/applyShopifyProductTypeLabel/);
     expect(route).not.toMatch(/status:\s*"ARCHIVED"/);
     expect(route).not.toMatch(/syncStatus:\s*"UNLINKED"/);
-    expect(route).toMatch(/syncStatus:\s*"CONFLICT"/);
+    expect(route).not.toMatch(/syncStatus:\s*"CONFLICT"/);
   });
 
   it("refreshShopifyProductState body has no Synarava content writers", () => {
@@ -116,7 +116,7 @@ describe("auto sync paths must not write Synarava data", () => {
       expect(body, `refresh must not match ${pattern}`).not.toMatch(pattern);
     }
     expect(body).toMatch(/shopifySnapshot/);
-    expect(body).toMatch(/syncStatus/);
+    expect(body).not.toMatch(/syncStatus\s*:/);
     const dataBlock = productUpdateDataBlock(body);
     for (const key of FORBIDDEN_REFRESH_DATA_KEYS) {
       expect(dataBlock, `refresh data must not write ${key}`).not.toMatch(
@@ -124,7 +124,7 @@ describe("auto sync paths must not write Synarava data", () => {
       );
     }
     expect(dataBlock).toMatch(/shopifySnapshot/);
-    expect(dataBlock).toMatch(/syncStatus/);
+    expect(dataBlock).not.toMatch(/syncStatus\s*:/);
   });
 
   it("pullShopifyInventory no longer writes stockOnHand", () => {
@@ -171,7 +171,7 @@ describe("auto sync paths must not write Synarava data", () => {
     expect(body).not.toMatch(/collectionTranslation/);
     expect(body).not.toMatch(/applyCollectionCommerceWindows/);
     expect(dataBlock).toMatch(/shopifySnapshot/);
-    expect(dataBlock).toMatch(/syncStatus/);
+    expect(dataBlock).not.toMatch(/syncStatus\s*:/);
   });
 
   it("no automatic path may write translations or taxonomy labels on pull", () => {
@@ -231,7 +231,7 @@ describe("auto sync paths must not write Synarava data", () => {
       );
     }
     expect(dataBlock).toMatch(/shopifySnapshot/);
-    expect(dataBlock).toMatch(/syncStatus/);
+    expect(dataBlock).not.toMatch(/syncStatus\s*:/);
   });
 
   it("collection conflict read model does not import apply/pull writers", () => {

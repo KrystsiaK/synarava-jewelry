@@ -820,13 +820,7 @@ async function savePulledProduct(
     const remoteIsNewer = !existingById.shopifyUpdatedAt ||
       new Date(remote.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime();
     if (remoteIsNewer) {
-      await db.product.update({
-        where: { id: existingById.id },
-        data: {
-          syncStatus: "CONFLICT",
-          syncError: "Commerce fields changed in both Synarava and Shopify. Choose which version should win.",
-        },
-      });
+      // Skip auto-apply; conflict SoT is SyncResult leaves — do not flag syncStatus.
       if (eventId) await db.productSyncEvent.update({
         where: { id: eventId },
         data: {
@@ -1241,9 +1235,10 @@ export async function pullShopifyProduct(
 }
 
 /**
- * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy + divergence
- * flags only. Never writes Synarava commerce columns, workingSnapshot, translations,
- * variants, or TaxonomyValueLabel.
+ * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy only
+ * (`shopifySnapshot` / `shopifyUpdatedAt`). Never writes Synarava commerce columns,
+ * workingSnapshot, translations, variants, TaxonomyValueLabel, or `syncStatus`
+ * from compare — conflict SoT is SyncResult leaves.
  */
 export async function refreshShopifyProductState(id: string, eventId?: string) {
   const remote = await fetchShopifyProduct(id);
@@ -1258,7 +1253,6 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
       vendor: true,
       productType: true,
       priceCents: true,
-      syncStatus: true,
       workingSnapshot: true,
       variants: {
         orderBy: { createdAt: "asc" },
@@ -1304,25 +1298,15 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
         : { priceCents: existing.priceCents },
     });
 
-  const differences = diffShopifyProjections(synaravaWindow, shopifySnapshot);
-  const diverged = differences.length > 0;
-  const nextStatus = diverged
-    ? "CONFLICT" as const
-    : existing.syncStatus === "PENDING" || existing.syncStatus === "FAILED"
-      ? existing.syncStatus
-      : "SYNCED" as const;
+  // Compare is informational for the sync-event row / return value only.
+  const diverged = diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
+  const status = diverged ? "CONFLICT" as const : "SYNCED" as const;
 
   await db.product.update({
     where: { id: existing.id },
     data: {
       shopifySnapshot,
       shopifyUpdatedAt: new Date(remote.updatedAt),
-      syncStatus: nextStatus,
-      ...(diverged
-        ? { syncError: "Shopify and Synarava commerce windows differ." }
-        : nextStatus === "SYNCED"
-          ? { syncError: null }
-          : {}),
     },
   });
 
@@ -1338,7 +1322,7 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
     });
   }
 
-  return { productId: existing.id, status: nextStatus };
+  return { productId: existing.id, status };
 }
 
 export type ProductSyncDifference = {
@@ -1373,15 +1357,16 @@ export type ProductSyncInspection = {
 };
 
 /**
- * Dual-snapshot inspect (read path — never writes Synarava content):
- * 1) fetch Shopify → write shopifySnapshot (+ syncStatus from compare)
+ * Dual-snapshot inspect (read path — never writes Synarava content or syncStatus):
+ * 1) fetch Shopify → write shopifySnapshot / shopifyUpdatedAt only
  * 2) read workingSnapshot (do not seed/align-persist)
- * 3) diff in memory → state; missing window → Adopt Shopify row
+ * 3) diff in memory → return state; missing window → Adopt Shopify row
  *
  * Conflict apply/preview safety: this is the ONLY allowed live Shopify
  * inspect immediately before a conflict write. Opening the ConflictResolver
  * and editor chrome must use SyncResult leaves (waterfall skipRefresh) —
- * never call this for display-only conflict loads.
+ * never call this for display-only conflict loads. Conflict SoT is SyncResult;
+ * do not persist CONFLICT/SYNCED from the compare outcome.
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
@@ -1468,14 +1453,6 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     data: {
       shopifySnapshot,
       shopifyUpdatedAt: new Date(remote.updatedAt),
-      ...(state === "SYNCED"
-        ? { syncStatus: "SYNCED" as const, syncError: null, lastSyncedAt: new Date() }
-        : {
-            syncStatus: "CONFLICT" as const,
-            syncError: workingSnapshotMissing
-              ? "Synarava commerce window is missing — Adopt Shopify to create it."
-              : "workingSnapshot and shopifySnapshot differ.",
-          }),
     },
   });
 

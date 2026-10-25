@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * PR1 contract: refreshShopifyProductState may only persist Shopify-side copy
- * + divergence flags. Synarava commerce/translation columns stay untouched.
+ * PR1/PR2 contract: refreshShopifyProductState may only persist Shopify-side
+ * copy (shopifySnapshot / shopifyUpdatedAt). Synarava commerce/translation
+ * columns and syncStatus stay untouched — conflict SoT is SyncResult leaves.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -128,7 +129,7 @@ describe("refreshShopifyProductState", () => {
     mocks.updateProduct.mockResolvedValue({ id: "local-1" });
   });
 
-  it("writes shopifySnapshot + CONFLICT flag without touching Synarava commerce columns", async () => {
+  it("writes shopifySnapshot without syncStatus or Synarava commerce columns", async () => {
     const result = await refreshShopifyProductState("99", "event-1");
 
     expect(result).toEqual({ productId: "local-1", status: "CONFLICT" });
@@ -136,7 +137,8 @@ describe("refreshShopifyProductState", () => {
     const data = mocks.updateProduct.mock.calls[0][0].data;
     expect(data.shopifySnapshot).toBeDefined();
     expect(data.shopifySnapshot.title).toBe("Shopify name");
-    expect(data.syncStatus).toBe("CONFLICT");
+    expect(data).not.toHaveProperty("syncStatus");
+    expect(data).not.toHaveProperty("syncError");
     expect(data).not.toHaveProperty("name");
     expect(data).not.toHaveProperty("priceCents");
     expect(data).not.toHaveProperty("status");

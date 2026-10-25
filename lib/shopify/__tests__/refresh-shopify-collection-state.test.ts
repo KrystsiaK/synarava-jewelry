@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * PR4 contract: refreshShopifyCollectionState may write shopifySnapshot + sync flags.
- * It must never create/change workingSnapshot, collection columns, or translations.
+ * PR4 contract: refreshShopifyCollectionState may write shopifySnapshot only.
+ * It must never create/change workingSnapshot, collection columns, translations,
+ * or syncStatus from compare — conflict SoT is SyncResult leaves.
  */
 
 const mocks = vi.hoisted(() => ({
@@ -83,7 +84,7 @@ describe("refreshShopifyCollectionState — no Synarava writes", () => {
     expect(mocks.collectionTranslationUpdateMany).not.toHaveBeenCalled();
   });
 
-  it("marks CONFLICT when working and shopify windows differ", async () => {
+  it("returns CONFLICT status without persisting syncStatus when windows differ", async () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-1",
       shopifyCollectionId: "gid://shopify/Collection/99",
@@ -96,9 +97,12 @@ describe("refreshShopifyCollectionState — no Synarava writes", () => {
       seoDescription: null,
     });
 
-    await refreshShopifyCollectionState("gid://shopify/Collection/99");
+    const result = await refreshShopifyCollectionState("gid://shopify/Collection/99");
 
+    expect(result.status).toBe("CONFLICT");
     const data = mocks.updateCollection.mock.calls[0][0].data as Record<string, unknown>;
-    expect(data.syncStatus).toBe("CONFLICT");
+    expect(data).not.toHaveProperty("syncStatus");
+    expect(data).not.toHaveProperty("syncError");
+    expect(data.shopifySnapshot).toBeDefined();
   });
 });

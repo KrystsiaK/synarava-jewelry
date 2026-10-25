@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 
-import { persistPayloadForCommerceInspection } from "@/lib/shopify/catalog-conflict-policy";
 import { buildCatalogConflictSignals } from "@/lib/sync/build-signals";
 
 const locales = [
@@ -253,15 +252,7 @@ describe("buildCatalogConflictSignals", () => {
   });
 });
 
-describe("persistPayloadForCommerceInspection", () => {
-  it("stores CONFLICT so the catalog list can reopen the same products after refresh", () => {
-    expect(persistPayloadForCommerceInspection({
-      state: "CONFLICT",
-      differences: [{ field: "Vendor" }],
-      remoteUpdatedAt: "2026-09-23T12:00:00.000Z",
-    })).toEqual({ syncStatus: "CONFLICT" });
-  });
-
+describe("buildCatalogConflictSignals sharedCount", () => {
   it("stores sharedCount from commerceFieldCounts for badge field totals", () => {
     const result = buildCatalogConflictSignals({
       commerceProductIds: ["p1"],
@@ -274,21 +265,5 @@ describe("persistPayloadForCommerceInspection", () => {
     });
 
     expect(result.products["p1"]).toMatchObject({ shared: true, sharedCount: 2 });
-  });
-
-  it("does not persist a CONFLICT with no remaining field differences", () => {
-    expect(persistPayloadForCommerceInspection({
-      state: "CONFLICT",
-      differences: [],
-      remoteUpdatedAt: "2026-09-23T12:00:00.000Z",
-    })).toMatchObject({ syncStatus: "SYNCED" });
-  });
-
-  it("leaves one-sided commerce changes out of the conflict list", () => {
-    expect(persistPayloadForCommerceInspection({
-      state: "REMOTE_CHANGES",
-      differences: [{ field: "Vendor" }],
-      remoteUpdatedAt: null,
-    })).toBeNull();
   });
 });
