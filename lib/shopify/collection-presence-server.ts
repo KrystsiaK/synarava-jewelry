@@ -233,7 +233,19 @@ function isPresenceDifference(value: unknown): value is CollectionPresenceDiffer
 }
 
 function parsePresenceSnapshot(value: unknown): CollectionPresenceDifference[] {
-  return Array.isArray(value) ? value.filter(isPresenceDifference) : [];
+  if (!Array.isArray(value)) return [];
+  const kept: CollectionPresenceDifference[] = [];
+  let dropped = 0;
+  for (const item of value) {
+    if (isPresenceDifference(item)) kept.push(item);
+    else dropped += 1;
+  }
+  if (dropped > 0) {
+    console.error(
+      `[collection-presence] dropped ${dropped} malformed presence row(s) from snapshot`,
+    );
+  }
+  return kept;
 }
 
 function stripHtml(value: string) {

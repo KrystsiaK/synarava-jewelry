@@ -54,6 +54,7 @@ vi.mock("@/lib/shopify/reconciliation-run", () => ({
   runTranslationReconciliation: mocks.runTranslationReconciliation,
   beginCatalogCheckRun: mocks.beginCatalogCheckRun,
   finishCatalogCheckRun: mocks.finishCatalogCheckRun,
+  heartbeatCatalogCheckRun: vi.fn(async () => undefined),
   getLatestReconcileDifferences: mocks.getLatestReconcileDifferences,
   getLatestReconcileRun: mocks.getLatestReconcileRun,
 }));

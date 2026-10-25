@@ -25,6 +25,9 @@ export type SyncWaterfallResult = {
 /**
  * Waterfall entry — admin load, post-Save, post-Apply, and Check all call this.
  * After any human Apply leaf, callers must invoke again.
+ *
+ * checkedAt is stamped only after a fresh SUCCEEDED catalog refresh — never on
+ * reused/skipped/partial/failed runs (those keep the prior successful time).
  */
 export async function runSyncWaterfall(input: {
   scope: RefreshShopifyStateScope;
@@ -52,7 +55,14 @@ export async function runSyncWaterfall(input: {
       };
     }
     warning = refreshed.warning;
-    checkedAt = new Date().toISOString();
+    // Audit: do not stamp "now" after every refresh — only a real SUCCEEDED run.
+    if (
+      refreshed.ok
+      && !refreshed.reused
+      && refreshed.runStatus === "SUCCEEDED"
+    ) {
+      checkedAt = new Date().toISOString();
+    }
   }
 
   const compareInput = await readSynaravaStateForCompare(input.scope, {

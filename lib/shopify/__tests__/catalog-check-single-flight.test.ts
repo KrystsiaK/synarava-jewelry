@@ -20,6 +20,7 @@ import {
 } from "@/lib/shopify/reconciliation-run";
 
 function runRow(overrides: Partial<Record<string, unknown>> = {}) {
+  const now = new Date();
   return {
     id: "run-1",
     trigger: "MANUAL",
@@ -27,9 +28,10 @@ function runRow(overrides: Partial<Record<string, unknown>> = {}) {
     checkedCount: 0,
     differenceCount: 0,
     error: null,
-    startedAt: new Date(),
+    startedAt: now,
     completedAt: null,
-    createdAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   };
 }
@@ -45,10 +47,15 @@ beforeEach(() => {
 
 describe("catalog check single-flight + lease", () => {
   it("refuses a second start while a fresh run is RUNNING", async () => {
-    const active = runRow({ id: "active-run", startedAt: new Date(), createdAt: new Date() });
+    const active = runRow({ id: "active-run" });
     mocks.executeRaw.mockResolvedValue(undefined); // advisory lock
     mocks.queryRaw
-      .mockResolvedValueOnce([{ id: active.id, startedAt: active.startedAt, createdAt: active.createdAt }])
+      .mockResolvedValueOnce([{
+        id: active.id,
+        startedAt: active.startedAt,
+        createdAt: active.createdAt,
+        updatedAt: active.updatedAt,
+      }])
       .mockResolvedValueOnce([active]); // runById
 
     await expect(beginCatalogCheckRun({ trigger: "MANUAL", requestedBy: "admin" })).resolves.toMatchObject({
@@ -63,6 +70,7 @@ describe("catalog check single-flight + lease", () => {
       id: "stale-run",
       startedAt: staleStarted,
       createdAt: staleStarted,
+      updatedAt: staleStarted,
     };
     const fresh = runRow({ id: "fresh-run", status: "RUNNING" });
     mocks.executeRaw.mockResolvedValue(undefined);

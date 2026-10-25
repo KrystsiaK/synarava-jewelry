@@ -50,7 +50,19 @@ function isPresenceDifference(value: unknown): value is CatalogPresenceDifferenc
 }
 
 function parsePresenceSnapshot(value: unknown): CatalogPresenceDifference[] {
-  return Array.isArray(value) ? value.filter(isPresenceDifference) : [];
+  if (!Array.isArray(value)) return [];
+  const kept: CatalogPresenceDifference[] = [];
+  let dropped = 0;
+  for (const item of value) {
+    if (isPresenceDifference(item)) kept.push(item);
+    else dropped += 1;
+  }
+  if (dropped > 0) {
+    console.error(
+      `[catalog-presence] dropped ${dropped} malformed presence row(s) from snapshot`,
+    );
+  }
+  return kept;
 }
 
 async function listRemoteCatalogIdentities(): Promise<RemoteCatalogIdentity[]> {

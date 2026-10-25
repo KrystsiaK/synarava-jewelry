@@ -52,6 +52,7 @@ export type SkuAssignActionState = {
   ok?: boolean;
   error?: string;
   message?: string;
+  warning?: string;
   sku?: string;
   confirmed?: boolean;
   resumed?: boolean;
@@ -283,13 +284,15 @@ export async function assignProductSkuAction(input: {
   );
 
   // Persist may have run on Shopify-write failure too — full catalog check after local write.
+  let warning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    warning = check.warning;
   }
 
   if (!result.ok) {
     revalidatePath(`/admin/products/${input.productId}`);
-    return { ok: false, error: result.error, correlationId: result.correlationId };
+    return { ok: false, error: result.error, correlationId: result.correlationId, warning };
   }
 
   revalidatePath(`/admin/products/${input.productId}`);
@@ -302,6 +305,7 @@ export async function assignProductSkuAction(input: {
     policyVersion: result.policyVersion,
     correlationId: result.correlationId,
     message: result.message,
+    warning,
   };
 }
 
@@ -326,14 +330,16 @@ export async function resumePendingSkuAction(input: {
     },
   );
 
+  let warning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    warning = check.warning;
   }
 
   revalidatePath(`/admin/products/${input.productId}`);
   revalidatePath("/admin/products");
   if (!result.ok) {
-    return { ok: false, error: result.error, correlationId: result.correlationId };
+    return { ok: false, error: result.error, correlationId: result.correlationId, warning };
   }
   return {
     ok: true,
@@ -342,6 +348,7 @@ export async function resumePendingSkuAction(input: {
     resumed: true,
     policyVersion: result.policyVersion,
     correlationId: result.correlationId,
+    warning,
     message: result.message,
   };
 }

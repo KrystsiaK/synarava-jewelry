@@ -35,10 +35,11 @@ async function reconcileLocales(): Promise<string[]> {
   return ["en", ...translationLocales.map((locale) => locale.shopifyLocale)];
 }
 
-type RunRow = Omit<ReconcileRunSummary, "startedAt" | "completedAt" | "createdAt"> & {
+type RunRow = Omit<ReconcileRunSummary, "startedAt" | "completedAt" | "createdAt" | "updatedAt"> & {
   startedAt: Date | null;
   completedAt: Date | null;
   createdAt: Date;
+  updatedAt: Date;
 };
 
 function serializeRun(row: RunRow): ReconcileRunSummary {
@@ -47,6 +48,7 @@ function serializeRun(row: RunRow): ReconcileRunSummary {
     startedAt: row.startedAt?.toISOString() ?? null,
     completedAt: row.completedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
   };
 }
 
@@ -61,7 +63,8 @@ async function runById(client: Prisma.TransactionClient | typeof db, id: string)
       "error",
       "startedAt",
       "completedAt",
-      "createdAt"
+      "createdAt",
+      "updatedAt"
     FROM "ShopifyReconcileRun"
     WHERE "id" = ${id}
     LIMIT 1
@@ -69,6 +72,42 @@ async function runById(client: Prisma.TransactionClient | typeof db, id: string)
   return rows[0] ? serializeRun(rows[0]) : null;
 }
 
+/**
+ * Mark a QUEUED/RUNNING catalog run FAILED when its lease (updatedAt) has expired.
+ * Called on read so a dead row never looks like a live check in the top bar.
+ */
+async function expireStaleActiveRunIfNeeded(run: ReconcileRunSummary): Promise<ReconcileRunSummary> {
+  if (run.status !== "QUEUED" && run.status !== "RUNNING") return run;
+  if (!isRunPastLease({
+    updatedAt: new Date(run.updatedAt),
+    startedAt: run.startedAt ? new Date(run.startedAt) : null,
+    createdAt: new Date(run.createdAt),
+  }, Date.now())) {
+    return run;
+  }
+  await db.$executeRaw(Prisma.sql`
+    UPDATE "ShopifyReconcileRun"
+    SET
+      "status" = CAST('FAILED' AS "ShopifyReconcileStatus"),
+      "error" = ${"Check timed out (lease expired after 10 minutes)."},
+      "completedAt" = CURRENT_TIMESTAMP,
+      "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "id" = ${run.id}
+      AND "status" IN ('QUEUED', 'RUNNING')
+  `);
+  return (await runById(db, run.id)) ?? {
+    ...run,
+    status: "FAILED",
+    error: "Check timed out (lease expired after 10 minutes).",
+    completedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Latest FULL catalog reconcile run (scope null, AUTO/MANUAL).
+ * Scoped LOCALE/ENTITY runs must not hide a failed catalog check
+ * (audit: global getLatestReconcileRun).
+ */
 export async function getLatestReconcileRun(): Promise<ReconcileRunSummary | null> {
   const rows = await db.$queryRaw<RunRow[]>(Prisma.sql`
     SELECT
@@ -80,12 +119,16 @@ export async function getLatestReconcileRun(): Promise<ReconcileRunSummary | nul
       "error",
       "startedAt",
       "completedAt",
-      "createdAt"
+      "createdAt",
+      "updatedAt"
     FROM "ShopifyReconcileRun"
+    WHERE "trigger" IN ('AUTO', 'MANUAL')
+      AND ("scope" IS NULL OR "scope" = 'null'::jsonb)
     ORDER BY "createdAt" DESC
     LIMIT 1
   `);
-  return rows[0] ? serializeRun(rows[0]) : null;
+  if (!rows[0]) return null;
+  return expireStaleActiveRunIfNeeded(serializeRun(rows[0]));
 }
 
 /**
@@ -177,9 +220,34 @@ type CreateOrReuseResult = {
   reason?: "already_running" | "reused_recent_auto";
 };
 
-function isRunPastLease(row: { startedAt: Date | null; createdAt: Date }, nowMs: number) {
-  const anchor = row.startedAt ?? row.createdAt;
+/** Lease measured by updatedAt (heartbeat); fall back to startedAt/createdAt. */
+function isRunPastLease(
+  row: { updatedAt?: Date | null; startedAt: Date | null; createdAt: Date },
+  nowMs: number,
+) {
+  const anchor = row.updatedAt ?? row.startedAt ?? row.createdAt;
   return nowMs - anchor.getTime() > CATALOG_CHECK_LEASE_MS;
+}
+
+/** Heartbeat so long catalog refreshes do not trip the 10-minute lease. */
+export async function heartbeatCatalogCheckRun(id: string): Promise<void> {
+  await db.$executeRaw(Prisma.sql`
+    UPDATE "ShopifyReconcileRun"
+    SET "updatedAt" = CURRENT_TIMESTAMP
+    WHERE "id" = ${id}
+      AND "status" IN ('QUEUED', 'RUNNING')
+  `);
+}
+
+/** True when a run summary is still within the active lease window. */
+export function isReconcileRunActivelyChecking(run: ReconcileRunSummary | null): boolean {
+  if (!run) return false;
+  if (run.status !== "QUEUED" && run.status !== "RUNNING") return false;
+  return !isRunPastLease({
+    updatedAt: new Date(run.updatedAt),
+    startedAt: run.startedAt ? new Date(run.startedAt) : null,
+    createdAt: new Date(run.createdAt),
+  }, Date.now());
 }
 
 async function createOrReuseRun({
@@ -200,8 +268,9 @@ async function createOrReuseRun({
       id: string;
       startedAt: Date | null;
       createdAt: Date;
+      updatedAt: Date;
     }>>(Prisma.sql`
-      SELECT "id", "startedAt", "createdAt"
+      SELECT "id", "startedAt", "createdAt", "updatedAt"
       FROM "ShopifyReconcileRun"
       WHERE "status" IN ('QUEUED', 'RUNNING')
       ORDER BY "createdAt" DESC
@@ -234,6 +303,9 @@ async function createOrReuseRun({
         SELECT "id"
         FROM "ShopifyReconcileRun"
         WHERE "completedAt" > CURRENT_TIMESTAMP - INTERVAL '2 minutes'
+          AND "trigger" IN ('AUTO', 'MANUAL')
+          AND ("scope" IS NULL OR "scope" = 'null'::jsonb)
+          AND "status" = 'SUCCEEDED'
         ORDER BY "createdAt" DESC
         LIMIT 1
       `);
@@ -384,6 +456,7 @@ async function finishRun(
   id: string,
   result: { status: Exclude<ReconcileRunStatus, "QUEUED" | "RUNNING">; checkedCount: number; differenceCount: number; error?: string | null },
 ) {
+  // Only finish an still-active row — a superseded/expired run must not be rewritten.
   await db.$executeRaw(Prisma.sql`
     UPDATE "ShopifyReconcileRun"
     SET
@@ -394,6 +467,7 @@ async function finishRun(
       "completedAt" = CURRENT_TIMESTAMP,
       "updatedAt" = CURRENT_TIMESTAMP
     WHERE "id" = ${id}
+      AND "status" IN ('QUEUED', 'RUNNING')
   `);
   return runById(db, id);
 }

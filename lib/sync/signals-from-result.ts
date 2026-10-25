@@ -103,6 +103,7 @@ export function catalogConflictSignalsFromSyncResult(
     state: result.state,
     totalCount,
     checkedAt: result.checkedAt,
+    uncheckedCount: result.uncheckedCount,
     products,
     recentlyUpdatedProducts: { ...result.recentlyUpdatedProducts },
   };

@@ -16,9 +16,13 @@ import { AdminShopifyCheckProvider } from "@/components/admin/translations/admin
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
-import { selectAdminNavSyncCounts, runSyncWaterfall } from "@/lib/sync";
+import { emptySyncResult, selectAdminNavSyncCounts, runSyncWaterfall } from "@/lib/sync";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
+import {
+  getLatestReconcileDifferences,
+  getLatestReconcileRun,
+  isReconcileRunActivelyChecking,
+} from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
   children,
@@ -42,27 +46,25 @@ export default async function AdminLayout({
       scope: { kind: "catalog" },
       requestedBy: session.username,
       skipRefresh: true,
-    }).catch(() => null),
+    }).catch((error) => {
+      // Audit: never swallow into "0 conflicts / all good".
+      console.error("[admin-layout] sync waterfall failed", error);
+      return null;
+    }),
   ]);
   const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
 
   const syncCounts = waterfall
     ? selectAdminNavSyncCounts(waterfall.result)
-    : selectAdminNavSyncCounts({
-        checkedAt: null,
-        state: "disconnected",
-        leaves: [],
-        recentlyUpdatedProducts: {},
-      });
+    : selectAdminNavSyncCounts(emptySyncResult({ state: "unknown", checkedAt: null }));
   const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
   const syncNavHrefs = Array.from(
     new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),
   );
   const shopifyConnected = hasShopifyAdminConfig();
+  // Lease-aware: a RUNNING row older than 10 minutes reads as not checking.
   const initialCheckRunning = Boolean(
-    shopifyConnected
-    && latestReconcileRun
-    && (latestReconcileRun.status === "QUEUED" || latestReconcileRun.status === "RUNNING"),
+    shopifyConnected && isReconcileRunActivelyChecking(latestReconcileRun),
   );
 
   return (
