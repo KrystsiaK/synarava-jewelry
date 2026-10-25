@@ -8,6 +8,7 @@ import { AdminButton, AdminIconButton, AdminStatusBadge } from "@/components/syn
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import { centsToPrice } from "@/components/admin/products/product-helpers";
 import type { ProductRecord } from "@/components/admin/products/product-types";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 export function ProgressBar({ pending }: { pending: boolean }) {
   if (!pending) return null;
@@ -201,8 +202,8 @@ export function ProductSyncStrip({ product, dirty, inspection, pending, onOpenDe
         </div>
         <div className="border-t border-[var(--adm-border)] py-3 sm:border-l sm:pl-4 xl:border-l-0 xl:border-t-0">
           <p className="adm-section-tag">Last confirmed sync</p>
-          <p className="mt-2 text-xs font-semibold text-[var(--adm-ink)]">{product.lastSyncedAt ? new Date(product.lastSyncedAt).toLocaleString() : "Never"}</p>
-          <p className="mt-1 text-xs text-[var(--adm-muted)]">{product.shopifyUpdatedAt ? `Shopify updated ${new Date(product.shopifyUpdatedAt).toLocaleString()}` : "No Shopify timestamp yet"}</p>
+          <p className="mt-2 text-xs font-semibold text-[var(--adm-ink)]">{product.lastSyncedAt ? formatAdminDateTime(product.lastSyncedAt) : "Never"}</p>
+          <p className="mt-1 text-xs text-[var(--adm-muted)]">{product.shopifyUpdatedAt ? `Shopify updated ${formatAdminDateTime(product.shopifyUpdatedAt)}` : "No Shopify timestamp yet"}</p>
         </div>
       </div>
 

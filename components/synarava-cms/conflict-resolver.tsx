@@ -15,7 +15,7 @@ import { useAdminShopifyCheckRunning } from "@/components/admin/translations/adm
 import {
   describeConflictConfirmChange,
   formatConfirmDirectionSummary,
-  isTechnicalEntityId,
+  resolveConflictEntitySummary,
   summarizeConfirmDirections,
   type ConflictConfirmConsequence,
 } from "@/components/synarava-cms/conflict-resolver-confirm";
@@ -480,10 +480,11 @@ function ConflictPreviewModal({
             <h3 className="text-sm font-semibold">Not included</h3>
             <ul className="mt-2 space-y-2 text-xs text-[var(--adm-muted)]">
               {preview.excluded.map((item) => {
-                const name = entitiesById.get(item.entityId)?.name;
-                const title = name && !isTechnicalEntityId(name)
-                  ? name
-                  : `Untitled ${entityNoun}`;
+                const title = resolveConflictEntitySummary({
+                  id: item.entityId,
+                  entityNoun,
+                  entity: entitiesById.get(item.entityId),
+                }).name;
                 return (
                   <li key={`${item.entityId}:${item.fieldKey}`}>
                     {title} · {item.label}: {item.reason}
@@ -975,7 +976,14 @@ function ConflictResolverSession({
               Showing the first {MAX_LOAD_ENTITIES} of {entityIds.length} items. Resolve these, then open again for the rest.
             </Notice>
           ) : null}
-          {grouped.map(({ entityId, entity, fields }) => (
+          {grouped.map(({ entityId, entity, fields }) => {
+            const summary = resolveConflictEntitySummary({
+              id: entityId,
+              entityNoun: adapter.entityNoun,
+              entity,
+              fields,
+            });
+            return (
             <article
               key={entityId}
               ref={entityId === focusedEntityId ? focusedRef : undefined}
@@ -984,10 +992,10 @@ function ConflictResolverSession({
             >
               <div className="border-b border-[var(--adm-border)] pb-2">
                 <h3 className="truncate text-sm font-semibold">
-                  {entity?.name ?? entityId}
+                  {summary.name}
                 </h3>
-                {entity?.detail ? (
-                  <p className="mt-1 text-xs text-[var(--adm-muted)]">{entity.detail}</p>
+                {summary.detail ? (
+                  <p className="mt-1 text-xs text-[var(--adm-muted)]">{summary.detail}</p>
                 ) : null}
               </div>
               {fields.length === 0 && !loading ? (
@@ -1004,7 +1012,8 @@ function ConflictResolverSession({
                 />
               ))}
             </article>
-          ))}
+            );
+          })}
         </div>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
           <AdminButton variant="ghost" onClick={closeAll} disabled={busy}>

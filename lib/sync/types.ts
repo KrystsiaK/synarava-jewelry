@@ -27,6 +27,10 @@ export type SyncLeaf = {
   blockedReason: string | null;
   sourceId: string | null;
   path: string | null;
+  /** Presence display — title/handle/sku for ConflictResolver entity summary. */
+  displayName?: string | null;
+  displayHandle?: string | null;
+  displaySku?: string | null;
 };
 
 /** Single compare result — SoT for nav badge, list chip, banner, locale tab, section chip. */

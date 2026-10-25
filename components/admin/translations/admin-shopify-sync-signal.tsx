@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAdminShopifyCheckControls } from "@/components/admin/translations/admin-shopify-check-context";
 import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 type SyncSignalState =
   | { kind: "checking"; label: "Checking Shopify…" }
@@ -16,7 +17,7 @@ type SyncSignalState =
 function formatCheckedAt(iso: string | null | undefined): string | null {
   if (!iso) return null;
   try {
-    return new Date(iso).toLocaleString("en");
+    return formatAdminDateTime(iso);
   } catch {
     return null;
   }

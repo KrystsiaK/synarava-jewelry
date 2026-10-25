@@ -6,6 +6,7 @@ import "@synarava/shell-kit/styles.css";
 import { CircleDashed, ExternalLink, Info, RadioTower } from "lucide-react";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
 import type { MissionControlCanvasNode } from "@/lib/mission-control/canvas-model";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 /**
  * Read-only React Flow node — color from status level; optional outbound link only.
@@ -67,7 +68,7 @@ export function MissionControlStatusNode({
         </p>
         <div className="mc-node__live-meta">
           {data.value ? <strong>{data.value}</strong> : <span>No value</span>}
-          <time dateTime={data.checkedAt ?? undefined}>{data.checkedAt ? `Updated ${new Intl.DateTimeFormat("en", { hour: "2-digit", minute: "2-digit", timeZone: "UTC" }).format(new Date(data.checkedAt))} UTC` : "Never updated"}</time>
+          <time dateTime={data.checkedAt ?? undefined}>{data.checkedAt ? `Updated ${formatAdminDateTime(data.checkedAt)}` : "Never updated"}</time>
         </div>
       </BaseWidget>
     </div>

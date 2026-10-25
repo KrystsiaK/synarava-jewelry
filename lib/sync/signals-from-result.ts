@@ -50,11 +50,17 @@ export function catalogConflictSignalsFromSyncResult(
     const localeCounts = new Map<string, number>();
     let sharedCount = 0;
     let presence: CatalogConflictProductSignal["presence"];
+    let displayName: string | undefined;
+    let displayHandle: string | undefined;
+    let displaySku: string | undefined;
     for (const leaf of leaves) {
       if (leaf.kind === "presence") {
         presence = leaf.label.includes("only in Shopify") || leaf.label.includes("not linked")
           ? "SHOPIFY_ONLY"
           : "SYNARAVA_ONLY";
+        if (leaf.displayName) displayName = leaf.displayName;
+        if (leaf.displayHandle) displayHandle = leaf.displayHandle;
+        if (leaf.displaySku) displaySku = leaf.displaySku;
         continue;
       }
       if (leaf.locale == null) {
@@ -78,6 +84,9 @@ export function catalogConflictSignalsFromSyncResult(
       leafCount,
       locales,
       presence,
+      name: displayName,
+      handle: displayHandle,
+      sku: displaySku,
       allowedDirections: presence === "SHOPIFY_ONLY"
         ? ["SHOPIFY_TO_SYNARAVA"]
         : presence

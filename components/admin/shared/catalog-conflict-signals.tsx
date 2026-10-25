@@ -4,6 +4,7 @@ import { GitCompareArrows, Languages } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import type { CatalogConflictProductSignal, CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 function plural(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
@@ -70,7 +71,7 @@ export function CatalogConflictStatus({
           dateTime={signals.checkedAt}
           title="Last full conflict check"
         >
-          Last full check {new Date(signals.checkedAt).toLocaleString()}
+          Last full check {formatAdminDateTime(signals.checkedAt)}
         </time>
       ) : null}
       {hasConflicts ? (

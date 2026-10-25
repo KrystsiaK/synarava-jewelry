@@ -6,6 +6,7 @@ import { CheckCircle2, GitCompareArrows, Languages, Clock3 } from "lucide-react"
 import { AdminSignalChip, type AdminSignalTone } from "@/components/synarava-cms";
 import type { AdminProductListItem, AdminProductLocaleSignal } from "@/lib/admin/list-products-shared";
 import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflict-signals";
+import { formatAdminDate } from "@/lib/format/admin-date";
 
 /** Locale readiness is progress — never map incomplete copy to danger red. */
 export function localeTone(locale: AdminProductLocaleSignal): AdminSignalTone {
@@ -97,9 +98,9 @@ export function ProductListSignals({
 }
 
 export function ProductListMetaLine({ product }: { product: AdminProductListItem }) {
-  const updated = new Intl.DateTimeFormat("en-IE", { dateStyle: "medium" }).format(new Date(product.updatedAt));
+  const updated = formatAdminDate(product.updatedAt);
   const published = product.publishedAt
-    ? new Intl.DateTimeFormat("en-IE", { dateStyle: "medium" }).format(new Date(product.publishedAt))
+    ? formatAdminDate(product.publishedAt)
     : null;
 
   return (

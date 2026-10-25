@@ -219,6 +219,7 @@ function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
     : difference.remoteMissing
       ? "Product is missing in Shopify"
       : "Product exists only in Synarava";
+  const identity = difference.shopifyIdentity ?? difference.localIdentity;
   return {
     id: `PRODUCT:${difference.id}:presence`,
     resourceType: "PRODUCT",
@@ -233,6 +234,9 @@ function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
     blockedReason: null,
     sourceId: null,
     path: null,
+    displayName: identity?.name ?? difference.name,
+    displayHandle: identity?.handle ?? difference.handle,
+    displaySku: identity?.sku ?? difference.sku,
   };
 }
 
@@ -245,6 +249,7 @@ function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncL
     : difference.remoteMissing
       ? "Collection is missing in Shopify"
       : "Collection exists only in Synarava";
+  const identity = difference.shopifyIdentity ?? difference.localIdentity;
   return {
     id: `COLLECTION:${difference.id}:presence`,
     resourceType: "COLLECTION",
@@ -261,6 +266,9 @@ function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncL
     blockedReason: null,
     sourceId: null,
     path: null,
+    displayName: identity?.name ?? difference.name,
+    displayHandle: identity?.handle ?? difference.handle,
+    displaySku: identity?.sku ?? difference.sku,
   };
 }
 

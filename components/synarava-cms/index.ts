@@ -211,9 +211,12 @@ export {
 } from "@/components/synarava-cms/conflict-resolver";
 
 export {
+  conflictEntityDetailFromIdentity,
   describeConflictConfirmChange,
   formatConfirmDirectionSummary,
+  humanConflictEntityTitle,
   isTechnicalEntityId,
+  resolveConflictEntitySummary,
   summarizeConfirmDirections,
   type ConflictConfirmChangeView,
   type ConflictConfirmConsequence,

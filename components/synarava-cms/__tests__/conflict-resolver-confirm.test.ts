@@ -4,6 +4,7 @@ import {
   describeConflictConfirmChange,
   formatConfirmDirectionSummary,
   isTechnicalEntityId,
+  resolveConflictEntitySummary,
   summarizeConfirmDirections,
 } from "@/components/synarava-cms/conflict-resolver-confirm";
 import type { CatalogConflictField } from "@/lib/shopify/catalog-conflict";
@@ -58,6 +59,32 @@ describe("conflict-resolver-confirm", () => {
     expect(isTechnicalEntityId("shopify-collection:705203536203")).toBe(true);
     expect(isTechnicalEntityId("shopify:42")).toBe(true);
     expect(isTechnicalEntityId("Home page")).toBe(false);
+  });
+
+  it("resolveConflictEntitySummary prefers presence title over synthetic id", () => {
+    const field = presenceField("SHOPIFY_ONLY", "Home page");
+    field.presenceDifference = {
+      ...field.presenceDifference!,
+      id: "shopify-collection:705203536203",
+      handle: "frontpage",
+      shopifyIdentity: { name: "Home page", handle: "frontpage", sku: "" },
+    };
+    const summary = resolveConflictEntitySummary({
+      id: "shopify-collection:705203536203",
+      entityNoun: "collection",
+      entity: { id: "shopify-collection:705203536203", name: "shopify-collection:705203536203" },
+      fields: [field],
+    });
+    expect(summary.name).toBe("Home page");
+    expect(summary.detail).toBe("/frontpage");
+  });
+
+  it("resolveConflictEntitySummary falls back to Untitled when title missing", () => {
+    expect(resolveConflictEntitySummary({
+      id: "shopify:1",
+      entityNoun: "product",
+      entity: { id: "shopify:1", name: "shopify:1" },
+    }).name).toBe("Untitled product");
   });
 
   it("describes create / update / remove headlines and before-after", () => {
