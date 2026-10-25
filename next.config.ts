@@ -107,6 +107,18 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
+  // Short, clean link for the Instagram profile. Temporary (307) so the target
+  // can change; the UTM tags attribute visits to the profile link.
+  async redirects() {
+    return [
+      {
+        source: "/ig",
+        destination:
+          "/en/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     const preventIndexing = !isProductionDeployment();
     return [

@@ -51,4 +51,16 @@ describe("Next.js deployment identity", () => {
       key: "X-Robots-Tag",
     }));
   });
+
+  it("redirects the short Instagram link to the shop with UTM tags", async () => {
+    const { default: config } = await import("@/next.config");
+
+    const rules = await config.redirects?.();
+    expect(rules).toContainEqual({
+      source: "/ig",
+      destination:
+        "/en/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+      permanent: false,
+    });
+  });
 });
