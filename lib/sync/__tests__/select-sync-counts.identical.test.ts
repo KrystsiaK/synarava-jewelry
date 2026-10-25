@@ -49,9 +49,9 @@ function singleProductFixture(): SyncResult {
 }
 
 describe("selectSyncCounts identical surfaces", () => {
-  it("nav products, list chip, editor banner, and locale tab agree on the same fixture", () => {
+  it("nav counts DISTINCT items; per-item chips count leaves on that resource", () => {
     const result = singleProductFixture();
-    // 2 commerce (title + vendor) + 1 translation = 3 leaves
+    // 2 commerce (title + vendor) + 1 translation = 3 leaves on ONE product
     expect(result.leaves).toHaveLength(3);
 
     const nav = selectSyncCounts(result, { kind: "nav" });
@@ -73,14 +73,13 @@ describe("selectSyncCounts identical surfaces", () => {
       locale: "pt",
     });
 
-    expect(nav.products).toBe(3);
-    expect(nav.total).toBe(3);
+    expect(nav.products).toBe(1);
+    expect(nav.total).toBe(1);
     expect(listChip).toBe(3);
     expect(editorBanner).toBe(3);
     expect(localeTab).toBe(3);
-
-    // All four surfaces that display "the product conflict count" match.
-    expect(new Set([nav.products, listChip, editorBanner, localeTab]).size).toBe(1);
+    // Per-item surfaces that show leaf depth still agree.
+    expect(new Set([listChip, editorBanner, localeTab]).size).toBe(1);
   });
 
   it("does not invent a second count for a different product id", () => {

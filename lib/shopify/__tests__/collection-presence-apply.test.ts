@@ -168,7 +168,7 @@ describe("applyCollectionPresenceDifference", () => {
     }));
   });
 
-  it("pushes a Synarava-only collection to Shopify", async () => {
+  it("pushes a Synarava-only collection to Shopify and persists workingSnapshot", async () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-7",
       name: "Local kits",
@@ -177,6 +177,8 @@ describe("applyCollectionPresenceDifference", () => {
       seoTitle: null,
       seoDescription: null,
       shopifyCollectionId: null,
+      workingSnapshot: null,
+      shopifySnapshot: null,
     });
     mocks.shopifyAdminRequest.mockImplementation(async (query: string) => {
       if (query.includes("collectionCreate")) {
@@ -203,6 +205,35 @@ describe("applyCollectionPresenceDifference", () => {
         },
       };
     });
+    // Link write, then refreshShopifyCollectionState's findUnique + update.
+    mocks.findUniqueCollection
+      .mockResolvedValueOnce({
+        id: "local-7",
+        name: "Local kits",
+        slug: "local-kits",
+        description: "Desc",
+        seoTitle: null,
+        seoDescription: null,
+        shopifyCollectionId: null,
+        workingSnapshot: null,
+        shopifySnapshot: null,
+      })
+      .mockResolvedValueOnce({
+        id: "local-7",
+        name: "Local kits",
+        slug: "local-kits",
+        description: "Desc",
+        seoTitle: null,
+        seoDescription: null,
+        shopifyCollectionId: "gid://shopify/Collection/70",
+        workingSnapshot: {
+          title: "Local kits",
+          handle: "local-kits",
+          descriptionHtml: "<p>Desc</p>",
+          seo: { title: null, description: null },
+        },
+        shopifySnapshot: null,
+      });
     mocks.updateCollection.mockResolvedValue({ id: "local-7" });
 
     const result = await applyCollectionPresenceDifference({
@@ -215,6 +246,13 @@ describe("applyCollectionPresenceDifference", () => {
       resourceType: "COLLECTION",
       entityId: "local-7",
       shopifyResourceId: "gid://shopify/Collection/70",
+    });
+    const linkWrite = mocks.updateCollection.mock.calls.find((call) =>
+      call[0]?.data && "workingSnapshot" in call[0].data && call[0].data.shopifyCollectionId,
+    );
+    expect(linkWrite?.[0].data.workingSnapshot).toMatchObject({
+      title: "Local kits",
+      handle: "local-kits",
     });
   });
 

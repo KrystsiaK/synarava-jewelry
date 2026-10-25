@@ -9,7 +9,7 @@ import type {
   CatalogConflictSignals,
 } from "@/lib/shopify/catalog-conflict-signals";
 
-import { selectSyncCounts } from "./select";
+import { countConflictedItems, selectSyncCounts } from "./select";
 import type { SyncLeaf, SyncResourceType, SyncResult } from "./types";
 
 function localeSignal(
@@ -28,8 +28,8 @@ function localeSignal(
 
 /**
  * Build CatalogConflictSignals from SyncResult for one root entity type.
- * totalCount / per-product counts are leaf counts from selectSyncCounts —
- * not a second counting path.
+ * totalCount = countConflictedItems (same definition as nav section counts).
+ * Per-item leafCount still comes from selectSyncCounts(listChip).
  */
 export function catalogConflictSignalsFromSyncResult(
   result: SyncResult,
@@ -88,9 +88,7 @@ export function catalogConflictSignalsFromSyncResult(
     };
   }
 
-  // totalCount = number of resources with any leaf (legacy signals contract),
-  // while selectSyncCounts(nav) counts leaves. List chips use selectSyncCounts.
-  const totalCount = Object.keys(products).length;
+  const totalCount = countConflictedItems(result, rootEntityType);
 
   return {
     state: result.state,

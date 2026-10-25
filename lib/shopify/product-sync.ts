@@ -88,6 +88,7 @@ import {
   ADOPT_SHOPIFY_FIELD_LABEL,
   ADOPT_SHOPIFY_FIELD_PATH,
 } from "@/lib/shopify/catalog-conflict-policy";
+import { resolveProductWorkingSnapshot } from "@/lib/shopify/resolve-working-snapshot";
 
 export {
   ADOPT_SHOPIFY_FIELD_KEY,
@@ -1412,11 +1413,31 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
-  const workingSnapshotMissing = local.workingSnapshot == null;
+  const variant = local.variants[0];
+  const resolvedWorking = resolveProductWorkingSnapshot({
+    workingSnapshot: local.workingSnapshot,
+    shopifySnapshot: local.shopifySnapshot,
+    name: local.name,
+    slug: local.slug,
+    vendor: local.vendor,
+    productType: local.productType,
+    priceCents: local.priceCents,
+    variant: variant
+      ? {
+          shopifyVariantId: variant.shopifyVariantId,
+          sku: variant.sku,
+          priceCents: variant.priceCents,
+          taxable: variant.taxable,
+          inventoryQuantity: variant.stockOnHand,
+        }
+      : null,
+  });
+  // Adopt only when Synarava has no commerce counterpart (no snapshot and no columns).
+  const workingSnapshotMissing = resolvedWorking == null;
   const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
   let differences: ProductSyncDifference[];
-  let compareWorking: unknown = local.workingSnapshot;
+  let compareWorking: unknown = resolvedWorking;
 
   if (workingSnapshotMissing) {
     differences = [{
@@ -1427,7 +1448,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     }];
   } else {
     // Display enrichment only — never persisted on inspect (V14).
-    compareWorking = alignMetafieldResolvedValues(local.workingSnapshot, shopifySnapshot);
+    compareWorking = alignMetafieldResolvedValues(resolvedWorking, shopifySnapshot);
     differences = diffShopifyProjections(compareWorking, shopifySnapshot).map((item) => ({
       field: item.field,
       local: item.local,

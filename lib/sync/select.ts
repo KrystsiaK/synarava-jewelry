@@ -1,23 +1,18 @@
 /**
  * ONE selector over SyncResult — every counter (nav, list chip, editor banner,
  * locale tab, section chip) must call this. No parallel counting paths.
+ *
+ * Section / banner totals = DISTINCT items with ≥1 open conflict leaf.
+ * Per-item chips still count leaves on that resource.
  */
 
 import {
-  EMPTY_SYNC_NAV_COUNTS,
   type SyncCountView,
   type SyncLeaf,
   type SyncNavCounts,
   type SyncResourceType,
   type SyncResult,
 } from "./types";
-
-function navSectionFor(resourceType: SyncResourceType): keyof Omit<SyncNavCounts, "total"> {
-  if (resourceType === "PRODUCT") return "products";
-  if (resourceType === "COLLECTION") return "collections";
-  if (resourceType === "PAGE") return "pages";
-  return "settings";
-}
 
 function normalizeLocale(locale: string): string {
   return locale.trim().toLowerCase();
@@ -39,13 +34,31 @@ function leavesForResource(
   );
 }
 
-function countNav(result: SyncResult): SyncNavCounts {
-  const counts: SyncNavCounts = { ...EMPTY_SYNC_NAV_COUNTS };
+/**
+ * Number of DISTINCT items (products / collections / pages / settings) that
+ * have at least one open conflict leaf (commerce, translation, or presence).
+ * Menu badge, list banner, header chip, and top-bar section counts use this.
+ */
+export function countConflictedItems(
+  result: SyncResult,
+  resourceType?: SyncResourceType,
+): number {
+  const ids = new Set<string>();
   for (const leaf of result.leaves) {
-    counts.total += 1;
-    counts[navSectionFor(leaf.resourceType)] += 1;
+    if (resourceType != null && leaf.resourceType !== resourceType) continue;
+    ids.add(`${leaf.resourceType}:${leaf.resourceId}`);
   }
-  return counts;
+  return ids.size;
+}
+
+function countNav(result: SyncResult): SyncNavCounts {
+  return {
+    products: countConflictedItems(result, "PRODUCT"),
+    collections: countConflictedItems(result, "COLLECTION"),
+    pages: countConflictedItems(result, "PAGE"),
+    settings: countConflictedItems(result, "STOREFRONT_COPY"),
+    total: countConflictedItems(result),
+  };
 }
 
 /**
