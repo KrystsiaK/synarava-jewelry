@@ -186,27 +186,52 @@ function asResourceType(value: string): SyncResourceType | null {
 }
 
 /**
- * Default locale (EN) is never a translation leaf. English lives on base
- * columns / commerce windows for Product, Collection, and Page — translation
- * tables hold only non-default locales.
+ * Commerce window labels → translation fieldKeys they already cover.
+ * Default-locale translation leaves for these keys are dropped when a commerce
+ * leaf for the same resource exists (one conflict, not two). PAGE EN,
+ * editorial EN (subtitle, symbolism, details, …), and STOREFRONT_COPY stay.
  */
+const COMMERCE_LABEL_TO_TRANSLATION_KEYS: Record<string, readonly string[]> = {
+  Name: ["name", "title"],
+  Handle: ["localizedHandle"],
+  Description: ["description"],
+  "SEO title": ["seoTitle"],
+  "SEO description": ["seoDescription"],
+};
+
+function commerceCoveredTranslationKeys(commerceLeaves: readonly SyncLeaf[]): Set<string> {
+  const covered = new Set<string>();
+  for (const leaf of commerceLeaves) {
+    if (leaf.kind !== "commerce") continue;
+    const keys = COMMERCE_LABEL_TO_TRANSLATION_KEYS[leaf.label];
+    if (!keys) continue;
+    for (const key of keys) {
+      covered.add(`${leaf.resourceType}:${leaf.resourceId}:${key}`);
+    }
+  }
+  return covered;
+}
+
 function translationLeaves(
   differences: SyncCompareInput["translationDifferences"],
   locales: readonly SyncLocaleRef[],
+  commerceLeaves: readonly SyncLeaf[],
 ): SyncLeaf[] {
   const leaves: SyncLeaf[] = [];
   const seen = new Set<string>();
   const defaultLocaleCode = locales.find((locale) => locale.isDefault)?.code;
+  const coveredByCommerce = commerceCoveredTranslationKeys(commerceLeaves);
   for (const difference of differences) {
+    const resourceType = asResourceType(difference.rootEntityType);
+    if (!resourceType) continue;
     if (
       defaultLocaleCode
       && resolveLocaleCode(difference.locale, locales) === defaultLocaleCode
+      && coveredByCommerce.has(`${resourceType}:${difference.rootEntityId}:${difference.fieldKey}`)
     ) continue;
     // PR3: two-way compare emits CONFLICT for any Synarava ≠ Shopify.
     // Legacy LOCAL_ONLY / SHOPIFY_ONLY rows are ignored until re-checked.
     if (difference.kind !== "CONFLICT" && difference.rootEntityType === "PRODUCT") continue;
-    const resourceType = asResourceType(difference.rootEntityType);
-    if (!resourceType) continue;
     const locale = resolveLocaleCode(difference.locale, locales);
     const id = `${resourceType}:${difference.rootEntityId}:translation:${difference.locale}:${difference.fieldKey}`;
     if (seen.has(id)) continue;
@@ -318,7 +343,11 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
   const commerce = compareCommerceWindows(commerceWindows);
   leaves.push(...commerce.leaves);
 
-  const translation = translationLeaves(input.translationDifferences, input.locales).filter(
+  const translation = translationLeaves(
+    input.translationDifferences,
+    input.locales,
+    commerce.leaves,
+  ).filter(
     (leaf) => !presenceResourceIds.has(`${leaf.resourceType}:${leaf.resourceId}`),
   );
   leaves.push(...translation);

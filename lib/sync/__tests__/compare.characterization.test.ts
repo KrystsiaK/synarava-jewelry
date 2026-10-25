@@ -178,24 +178,10 @@ describe("compareSyncState (characterization)", () => {
     expect(result.leaves[0]?.kind).toBe("presence");
   });
 
-  it("skips default-locale translation leaves entirely (EN is never a translation)", () => {
+  it("page EN title conflict still appears (no commerce leaf covers PAGE)", () => {
     const result = compareSyncState({
       commerceWindows: [],
       translationDifferences: [
-        {
-          id: "c-div",
-          rootEntityType: "COLLECTION",
-          rootEntityId: "c1",
-          locale: "en",
-          fieldKey: "title",
-          fieldLabel: "Title",
-          kind: "LOCAL_ONLY",
-          localValue: "Local",
-          shopifyValue: "",
-          localFingerprint: "a",
-          shopifyFingerprint: "b",
-          targetKind: "NATIVE",
-        },
         {
           id: "p-div",
           rootEntityType: "PAGE",
@@ -222,24 +208,31 @@ describe("compareSyncState (characterization)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    expect(result.leaves).toHaveLength(0);
+    expect(result.leaves).toHaveLength(1);
+    expect(result.leaves[0]?.id).toBe("PAGE:page-1:translation:en:title");
+    expect(result.leaves[0]?.kind).toBe("translation");
   });
 
-  it("one collection title change is ONE conflict: default locale is never a translation leaf", () => {
+  it("drops default-locale translation leaf only when commerce already covers that field", () => {
     const locales = [
       { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
       { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
     ];
-    const translation = (locale: string, fieldKey: string, id: string) => ({
+    const translation = (
+      locale: string,
+      fieldKey: string,
+      id: string,
+      fieldLabel = "Name",
+    ) => ({
       id,
       rootEntityType: "COLLECTION" as const,
       rootEntityId: "c1",
       locale,
       fieldKey,
-      fieldLabel: "Name",
+      fieldLabel,
       kind: "CONFLICT" as const,
-      localValue: "Pets",
-      shopifyValue: "Pets & Animals",
+      localValue: fieldKey === "subtitle" ? "Local subtitle" : "Pets",
+      shopifyValue: fieldKey === "subtitle" ? "Shopify subtitle" : "Pets & Animals",
       localFingerprint: "a",
       shopifyFingerprint: "b",
       targetKind: "NATIVE" as const,
@@ -256,7 +249,7 @@ describe("compareSyncState (characterization)", () => {
       translationDifferences: [
         translation("en", "name", "d-en"),
         translation("pt-PT", "name", "d-pt"),
-        translation("en", "subtitle", "d-en-subtitle"),
+        translation("en", "subtitle", "d-en-subtitle", "Subtitle"),
       ],
       productPresence: [],
       collectionPresence: [],
@@ -267,12 +260,12 @@ describe("compareSyncState (characterization)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    // commerce Name + PT name only — every default-locale translation leaf is dropped.
+    // commerce Name once; EN name dropped (covered); EN subtitle + PT name stay.
     const ids = result.leaves.map((leaf) => leaf.id);
-    expect(ids).toHaveLength(2);
-    expect(ids).toContain("COLLECTION:c1:translation:pt-PT:name");
+    expect(result.leaves.filter((leaf) => leaf.kind === "commerce" && leaf.label === "Name")).toHaveLength(1);
     expect(ids).not.toContain("COLLECTION:c1:translation:en:name");
-    expect(ids).not.toContain("COLLECTION:c1:translation:en:subtitle");
-    expect(result.leaves.filter((leaf) => leaf.kind === "commerce")).toHaveLength(1);
+    expect(ids).toContain("COLLECTION:c1:translation:en:subtitle");
+    expect(ids).toContain("COLLECTION:c1:translation:pt-PT:name");
+    expect(ids).toHaveLength(3);
   });
 });
