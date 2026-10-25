@@ -15,7 +15,8 @@ import { useCollectionFormValidation } from "@/components/admin/collections/use-
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminAlert, AdminIconButton, AdminListWorkspace, CatalogConflictStatus } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
+import type { CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-view";
+import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-adapter";
 import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
 import {
   collectionToDraft,
@@ -278,8 +279,8 @@ export function EditCollectionForm({
         onClose={() => setConflictListOpen(false)}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        collections={[{ id: collection.id, name: collection.name, slug: collection.slug }]}
-        focusedCollectionId={collection.id}
+        items={[{ id: collection.id, name: collection.name, slug: collection.slug }]}
+        focusedId={collection.id}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />

@@ -1,6 +1,6 @@
 /**
  * View-scope filters for catalog conflict UI (product / locale / section).
- * Kept out of the workspace component so that file only wires FieldConflictPanel.
+ * Kept out of the product adapter so that file only maps data → ConflictResolver.
  */
 
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
@@ -128,3 +128,21 @@ export function productTypeApplyImpactNote(affectedProductCount: number): string
   }
   return `Product type is a shared label — confirming affects ${n} products that use this type name.`;
 }
+
+/** Attach product-type impact notes to MANUAL preview entries. */
+export function withProductTypeImpactNotes<T extends {
+  field: { label: string; fieldKey: string };
+  productId?: string;
+  impactNote?: string | null;
+}>(entries: T[]): T[] {
+  const typeIds = new Set(
+    entries.filter((entry) => isProductTypeConflictField(entry.field)).map((entry) => entry.productId).filter(Boolean),
+  );
+  return entries.map((entry) => ({
+    ...entry,
+    impactNote: isProductTypeConflictField(entry.field)
+      ? productTypeApplyImpactNote(typeIds.size)
+      : null,
+  }));
+}
+

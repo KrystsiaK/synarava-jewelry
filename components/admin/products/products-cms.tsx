@@ -29,7 +29,8 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
+import type { CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-view";
+import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
 import { collectionSelectOptionLabel } from "@/lib/admin/collection-select-options";
 import {
@@ -645,8 +646,8 @@ export function ProductsCms({
         onClose={closeConflictList}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        products={products.map((product) => ({ id: product.id, name: product.name, sku: product.sku }))}
-        focusedProductId={focusedConflictProductId}
+        items={products.map((product) => ({ id: product.id, name: product.name, sku: product.sku }))}
+        focusedId={focusedConflictProductId}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
         onApplied={() => { handleConflictsApplied(); }}

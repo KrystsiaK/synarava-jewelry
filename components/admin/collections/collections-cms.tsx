@@ -22,7 +22,8 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
+import type { CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-view";
+import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-adapter";
 import {
   collectionActionCopy,
   collectionStatusLabel,
@@ -313,8 +314,8 @@ export function CollectionsCms({
         onClose={closeConflictList}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        collections={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
-        focusedCollectionId={focusedConflictCollectionId}
+        items={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
+        focusedId={focusedConflictCollectionId}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />
