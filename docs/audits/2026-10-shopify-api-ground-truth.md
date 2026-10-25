@@ -111,7 +111,7 @@ Status legend: `ok` = code expectation matches live/docs shape · `missing` = Sh
 | Media `originalSource` (not `filename`) | Derive filename from `originalSource.url` / image URL | `MediaImage.originalSource { url }` present; no `filename` field | `ok` | `lib/shopify/staged-product-media.ts:7-15`, `:30-46` |
 | Inventory levels nested on product list | Commerce list does **not** fetch levels | Levels only via separate `inventoryItem` query | `ok` (intentional) | `lib/shopify/product-sync.ts:548-551`, `:541-544`; `lib/shopify/inventory-levels.ts:31-64` |
 | Inventory quantity names | `available` (+ committed/on_hand/…) | Same names returned | `ok` | `lib/shopify/inventory-levels.ts:19-28`, `:46` |
-| Collection commerce window | `id title handle descriptionHtml seo` only | API also has `products`, `metafields`, `sources`, `productsCount` | `ignored` | `lib/shopify/collection-commerce-fetch.ts:31-38`; `lib/shopify/collection-commerce-projection.ts:134-150` |
+| Collection commerce window | `id title handle descriptionHtml seo` only | API also has `products`, `metafields`, `sources`, `productsCount` | `ignored` | `lib/shopify/collection-commerce-projection.ts:134-150` (paginated fetch helper removed) |
 | Collection presence pull | Includes `sources` + seo + descriptionHtml | Matches | `ok` | `lib/shopify/collection-presence-server.ts:208-216` |
 | `shopLocales` | `locale name primary published` | Returned | `ok` | `lib/shopify/admin.ts:212-218` |
 | Locale scope alternate | `read_locales` **or** `read_markets_home` | RO app has `read_locales`; `read_markets_home` not granted (unused) | `ok` | `lib/shopify/admin.ts:176`, `:242-258` |

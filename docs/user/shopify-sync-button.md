@@ -35,11 +35,17 @@ preview.
 :::steps
 ### Find the top-bar Shopify sync button
 
+<<<<<<< HEAD
 In admin, the top bar shows the Shopify sync control. Together with the
 after-Save full check, this is the fetch+compare path for the catalog.
 Opening **Show conflicts** / ConflictResolver does **not** fetch Shopify again
 — it reads the last SyncResult leaves. Separate “Check Shopify” or “Run
 conflict check” controls on catalog pages are not part of this model.
+=======
+In admin, the top bar shows the Shopify sync control. This is the one place
+that fetches the whole Shopify state and compares it with Synarava. Catalog
+pages do not carry a separate check control.
+>>>>>>> 99956a0c (chore: remove dead sync helpers and stale sync docs)
 
 ### Read the button state
 

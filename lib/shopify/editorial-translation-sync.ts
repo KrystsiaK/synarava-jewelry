@@ -93,7 +93,7 @@ async function recordTargetFailure(bindingId: string, error: unknown, locale: Sy
 }
 
 async function completeTarget(bindingId: string, _snapshot: Record<string, unknown>, locale: SyncTargetLocale, actorUsername?: string | null) {
-  // No common-ancestor snapshot write — two-way compare uses live Shopify vs Synarava (PR3).
+  // Two-way compare uses live Shopify vs Synarava only.
   await recordSyncEvent({ bindingId, locale: locale.code, direction: "PUSH", status: "SUCCEEDED", actorUsername });
 }
 

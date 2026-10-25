@@ -7,7 +7,7 @@ import {
 } from "@/lib/i18n/admin-field-registry";
 
 /**
- * Historical three-way kinds remain in the type/DB enum until PR6.
+ * Legacy three-way kind names remain for DB/type compatibility.
  * Two-way compare always emits `"conflict"` for any Synarava ≠ Shopify value;
  * the human picks push vs pull at Apply. Do not use local-only/shopify-only
  * as auto-direction.
@@ -24,7 +24,7 @@ export type SyncFieldDifference = {
   fieldLabel: string;
   targetKind: "native" | "metafield" | "metaobject";
   kind: SyncDifferenceKind;
-  /** Always null under two-way compare (no common-ancestor base). Column kept until PR6. */
+  /** Always null under two-way compare (no common-ancestor base). */
   baseValue: unknown;
   localValue: unknown;
   shopifyValue: unknown;

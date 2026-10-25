@@ -428,7 +428,7 @@ export function setProjectionPath(root: unknown, path: string, value: unknown): 
   return cloneLevel(root, 0);
 }
 
-export function centsToShopifyAmount(cents: number): string {
+function centsToShopifyAmount(cents: number): string {
   return (Math.round(cents) / 100).toFixed(2);
 }
 

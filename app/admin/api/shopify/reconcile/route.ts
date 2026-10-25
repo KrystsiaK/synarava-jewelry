@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ run: await getLatestReconcileRun(), reused: true });
       }
 
-      // Single entry: same full waterfall as former "Run conflict check".
+      // Single entry: full catalog waterfall (same path as the top-bar Shopify button).
       const checked = await runCatalogConflictCheck(session.username, {
         trigger: parsed.data.trigger,
       });
