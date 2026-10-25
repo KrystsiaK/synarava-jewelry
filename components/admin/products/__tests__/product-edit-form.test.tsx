@@ -144,15 +144,12 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
   });
 
-  it("checks Shopify sync state on mount when linked", async () => {
-    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
-      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
-    });
+  it("does not inspect Shopify on mount when linked (signals only)", async () => {
     const product = makeProduct({ shopifyProductId: "gid://shopify/Product/1" });
     render(<EditProductForm product={product} collections={[]} />);
 
     await act(async () => {});
-    expect(adminSyncActionMocks.inspectProductSyncAction).toHaveBeenCalledWith("product-1");
+    expect(adminSyncActionMocks.inspectProductSyncAction).not.toHaveBeenCalled();
   });
 
   it("shows editable Shopify fields and the pulled metafields", async () => {

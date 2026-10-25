@@ -1377,6 +1377,11 @@ export type ProductSyncInspection = {
  * 1) fetch Shopify → write shopifySnapshot (+ syncStatus from compare)
  * 2) read workingSnapshot (do not seed/align-persist)
  * 3) diff in memory → state; missing window → Adopt Shopify row
+ *
+ * Conflict apply/preview safety: this is the ONLY allowed live Shopify
+ * inspect immediately before a conflict write. Opening the ConflictResolver
+ * and editor chrome must use SyncResult leaves (waterfall skipRefresh) —
+ * never call this for display-only conflict loads.
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
