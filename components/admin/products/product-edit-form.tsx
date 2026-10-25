@@ -29,7 +29,8 @@ import { ProductDetailFields, ProductFormFields } from "@/components/admin/produ
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
-import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/product-conflict-adapter";
+import type { CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-view";
+import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
   conflictSectionsFromDifferences,
@@ -776,8 +777,8 @@ export function EditProductForm({
         onClose={() => setConflictOpen(false)}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        products={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
-        focusedProductId={currentProduct.id}
+        items={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
+        focusedId={currentProduct.id}
         viewScope={conflictViewScope}
         formBlocked={isDirty || isPending}
         onToast={(message, tone) => pushToast({ message, tone })}

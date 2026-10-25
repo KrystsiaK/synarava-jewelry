@@ -511,17 +511,7 @@ function ConflictBusyOverlay({
 
 const MAX_LOAD_ENTITIES = 50;
 
-export function ConflictResolver({
-  open,
-  onClose,
-  adapter,
-  entityIds,
-  entities,
-  focusedEntityId,
-  formBlocked = false,
-  onToast,
-  onApplied,
-}: {
+type ConflictResolverProps = {
   open: boolean;
   onClose: () => void;
   adapter: ConflictResolverAdapter;
@@ -532,22 +522,14 @@ export function ConflictResolver({
   formBlocked?: boolean;
   onToast: (message: string, tone: "success" | "error" | "info") => void;
   onApplied?: (info: { entityIds: string[]; appliedCount: number }) => void;
-}) {
-  const [rowsByEntity, setRowsByEntity] = useState<Record<string, CatalogConflictField[]>>({});
-  const [loading, setLoading] = useState(false);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [applying, setApplying] = useState(false);
-  const [selections, setSelections] = useState<Record<string, CatalogConflictDirection>>({});
-  const [preview, setPreview] = useState<ConflictPreviewModel | null>(null);
-  const [resultMessage, setResultMessage] = useState<string | null>(null);
-  const focusedRef = useRef<HTMLElement>(null);
-  const checkRunning = useAdminShopifyCheckRunning();
-  const supportsWholeRecord = Boolean(adapter.supportsWholeRecord && adapter.applyWholeRecord);
-  const entitiesById = useMemo(
-    () => new Map(entities.map((entity) => [entity.id, entity])),
-    [entities],
-  );
+};
 
+/**
+ * Outer shell: remount the session when the open entity set changes so
+ * selections/preview reset without synchronous setState inside an effect.
+ */
+export function ConflictResolver(props: ConflictResolverProps) {
+  const { open, entityIds, focusedEntityId } = props;
   const loadIds = useMemo(() => {
     const ordered = [...entityIds];
     if (focusedEntityId) {
@@ -560,14 +542,53 @@ export function ConflictResolver({
     return ordered.slice(0, MAX_LOAD_ENTITIES);
   }, [entityIds, focusedEntityId]);
 
+  if (!open) return null;
+
+  const sessionKey = loadIds.join("|") || "empty";
+  return <ConflictResolverSession key={sessionKey} {...props} loadIds={loadIds} />;
+}
+
+function ConflictResolverSession({
+  onClose,
+  adapter,
+  entityIds,
+  entities,
+  focusedEntityId,
+  formBlocked = false,
+  onToast,
+  onApplied,
+  loadIds,
+}: ConflictResolverProps & { loadIds: string[] }) {
+  // null = still loading; {} = loaded empty. Remount resets this without an effect.
+  const [rowsByEntity, setRowsByEntity] = useState<Record<string, CatalogConflictField[]> | null>(
+    () => (loadIds.length === 0 ? {} : null),
+  );
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [selections, setSelections] = useState<Record<string, CatalogConflictDirection>>({});
+  const [preview, setPreview] = useState<ConflictPreviewModel | null>(null);
+  const [resultMessage, setResultMessage] = useState<string | null>(null);
+  const focusedRef = useRef<HTMLElement>(null);
+  const checkRunning = useAdminShopifyCheckRunning();
+  const supportsWholeRecord = Boolean(adapter.supportsWholeRecord && adapter.applyWholeRecord);
+  const entitiesById = useMemo(
+    () => new Map(entities.map((entity) => [entity.id, entity])),
+    [entities],
+  );
+  const loading = rowsByEntity === null;
+  const loadedRows = useMemo(
+    () => rowsByEntity ?? {},
+    [rowsByEntity],
+  );
+
   const allRows = useMemo(() => {
     const rows: ConflictRowModel[] = [];
     for (const entityId of loadIds) {
-      const fields = orderedConflictFields(rowsByEntity[entityId] ?? []);
+      const fields = orderedConflictFields(loadedRows[entityId] ?? []);
       for (const field of fields) rows.push({ entityId, field });
     }
     return rows;
-  }, [loadIds, rowsByEntity]);
+  }, [loadIds, loadedRows]);
 
   const selectableRows = useMemo(
     () => allRows.filter((row) => isSelectableField(row.field, supportsWholeRecord)),
@@ -577,12 +598,8 @@ export function ConflictResolver({
   const busy = applying || loading || previewLoading || checkRunning;
 
   useEffect(() => {
-    if (!open) return;
+    if (loadIds.length === 0) return;
     let cancelled = false;
-    setSelections({});
-    setPreview(null);
-    setResultMessage(null);
-    setLoading(true);
     void Promise.all(
       loadIds.map(async (entityId) => {
         const result = await adapter.loadEntityFields(entityId);
@@ -601,23 +618,21 @@ export function ConflictResolver({
       .catch((error) => {
         if (!cancelled) {
           onToast(error instanceof Error ? error.message : "Could not load conflicts.", "error");
+          setRowsByEntity({});
         }
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
       });
     return () => {
       cancelled = true;
     };
-    // Load once per open + entity set; adapter identity is stable from parent wrappers.
+    // Session remounts when loadIds change; adapter identity is stable from parent wrappers.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, loadIds.join("|")]);
+  }, [loadIds.join("|")]);
 
   useEffect(() => {
-    if (!open || !focusedEntityId) return;
+    if (!focusedEntityId || loading) return;
     const frame = requestAnimationFrame(() => focusedRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [focusedEntityId, open, loading]);
+  }, [focusedEntityId, loading]);
 
   function guardFormBlocked() {
     if (!formBlocked) return false;
@@ -633,7 +648,7 @@ export function ConflictResolver({
     setSelections((current) => {
       if (wholeRecord) {
         // One direction for all blocked commerce rows on this item (whole-record intent).
-        const blockedKeys = (rowsByEntity[entityId] ?? [])
+        const blockedKeys = (loadedRows[entityId] ?? [])
           .filter((candidate) => isWholeRecordField(candidate))
           .map((candidate) => selectionKey(entityId, candidate.fieldKey));
         const clearing = blockedKeys.some((key) => current[key] === direction);
@@ -646,8 +661,9 @@ export function ConflictResolver({
       }
       const key = selectionKey(entityId, field.fieldKey);
       if (current[key] === direction) {
-        const { [key]: _removed, ...rest } = current;
-        return rest;
+        const next = { ...current };
+        delete next[key];
+        return next;
       }
       return { ...current, [key]: direction };
     });
@@ -684,11 +700,11 @@ export function ConflictResolver({
       };
     });
     const fieldLevel = picked.filter((item) => {
-      const field = (rowsByEntity[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
+      const field = (loadedRows[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
       return field && !isWholeRecordField(field);
     });
     const wholeRecordPicks = picked.filter((item) => {
-      const field = (rowsByEntity[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
+      const field = (loadedRows[item.entityId] ?? []).find((candidate) => candidate.fieldKey === item.fieldKey);
       return field && isWholeRecordField(field);
     });
     if (wholeRecordPicks.length > 0 && !supportsWholeRecord) {
@@ -725,7 +741,7 @@ export function ConflictResolver({
           wholeByEntity.set(pick.entityId, pick.direction);
         }
         for (const [entityId, direction] of wholeByEntity) {
-          const blockedFields = (rowsByEntity[entityId] ?? []).filter((field) => isWholeRecordField(field));
+          const blockedFields = (loadedRows[entityId] ?? []).filter((field) => isWholeRecordField(field));
           const impactNote = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
             ? "Whole-item sync: Take Shopify pulls the entire commerce record into Synarava (including these fields)."
             : "Whole-item sync: Keep ours pushes the entire Synarava commerce record to Shopify (including these fields).";
@@ -835,19 +851,17 @@ export function ConflictResolver({
     })();
   }
 
-  if (!open) return null;
-
   const grouped = loadIds.map((entityId) => ({
     entityId,
     entity: entitiesById.get(entityId),
-    fields: orderedConflictFields(rowsByEntity[entityId] ?? []),
+    fields: orderedConflictFields(loadedRows[entityId] ?? []),
   }));
   const truncatedLoad = entityIds.length > MAX_LOAD_ENTITIES;
 
   return (
     <>
       <AnimatedModal
-        open={open && !preview}
+        open={!preview}
         onClose={busy ? () => undefined : closeAll}
         ariaLabel={adapter.ariaLabel}
         portalClassName="admin-modal-root"

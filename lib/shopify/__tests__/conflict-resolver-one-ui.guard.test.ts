@@ -42,9 +42,10 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-function isAdapter(rel: string): boolean {
+function isAdapterOrSharedShell(rel: string): boolean {
   return rel === "components/admin/products/product-conflict-adapter.tsx"
-    || rel === "components/admin/collections/collection-conflict-adapter.tsx";
+    || rel === "components/admin/collections/collection-conflict-adapter.tsx"
+    || rel === "components/admin/shared/conflict-resolver-workspace.tsx";
 }
 
 describe("ONE ConflictResolver UI guard", () => {
@@ -70,11 +71,11 @@ describe("ONE ConflictResolver UI guard", () => {
     expect(offenders).toEqual([]);
   });
 
-  it("conflict apply/preview and pull-single are only called from resolver or adapters (or justified push path)", () => {
+  it("conflict apply/preview and pull-single are only called from resolver, shared shell, or adapters", () => {
     const offenders: string[] = [];
     for (const { full, rel } of files) {
       if (rel.startsWith("components/synarava-cms/conflict-resolver")) continue;
-      if (isAdapter(rel)) continue; // adapters bridge preview/apply (+ product whole-record pull/push)
+      if (isAdapterOrSharedShell(rel)) continue; // shell factory + adapters bridge preview/apply (+ product whole-record)
       if (rel.includes("/__tests__/") || rel.includes(".test.") || rel.includes(".stories.")) continue;
       if (rel.startsWith("lib/") || rel.startsWith("app/admin/actions/")) continue;
       const source = readFileSync(full, "utf8");

@@ -128,3 +128,21 @@ export function productTypeApplyImpactNote(affectedProductCount: number): string
   }
   return `Product type is a shared label — confirming affects ${n} products that use this type name.`;
 }
+
+/** Attach product-type impact notes to MANUAL preview entries. */
+export function withProductTypeImpactNotes<T extends {
+  field: { label: string; fieldKey: string };
+  productId?: string;
+  impactNote?: string | null;
+}>(entries: T[]): T[] {
+  const typeIds = new Set(
+    entries.filter((entry) => isProductTypeConflictField(entry.field)).map((entry) => entry.productId).filter(Boolean),
+  );
+  return entries.map((entry) => ({
+    ...entry,
+    impactNote: isProductTypeConflictField(entry.field)
+      ? productTypeApplyImpactNote(typeIds.size)
+      : null,
+  }));
+}
+

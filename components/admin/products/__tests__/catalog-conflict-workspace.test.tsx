@@ -64,8 +64,8 @@ function renderWorkspace(
       onClose={onClose}
       signals={signalState}
       onSignalsChange={onSignalsChange}
-      products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
-      focusedProductId={null}
+      items={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
+      focusedId={null}
       viewScope={viewScope}
       onToast={onToast}
     />,
@@ -107,8 +107,8 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
         onClose={vi.fn()}
         signals={signals}
         onSignalsChange={vi.fn()}
-        products={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
-        focusedProductId={null}
+        items={[{ id: "p1", name: "Amber ring", sku: "AR-1" }]}
+        focusedId={null}
         onToast={vi.fn()}
         onApplied={onApplied}
       />,
