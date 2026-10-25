@@ -105,20 +105,20 @@ export async function syncPageEditorialTranslation(pageId: string, locale: SyncT
   });
   if (!page) throw new Error("Page not found.");
 
-  const en = page.translations.find((translation) => translation.locale === "en");
   const translation = page.translations.find((item) => item.locale === locale.code);
   if (!translation) throw new Error(`${locale.name} page translation is missing.`);
 
-  const enContent = normalizePageTranslationContent(en?.content ?? page.content);
+  // English source is Page base columns only (no locale=en translation row).
+  const enContent = normalizePageTranslationContent(page.content);
   const translationContent = normalizePageTranslationContent(translation.content);
   const shopifyPage = await upsertShopifyPage({
     resourceId: page.shopifyPageId,
-    title: en?.title ?? page.title,
+    title: page.title,
     body: enContent.body ?? "",
     handle: page.shopifyHandle ?? page.slug,
     isPublished: page.status === "PUBLISHED" && page.visibility === "PUBLIC",
-    seoTitle: en?.seoTitle ?? page.seoTitle,
-    seoDescription: en?.seoDescription ?? page.seoDescription,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
   });
   if (page.shopifyPageId !== shopifyPage.id || page.shopifyHandle !== shopifyPage.handle) {
     await db.page.update({
@@ -155,7 +155,7 @@ export async function syncPageEditorialTranslation(pageId: string, locale: SyncT
     results.push({ target: "PAGE", status: "FAILED", error: errorMessage(error) });
   }
 
-  const enStructured = pageStructuredValues(en?.excerpt ?? page.excerpt, en?.content ?? page.content);
+  const enStructured = pageStructuredValues(page.excerpt, page.content);
   const translationStructured = pageStructuredValues(translation.excerpt, translation.content);
   const metaobject = await ensureEditorialMetaobject({
     definition: "page_section_copy",
@@ -241,18 +241,18 @@ export async function syncProductEditorialTranslation(
   });
   if (!product) throw new Error("Product not found.");
 
-  const en = product.translations.find((translation) => translation.locale === "en");
   const translation = product.translations.find((item) => item.locale === locale.code);
   if (!translation) throw new Error(`${locale.name} product translation is missing.`);
 
+  // English source is Product base columns only (no locale=en translation row).
   const source = {
-    shortDescription: en?.shortDescription ?? product.shortDescription,
-    materialLine: en?.materialLine ?? product.materialLine,
-    symbolismLabel: en?.symbolismLabel ?? product.symbolismLabel,
-    symbolismTitle: en?.symbolismTitle ?? product.symbolismTitle,
-    symbolismBody: en?.symbolismBody ?? product.symbolismBody,
-    symbolismBody2: en?.symbolismBody2 ?? product.symbolismBody2,
-    details: en?.details ?? product.details,
+    shortDescription: product.shortDescription,
+    materialLine: product.materialLine,
+    symbolismLabel: product.symbolismLabel,
+    symbolismTitle: product.symbolismTitle,
+    symbolismBody: product.symbolismBody,
+    symbolismBody2: product.symbolismBody2,
+    details: product.details,
   };
   const translated = {
     shortDescription: translation.shortDescription,
@@ -287,21 +287,21 @@ export async function syncCollectionEditorialTranslation(
   });
   if (!collection) throw new Error("Collection not found.");
 
-  const en = collection.translations.find((translation) => translation.locale === "en");
   const translation = collection.translations.find((item) => item.locale === locale.code);
   if (!translation) throw new Error(`${locale.name} collection translation is missing.`);
 
+  // English source is Collection base columns only (no locale=en translation row).
   const source = {
-    subtitle: en?.subtitle ?? collection.subtitle,
-    manifesto: en?.manifesto ?? collection.manifesto,
-    storyTitle: en?.storyTitle ?? collection.storyTitle,
-    storyBody: en?.storyBody ?? collection.storyBody,
-    symbolismLabel: en?.symbolismLabel ?? collection.symbolismLabel,
-    symbolismTitle: en?.symbolismTitle ?? collection.symbolismTitle,
-    symbolismBody: en?.symbolismBody ?? collection.symbolismBody,
-    symbolismBody2: en?.symbolismBody2 ?? collection.symbolismBody2,
-    searchSummary: en?.searchSummary ?? collection.searchSummary,
-    ctaLabel: en?.ctaLabel ?? collection.ctaLabel,
+    subtitle: collection.subtitle,
+    manifesto: collection.manifesto,
+    storyTitle: collection.storyTitle,
+    storyBody: collection.storyBody,
+    symbolismLabel: collection.symbolismLabel,
+    symbolismTitle: collection.symbolismTitle,
+    symbolismBody: collection.symbolismBody,
+    symbolismBody2: collection.symbolismBody2,
+    searchSummary: collection.searchSummary,
+    ctaLabel: collection.ctaLabel,
   };
   const translated = {
     subtitle: translation.subtitle,

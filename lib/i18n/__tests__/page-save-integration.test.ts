@@ -50,24 +50,26 @@ describe("savePageAction — N-locale translation save (real DB)", () => {
     createdId = null;
   });
 
-  it("creates EN/PT/RU PageTranslation rows in one save, with correct registry locale codes", async () => {
+  it("writes EN on Page base columns and PT/RU PageTranslation rows only", async () => {
     const result = await savePageAction(buildFormData());
 
     expect(result.error).toBeUndefined();
     expect(result.page).toBeTruthy();
     createdId = result.page!.id;
 
+    const page = await db.page.findUniqueOrThrow({ where: { id: createdId! } });
+    expect(page.title).toBe("U4 Integration Test Page");
+
     const rows = await db.pageTranslation.findMany({
       where: { pageId: createdId! },
       orderBy: { locale: "asc" },
     });
-    expect(rows.map((r) => r.locale)).toEqual(["en", "pt", "ru"]);
+    expect(rows.map((r) => r.locale)).toEqual(["pt", "ru"]);
+    expect(rows.some((r) => r.locale === "en")).toBe(false);
 
-    const en = rows.find((r) => r.locale === "en")!;
     const pt = rows.find((r) => r.locale === "pt")!;
     const ru = rows.find((r) => r.locale === "ru")!;
 
-    expect(en.title).toBe("U4 Integration Test Page");
     expect(pt.title).toBe("Página de Teste U4");
     expect(ru.title).toBe("Тестовая страница U4");
 

@@ -1104,63 +1104,31 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
     return { locale, copy, reviewed, syncStatus, contentHash, previousHandle: previousTranslation?.localizedHandle };
   });
-  await db.$transaction([
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "en" } },
-      update: {
-        title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
-        materialLine: materialLine || null,
-        symbolismLabel: symbolismLabel || null,
-        symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null,
-        symbolismBody2: symbolismBody2 || null,
-        details: details as Prisma.InputJsonValue,
-        seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-      create: {
-        productId: product.id,
-        locale: "en",
-        title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
-        materialLine: materialLine || null,
-        symbolismLabel: symbolismLabel || null,
-        symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null,
-        symbolismBody2: symbolismBody2 || null,
-        details: details as Prisma.InputJsonValue,
-        seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-    }),
-    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale } },
-      update: {
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-        syncError: null,
-      },
-      create: {
-        productId: product.id,
-        locale,
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-    })),
-  ]);
+  // Default locale (EN) lives only on Product base columns — never ProductTranslation.
+  if (translationUpserts.length > 0) {
+    await db.$transaction([
+      ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.productTranslation.upsert({
+        where: { productId_locale: { productId: product.id, locale } },
+        update: {
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+          syncError: null,
+        },
+        create: {
+          productId: product.id,
+          locale,
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+      })),
+    ]);
+  }
   await Promise.all(translationUpserts.map(({ locale, copy, previousHandle }) => recordLocalizedHandleRedirect({
     entityType: "PRODUCT",
     entityId: product.id,
@@ -1558,69 +1526,45 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     throw error;
   }
 
-  await db.$transaction([
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "en" } },
-      update: {
-        title: name,
-        shortDescription: richDraft.shortDescription || null,
-        description: richDraft.description || null,
-        materialLine: materialLine || null,
-        details: draftDetails,
-        seoTitle: seoTitle || null,
-        seoDescription: richDraft.seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-      create: {
-        productId: product.id,
-        locale: "en",
-        title: name,
-        shortDescription: richDraft.shortDescription || null,
-        description: richDraft.description || null,
-        materialLine: materialLine || null,
-        details: draftDetails,
-        seoTitle: seoTitle || null,
-        seoDescription: richDraft.seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-    }),
-    ...translationFields.map(({ code: locale, fields }) => {
-      const richTranslation = normalizeRichTextFields(
-        {
-          shortDescription: fields.shortDescription,
-          description: fields.description,
-          seoDescription: fields.seoDescription,
-        },
-        ["shortDescription", "description", "seoDescription"],
-      );
-      return db.productTranslation.upsert({
-        where: { productId_locale: { productId: product.id, locale } },
-        update: {
-          title: fields.title,
-          shortDescription: richTranslation.shortDescription || null,
-          description: richTranslation.description || null,
-          materialLine: fields.materialLine || null,
-          seoTitle: fields.seoTitle || null,
-          seoDescription: richTranslation.seoDescription || null,
-          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-          syncStatus: "NOT_APPLICABLE",
-        },
-        create: {
-          productId: product.id,
-          locale,
-          title: fields.title,
-          shortDescription: richTranslation.shortDescription || null,
-          description: richTranslation.description || null,
-          materialLine: fields.materialLine || null,
-          seoTitle: fields.seoTitle || null,
-          seoDescription: richTranslation.seoDescription || null,
-          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-        },
-      });
-    }),
-  ]);
+  // Default locale (EN) lives only on Product base columns — never ProductTranslation.
+  if (translationFields.length > 0) {
+    await db.$transaction([
+      ...translationFields.map(({ code: locale, fields }) => {
+        const richTranslation = normalizeRichTextFields(
+          {
+            shortDescription: fields.shortDescription,
+            description: fields.description,
+            seoDescription: fields.seoDescription,
+          },
+          ["shortDescription", "description", "seoDescription"],
+        );
+        return db.productTranslation.upsert({
+          where: { productId_locale: { productId: product.id, locale } },
+          update: {
+            title: fields.title,
+            shortDescription: richTranslation.shortDescription || null,
+            description: richTranslation.description || null,
+            materialLine: fields.materialLine || null,
+            seoTitle: fields.seoTitle || null,
+            seoDescription: richTranslation.seoDescription || null,
+            reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+            syncStatus: "NOT_APPLICABLE",
+          },
+          create: {
+            productId: product.id,
+            locale,
+            title: fields.title,
+            shortDescription: richTranslation.shortDescription || null,
+            description: richTranslation.description || null,
+            materialLine: fields.materialLine || null,
+            seoTitle: fields.seoTitle || null,
+            seoDescription: richTranslation.seoDescription || null,
+            reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+          },
+        });
+      }),
+    ]);
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");

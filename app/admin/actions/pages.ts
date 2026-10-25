@@ -467,22 +467,6 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
     uploadedByUsername: currentUser?.username,
   });
   const materialLexicon = buildMaterialLexiconEntries(materialEntries, materialImages);
-  const englishTranslationContent = normalizePageContentRichText({
-    eyebrow, body, ctaLabel, heroImageAlt, calloutEyebrow, calloutHeading, calloutCtaHref,
-    heroOpeningLabel, heroCountLabel, heroQualifier,
-    detailShopLabel, detailCollectionsLabel, detailScrollLabel,
-    detailManifestoEyebrow, detailManifestoGhost, detailStoryEyebrow, detailAccentCodeLabel,
-    detailTeaserEyebrow, detailTeaserHeading, detailTeaserShopLabel,
-    detailCatalogEyebrow, detailCatalogHeading,
-    quote, secondaryTitle, secondaryBody,
-    archiveSectionLabel, editSectionEyebrow, editSectionTitle,
-    editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
-    materialSectionTitle, materialSectionNoteLabel, materialLexicon,
-    manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
-    finalSecondaryCtaLabel, finalSecondaryCtaHref,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
-    ...shopPageCopyFromRecord(parsed.data),
-  });
   const safeExcerpt = normalizeRichTextForStorage(excerpt);
   const safeSeoDescription = normalizeRichTextForStorage(seoDescription);
   // Images/src stay shared with English (see materialImages above) and are
@@ -710,32 +694,8 @@ export async function savePageAction(formData: FormData): Promise<PageActionStat
       }),
     };
   });
-  await Promise.all([
-    db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "en" } },
-      update: {
-        title,
-        excerpt: safeExcerpt || null,
-        seoTitle: seoTitle || null,
-        seoDescription: safeSeoDescription || null,
-        content: englishTranslationContent,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-      create: {
-        pageId: page.id,
-        locale: "en",
-        title,
-        excerpt: safeExcerpt || null,
-        seoTitle: seoTitle || null,
-        seoDescription: safeSeoDescription || null,
-        content: englishTranslationContent,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-    }),
-    ...translationUpserts.map(({ upsert }) => upsert),
-  ]);
+  // Default locale (EN) lives only on Page base columns — never PageTranslation.
+  await Promise.all(translationUpserts.map(({ upsert }) => upsert));
   await Promise.all(translationUpserts.map(({ code, localizedHandle }) => recordLocalizedHandleRedirect({
     entityType: "PAGE",
     entityId: page.id,
@@ -978,42 +938,8 @@ export async function autosavePageDraftAction(formData: FormData): Promise<Draft
         select: { id: true },
       });
 
-  const englishTranslationContent = {
-    eyebrow, body, ctaLabel, heroImageAlt, calloutEyebrow, calloutHeading, calloutCtaHref,
-    heroOpeningLabel, heroCountLabel, heroQualifier,
-    detailShopLabel, detailCollectionsLabel, detailScrollLabel,
-    detailManifestoEyebrow, detailManifestoGhost, detailStoryEyebrow, detailAccentCodeLabel,
-    detailTeaserEyebrow, detailTeaserHeading, detailTeaserShopLabel,
-    detailCatalogEyebrow, detailCatalogHeading,
-    quote, secondaryTitle, secondaryBody,
-    archiveSectionLabel, editSectionEyebrow, editSectionTitle,
-    editSectionBody, editSectionViewAllLabel, materialSectionEyebrow,
-    materialSectionTitle, materialSectionNoteLabel, materialLexicon: draftMaterialLexicon,
-    manifestoSectionLabel, manifestoSectionAttribution, finalCtaLabel,
-    finalSecondaryCtaLabel, finalSecondaryCtaHref,
-    finalFooterTitle, finalContactLabel, legalIntro, legalLastUpdated, legalLastUpdatedLabel, legalSections, serviceSections,
-    ...shopPageCopyFromRecord(parsed.data),
-  };
+  // Default locale (EN) lives only on Page base columns — never PageTranslation.
   await Promise.all([
-    db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: page.id, locale: "en" } },
-      update: {
-        title: pageData.title,
-        excerpt: pageData.excerpt,
-        seoTitle: pageData.seoTitle,
-        seoDescription: pageData.seoDescription,
-        content: englishTranslationContent,
-      },
-      create: {
-        pageId: page.id,
-        locale: "en",
-        title: pageData.title,
-        excerpt: pageData.excerpt,
-        seoTitle: pageData.seoTitle,
-        seoDescription: pageData.seoDescription,
-        content: englishTranslationContent,
-      },
-    }),
     ...translationsData.map(({ code, fields, localizedHandle, content }) => db.pageTranslation.upsert({
       where: { pageId_locale: { pageId: page.id, locale: code } },
       update: {

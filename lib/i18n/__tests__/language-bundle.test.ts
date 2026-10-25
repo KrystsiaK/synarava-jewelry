@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   storefrontLocaleFindUnique: vi.fn(),
   storefrontLocaleUpsert: vi.fn(),
+  productFindMany: vi.fn(),
+  productUpdate: vi.fn(),
+  collectionFindMany: vi.fn(),
+  collectionUpdate: vi.fn(),
+  pageFindMany: vi.fn(),
+  pageUpdate: vi.fn(),
   productTranslationFindMany: vi.fn(),
   productTranslationUpsert: vi.fn(),
   collectionTranslationFindMany: vi.fn(),
@@ -20,6 +26,18 @@ vi.mock("@/lib/db", () => ({
     storefrontLocale: {
       findUnique: mocks.storefrontLocaleFindUnique,
       upsert: mocks.storefrontLocaleUpsert,
+    },
+    product: {
+      findMany: mocks.productFindMany,
+      update: mocks.productUpdate,
+    },
+    collection: {
+      findMany: mocks.collectionFindMany,
+      update: mocks.collectionUpdate,
+    },
+    page: {
+      findMany: mocks.pageFindMany,
+      update: mocks.pageUpdate,
     },
     productTranslation: {
       findMany: mocks.productTranslationFindMany,
@@ -179,5 +197,54 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
       locale: "pt",
       products: 0,
     });
+  });
+
+  it("exports and imports default locale from Product/Collection/Page base columns", async () => {
+    mocks.storefrontLocaleFindUnique.mockResolvedValue({
+      code: "en",
+      routeSegment: "en",
+      shopifyLocale: "en",
+      intlLocale: "en-IE",
+      name: "English",
+      nativeName: "English",
+      isDefault: true,
+      status: "PUBLISHED",
+      sortOrder: 0,
+    });
+    mocks.productFindMany.mockResolvedValue([
+      {
+        id: "p1",
+        name: "Ring",
+        slug: "ring",
+        shortDescription: "Short",
+        description: "Desc",
+        materialLine: null,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+        details: null,
+        seoTitle: "SEO",
+        seoDescription: null,
+      },
+    ]);
+    mocks.collectionFindMany.mockResolvedValue([]);
+    mocks.pageFindMany.mockResolvedValue([]);
+    mocks.productUpdate.mockResolvedValue({});
+
+    const bundle = await exportLanguageBundle("en");
+    expect(bundle.productTranslations).toEqual([
+      expect.objectContaining({ productId: "p1", locale: "en", title: "Ring", localizedHandle: "ring" }),
+    ]);
+    expect(mocks.productTranslationFindMany).not.toHaveBeenCalled();
+
+    await importLanguageBundle(bundle, "en");
+    expect(mocks.productUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p1" },
+        data: expect.objectContaining({ name: "Ring", slug: "ring" }),
+      }),
+    );
+    expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
   });
 });

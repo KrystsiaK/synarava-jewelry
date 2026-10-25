@@ -178,7 +178,7 @@ describe("compareSyncState (characterization)", () => {
     expect(result.leaves[0]?.kind).toBe("presence");
   });
 
-  it("includes collection translation CONFLICT leaves (collections keep one-sided kinds until re-check)", () => {
+  it("skips default-locale translation leaves entirely (EN is never a translation)", () => {
     const result = compareSyncState({
       commerceWindows: [],
       translationDifferences: [
@@ -196,6 +196,20 @@ describe("compareSyncState (characterization)", () => {
           shopifyFingerprint: "b",
           targetKind: "NATIVE",
         },
+        {
+          id: "p-div",
+          rootEntityType: "PAGE",
+          rootEntityId: "page-1",
+          locale: "en",
+          fieldKey: "title",
+          fieldLabel: "Title",
+          kind: "CONFLICT",
+          localValue: "Home",
+          shopifyValue: "Home EN",
+          localFingerprint: "a",
+          shopifyFingerprint: "b",
+          targetKind: "NATIVE",
+        },
       ],
       productPresence: [],
       collectionPresence: [],
@@ -208,15 +222,10 @@ describe("compareSyncState (characterization)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    expect(result.leaves).toHaveLength(1);
-    expect(result.leaves[0]).toMatchObject({
-      resourceType: "COLLECTION",
-      resourceId: "c1",
-      kind: "translation",
-    });
+    expect(result.leaves).toHaveLength(0);
   });
 
-  it("one collection title change is ONE conflict: default-locale translation mirror is not a second leaf", () => {
+  it("one collection title change is ONE conflict: default locale is never a translation leaf", () => {
     const locales = [
       { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
       { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
@@ -258,13 +267,12 @@ describe("compareSyncState (characterization)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    // commerce Name + PT name (a real translation) + EN subtitle (not in the commerce window);
-    // the EN name mirror of the commerce Name is dropped.
+    // commerce Name + PT name only — every default-locale translation leaf is dropped.
     const ids = result.leaves.map((leaf) => leaf.id);
-    expect(ids).toHaveLength(3);
+    expect(ids).toHaveLength(2);
     expect(ids).toContain("COLLECTION:c1:translation:pt-PT:name");
-    expect(ids).toContain("COLLECTION:c1:translation:en:subtitle");
     expect(ids).not.toContain("COLLECTION:c1:translation:en:name");
+    expect(ids).not.toContain("COLLECTION:c1:translation:en:subtitle");
     expect(result.leaves.filter((leaf) => leaf.kind === "commerce")).toHaveLength(1);
   });
 });

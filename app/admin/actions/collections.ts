@@ -408,46 +408,29 @@ export async function saveCollectionAction(
     return { locale, copy, reviewed, syncStatus, contentHash };
   });
 
-  await db.$transaction([
-    db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "en" } },
-      update: {
-        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
-        storyTitle: storyTitle || null, storyBody: storyBody || null,
-        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
-        searchSummary: searchSummary || null, ctaLabel: ctaLabel || null, heroImageAlt: heroImageAlt || null,
-        reviewStatus: "REVIEWED", reviewedAt: new Date(),
-      },
-      create: {
-        collectionId: savedCollection.id, locale: "en",
-        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
-        storyTitle: storyTitle || null, storyBody: storyBody || null,
-        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
-        searchSummary: searchSummary || null, ctaLabel: ctaLabel || null, heroImageAlt: heroImageAlt || null,
-        reviewStatus: "REVIEWED", reviewedAt: new Date(),
-      },
-    }),
-    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale } },
-      update: {
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-      create: {
-        collectionId: savedCollection.id, locale,
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-    })),
-  ]);
+  // Default locale (EN) lives only on Collection base columns — never CollectionTranslation.
+  if (translationUpserts.length > 0) {
+    await db.$transaction([
+      ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.collectionTranslation.upsert({
+        where: { collectionId_locale: { collectionId: savedCollection.id, locale } },
+        update: {
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+        create: {
+          collectionId: savedCollection.id, locale,
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+      })),
+    ]);
+  }
   await Promise.all(translationUpserts.map(({ locale, copy }) => recordLocalizedHandleRedirect({
     entityType: "COLLECTION",
     entityId: savedCollection.id,
