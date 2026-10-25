@@ -107,6 +107,35 @@ describe("applyCollectionCommerceField", () => {
     expect(mocks.shopifyAdminRequest).not.toHaveBeenCalled();
   });
 
+  it("applies Name for a collection with columns but NO stored workingSnapshot (same window the compare resolves)", async () => {
+    const before = linkedCollection({ workingSnapshot: null });
+    const afterWorking = {
+      id: "gid://shopify/Collection/9",
+      title: "Shopify name",
+      handle: "local-handle",
+      descriptionHtml: "<p>Local desc</p>",
+      seo: { title: "Local SEO", description: "Local SEO desc" },
+    };
+    mocks.findUniqueCollection
+      .mockResolvedValueOnce(before) // initial read
+      .mockResolvedValueOnce(before) // writeLocally read
+      .mockResolvedValueOnce({ // post-write re-check
+        workingSnapshot: afterWorking,
+        shopifySnapshot: { ...(before.shopifySnapshot as object), handle: "local-handle" },
+      });
+    mocks.updateCollection.mockResolvedValue({ ...before, name: "Shopify name", workingSnapshot: afterWorking });
+
+    const result = await applyCollectionCommerceField({
+      collectionId: "col-1",
+      label: "Name",
+      direction: "SHOPIFY_TO_SYNARAVA",
+      expectedLocalFingerprint: fp("Local name"),
+      expectedShopifyFingerprint: fp("Shopify name"),
+    });
+
+    expect(result).toEqual(expect.objectContaining({ ok: true }));
+  });
+
   it("pushes Handle to Shopify then refreshes shopifySnapshot only on success path", async () => {
     const before = linkedCollection();
     const afterWorking = {

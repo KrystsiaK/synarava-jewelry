@@ -960,7 +960,9 @@ function ConflictResolverSession({
           setResultMessage(message);
           onToast(message, failedCount ? "info" : "success");
         } else if (appliedCount === 0 && failedCount > 0) {
-          const message = "Could not apply the changes.";
+          // Show WHY (per-item reasons from the server), not a generic line.
+          const reasons = [...new Set(results.filter((item) => !item.ok && item.message).map((item) => item.message!))];
+          const message = reasons.length > 0 ? reasons.join(" ") : "Could not apply the changes.";
           setResultMessage(message);
           onToast(message, "error");
         }
