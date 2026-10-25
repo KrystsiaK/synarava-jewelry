@@ -53,7 +53,8 @@ function untitledEntity(entityNoun: string): string {
   return `Untitled ${entityNoun}`;
 }
 
-function humanTitle(
+/** Human title for ConflictResolver list/confirm — never a synthetic Shopify id. */
+export function humanConflictEntityTitle(
   candidate: string | null | undefined,
   entityNoun: string,
 ): string {
@@ -62,18 +63,88 @@ function humanTitle(
   return trimmed;
 }
 
+type PresenceIdentity = { name: string; handle: string; sku: string };
+
+function presenceIdentity(
+  field: CatalogConflictField | undefined,
+): PresenceIdentity | null {
+  const presence = field?.presenceDifference;
+  if (!presence) return null;
+  return presence.shopifyIdentity ?? presence.localIdentity ?? null;
+}
+
+function presenceNameCandidate(field: CatalogConflictField | undefined): string | null {
+  const presence = field?.presenceDifference;
+  if (!presence) return null;
+  return (
+    presence.shopifyIdentity?.name
+    ?? presence.localIdentity?.name
+    ?? presence.name
+    ?? null
+  );
+}
+
+/** Secondary line: `/handle` for collections, `SKU …` for products. */
+export function conflictEntityDetailFromIdentity(
+  identity: { handle?: string | null; sku?: string | null } | null | undefined,
+  entityNoun: string,
+): string | null {
+  if (!identity) return null;
+  if (entityNoun === "product") {
+    const sku = identity.sku?.trim();
+    return sku ? `SKU ${sku}` : null;
+  }
+  const handle = identity.handle?.trim();
+  if (!handle) return null;
+  return handle.startsWith("/") ? handle : `/${handle}`;
+}
+
+type ConflictEntitySignalBits = {
+  name?: string | null;
+  handle?: string | null;
+  sku?: string | null;
+};
+
+/**
+ * Shared entity summary for ConflictResolver list headers (and confirm).
+ * Prefer presence identity → listed/signal name → "Untitled {noun}".
+ * Synthetic ids (`shopify-collection:…`, `shopify:…`, GID) are never titles.
+ */
+export function resolveConflictEntitySummary(input: {
+  id: string;
+  entityNoun: string;
+  entity?: ConflictConfirmEntity | null;
+  fields?: readonly CatalogConflictField[];
+  signal?: ConflictEntitySignalBits | null;
+}): ConflictConfirmEntity {
+  const presenceField = input.fields?.find((field) => field.origin === "PRESENCE");
+  const identity = presenceIdentity(presenceField);
+  const name = humanConflictEntityTitle(
+    presenceNameCandidate(presenceField)
+      ?? input.entity?.name
+      ?? input.signal?.name
+      ?? null,
+    input.entityNoun,
+  );
+  const detail =
+    conflictEntityDetailFromIdentity(identity, input.entityNoun)
+    ?? (input.entity?.detail?.trim() || null)
+    ?? conflictEntityDetailFromIdentity(
+      { handle: input.signal?.handle, sku: input.signal?.sku },
+      input.entityNoun,
+    );
+  return { id: input.id, name, detail };
+}
+
 function presenceTitle(
   field: CatalogConflictField,
   entity: ConflictConfirmEntity | undefined,
   entityNoun: string,
 ): string {
-  const presence = field.presenceDifference;
-  const fromPresence =
-    presence?.shopifyIdentity?.name
-    ?? presence?.localIdentity?.name
-    ?? presence?.name
-    ?? null;
-  return humanTitle(fromPresence ?? entity?.name, entityNoun);
+  return humanConflictEntityTitle(
+    presenceNameCandidate(field) ?? entity?.name,
+    entityNoun,
+  );
 }
 
 function sideValue(field: CatalogConflictField, side: ConflictConfirmSide): string {

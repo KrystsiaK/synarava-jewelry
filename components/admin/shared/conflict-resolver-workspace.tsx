@@ -19,6 +19,7 @@ import {
   type ConflictPreviewModel,
   type ConflictResolverAdapter,
 } from "@/components/synarava-cms/conflict-resolver";
+import { resolveConflictEntitySummary } from "@/components/synarava-cms/conflict-resolver-confirm";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
@@ -239,8 +240,8 @@ export function ManualConflictWorkspaceShell({
   onApplied?: (info: { entityIds: string[]; appliedCount: number }) => void | Promise<void>;
 }) {
   const entities = useMemo(
-    () => mergeConflictEntities(listed, signals, detailFromSignal),
-    [listed, signals, detailFromSignal],
+    () => mergeConflictEntities(listed, signals, detailFromSignal, adapter.entityNoun),
+    [listed, signals, detailFromSignal, adapter.entityNoun],
   );
   const entityIds = useConflictEntityIds(signals, ensureId);
 
@@ -281,13 +282,25 @@ export function mergeConflictEntities(
   listed: ConflictEntitySummary[],
   signals: CatalogConflictSignals,
   detailFromSignal: (signal: CatalogConflictSignals["products"][string]) => string | null,
+  entityNoun = "product",
 ): ConflictEntitySummary[] {
   const map = new Map<string, ConflictEntitySummary>();
-  for (const entity of listed) map.set(entity.id, entity);
+  for (const entity of listed) {
+    map.set(entity.id, resolveConflictEntitySummary({
+      id: entity.id,
+      entityNoun,
+      entity,
+    }));
+  }
   for (const [id, signal] of Object.entries(signals.products)) {
-    if (!map.has(id) && signal.name) {
-      map.set(id, { id, name: signal.name, detail: detailFromSignal(signal) });
-    }
+    if (map.has(id)) continue;
+    const detail = detailFromSignal(signal);
+    map.set(id, resolveConflictEntitySummary({
+      id,
+      entityNoun,
+      signal: { name: signal.name, handle: signal.handle, sku: signal.sku },
+      entity: detail ? { id, name: signal.name ?? "", detail } : null,
+    }));
   }
   return [...map.values()];
 }

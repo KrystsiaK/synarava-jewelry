@@ -9,6 +9,7 @@ import type { AdminAuditEntityType, AdminRecordHistoryItem } from "@/app/admin/a
 import { AdminModal } from "@/components/admin/shared/admin-modal";
 import { refreshPreservingScroll } from "@/lib/admin/preserve-scroll";
 import { AdminButton } from "@/components/synarava-cms";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 export type AdminRecordMeta = {
   createdAt: Date | string;
@@ -26,13 +27,6 @@ type AdminRecordMetaModalProps = {
   onClose: () => void;
 };
 
-function formatAdminDate(value: Date | string) {
-  return new Intl.DateTimeFormat("en-IE", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(new Date(value));
-}
-
 export function AdminRecordDates({ record }: { record: AdminRecordMeta }) {
   return (
     <dl data-component="AdminRecordDates"
@@ -41,11 +35,11 @@ export function AdminRecordDates({ record }: { record: AdminRecordMeta }) {
     >
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <dt className="font-semibold uppercase tracking-[0.08em]">Created</dt>
-        <dd className="min-w-0">{formatAdminDate(record.createdAt)}</dd>
+        <dd className="min-w-0">{formatAdminDateTime(record.createdAt)}</dd>
       </div>
       <div className="flex min-w-0 flex-wrap items-center gap-1.5">
         <dt className="font-semibold uppercase tracking-[0.08em]">Updated</dt>
-        <dd className="min-w-0">{formatAdminDate(record.updatedAt)}</dd>
+        <dd className="min-w-0">{formatAdminDateTime(record.updatedAt)}</dd>
       </div>
     </dl>
   );
@@ -127,13 +121,13 @@ export function AdminRecordMetaModal({
           <div className="flex items-center justify-between gap-4">
             <span className="adm-label">Created</span>
             <span className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
-              {formatAdminDate(record.createdAt)}
+              {formatAdminDateTime(record.createdAt)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-4">
             <span className="adm-label">Updated</span>
             <span className="text-sm font-semibold" style={{ color: "var(--adm-ink)" }}>
-              {formatAdminDate(record.updatedAt)}
+              {formatAdminDateTime(record.updatedAt)}
             </span>
           </div>
         </div>
@@ -164,7 +158,7 @@ export function AdminRecordMetaModal({
                       {item.action.replace(/_/g, " ").toLowerCase()}
                     </p>
                     <p className="mt-0.5 text-xs" style={{ color: "var(--adm-muted)" }}>
-                      {formatAdminDate(item.createdAt)}
+                      {formatAdminDateTime(item.createdAt)}
                     </p>
                   </div>
                   <AdminButton variant="ghost" className="py-1 px-2 text-[0.58rem]" disabled={isPending} onClick={() => restoreVersion(item.id)}>

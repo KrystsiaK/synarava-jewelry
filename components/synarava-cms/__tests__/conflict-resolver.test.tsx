@@ -360,4 +360,55 @@ describe("ConflictResolver", () => {
     expect(within(preview).getByText("Nothing changes until you confirm.")).toBeInTheDocument();
     expect(within(preview).getByRole("button", { name: "Confirm changes" })).toBeEnabled();
   });
+
+  it("Shopify-only list header shows title and /handle, never a synthetic id", async () => {
+    const shopifyOnlyId = "shopify-collection:705203536203";
+    const presence: CatalogConflictField = {
+      ...field,
+      fieldKey: "presence:collection",
+      label: "Collection exists only in Shopify",
+      scope: { kind: "SHARED" },
+      origin: "PRESENCE",
+      synaravaValue: "— Collection is missing —",
+      shopifyValue: "Home page · /frontpage",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      sourceId: null,
+      presenceDifference: {
+        id: shopifyOnlyId,
+        kind: "SHOPIFY_ONLY",
+        localProductId: null,
+        shopifyProductId: "gid://shopify/Collection/705203536203",
+        name: "Home page",
+        handle: "frontpage",
+        sku: "",
+        localFingerprint: "missing",
+        shopifyFingerprint: "s",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: null,
+        shopifyIdentity: { name: "Home page", handle: "frontpage", sku: "" },
+      },
+    };
+    const adapter = createAdapter({
+      entityNoun: "collection",
+      entityNounPlural: "collections",
+      loadEntityFields: vi.fn(async () => ({ fields: [presence] })),
+    });
+
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={[shopifyOnlyId]}
+        entities={[{ id: shopifyOnlyId, name: shopifyOnlyId }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByRole("heading", { level: 3, name: "Home page" })).toBeInTheDocument();
+    expect(screen.getByText("/frontpage")).toBeInTheDocument();
+    expect(screen.queryByText(shopifyOnlyId)).not.toBeInTheDocument();
+  });
 });
