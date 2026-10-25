@@ -17,6 +17,10 @@ export type SyncResultState =
   | "disconnected"
   | "unknown";
 
+export type SyncPresenceSide = "SHOPIFY_ONLY" | "SYNARAVA_ONLY";
+
+export type SyncTargetKind = "NATIVE" | "METAFIELD" | "METAOBJECT";
+
 /** One diverging field / presence / translation cell. */
 export type SyncLeaf = {
   id: string;
@@ -37,6 +41,12 @@ export type SyncLeaf = {
   displayName?: string | null;
   displayHandle?: string | null;
   displaySku?: string | null;
+  /** Presence only — which catalog side is missing the entity. */
+  presenceSide?: SyncPresenceSide | null;
+  /** Translation target surface; commerce usually NATIVE (or METAFIELD for passport). */
+  targetKind?: SyncTargetKind | null;
+  localFingerprint?: string | null;
+  shopifyFingerprint?: string | null;
 };
 
 /** Single compare result — SoT for nav badge, list chip, banner, locale tab, section chip. */

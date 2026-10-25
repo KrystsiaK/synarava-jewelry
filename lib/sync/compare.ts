@@ -6,6 +6,8 @@
  * Translations are two-way only (PR3). Presence is one leaf per entity.
  */
 
+import { createHash } from "node:crypto";
+
 import {
   ADOPT_SHOPIFY_FIELD_KEY,
   ADOPT_SHOPIFY_FIELD_LABEL,
@@ -25,9 +27,12 @@ import {
   emptySyncResult,
   type SyncDirection,
   type SyncLeaf,
+  type SyncLeafKind,
+  type SyncPresenceSide,
   type SyncResourceType,
   type SyncResult,
   type SyncResultState,
+  type SyncTargetKind,
 } from "./types";
 
 const STALE_AFTER_MS = 30 * 60 * 1000;
@@ -78,6 +83,42 @@ export type SyncCompareInput = {
   recentlyUpdatedProducts?: ReadonlyArray<{ productId: string; updatedAt: string }>;
 };
 
+/** Same sha256 scheme as `commerceFingerprint` in catalog-conflict (no server-only import). */
+function leafFingerprint(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+function commerceTargetKind(label: string): SyncTargetKind {
+  return label.startsWith("Characteristic:") || label.startsWith("Certificate:") ? "METAFIELD" : "NATIVE";
+}
+
+/**
+ * Single source for leaf `allowedDirections` — commerce / translation / presence.
+ */
+export function allowedDirectionsForLeaf(input: {
+  kind: SyncLeafKind;
+  resourceType: SyncResourceType;
+  presenceSide?: SyncPresenceSide | null;
+  /** Commerce field supported for field-by-field apply. */
+  commerceSupported?: boolean;
+  /** Missing Synarava commerce window (Adopt Shopify). */
+  adopt?: boolean;
+}): SyncDirection[] {
+  if (input.kind === "presence") {
+    if (input.presenceSide === "SHOPIFY_ONLY") return ["SHOPIFY_TO_SYNARAVA"];
+    if (input.resourceType === "COLLECTION") {
+      return ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"];
+    }
+    return ["SYNARAVA_TO_SHOPIFY"];
+  }
+  if (input.kind === "commerce") {
+    if (input.adopt) return ["SHOPIFY_TO_SYNARAVA"];
+    if (input.commerceSupported === false) return [];
+    return ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"];
+  }
+  return ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"];
+}
+
 function slugFieldKey(label: string): string {
   return label
     .toLowerCase()
@@ -124,16 +165,23 @@ function commerceLeaf(
     label: diff.field,
     synaravaValue: diff.local,
     shopifyValue: diff.shopify,
-    allowedDirections: supported
-      ? (["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] satisfies SyncDirection[])
-      : [],
+    allowedDirections: allowedDirectionsForLeaf({
+      kind: "commerce",
+      resourceType,
+      commerceSupported: supported,
+    }),
     blockedReason: supported ? null : COMMERCE_UNSUPPORTED_REASON,
     sourceId: null,
     path: diff.path ?? null,
+    presenceSide: null,
+    targetKind: commerceTargetKind(diff.field),
+    localFingerprint: leafFingerprint(diff.local),
+    shopifyFingerprint: leafFingerprint(diff.shopify),
   };
 }
 
 function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, shopifySummary: string): SyncLeaf {
+  const synaravaValue = "— No Synarava commerce window —";
   return {
     id: `${resourceType}:${resourceId}:${ADOPT_SHOPIFY_FIELD_KEY}`,
     resourceType,
@@ -142,12 +190,20 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
     locale: null,
     fieldKey: ADOPT_SHOPIFY_FIELD_KEY,
     label: ADOPT_SHOPIFY_FIELD_LABEL,
-    synaravaValue: "— No Synarava commerce window —",
+    synaravaValue,
     shopifyValue: shopifySummary,
-    allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    allowedDirections: allowedDirectionsForLeaf({
+      kind: "commerce",
+      resourceType,
+      adopt: true,
+    }),
     blockedReason: null,
     sourceId: null,
     path: ADOPT_SHOPIFY_FIELD_PATH,
+    presenceSide: null,
+    targetKind: "NATIVE",
+    localFingerprint: leafFingerprint(synaravaValue),
+    shopifyFingerprint: leafFingerprint(shopifySummary),
   };
 }
 
@@ -246,18 +302,22 @@ function translationLeaves(
       label: difference.fieldLabel,
       synaravaValue: stringify(difference.localValue),
       shopifyValue: stringify(difference.shopifyValue),
-      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+      allowedDirections: allowedDirectionsForLeaf({ kind: "translation", resourceType }),
       blockedReason: null,
       sourceId: difference.id,
       path: null,
+      presenceSide: null,
+      targetKind: difference.targetKind,
+      localFingerprint: difference.localFingerprint,
+      shopifyFingerprint: difference.shopifyFingerprint,
     });
   }
   return leaves;
 }
 
 function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
-  const shopifyOnly = difference.kind === "SHOPIFY_ONLY";
-  const label = shopifyOnly
+  const presenceSide: SyncPresenceSide = difference.kind === "SHOPIFY_ONLY" ? "SHOPIFY_ONLY" : "SYNARAVA_ONLY";
+  const label = presenceSide === "SHOPIFY_ONLY"
     ? difference.localProductId
       ? "Shopify product is not linked"
       : "Product exists only in Shopify"
@@ -275,19 +335,27 @@ function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
     label,
     synaravaValue: difference.localIdentity?.name ?? "— Product is missing —",
     shopifyValue: difference.shopifyIdentity?.name ?? "— Product is missing —",
-    allowedDirections: shopifyOnly ? ["SHOPIFY_TO_SYNARAVA"] : ["SYNARAVA_TO_SHOPIFY"],
+    allowedDirections: allowedDirectionsForLeaf({
+      kind: "presence",
+      resourceType: "PRODUCT",
+      presenceSide,
+    }),
     blockedReason: null,
     sourceId: null,
     path: null,
     displayName: identity?.name ?? difference.name,
     displayHandle: identity?.handle ?? difference.handle,
     displaySku: identity?.sku ?? difference.sku,
+    presenceSide,
+    targetKind: "NATIVE",
+    localFingerprint: difference.localFingerprint,
+    shopifyFingerprint: difference.shopifyFingerprint,
   };
 }
 
 function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncLeaf {
-  const shopifyOnly = difference.kind === "SHOPIFY_ONLY";
-  const label = shopifyOnly
+  const presenceSide: SyncPresenceSide = difference.kind === "SHOPIFY_ONLY" ? "SHOPIFY_ONLY" : "SYNARAVA_ONLY";
+  const label = presenceSide === "SHOPIFY_ONLY"
     ? difference.localProductId
       ? "Shopify collection is not linked"
       : "Collection exists only in Shopify"
@@ -305,15 +373,21 @@ function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncL
     label,
     synaravaValue: difference.localIdentity?.name ?? "— Collection is missing —",
     shopifyValue: difference.shopifyIdentity?.name ?? "— Collection is missing —",
-    allowedDirections: shopifyOnly
-      ? ["SHOPIFY_TO_SYNARAVA"]
-      : ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    allowedDirections: allowedDirectionsForLeaf({
+      kind: "presence",
+      resourceType: "COLLECTION",
+      presenceSide,
+    }),
     blockedReason: null,
     sourceId: null,
     path: null,
     displayName: identity?.name ?? difference.name,
     displayHandle: identity?.handle ?? difference.handle,
     displaySku: identity?.sku ?? difference.sku,
+    presenceSide,
+    targetKind: "NATIVE",
+    localFingerprint: difference.localFingerprint,
+    shopifyFingerprint: difference.shopifyFingerprint,
   };
 }
 
@@ -335,8 +409,7 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
     leaves.push(collectionPresenceLeaf(difference));
   }
 
-  // Presence replaces field-level commerce/translation for that entity
-  // (same rule as getProductCatalogConflict / getCollectionCatalogConflict).
+  // Presence replaces field-level commerce/translation for that entity.
   const commerceWindows = input.commerceWindows.filter(
     (window) => !presenceResourceIds.has(`${window.resourceType}:${window.resourceId}`),
   );

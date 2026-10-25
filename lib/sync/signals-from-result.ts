@@ -55,9 +55,11 @@ export function catalogConflictSignalsFromSyncResult(
     let displaySku: string | undefined;
     for (const leaf of leaves) {
       if (leaf.kind === "presence") {
-        presence = leaf.label.includes("only in Shopify") || leaf.label.includes("not linked")
+        presence = leaf.presenceSide === "SHOPIFY_ONLY"
           ? "SHOPIFY_ONLY"
-          : "SYNARAVA_ONLY";
+          : leaf.presenceSide === "SYNARAVA_ONLY"
+            ? "SYNARAVA_ONLY"
+            : undefined;
         if (leaf.displayName) displayName = leaf.displayName;
         if (leaf.displayHandle) displayHandle = leaf.displayHandle;
         if (leaf.displaySku) displaySku = leaf.displaySku;
@@ -87,13 +89,9 @@ export function catalogConflictSignalsFromSyncResult(
       name: displayName,
       handle: displayHandle,
       sku: displaySku,
-      allowedDirections: presence === "SHOPIFY_ONLY"
-        ? ["SHOPIFY_TO_SYNARAVA"]
-        : presence
-          ? rootEntityType === "COLLECTION"
-            ? ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"]
-            : ["SYNARAVA_TO_SHOPIFY"]
-          : undefined,
+      allowedDirections: presence
+        ? leaves.find((leaf) => leaf.kind === "presence")?.allowedDirections
+        : undefined,
     };
   }
 

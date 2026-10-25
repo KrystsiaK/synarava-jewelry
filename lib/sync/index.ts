@@ -3,6 +3,7 @@
  */
 
 export {
+  allowedDirectionsForLeaf,
   compareSyncState,
   type SyncCommerceWindow,
   type SyncCompareInput,
@@ -17,9 +18,11 @@ export {
   type SyncLeaf,
   type SyncLeafKind,
   type SyncNavCounts,
+  type SyncPresenceSide,
   type SyncResourceType,
   type SyncResult,
   type SyncResultState,
+  type SyncTargetKind,
 } from "./types";
 export {
   refreshShopifyState,
