@@ -9,12 +9,7 @@ const mocks = vi.hoisted(() => ({
   saveProductAction: vi.fn(),
   deleteProductAction: vi.fn(),
   getSavedProductPayload: vi.fn(),
-  inspectProductSyncAction: vi.fn(),
-  pushSingleProductToShopifyAction: vi.fn(),
-  loadCatalogConflictSignalsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
-  listCustomProductMetafieldDefinitionsAction: vi.fn(),
-  createProductMetafieldDefinitionAction: vi.fn(),
   updateProductMediaAltAction: vi.fn(),
   updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
@@ -40,13 +35,10 @@ vi.mock("@/lib/admin/preserve-scroll", () => ({
   refreshPreservingScroll: (...args: unknown[]) => mocks.refreshPreservingScroll(...args),
 }));
 
-vi.mock("@/app/admin/actions/sync", () => ({
-  inspectProductSyncAction: mocks.inspectProductSyncAction,
-  pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
-  loadCatalogConflictSignalsAction: mocks.loadCatalogConflictSignalsAction,
-  listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
-  createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
   searchShopifyTaxonomyCategoriesAction: vi.fn().mockResolvedValue({ categories: [] }),
@@ -58,6 +50,7 @@ vi.mock("@/app/admin/actions/product-organization", () => ({
 }));
 
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
+import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
   return {
@@ -104,11 +97,11 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
-  mocks.loadCatalogConflictSignalsAction.mockResolvedValue({
+  adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
   });
-  mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
-  mocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });
+  adminSyncActionMocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
+  adminSyncActionMocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
   // tab state across `it()` blocks.
@@ -124,11 +117,11 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveValue("Lava Ring");
     expect(screen.getByLabelText(/SKU/)).not.toBeVisible();
-    expect(mocks.inspectProductSyncAction).not.toHaveBeenCalled();
+    expect(adminSyncActionMocks.inspectProductSyncAction).not.toHaveBeenCalled();
   });
 
   it("shows SKU and inventory location table on the Inventory tab", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     const user = userEvent.setup();
@@ -152,18 +145,18 @@ describe("EditProductForm", () => {
   });
 
   it("checks Shopify sync state on mount when linked", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     const product = makeProduct({ shopifyProductId: "gid://shopify/Product/1" });
     render(<EditProductForm product={product} collections={[]} />);
 
     await act(async () => {});
-    expect(mocks.inspectProductSyncAction).toHaveBeenCalledWith("product-1");
+    expect(adminSyncActionMocks.inspectProductSyncAction).toHaveBeenCalledWith("product-1");
   });
 
   it("shows editable Shopify fields and the pulled metafields", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     render(<EditProductForm product={makeProduct({
@@ -306,7 +299,7 @@ describe("EditProductForm", () => {
   });
 
   it("marks a section dirty when edited while linked", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     const user = userEvent.setup();

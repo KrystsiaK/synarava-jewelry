@@ -19,6 +19,7 @@
     "messages:generate": "node scripts/generate-messages-locale.mjs",
     "legal:export": "node scripts/export-legal-documents.mjs",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run && pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",
     "test:sku": "pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",

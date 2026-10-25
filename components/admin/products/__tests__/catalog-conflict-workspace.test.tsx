@@ -2,27 +2,18 @@ import { act, fireEvent, render, screen, waitFor, within } from "@testing-librar
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  apply: vi.fn(),
-  load: vi.fn(),
-  loadSignals: vi.fn(),
-  preview: vi.fn(),
   refresh: vi.fn(),
   push: vi.fn(),
-  pullProduct: vi.fn(),
-  pushProduct: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => ({ refresh: mocks.refresh, push: mocks.push }) }));
-vi.mock("@/app/admin/actions/sync", () => ({
-  applyCatalogConflictResolutionAction: mocks.apply,
-  loadCatalogConflictSignalsAction: mocks.loadSignals,
-  loadProductCatalogConflictAction: mocks.load,
-  previewCatalogConflictResolutionAction: mocks.preview,
-  pullSingleProductFromShopifyAction: mocks.pullProduct,
-  pushSingleProductToShopifyAction: mocks.pushProduct,
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
+import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 const signals: CatalogConflictSignals = {
@@ -76,8 +67,8 @@ function renderWorkspace(
 describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.load.mockResolvedValue({ conflict: { productId: "p1", fields: [field] } });
-    mocks.loadSignals.mockResolvedValue({
+    adminSyncActionMocks.loadProductCatalogConflictAction.mockResolvedValue({ conflict: { productId: "p1", fields: [field] } });
+    adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
       signals: {
         state: "ready",
         totalCount: 0,
@@ -86,14 +77,14 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
         products: {},
       },
     });
-    mocks.preview.mockResolvedValue({
+    adminSyncActionMocks.previewCatalogConflictResolutionAction.mockResolvedValue({
       preview: {
         truncated: false,
         excluded: [],
         entries: [{ productId: "p1", direction: "SHOPIFY_TO_SYNARAVA", field, willClearNonEmptyValue: false }],
       },
     });
-    mocks.apply.mockResolvedValue({
+    adminSyncActionMocks.applyCatalogConflictResolutionAction.mockResolvedValue({
       outcome: { appliedCount: 1, failedCount: 0, results: [{ productId: "p1", fieldKey: field.fieldKey, ok: true }] },
       success: "1 change applied.",
     });
@@ -119,7 +110,7 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
 
     await waitFor(() => {
-      expect(mocks.preview).toHaveBeenCalledWith({
+      expect(adminSyncActionMocks.previewCatalogConflictResolutionAction).toHaveBeenCalledWith({
         kind: "MANUAL",
         selections: [{ productId: "p1", fieldKey: "translation:ru:title", direction: "SHOPIFY_TO_SYNARAVA" }],
       });
@@ -131,7 +122,7 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     });
 
     await waitFor(() => {
-      expect(mocks.apply).toHaveBeenCalled();
+      expect(adminSyncActionMocks.applyCatalogConflictResolutionAction).toHaveBeenCalled();
       expect(onApplied).toHaveBeenCalledWith({ productIds: ["p1"], appliedCount: 1 });
     });
   });
@@ -141,12 +132,12 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     await screen.findByText("Title");
     fireEvent.click(screen.getByRole("button", { name: "Take Shopify for all" }));
     expect(screen.getByRole("button", { name: "Apply (1)" })).toBeEnabled();
-    expect(mocks.preview).not.toHaveBeenCalled();
-    expect(mocks.apply).not.toHaveBeenCalled();
+    expect(adminSyncActionMocks.previewCatalogConflictResolutionAction).not.toHaveBeenCalled();
+    expect(adminSyncActionMocks.applyCatalogConflictResolutionAction).not.toHaveBeenCalled();
   });
 
   it("selects blocked commerce via whole-record pull on confirm", async () => {
-    mocks.load.mockResolvedValue({
+    adminSyncActionMocks.loadProductCatalogConflictAction.mockResolvedValue({
       conflict: {
         productId: "p1",
         fields: [{
@@ -161,7 +152,7 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
         }],
       },
     });
-    mocks.pullProduct.mockResolvedValue({ success: "Pulled." });
+    adminSyncActionMocks.pullSingleProductFromShopifyAction.mockResolvedValue({ success: "Pulled." });
 
     renderWorkspace();
     const statusSection = (await screen.findByText("Status")).closest("section") as HTMLElement;
@@ -173,7 +164,7 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
       fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
     });
     await waitFor(() => {
-      expect(mocks.pullProduct).toHaveBeenCalledWith("p1", true);
+      expect(adminSyncActionMocks.pullSingleProductFromShopifyAction).toHaveBeenCalledWith("p1", true);
     });
   });
 });
