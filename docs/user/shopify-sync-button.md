@@ -10,10 +10,10 @@ updatedOn: 2026-10-25
 
 ## Goal
 
-Use the top-bar Shopify control as the single place that fetches the current
-Shopify catalog state and compares it with Synarava. Understand what the button
-states mean, when a check runs, and how banners and counters stay in sync with
-that check.
+Use the top-bar Shopify control as the place that fetches the current Shopify
+catalog state and compares it with Synarava (one compare → SyncResult leaves).
+Understand what the button states mean, when a check runs, and how banners and
+counters stay in sync with that check — not with `syncStatus` flags.
 
 ## Before you start
 
@@ -35,10 +35,11 @@ preview.
 :::steps
 ### Find the top-bar Shopify sync button
 
-In admin, the top bar shows the Shopify sync control. This is the one place
-that fetches the whole Shopify state and compares it with Synarava. Separate
-“Check Shopify” or “Run conflict check” controls on catalog pages are not part
-of this model.
+In admin, the top bar shows the Shopify sync control. Together with the
+after-Save full check, this is the fetch+compare path for the catalog.
+Opening **Show conflicts** / ConflictResolver does **not** fetch Shopify again
+— it reads the last SyncResult leaves. Separate “Check Shopify” or “Run
+conflict check” controls on catalog pages are not part of this model.
 
 ### Read the button state
 
@@ -60,8 +61,9 @@ A full check (products, collections, and translations) runs when you:
 3. **Save** — Synarava is saved first, then everything is fetched and compared.
 
 Shopify-side edits still refresh the Shopify copy through product webhooks;
-that updates the Shopify-side window and conflict flags without writing
-Synarava content.
+that updates the Shopify-side window without writing Synarava content. Conflict
+lists and banners still come from SyncResult leaves after the next full check
+(or Apply safety inspect), not from a `syncStatus: CONFLICT` flag.
 
 ### Work while a check runs
 
@@ -76,9 +78,10 @@ During a check:
 ### Read banners and counters after the check
 
 Catalog banners and counters (conflict count, **Last full check**, **Show
-conflicts**) all reflect the same full check. When the count is greater than
-zero, open the list from **Show conflicts** and resolve with preview → Apply.
-Collections use the same pattern — see
+conflicts**) all reflect the same SyncResult from that full check. When the
+count is greater than zero, open the list from **Show conflicts** and resolve
+with preview → Apply (Apply may refresh that one product/collection for safety
+before writing). Collections use the same pattern — see
 [Sync collections with Shopify](/admin/help/sync-collections).
 :::
 
@@ -137,8 +140,11 @@ retry after a failure, or if you want a fresh compare before the next Save.
 
 ## Known limits
 
-- A check refreshes the Shopify-side copy and conflict signals only. It never
-  writes Synarava columns or `workingSnapshot`; only human Apply does.
+- A check refreshes the Shopify-side copy and rebuilds SyncResult leaves. It
+  never writes Synarava columns or `workingSnapshot`; only human Apply does.
+  Default-locale EN translation rows that duplicate a commerce field already in
+  the compare are not listed twice; page copy and non-commerce editorial
+  translations still appear as their own rows.
 - Product webhooks (`products/create`, `products/update`, inventory) refresh the
   Shopify copy for that product. They do not pull translations, and there is no
   matching collection webhook path for automatic collection commerce refresh.
@@ -149,11 +155,10 @@ retry after a failure, or if you want a fresh compare before the next Save.
 
 ## Verified on
 
-Draft. Grounded in the two-state sync model (`lib/sync`), the top-bar control
-(`components/admin/translations/admin-shopify-sync-signal.tsx`), the reconcile
-route full-catalog path (`app/admin/api/shopify/reconcile/route.ts` →
-`runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), catalog
-conflict banners (`CatalogConflictStatus`), and product webhooks
-(`app/api/shopify/webhooks/products/route.ts`). After-Save full check, UI lock
-while checking, and red **Check failed** still depend on the in-flight sync UI
-follow-up.
+Draft. Grounded in the two-state sync model (`lib/sync` → SyncResult leaves),
+the top-bar control (`components/admin/translations/admin-shopify-sync-signal.tsx`),
+the reconcile route full-catalog path (`app/admin/api/shopify/reconcile/route.ts`
+→ `runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), after-Save
+full check (`runAfterSaveCatalogConflictCheck`), catalog conflict banners
+(`CatalogConflictStatus`), ConflictResolver open via `skipRefresh` loaders, and
+product webhooks (`app/api/shopify/webhooks/products/route.ts`).
