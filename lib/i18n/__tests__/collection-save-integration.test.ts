@@ -52,25 +52,25 @@ describe("saveCollectionAction — N-locale translation save (real DB)", () => {
     createdId = null;
   });
 
-  it("creates EN/PT/RU CollectionTranslation rows in one save, with correct registry locale codes", async () => {
+  it("writes EN on Collection base columns and PT/RU CollectionTranslation rows only", async () => {
     const result = await saveCollectionAction({}, buildFormData());
 
     expect(result.error).toBeUndefined();
     expect(result.collection).toBeTruthy();
     createdId = result.collection!.id;
 
+    const collection = await db.collection.findUniqueOrThrow({ where: { id: createdId! } });
+    expect(collection.name).toBe("U4 Integration Test Collection");
+
     const rows = await db.collectionTranslation.findMany({
       where: { collectionId: createdId! },
       orderBy: { locale: "asc" },
     });
-    expect(rows.map((r) => r.locale)).toEqual(["en", "pt", "ru"]);
+    expect(rows.map((r) => r.locale)).toEqual(["pt", "ru"]);
+    expect(rows.some((r) => r.locale === "en")).toBe(false);
 
-    const en = rows.find((r) => r.locale === "en")!;
     const pt = rows.find((r) => r.locale === "pt")!;
     const ru = rows.find((r) => r.locale === "ru")!;
-
-    expect(en.name).toBe("U4 Integration Test Collection");
-    expect(en.reviewStatus).toBe("REVIEWED");
 
     expect(pt.name).toBe("Coleção de Teste U4");
     expect(pt.reviewStatus).toBe("REVIEWED");

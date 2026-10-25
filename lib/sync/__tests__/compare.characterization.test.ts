@@ -178,20 +178,20 @@ describe("compareSyncState (characterization)", () => {
     expect(result.leaves[0]?.kind).toBe("presence");
   });
 
-  it("includes collection translation CONFLICT leaves (collections keep one-sided kinds until re-check)", () => {
+  it("page EN title conflict still appears (no commerce leaf covers PAGE)", () => {
     const result = compareSyncState({
       commerceWindows: [],
       translationDifferences: [
         {
-          id: "c-div",
-          rootEntityType: "COLLECTION",
-          rootEntityId: "c1",
+          id: "p-div",
+          rootEntityType: "PAGE",
+          rootEntityId: "page-1",
           locale: "en",
           fieldKey: "title",
           fieldLabel: "Title",
-          kind: "LOCAL_ONLY",
-          localValue: "Local",
-          shopifyValue: "",
+          kind: "CONFLICT",
+          localValue: "Home",
+          shopifyValue: "Home EN",
           localFingerprint: "a",
           shopifyFingerprint: "b",
           targetKind: "NATIVE",
@@ -209,28 +209,30 @@ describe("compareSyncState (characterization)", () => {
     });
 
     expect(result.leaves).toHaveLength(1);
-    expect(result.leaves[0]).toMatchObject({
-      resourceType: "COLLECTION",
-      resourceId: "c1",
-      kind: "translation",
-    });
+    expect(result.leaves[0]?.id).toBe("PAGE:page-1:translation:en:title");
+    expect(result.leaves[0]?.kind).toBe("translation");
   });
 
-  it("one collection title change is ONE conflict: default-locale translation mirror is not a second leaf", () => {
+  it("drops default-locale translation leaf only when commerce already covers that field", () => {
     const locales = [
       { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
       { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
     ];
-    const translation = (locale: string, fieldKey: string, id: string) => ({
+    const translation = (
+      locale: string,
+      fieldKey: string,
+      id: string,
+      fieldLabel = "Name",
+    ) => ({
       id,
       rootEntityType: "COLLECTION" as const,
       rootEntityId: "c1",
       locale,
       fieldKey,
-      fieldLabel: "Name",
+      fieldLabel,
       kind: "CONFLICT" as const,
-      localValue: "Pets",
-      shopifyValue: "Pets & Animals",
+      localValue: fieldKey === "subtitle" ? "Local subtitle" : "Pets",
+      shopifyValue: fieldKey === "subtitle" ? "Shopify subtitle" : "Pets & Animals",
       localFingerprint: "a",
       shopifyFingerprint: "b",
       targetKind: "NATIVE" as const,
@@ -247,7 +249,7 @@ describe("compareSyncState (characterization)", () => {
       translationDifferences: [
         translation("en", "name", "d-en"),
         translation("pt-PT", "name", "d-pt"),
-        translation("en", "subtitle", "d-en-subtitle"),
+        translation("en", "subtitle", "d-en-subtitle", "Subtitle"),
       ],
       productPresence: [],
       collectionPresence: [],
@@ -258,13 +260,12 @@ describe("compareSyncState (characterization)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    // commerce Name + PT name (a real translation) + EN subtitle (not in the commerce window);
-    // the EN name mirror of the commerce Name is dropped.
+    // commerce Name once; EN name dropped (covered); EN subtitle + PT name stay.
     const ids = result.leaves.map((leaf) => leaf.id);
-    expect(ids).toHaveLength(3);
-    expect(ids).toContain("COLLECTION:c1:translation:pt-PT:name");
-    expect(ids).toContain("COLLECTION:c1:translation:en:subtitle");
+    expect(result.leaves.filter((leaf) => leaf.kind === "commerce" && leaf.label === "Name")).toHaveLength(1);
     expect(ids).not.toContain("COLLECTION:c1:translation:en:name");
-    expect(result.leaves.filter((leaf) => leaf.kind === "commerce")).toHaveLength(1);
+    expect(ids).toContain("COLLECTION:c1:translation:en:subtitle");
+    expect(ids).toContain("COLLECTION:c1:translation:pt-PT:name");
+    expect(ids).toHaveLength(3);
   });
 });

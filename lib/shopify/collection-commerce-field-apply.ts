@@ -111,15 +111,7 @@ async function writeLocally(collectionId: string, label: string, value: string) 
     throw new Error("Local write did not take effect as expected.");
   }
 
-  await db.collectionTranslation.updateMany({
-    where: { collectionId, locale: "en" },
-    data: {
-      ...(label === "Name" ? { name: value } : {}),
-      ...(label === "Description" ? { description: value || null } : {}),
-      ...(label === "SEO title" ? { seoTitle: value || null } : {}),
-      ...(label === "SEO description" ? { seoDescription: value || null } : {}),
-    },
-  });
+  // EN copy lives on Collection base columns only — no CollectionTranslation locale=en row.
 }
 
 async function writeToShopify(collectionId: string, label: string, value: string) {

@@ -70,23 +70,126 @@ function stripIds<T extends Record<string, unknown>>(row: T, keys: string[]): Re
   return next;
 }
 
+function productBaseAsTranslationRow(product: {
+  id: string;
+  name: string;
+  slug: string;
+  shortDescription: string | null;
+  description: string | null;
+  materialLine: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
+  details: unknown;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}, locale: string): Record<string, unknown> {
+  return {
+    productId: product.id,
+    locale,
+    title: product.name,
+    localizedHandle: product.slug,
+    shortDescription: product.shortDescription,
+    description: product.description,
+    materialLine: product.materialLine,
+    symbolismLabel: product.symbolismLabel,
+    symbolismTitle: product.symbolismTitle,
+    symbolismBody: product.symbolismBody,
+    symbolismBody2: product.symbolismBody2,
+    details: product.details,
+    seoTitle: product.seoTitle,
+    seoDescription: product.seoDescription,
+  };
+}
+
+function collectionBaseAsTranslationRow(collection: {
+  id: string;
+  name: string;
+  slug: string;
+  subtitle: string | null;
+  description: string | null;
+  manifesto: string | null;
+  storyTitle: string | null;
+  storyBody: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
+  searchSummary: string | null;
+  ctaLabel: string | null;
+  heroImageAlt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}, locale: string): Record<string, unknown> {
+  return {
+    collectionId: collection.id,
+    locale,
+    name: collection.name,
+    localizedHandle: collection.slug,
+    subtitle: collection.subtitle,
+    description: collection.description,
+    manifesto: collection.manifesto,
+    storyTitle: collection.storyTitle,
+    storyBody: collection.storyBody,
+    symbolismLabel: collection.symbolismLabel,
+    symbolismTitle: collection.symbolismTitle,
+    symbolismBody: collection.symbolismBody,
+    symbolismBody2: collection.symbolismBody2,
+    searchSummary: collection.searchSummary,
+    ctaLabel: collection.ctaLabel,
+    heroImageAlt: collection.heroImageAlt,
+    seoTitle: collection.seoTitle,
+    seoDescription: collection.seoDescription,
+  };
+}
+
+function pageBaseAsTranslationRow(page: {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  content: unknown;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}, locale: string): Record<string, unknown> {
+  return {
+    pageId: page.id,
+    locale,
+    title: page.title,
+    localizedHandle: page.slug,
+    excerpt: page.excerpt,
+    content: page.content,
+    seoTitle: page.seoTitle,
+    seoDescription: page.seoDescription,
+  };
+}
+
 export async function exportLanguageBundle(locale: string): Promise<LanguageBundle> {
   const code = locale.trim().toLowerCase();
-  const [
-    registry,
-    productTranslations,
-    collectionTranslations,
-    pageTranslations,
-    handleRedirects,
-    translationCache,
-  ] = await Promise.all([
-    db.storefrontLocale.findUnique({ where: { code } }),
-    db.productTranslation.findMany({ where: { locale: code } }),
-    db.collectionTranslation.findMany({ where: { locale: code } }),
-    db.pageTranslation.findMany({ where: { locale: code } }),
-    db.localizedHandleRedirect.findMany({ where: { locale: code } }),
-    db.translationCache.findUnique({ where: { locale: code } }),
-  ]);
+  const registry = await db.storefrontLocale.findUnique({ where: { code } });
+  const isDefault = registry?.isDefault === true;
+
+  const [productTranslations, collectionTranslations, pageTranslations, handleRedirects, translationCache] =
+    await Promise.all([
+      isDefault
+        ? db.product.findMany().then((rows) => rows.map((row) => productBaseAsTranslationRow(row, code)))
+        : db.productTranslation.findMany({ where: { locale: code } }).then((rows) =>
+            rows.map((row) => stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"])),
+          ),
+      isDefault
+        ? db.collection.findMany().then((rows) => rows.map((row) => collectionBaseAsTranslationRow(row, code)))
+        : db.collectionTranslation.findMany({ where: { locale: code } }).then((rows) =>
+            rows.map((row) => stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"])),
+          ),
+      isDefault
+        ? db.page.findMany().then((rows) => rows.map((row) => pageBaseAsTranslationRow(row, code)))
+        : db.pageTranslation.findMany({ where: { locale: code } }).then((rows) =>
+            rows.map((row) => stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"])),
+          ),
+      db.localizedHandleRedirect.findMany({ where: { locale: code } }),
+      db.translationCache.findUnique({ where: { locale: code } }),
+    ]);
 
   const payload: LanguageBundlePayload = {
     schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
@@ -105,15 +208,9 @@ export async function exportLanguageBundle(locale: string): Promise<LanguageBund
           sortOrder: registry.sortOrder,
         }
       : null,
-    productTranslations: productTranslations.map((row) =>
-      stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
-    ),
-    collectionTranslations: collectionTranslations.map((row) =>
-      stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
-    ),
-    pageTranslations: pageTranslations.map((row) =>
-      stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
-    ),
+    productTranslations,
+    collectionTranslations,
+    pageTranslations,
     handleRedirects: handleRedirects.map((row) =>
       stripIds(row as unknown as Record<string, unknown>, ["id", "createdAt", "updatedAt"]),
     ),
@@ -256,22 +353,52 @@ export async function previewLanguageBundleImport(
     .map((raw) => (raw as { pageId?: string }).pageId)
     .filter((id): id is string => Boolean(id));
 
+  const registry = await db.storefrontLocale.findUnique({ where: { code: locale } });
+  const isDefault = registry?.isDefault === true || bundle.registry?.isDefault === true;
+
   const [existingProducts, existingCollections, existingPages, existingRedirects] = await Promise.all([
     productIds.length
-      ? db.productTranslation.findMany({ where: { locale, productId: { in: productIds } } })
+      ? isDefault
+        ? db.product.findMany({ where: { id: { in: productIds } } }).then((rows) =>
+            rows.map((row) => productBaseAsTranslationRow(row, locale)),
+          )
+        : db.productTranslation.findMany({ where: { locale, productId: { in: productIds } } })
       : Promise.resolve([]),
     collectionIds.length
-      ? db.collectionTranslation.findMany({ where: { locale, collectionId: { in: collectionIds } } })
+      ? isDefault
+        ? db.collection.findMany({ where: { id: { in: collectionIds } } }).then((rows) =>
+            rows.map((row) => collectionBaseAsTranslationRow(row, locale)),
+          )
+        : db.collectionTranslation.findMany({ where: { locale, collectionId: { in: collectionIds } } })
       : Promise.resolve([]),
     pageIds.length
-      ? db.pageTranslation.findMany({ where: { locale, pageId: { in: pageIds } } })
+      ? isDefault
+        ? db.page.findMany({ where: { id: { in: pageIds } } }).then((rows) =>
+            rows.map((row) => pageBaseAsTranslationRow(row, locale)),
+          )
+        : db.pageTranslation.findMany({ where: { locale, pageId: { in: pageIds } } })
       : Promise.resolve([]),
     db.localizedHandleRedirect.findMany({ where: { locale } }),
   ]);
 
-  const productById = new Map(existingProducts.map((row) => [row.productId, row as unknown as Record<string, unknown>]));
-  const collectionById = new Map(existingCollections.map((row) => [row.collectionId, row as unknown as Record<string, unknown>]));
-  const pageById = new Map(existingPages.map((row) => [row.pageId, row as unknown as Record<string, unknown>]));
+  const productById = new Map(
+    existingProducts.map((row) => {
+      const record = row as unknown as Record<string, unknown> & { productId?: string };
+      return [String(record.productId), record];
+    }),
+  );
+  const collectionById = new Map(
+    existingCollections.map((row) => {
+      const record = row as unknown as Record<string, unknown> & { collectionId?: string };
+      return [String(record.collectionId), record];
+    }),
+  );
+  const pageById = new Map(
+    existingPages.map((row) => {
+      const record = row as unknown as Record<string, unknown> & { pageId?: string };
+      return [String(record.pageId), record];
+    }),
+  );
   const redirectKey = (entityType: string, fromHandle: string) => `${entityType}:${fromHandle}`;
   const redirectByKey = new Map(
     existingRedirects.map((row) => [redirectKey(row.entityType, row.fromHandle), row]),
@@ -381,6 +508,9 @@ export async function importLanguageBundle(
     throw new Error(`Bundle locale "${locale}" does not match expected "${expectedLocale}".`);
   }
 
+  const registryRow = await db.storefrontLocale.findUnique({ where: { code: locale } });
+  const isDefault = registryRow?.isDefault === true || bundle.registry?.isDefault === true;
+
   let products = 0;
   for (const raw of bundle.productTranslations) {
     const row = raw as {
@@ -405,51 +535,72 @@ export async function importLanguageBundle(
       lastSyncedAt?: string | null;
     };
     if (!row.productId) continue;
-    await db.productTranslation.upsert({
-      where: { productId_locale: { productId: row.productId, locale } },
-      create: {
-        productId: row.productId,
-        locale,
-        title: row.title ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        shortDescription: row.shortDescription ?? null,
-        description: row.description ?? null,
-        materialLine: row.materialLine ?? null,
-        symbolismLabel: row.symbolismLabel ?? null,
-        symbolismTitle: row.symbolismTitle ?? null,
-        symbolismBody: row.symbolismBody ?? null,
-        symbolismBody2: row.symbolismBody2 ?? null,
-        details: row.details as object | undefined,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-      update: {
-        title: row.title ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        shortDescription: row.shortDescription ?? null,
-        description: row.description ?? null,
-        materialLine: row.materialLine ?? null,
-        symbolismLabel: row.symbolismLabel ?? null,
-        symbolismTitle: row.symbolismTitle ?? null,
-        symbolismBody: row.symbolismBody ?? null,
-        symbolismBody2: row.symbolismBody2 ?? null,
-        details: row.details as object | undefined,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-    });
+    if (isDefault) {
+      // Default locale writes Product base columns — never ProductTranslation.
+      await db.product.update({
+        where: { id: row.productId },
+        data: {
+          name: row.title ?? "",
+          ...(row.localizedHandle != null ? { slug: row.localizedHandle } : {}),
+          shortDescription: row.shortDescription ?? null,
+          description: row.description ?? null,
+          materialLine: row.materialLine ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          details: row.details as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+        },
+      });
+    } else {
+      await db.productTranslation.upsert({
+        where: { productId_locale: { productId: row.productId, locale } },
+        create: {
+          productId: row.productId,
+          locale,
+          title: row.title ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          shortDescription: row.shortDescription ?? null,
+          description: row.description ?? null,
+          materialLine: row.materialLine ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          details: row.details as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+        update: {
+          title: row.title ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          shortDescription: row.shortDescription ?? null,
+          description: row.description ?? null,
+          materialLine: row.materialLine ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          details: row.details as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+      });
+    }
     products += 1;
   }
 
@@ -481,59 +632,83 @@ export async function importLanguageBundle(
       lastSyncedAt?: string | null;
     };
     if (!row.collectionId) continue;
-    await db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: row.collectionId, locale } },
-      create: {
-        collectionId: row.collectionId,
-        locale,
-        name: row.name ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        subtitle: row.subtitle ?? null,
-        description: row.description ?? null,
-        manifesto: row.manifesto ?? null,
-        storyTitle: row.storyTitle ?? null,
-        storyBody: row.storyBody ?? null,
-        symbolismLabel: row.symbolismLabel ?? null,
-        symbolismTitle: row.symbolismTitle ?? null,
-        symbolismBody: row.symbolismBody ?? null,
-        symbolismBody2: row.symbolismBody2 ?? null,
-        searchSummary: row.searchSummary ?? null,
-        ctaLabel: row.ctaLabel ?? null,
-        heroImageAlt: row.heroImageAlt ?? null,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-      update: {
-        name: row.name ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        subtitle: row.subtitle ?? null,
-        description: row.description ?? null,
-        manifesto: row.manifesto ?? null,
-        storyTitle: row.storyTitle ?? null,
-        storyBody: row.storyBody ?? null,
-        symbolismLabel: row.symbolismLabel ?? null,
-        symbolismTitle: row.symbolismTitle ?? null,
-        symbolismBody: row.symbolismBody ?? null,
-        symbolismBody2: row.symbolismBody2 ?? null,
-        searchSummary: row.searchSummary ?? null,
-        ctaLabel: row.ctaLabel ?? null,
-        heroImageAlt: row.heroImageAlt ?? null,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-    });
+    if (isDefault) {
+      await db.collection.update({
+        where: { id: row.collectionId },
+        data: {
+          name: row.name ?? "",
+          ...(row.localizedHandle != null ? { slug: row.localizedHandle } : {}),
+          subtitle: row.subtitle ?? null,
+          description: row.description ?? null,
+          manifesto: row.manifesto ?? null,
+          storyTitle: row.storyTitle ?? null,
+          storyBody: row.storyBody ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          searchSummary: row.searchSummary ?? null,
+          ctaLabel: row.ctaLabel ?? null,
+          heroImageAlt: row.heroImageAlt ?? null,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+        },
+      });
+    } else {
+      await db.collectionTranslation.upsert({
+        where: { collectionId_locale: { collectionId: row.collectionId, locale } },
+        create: {
+          collectionId: row.collectionId,
+          locale,
+          name: row.name ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          subtitle: row.subtitle ?? null,
+          description: row.description ?? null,
+          manifesto: row.manifesto ?? null,
+          storyTitle: row.storyTitle ?? null,
+          storyBody: row.storyBody ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          searchSummary: row.searchSummary ?? null,
+          ctaLabel: row.ctaLabel ?? null,
+          heroImageAlt: row.heroImageAlt ?? null,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+        update: {
+          name: row.name ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          subtitle: row.subtitle ?? null,
+          description: row.description ?? null,
+          manifesto: row.manifesto ?? null,
+          storyTitle: row.storyTitle ?? null,
+          storyBody: row.storyBody ?? null,
+          symbolismLabel: row.symbolismLabel ?? null,
+          symbolismTitle: row.symbolismTitle ?? null,
+          symbolismBody: row.symbolismBody ?? null,
+          symbolismBody2: row.symbolismBody2 ?? null,
+          searchSummary: row.searchSummary ?? null,
+          ctaLabel: row.ctaLabel ?? null,
+          heroImageAlt: row.heroImageAlt ?? null,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+      });
+    }
     collections += 1;
   }
 
@@ -555,39 +730,53 @@ export async function importLanguageBundle(
       lastSyncedAt?: string | null;
     };
     if (!row.pageId) continue;
-    await db.pageTranslation.upsert({
-      where: { pageId_locale: { pageId: row.pageId, locale } },
-      create: {
-        pageId: row.pageId,
-        locale,
-        title: row.title ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        excerpt: row.excerpt ?? null,
-        content: row.content as object | undefined,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-      update: {
-        title: row.title ?? "",
-        localizedHandle: row.localizedHandle ?? null,
-        excerpt: row.excerpt ?? null,
-        content: row.content as object | undefined,
-        seoTitle: row.seoTitle ?? null,
-        seoDescription: row.seoDescription ?? null,
-        reviewStatus: row.reviewStatus ?? "DRAFT",
-        reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
-        syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
-        syncError: row.syncError ?? null,
-        contentHash: row.contentHash ?? null,
-        lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
-      },
-    });
+    if (isDefault) {
+      await db.page.update({
+        where: { id: row.pageId },
+        data: {
+          title: row.title ?? "",
+          ...(row.localizedHandle != null ? { slug: row.localizedHandle } : {}),
+          excerpt: row.excerpt ?? null,
+          content: row.content as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+        },
+      });
+    } else {
+      await db.pageTranslation.upsert({
+        where: { pageId_locale: { pageId: row.pageId, locale } },
+        create: {
+          pageId: row.pageId,
+          locale,
+          title: row.title ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          excerpt: row.excerpt ?? null,
+          content: row.content as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+        update: {
+          title: row.title ?? "",
+          localizedHandle: row.localizedHandle ?? null,
+          excerpt: row.excerpt ?? null,
+          content: row.content as object | undefined,
+          seoTitle: row.seoTitle ?? null,
+          seoDescription: row.seoDescription ?? null,
+          reviewStatus: row.reviewStatus ?? "DRAFT",
+          reviewedAt: row.reviewedAt ? new Date(row.reviewedAt) : null,
+          syncStatus: row.syncStatus ?? "NOT_APPLICABLE",
+          syncError: row.syncError ?? null,
+          contentHash: row.contentHash ?? null,
+          lastSyncedAt: row.lastSyncedAt ? new Date(row.lastSyncedAt) : null,
+        },
+      });
+    }
     pages += 1;
   }
 

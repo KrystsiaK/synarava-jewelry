@@ -80,15 +80,7 @@ async function applyCollectionCommerceWindows(
       ...(extra.slug != null ? { slug: extra.slug } : {}),
     },
   });
-  await db.collectionTranslation.updateMany({
-    where: { collectionId, locale: "en" },
-    data: {
-      ...(extra.name != null ? { name: extra.name } : {}),
-      ...(extra.description !== undefined ? { description: extra.description } : {}),
-      ...(extra.seoTitle !== undefined ? { seoTitle: extra.seoTitle } : {}),
-      ...(extra.seoDescription !== undefined ? { seoDescription: extra.seoDescription } : {}),
-    },
-  });
+  // EN copy lives on Collection base columns only — no CollectionTranslation locale=en row.
 }
 
 export type RefreshShopifyCollectionResult = {
