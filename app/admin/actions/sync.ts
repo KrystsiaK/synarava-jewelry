@@ -13,9 +13,11 @@ import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import {
   applyCatalogConflictResolution,
+  assertWholeRecordFingerprintsFresh,
   previewCatalogConflictResolution,
   type CatalogConflictApplyEntryInput,
   type CatalogConflictApplyScope,
+  type WholeRecordFingerprintExpectation,
 } from "@/lib/shopify/catalog-conflict-apply";
 import {
   fetchShopifyShopIdentity,
@@ -256,11 +258,23 @@ export async function markProductIncomingUpdateViewedAction(productId: string) {
   return { success: true as const };
 }
 
-export async function pushSingleProductToShopifyAction(productId: string, force = false) {
-  await requireAdminSession("/admin/products");
+export async function pushSingleProductToShopifyAction(
+  productId: string,
+  force = false,
+  expectedFingerprints?: WholeRecordFingerprintExpectation[],
+) {
+  const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     await assertConfiguredShopifyStore();
+    if (expectedFingerprints && expectedFingerprints.length > 0) {
+      const fresh = await assertWholeRecordFingerprintsFresh({
+        productId,
+        expected: expectedFingerprints,
+        actorUsername: session.username,
+      });
+      if (!fresh.ok) return { error: fresh.error };
+    }
     const before = await inspectProductSyncState(productId);
     if (!force && before.state === "CONFLICT") {
       return { error: "Shopify has newer changes. Review the conflict before pushing.", inspection: before };
@@ -270,6 +284,7 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
     }
     const result = await pushProductToShopify(productId, force);
     if (!result.ok) return { error: result.error, inspection: before };
+    await runAfterSaveCatalogConflictCheck(session.username);
     revalidateStorefront();
     revalidatePath("/admin/products");
     const product = await getSavedProductPayload(productId);
@@ -286,11 +301,23 @@ export async function pushSingleProductToShopifyAction(productId: string, force 
   }
 }
 
-export async function pullSingleProductFromShopifyAction(productId: string, force = false) {
-  await requireAdminSession("/admin/products");
+export async function pullSingleProductFromShopifyAction(
+  productId: string,
+  force = false,
+  expectedFingerprints?: WholeRecordFingerprintExpectation[],
+) {
+  const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     await assertConfiguredShopifyStore();
+    if (expectedFingerprints && expectedFingerprints.length > 0) {
+      const fresh = await assertWholeRecordFingerprintsFresh({
+        productId,
+        expected: expectedFingerprints,
+        actorUsername: session.username,
+      });
+      if (!fresh.ok) return { error: fresh.error };
+    }
     const product = await db.product.findUnique({ where: { id: productId }, select: { shopifyProductId: true } });
     if (!product?.shopifyProductId) return { error: "This product is not linked to Shopify." };
     const before = await inspectProductSyncState(productId);
@@ -301,6 +328,9 @@ export async function pullSingleProductFromShopifyAction(productId: string, forc
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
     const pullResult = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, force);
+    if (pullResult.status === "SYNCED") {
+      await runAfterSaveCatalogConflictCheck(session.username);
+    }
     revalidateStorefront();
     revalidatePath("/admin/products");
     const savedProduct = await getSavedProductPayload(productId);

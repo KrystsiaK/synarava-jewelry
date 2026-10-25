@@ -93,6 +93,16 @@ export async function refreshShopifyState(
         ...(shopifyLocale ? { locale: shopifyLocale } : {}),
       },
     });
+    // Audit ~96-100 / reconciliation-run ~536: do not report ok:true silently
+    // when another check holds the lease.
+    if (translationRun.reused && translationRun.reason === "already_running") {
+      return {
+        ok: true,
+        alreadyRunning: true,
+        warning: "already running",
+        runId: translationRun.run?.id ?? null,
+      };
+    }
     return {
       ok: true,
       warning: translationRun.run?.error ?? undefined,
@@ -121,6 +131,14 @@ export async function refreshShopifyState(
         ...(shopifyLocale ? { locale: shopifyLocale } : {}),
       },
     });
+    if (translationRun.reused && translationRun.reason === "already_running") {
+      return {
+        ok: true,
+        alreadyRunning: true,
+        warning: "already running",
+        runId: translationRun.run?.id ?? null,
+      };
+    }
     return {
       ok: true,
       warning: translationRun.run?.error ?? undefined,
@@ -134,8 +152,19 @@ export async function refreshShopifyState(
       requestedBy,
       scope: { entityType: "COLLECTION" },
     });
+    if (translationRun.reused && translationRun.reason === "already_running") {
+      return {
+        ok: true,
+        alreadyRunning: true,
+        warning: "already running",
+        runId: translationRun.run?.id ?? null,
+      };
+    }
     try {
       await scanAndSaveCollectionPresence(translationRun.run?.id ?? null);
+      if (translationRun.run?.id) {
+        await heartbeatCatalogCheckRun(translationRun.run.id);
+      }
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
@@ -206,11 +235,13 @@ export async function refreshShopifyState(
 
     try {
       await scanAndSaveCatalogPresence(runId);
+      await heartbeatCatalogCheckRun(runId);
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "Catalog presence could not be checked.");
     }
     try {
       await scanAndSaveCollectionPresence(runId);
+      await heartbeatCatalogCheckRun(runId);
     } catch (error) {
       warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
@@ -247,31 +278,43 @@ export async function refreshShopifyState(
     }
 
     const translationStatus = translationRun.translationStatus ?? "SUCCEEDED";
-    const status = warnings.length > 0 && translationStatus === "FAILED"
+    const intendedStatus = warnings.length > 0 && translationStatus === "FAILED"
       ? "FAILED"
       : warnings.length > 0 || translationStatus === "PARTIAL"
         ? "PARTIAL"
         : "SUCCEEDED";
-    await finishCatalogCheckRun(runId, {
-      status,
+    // Audit ~255-266: use status actually written — a lost lease is a no-op
+    // finish that must not stamp checkedAt as SUCCEEDED.
+    const finished = await finishCatalogCheckRun(runId, {
+      status: intendedStatus,
       checkedCount,
       differenceCount,
       error: warnings.length > 0 ? warnings.join(" ") : null,
     });
+    const runStatus = finished?.status === "SUCCEEDED"
+      || finished?.status === "PARTIAL"
+      || finished?.status === "FAILED"
+      ? finished.status
+      : null;
     return {
       ok: true,
       warning: warnings.length > 0 ? warnings.join(" ") : undefined,
       runId,
-      runStatus: status,
+      runStatus,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    await finishCatalogCheckRun(runId, {
+    const finished = await finishCatalogCheckRun(runId, {
       status: "FAILED",
       checkedCount,
       differenceCount,
       error: message,
     });
-    return { ok: false, warning: message, runId, runStatus: "FAILED" };
+    const runStatus = finished?.status === "FAILED"
+      || finished?.status === "PARTIAL"
+      || finished?.status === "SUCCEEDED"
+      ? finished.status
+      : "FAILED";
+    return { ok: false, warning: message, runId, runStatus };
   }
 }

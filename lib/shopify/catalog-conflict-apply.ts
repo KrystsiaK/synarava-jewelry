@@ -43,6 +43,39 @@ async function loadProductConflictForApply(
   });
 }
 
+export type WholeRecordFingerprintExpectation = {
+  fieldKey: string;
+  expectedLocalFingerprint: string;
+  expectedShopifyFingerprint: string;
+};
+
+/**
+ * Same stale-fingerprint gate Apply uses, for whole-record pull/push:
+ * preview showed these blocked commerce fields; refuse if any changed.
+ */
+export async function assertWholeRecordFingerprintsFresh(input: {
+  productId: string;
+  expected: WholeRecordFingerprintExpectation[];
+  actorUsername: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (input.expected.length === 0) return { ok: true };
+  const conflict = await loadProductConflictForApply(input.productId, input.actorUsername);
+  for (const expected of input.expected) {
+    const field = conflict.fields.find((candidate) => candidate.fieldKey === expected.fieldKey);
+    if (
+      !field
+      || field.localFingerprint !== expected.expectedLocalFingerprint
+      || field.shopifyFingerprint !== expected.expectedShopifyFingerprint
+    ) {
+      return {
+        ok: false,
+        error: "Synarava or Shopify changed since this was reviewed. Refresh and try again.",
+      };
+    }
+  }
+  return { ok: true };
+}
+
 // A bulk scope resolves every currently conflicted product — capped so one
 // request can't try to preview/apply an unbounded catalog in one go. A
 // product with many conflicting fields still contributes all of them; this
@@ -283,16 +316,19 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
-    // Presence freshness is the re-scan above: if the membership row is still
-    // present with an allowed direction, apply the *current* difference.
-    // Comparing preview fingerprints to post-scan hashes is wrong here —
-    // preview reads a saved snapshot, apply re-scans live; title/updatedAt
-    // schema churn or SKU rematch change hashes without invalidating Pull.
-    // Field conflicts (commerce/translation) still require fingerprint match.
+    // Presence Pull (SHOPIFY_ONLY): re-scan may rematch SKU/handle and change
+    // hashes without invalidating Pull — skip fingerprint match there.
+    // Presence Remove (SYNARAVA_ONLY → Synarava→Shopify): refuse when the
+    // identity fingerprint (id + handle + shopify id) changed since preview.
+    // Commerce/translation always require fingerprint match.
+    const isPresenceRemove = field.origin === "PRESENCE"
+      && field.presenceDifference?.kind === "SYNARAVA_ONLY"
+      && entry.direction === "SYNARAVA_TO_SHOPIFY";
+    const fingerprintsStale = field.localFingerprint !== entry.expectedLocalFingerprint
+      || field.shopifyFingerprint !== entry.expectedShopifyFingerprint;
     if (
-      field.origin !== "PRESENCE"
-      && (field.localFingerprint !== entry.expectedLocalFingerprint
-        || field.shopifyFingerprint !== entry.expectedShopifyFingerprint)
+      (field.origin !== "PRESENCE" && fingerprintsStale)
+      || (isPresenceRemove && field.localFingerprint !== entry.expectedLocalFingerprint)
     ) {
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;

@@ -1,7 +1,8 @@
 import "server-only";
 
+import { after } from "next/server";
+
 import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
-import { getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
 
 export type AfterSaveCatalogCheckResult = {
   alreadyRunning: boolean;
@@ -9,30 +10,15 @@ export type AfterSaveCatalogCheckResult = {
   warning?: string;
 };
 
-const FOLLOW_UP_POLL_MS = 1500;
-const FOLLOW_UP_TIMEOUT_MS = 11 * 60 * 1000;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function waitForActiveCatalogRunToFinish(): Promise<void> {
-  const started = Date.now();
-  while (Date.now() - started < FOLLOW_UP_TIMEOUT_MS) {
-    const run = await getLatestReconcileRun();
-    if (!run || (run.status !== "QUEUED" && run.status !== "RUNNING")) return;
-    await sleep(FOLLOW_UP_POLL_MS);
-  }
-}
-
 /**
- * Shared post-save helper: after Synarava DB save succeeds, await the SAME
+ * Shared post-save helper: after Synarava DB save succeeds, run the SAME
  * full catalog check the top-bar button runs (`runCatalogConflictCheck`).
  *
- * - Synchronous for the save action (caller must await).
  * - Never throws — a failed check must not fail the save.
- * - If another check is already running, wait for it once, then re-run (single
- *   follow-up, not a queue).
+ * - If another check is already running, return immediately with
+ *   `alreadyRunning: true` (UI shows top-bar status). Optionally schedule a
+ *   single non-blocking follow-up via `after()` so the edit is picked up
+ *   without holding the server action for up to 11 minutes.
  */
 export async function runAfterSaveCatalogConflictCheck(
   requestedBy: string,
@@ -47,19 +33,19 @@ export async function runAfterSaveCatalogConflictCheck(
       };
     }
 
-    await waitForActiveCatalogRunToFinish();
-    const followUp = await runCatalogConflictCheck(requestedBy, { trigger: "MANUAL" });
-    if (followUp.alreadyRunning) {
-      return {
-        alreadyRunning: true,
-        ok: true,
-        warning: followUp.warning ?? "already running",
-      };
-    }
+    // Audit #6: do not poll for up to 11 minutes inside the save action.
+    // Non-blocking follow-up only — never awaits the active run.
+    after(() => {
+      void runCatalogConflictCheck(requestedBy, { trigger: "MANUAL" }).catch((error) => {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error("[after-save-catalog-check] non-blocking follow-up failed", message);
+      });
+    });
+
     return {
-      alreadyRunning: false,
+      alreadyRunning: true,
       ok: true,
-      warning: followUp.warning,
+      warning: checked.warning ?? "already running",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

@@ -56,10 +56,10 @@ export const CatalogConflictWorkspace = createEntityConflictWorkspace<
       "productId",
     ),
     /** ONE entry for blocked commerce whole-record pull/push (force). */
-    async applyWholeRecord(entityId, direction) {
+    async applyWholeRecord(entityId, direction, expectedFingerprints) {
       const result = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
-        ? await pullSingleProductFromShopifyAction(entityId, true)
-        : await pushSingleProductToShopifyAction(entityId, true);
+        ? await pullSingleProductFromShopifyAction(entityId, true, expectedFingerprints)
+        : await pushSingleProductToShopifyAction(entityId, true, expectedFingerprints);
       if (result.error) return { ok: false, error: result.error };
       return { ok: true, success: result.success };
     },

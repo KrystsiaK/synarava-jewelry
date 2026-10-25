@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   localizedHandleRedirectUpsert: vi.fn(),
   translationCacheFindUnique: vi.fn(),
   translationCacheUpsert: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -59,6 +60,7 @@ vi.mock("@/lib/db", () => ({
       findUnique: mocks.translationCacheFindUnique,
       upsert: mocks.translationCacheUpsert,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -74,6 +76,21 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+    const { db } = await import("@/lib/db");
+    const client = {
+      storefrontLocale: db.storefrontLocale,
+      product: db.product,
+      collection: db.collection,
+      page: db.page,
+      productTranslation: db.productTranslation,
+      collectionTranslation: db.collectionTranslation,
+      pageTranslation: db.pageTranslation,
+      localizedHandleRedirect: db.localizedHandleRedirect,
+      translationCache: db.translationCache,
+    };
+    return fn(client);
+  });
   mocks.storefrontLocaleFindUnique.mockResolvedValue({
     code: "pt",
     routeSegment: "pt",
@@ -145,6 +162,7 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
       collections: 0,
       pages: 0,
       redirects: 0,
+      skipped: 0,
     });
     expect(mocks.productTranslationUpsert).toHaveBeenCalled();
 
@@ -239,6 +257,7 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
     expect(mocks.productTranslationFindMany).not.toHaveBeenCalled();
 
     await importLanguageBundle(bundle, "en");
+    expect(mocks.transaction).toHaveBeenCalled();
     expect(mocks.productUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "p1" },
@@ -246,5 +265,64 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
       }),
     );
     expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("skips default-locale rows with empty title and never writes name: \"\"", async () => {
+    mocks.storefrontLocaleFindUnique.mockResolvedValue({
+      code: "en",
+      routeSegment: "en",
+      shopifyLocale: "en",
+      intlLocale: "en-IE",
+      name: "English",
+      nativeName: "English",
+      isDefault: true,
+      status: "PUBLISHED",
+      sortOrder: 0,
+    });
+    mocks.productUpdate.mockResolvedValue({});
+
+    const bundle = attachLanguageBundleChecksum({
+      schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
+      locale: "en",
+      exportedAt: "2026-10-25T00:00:00.000Z",
+      registry: {
+        code: "en",
+        routeSegment: "en",
+        shopifyLocale: "en",
+        intlLocale: "en-IE",
+        name: "English",
+        nativeName: "English",
+        isDefault: true,
+        status: "PUBLISHED",
+        sortOrder: 0,
+      },
+      productTranslations: [
+        { productId: "p-empty", title: "", locale: "en" },
+        { productId: "p-ok", title: "Kept", locale: "en" },
+        { productId: "p-blank", title: "   ", locale: "en" },
+      ],
+      collectionTranslations: [],
+      pageTranslations: [],
+      handleRedirects: [],
+      translationSnapshots: [],
+      translationCache: null,
+      shopifyTranslations: [],
+    });
+
+    await expect(importLanguageBundle(bundle, "en")).resolves.toMatchObject({
+      locale: "en",
+      products: 1,
+      skipped: 2,
+    });
+    expect(mocks.productUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.productUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p-ok" },
+        data: expect.objectContaining({ name: "Kept" }),
+      }),
+    );
+    expect(mocks.productUpdate.mock.calls.every(
+      (call) => (call[0] as { data: { name: string } }).data.name !== "",
+    )).toBe(true);
   });
 });

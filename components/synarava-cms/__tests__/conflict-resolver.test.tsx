@@ -243,8 +243,91 @@ describe("ConflictResolver", () => {
     fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
 
     await waitFor(() => {
-      expect(applyWholeRecord).toHaveBeenCalledWith("p1", "SHOPIFY_TO_SYNARAVA");
+      expect(applyWholeRecord).toHaveBeenCalledWith(
+        "p1",
+        "SHOPIFY_TO_SYNARAVA",
+        expect.arrayContaining([
+          expect.objectContaining({
+            fieldKey: "commerce:status",
+            expectedLocalFingerprint: blocked.localFingerprint,
+            expectedShopifyFingerprint: blocked.shopifyFingerprint,
+          }),
+        ]),
+      );
     });
+  });
+
+  it("still calls onApplied when applyWholeRecord throws after field entries were written", async () => {
+    const onApplied = vi.fn();
+    const onClose = vi.fn();
+    const onToast = vi.fn();
+    const applyWholeRecord = vi.fn(async () => {
+      throw new Error("Shopify timed out mid-batch");
+    });
+    const adapter = createAdapter({
+      supportsWholeRecord: true,
+      applyWholeRecord,
+      loadEntityFields: vi.fn(async () => ({
+        fields: [
+          field,
+          {
+            ...field,
+            fieldKey: "commerce:status",
+            label: "Status",
+            origin: "COMMERCE" as const,
+            allowedDirections: [] as CatalogConflictField["allowedDirections"],
+            blockedReason: "No safe field-by-field write yet",
+            sourceId: null,
+          },
+        ],
+      })),
+      previewSelections: vi.fn(async () => ({
+        preview: {
+          truncated: false,
+          excluded: [],
+          entries: [{
+            entityId: "p1",
+            field,
+            direction: "SHOPIFY_TO_SYNARAVA" as const,
+            willClearNonEmptyValue: false,
+          }],
+        },
+      })),
+      applySelections: vi.fn(async () => ({
+        outcome: {
+          appliedCount: 1,
+          failedCount: 0,
+          results: [{ entityId: "p1", ok: true, message: "Applied." }],
+        },
+        success: "1 change applied.",
+      })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={onClose}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "Lava Ring" }]}
+        focusedEntityId={null}
+        onToast={onToast}
+        onApplied={onApplied}
+      />,
+    );
+    expect(await screen.findByText("Title")).toBeInTheDocument();
+    const titleSection = screen.getByText("Title").closest("section") as HTMLElement;
+    fireEvent.click(within(titleSection).getByRole("button", { name: /Shopify/i }));
+    const statusSection = screen.getByText("Status").closest("section") as HTMLElement;
+    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (2)" }));
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
+
+    await waitFor(() => {
+      expect(onApplied).toHaveBeenCalledWith({ entityIds: ["p1"], appliedCount: 1 });
+    });
+    expect(onClose).toHaveBeenCalled();
+    expect(onToast).toHaveBeenCalledWith(expect.stringMatching(/timed out|failed/i), expect.any(String));
   });
 
   it("keeps blocked commerce non-selectable without whole-record support", async () => {
