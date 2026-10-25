@@ -211,6 +211,15 @@ export {
 } from "@/components/synarava-cms/conflict-resolver";
 
 export {
+  describeConflictConfirmChange,
+  formatConfirmDirectionSummary,
+  isTechnicalEntityId,
+  summarizeConfirmDirections,
+  type ConflictConfirmChangeView,
+  type ConflictConfirmConsequence,
+} from "@/components/synarava-cms/conflict-resolver-confirm";
+
+export {
   AdminSerpPreview,
   type AdminSerpPreviewProps,
 } from "@/components/admin/shared/admin-serp-preview";

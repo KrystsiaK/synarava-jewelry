@@ -69,10 +69,19 @@ Presence-only items use the same row model. The missing side shows
 
 ### Confirm preview
 
-Apply opens the existing preview/confirm summary of exactly the chosen
-changes (including the warning that Take Shopify on **Only in Synarava**
-removes the collection from Synarava). Confirm writes only those selections,
-then re-fetches conflict signals.
+Apply opens the confirm dialog for exactly the chosen changes. Each row shows:
+
+- a plain-language headline (for example **Create "Pets" in Shopify**,
+  **Update price in Shopify**, **Take Shopify's title into Synarava**, or
+  **Remove "Pets" from Synarava (linked products stay)**)
+- the chosen source cell, an arrow into the side that will be written, and
+  that target’s **before → after** values (create starts from **Not in
+  Shopify** / **Not in Synarava**; remove ends at **Removed**)
+- a footer count of how many changes go to Shopify vs Synarava
+
+Nothing is written until you **Confirm changes** (the acknowledgement
+checkbox still appears for clears / removals). Confirm writes only those
+selections, then re-fetches conflict signals.
 :::
 
 :::warning
