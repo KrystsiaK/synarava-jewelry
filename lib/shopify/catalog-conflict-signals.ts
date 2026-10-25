@@ -1,6 +1,12 @@
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 
-export type CatalogConflictSignalState = "ready" | "checking" | "stale" | "failed" | "disconnected";
+export type CatalogConflictSignalState =
+  | "ready"
+  | "checking"
+  | "stale"
+  | "failed"
+  | "disconnected"
+  | "unknown";
 
 export type CatalogConflictLocaleSignal = {
   code: string;
@@ -38,6 +44,8 @@ export type CatalogConflictSignals = {
   state: CatalogConflictSignalState;
   totalCount: number | null;
   checkedAt: string | null;
+  /** Linked rows with no Shopify window yet — shown as "N not checked", not conflicts. */
+  uncheckedCount?: number;
   products: Record<string, CatalogConflictProductSignal>;
   recentlyUpdatedProducts: Record<string, { updatedAt: string }>;
 };

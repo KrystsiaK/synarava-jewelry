@@ -33,6 +33,9 @@ vi.mock("@/lib/shopify/catalog-presence-server", () => ({
 }));
 vi.mock("@/lib/shopify/reconciliation-run", () => ({
   runTranslationReconciliation: mocks.runTranslationReconciliation,
+  heartbeatCatalogCheckRun: vi.fn(async () => undefined),
+  beginCatalogCheckRun: vi.fn(),
+  finishCatalogCheckRun: vi.fn(),
 }));
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
@@ -92,7 +95,7 @@ describe("refreshShopifyState — collections commerce", () => {
     expect(result.warning ?? "").not.toMatch(/Shopify Markets/i);
   });
 
-  it("skips unpublished locale quietly (no Markets toast text)", async () => {
+  it("skips unpublished locale with an honest translations-not-rechecked warning", async () => {
     mocks.findUniqueCollection.mockResolvedValue({ shopifyCollectionId: "gid://shopify/Collection/9" });
     mocks.getPublishedStorefrontLocales.mockResolvedValue([]);
 
@@ -103,6 +106,12 @@ describe("refreshShopifyState — collections commerce", () => {
 
     expect(mocks.refreshShopifyCollectionState).toHaveBeenCalledOnce();
     expect(mocks.runTranslationReconciliation).not.toHaveBeenCalled();
-    expect(result).toEqual({ ok: true, runId: null });
+    expect(result).toEqual({
+      ok: true,
+      runId: null,
+      warning: "translations not rechecked",
+    });
+    expect(result.warning ?? "").not.toMatch(/Shopify Markets/i);
   });
 });
+

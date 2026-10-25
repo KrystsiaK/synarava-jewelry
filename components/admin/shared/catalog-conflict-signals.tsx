@@ -11,10 +11,18 @@ function plural(count: number, singular: string, pluralWord: string) {
 }
 
 function statusText(signals: CatalogConflictSignals, entityNoun: { singular: string; plural: string }) {
+  if (signals.state === "unknown") return "Conflict status unknown";
+  if (signals.state === "failed") return "Last check failed or partial";
   const count = signals.totalCount;
   if (count === null) return "Conflict status unavailable";
-  if (count === 0) return "No conflicts";
-  return `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts`;
+  const unchecked = signals.uncheckedCount ?? 0;
+  const uncheckedNote = unchecked > 0
+    ? ` · ${plural(unchecked, "item", "items")} not checked`
+    : "";
+  if (count === 0) {
+    return unchecked > 0 ? `No conflicts${uncheckedNote}` : "No conflicts";
+  }
+  return `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts${uncheckedNote}`;
 }
 
 const conflictTone = {

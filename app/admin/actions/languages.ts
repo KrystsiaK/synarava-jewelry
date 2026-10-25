@@ -22,9 +22,10 @@ import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
 
-async function afterLanguageSettingSave(requestedBy: string) {
-  if (!hasShopifyAdminConfig()) return;
-  await runAfterSaveCatalogConflictCheck(requestedBy);
+async function afterLanguageSettingSave(requestedBy: string): Promise<string | undefined> {
+  if (!hasShopifyAdminConfig()) return undefined;
+  const check = await runAfterSaveCatalogConflictCheck(requestedBy);
+  return check.warning;
 }
 
 async function revalidateLanguagesAdmin() {
@@ -62,7 +63,8 @@ export async function addLanguageAction(input: {
       metadata: { requiresWriteLocales: result.requiresWriteLocales ?? false },
     });
     await revalidateLanguagesAdmin();
-    await afterLanguageSettingSave(session.username);
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
@@ -78,7 +80,8 @@ export async function hideLanguageAction(code: string) {
       after: { status: "RETIRED" },
     });
     await revalidateLanguagesAdmin();
-    await afterLanguageSettingSave(session.username);
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
@@ -94,7 +97,8 @@ export async function restoreLanguageAction(code: string) {
       after: { status: "PUBLISHED" },
     });
     await revalidateLanguagesAdmin();
-    await afterLanguageSettingSave(session.username);
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
@@ -138,8 +142,12 @@ export async function importLanguageAction(bundle: LanguageBundle, expectedLocal
       metadata: { checksum: bundle.checksum },
     });
     await revalidateLanguagesAdmin();
-    await afterLanguageSettingSave(session.username);
-    return { success: `Imported ${result.locale}: ${result.products} products, ${result.collections} collections, ${result.pages} pages.`, result };
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return {
+      success: `Imported ${result.locale}: ${result.products} products, ${result.collections} collections, ${result.pages} pages.`,
+      result,
+      syncWarning,
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
@@ -160,7 +168,8 @@ export async function deleteLanguageDataAction(input: {
       metadata: { exportChecksum: input.exportChecksum },
     });
     await revalidateLanguagesAdmin();
-    await afterLanguageSettingSave(session.username);
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }

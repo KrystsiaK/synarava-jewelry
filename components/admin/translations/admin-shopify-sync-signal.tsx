@@ -23,6 +23,10 @@ function formatCheckedAt(iso: string | null | undefined): string | null {
   }
 }
 
+function isActiveRunStatus(status: ReconcileRunSummary["status"] | undefined): boolean {
+  return status === "QUEUED" || status === "RUNNING";
+}
+
 function signalState(
   run: ReconcileRunSummary | null,
   connected: boolean,
@@ -31,11 +35,13 @@ function signalState(
   if (!connected) {
     return { kind: "disconnected", label: "Shopify disconnected" };
   }
-  if (!run || run.status === "QUEUED" || run.status === "RUNNING") {
-    return { kind: "checking", label: "Checking Shopify…" };
-  }
-  if (run.status === "FAILED" || run.status === "PARTIAL" || requestError) {
+  // Audit: requestError before the !run branch — a failed first AUTO must not
+  // look like an endless "Checking…" and must stay retryable.
+  if (requestError || run?.status === "FAILED" || run?.status === "PARTIAL") {
     return { kind: "failed", label: "Check failed" };
+  }
+  if (!run || isActiveRunStatus(run.status)) {
+    return { kind: "checking", label: "Checking Shopify…" };
   }
   const when = formatCheckedAt(run.completedAt);
   return {
@@ -78,33 +84,42 @@ export function AdminShopifySyncSignal({
   }
 
   const clientChecking = autoChecking || manualChecking;
-  const serverChecking = Boolean(
-    run && (run.status === "QUEUED" || run.status === "RUNNING"),
-  );
+  const serverChecking = Boolean(run && isActiveRunStatus(run.status));
   // Do not OR context checkRunning here — that would latch true forever when we publish it.
-  const isChecking = connected && (clientChecking || serverChecking);
+  const isChecking = connected && !requestError && (clientChecking || serverChecking);
   if (checkRunning !== isChecking) {
     setCheckRunning(isChecking);
   }
 
   const state = !connected
     ? ({ kind: "disconnected", label: "Shopify disconnected" } as const)
-    : isChecking
-      ? ({ kind: "checking", label: "Checking Shopify…" } as const)
-      : signalState(run, connected, requestError);
+    : requestError
+      ? ({ kind: "failed", label: "Check failed" } as const)
+      : isChecking
+        ? ({ kind: "checking", label: "Checking Shopify…" } as const)
+        : signalState(run, connected, requestError);
 
   const poll = useCallback(async (candidate: ReconcileRunSummary | null) => {
     let current = candidate;
-    while (mounted.current && current && (current.status === "QUEUED" || current.status === "RUNNING")) {
+    while (mounted.current && current && isActiveRunStatus(current.status)) {
       await new Promise((resolve) => window.setTimeout(resolve, 1800));
       if (!mounted.current) return current;
-      const payload = await readResponse(await fetch("/admin/api/shopify/reconcile", {
-        method: "GET",
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      }));
-      current = payload.run ?? null;
-      if (mounted.current) setRun(current);
+      try {
+        const payload = await readResponse(await fetch("/admin/api/shopify/reconcile", {
+          method: "GET",
+          cache: "no-store",
+          headers: { Accept: "application/json" },
+        }));
+        current = payload.run ?? null;
+        if (mounted.current) setRun(current);
+      } catch (error) {
+        // Audit: reset run on poll failure so UI does not stay locked on Checking.
+        if (mounted.current) {
+          setRun(null);
+          setRequestError(error instanceof Error ? error.message : "Shopify check could not be completed.");
+        }
+        return null;
+      }
     }
     return current;
   }, []);
@@ -117,6 +132,7 @@ export function AdminShopifySyncSignal({
       body: JSON.stringify({ trigger }),
     }));
     if (!mounted.current) return;
+    setRequestError(null);
     const next = payload.run ?? null;
     setRun(next);
     await poll(next);
@@ -137,6 +153,7 @@ export function AdminShopifySyncSignal({
         .catch((error) => {
           if (mounted.current) {
             setRequestError(error instanceof Error ? error.message : "Shopify check could not be completed.");
+            setRun(null);
           }
         })
         .finally(() => {
@@ -157,6 +174,7 @@ export function AdminShopifySyncSignal({
     } catch (error) {
       if (mounted.current) {
         setRequestError(error instanceof Error ? error.message : "Shopify check could not be completed.");
+        setRun(null);
       }
     } finally {
       if (mounted.current) setManualChecking(false);
@@ -171,7 +189,9 @@ export function AdminShopifySyncSignal({
         ? "Shopify catalog sync runs once when the admin session opens."
         : "Shopify Admin API credentials are not configured.");
 
+  // Failed (including first AUTO error) is always retryable via the label or refresh.
   const failedClickable = state.kind === "failed";
+  const refreshDisabled = state.kind === "checking" || state.kind === "disconnected";
 
   return (
     <div className="adm-sync-signal" data-state={state.kind} title={title}>
@@ -195,7 +215,7 @@ export function AdminShopifySyncSignal({
         type="button"
         className="adm-sync-signal__refresh"
         aria-label="Check Shopify sync now"
-        disabled={state.kind === "checking" || state.kind === "disconnected"}
+        disabled={refreshDisabled}
         onClick={() => void checkNow()}
       >
         <RefreshCw size={13} aria-hidden="true" />

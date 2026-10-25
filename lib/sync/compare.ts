@@ -151,21 +151,31 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
   };
 }
 
-function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): SyncLeaf[] {
+function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
+  leaves: SyncLeaf[];
+  uncheckedCount: number;
+} {
   const leaves: SyncLeaf[] = [];
+  let uncheckedCount = 0;
   for (const window of windows) {
     if (window.shopifySnapshot == null && window.workingSnapshot == null) continue;
     if (window.workingSnapshot == null && window.shopifySnapshot != null) {
       leaves.push(adoptLeaf(window.resourceType, window.resourceId, "— Shopify window present —"));
       continue;
     }
-    if (window.workingSnapshot == null || window.shopifySnapshot == null) continue;
+    // Linked entity loaded for compare but Shopify window never fetched —
+    // not a conflict, and not "all good". Count separately (audit: compare skip).
+    if (window.shopifySnapshot == null) {
+      uncheckedCount += 1;
+      continue;
+    }
+    if (window.workingSnapshot == null) continue;
     const diffs = diffShopifyProjections(window.workingSnapshot, window.shopifySnapshot);
     for (const diff of diffs) {
       leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
     }
   }
-  return leaves;
+  return { leaves, uncheckedCount };
 }
 
 function asResourceType(value: string): SyncResourceType | null {
@@ -311,7 +321,8 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
   const commerceWindows = input.commerceWindows.filter(
     (window) => !presenceResourceIds.has(`${window.resourceType}:${window.resourceId}`),
   );
-  leaves.push(...compareCommerceWindows(commerceWindows));
+  const commerce = compareCommerceWindows(commerceWindows);
+  leaves.push(...commerce.leaves);
 
   const translation = translationLeaves(input.translationDifferences, input.locales).filter(
     (leaf) => !presenceResourceIds.has(`${leaf.resourceType}:${leaf.resourceId}`),
@@ -322,6 +333,7 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
     checkedAt: input.checkedAt,
     state: resolveState(input, now),
     leaves,
+    uncheckedCount: commerce.uncheckedCount,
     recentlyUpdatedProducts: Object.fromEntries(
       (input.recentlyUpdatedProducts ?? []).map((item) => [item.productId, { updatedAt: item.updatedAt }]),
     ),

@@ -6,18 +6,15 @@
 import "server-only";
 
 import { refreshShopifyProductState } from "@/lib/shopify/product-sync";
+import { scanAndSaveCatalogPresence } from "@/lib/shopify/catalog-presence-server";
 import {
-  getLatestCatalogPresenceDifferences,
-  scanAndSaveCatalogPresence,
-} from "@/lib/shopify/catalog-presence-server";
-import {
-  getLatestCollectionPresenceDifferences,
   refreshShopifyCollectionState,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
 import {
   beginCatalogCheckRun,
   finishCatalogCheckRun,
+  heartbeatCatalogCheckRun,
   runTranslationReconciliation,
 } from "@/lib/shopify/reconciliation-run";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
@@ -42,6 +39,10 @@ export type RefreshShopifyStateResult = {
   runId: string | null;
   /** Another full catalog check is already RUNNING/QUEUED (within lease). */
   alreadyRunning?: boolean;
+  /** Recent AUTO reuse — caller must not stamp a new checkedAt. */
+  reused?: boolean;
+  /** Terminal status of the catalog run this refresh finished (if any). */
+  runStatus?: "SUCCEEDED" | "PARTIAL" | "FAILED" | null;
 };
 
 export type RefreshShopifyStateOptions = {
@@ -80,8 +81,8 @@ export async function refreshShopifyState(
     }
     const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
     if (scope.locale && !shopifyLocale) {
-      // Unpublished registry locale: skip translation refresh; do not surface Markets jargon.
-      return { ok: true, runId: null };
+      // Unpublished registry locale: skip translation refresh; surface honestly.
+      return { ok: true, runId: null, warning: "translations not rechecked" };
     }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
@@ -109,7 +110,7 @@ export async function refreshShopifyState(
     }
     const shopifyLocale = scope.locale ? await resolveShopifyLocale(scope.locale) : null;
     if (scope.locale && !shopifyLocale) {
-      return { ok: true, runId: null };
+      return { ok: true, runId: null, warning: "translations not rechecked" };
     }
     const translationRun = await runTranslationReconciliation({
       trigger: "LOCALE",
@@ -136,7 +137,6 @@ export async function refreshShopifyState(
     try {
       await scanAndSaveCollectionPresence(translationRun.run?.id ?? null);
     } catch (error) {
-      await getLatestCollectionPresenceDifferences();
       warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
 
@@ -150,6 +150,9 @@ export async function refreshShopifyState(
       if (!collection.shopifyCollectionId) continue;
       try {
         await refreshShopifyCollectionState(collection.shopifyCollectionId);
+        if (translationRun.run?.id) {
+          await heartbeatCatalogCheckRun(translationRun.run.id);
+        }
       } catch (error) {
         warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
       }
@@ -177,7 +180,13 @@ export async function refreshShopifyState(
   if (began.status === "reused_recent_auto") {
     return {
       ok: true,
+      reused: true,
       runId: began.run.id,
+      runStatus: began.run.status === "SUCCEEDED"
+        || began.run.status === "PARTIAL"
+        || began.run.status === "FAILED"
+        ? began.run.status
+        : null,
       warning: undefined,
     };
   }
@@ -198,13 +207,11 @@ export async function refreshShopifyState(
     try {
       await scanAndSaveCatalogPresence(runId);
     } catch (error) {
-      await getLatestCatalogPresenceDifferences();
       warnings.push(error instanceof Error ? error.message : "Catalog presence could not be checked.");
     }
     try {
       await scanAndSaveCollectionPresence(runId);
     } catch (error) {
-      await getLatestCollectionPresenceDifferences();
       warnings.push(error instanceof Error ? error.message : "Collection presence could not be checked.");
     }
 
@@ -218,6 +225,7 @@ export async function refreshShopifyState(
       if (!product.shopifyProductId) continue;
       try {
         await refreshShopifyProductState(product.shopifyProductId);
+        await heartbeatCatalogCheckRun(runId);
       } catch (error) {
         warnings.push(error instanceof Error ? error.message : "Product Shopify refresh failed.");
       }
@@ -232,6 +240,7 @@ export async function refreshShopifyState(
       if (!collection.shopifyCollectionId) continue;
       try {
         await refreshShopifyCollectionState(collection.shopifyCollectionId);
+        await heartbeatCatalogCheckRun(runId);
       } catch (error) {
         warnings.push(error instanceof Error ? error.message : "Collection Shopify refresh failed.");
       }
@@ -253,6 +262,7 @@ export async function refreshShopifyState(
       ok: true,
       warning: warnings.length > 0 ? warnings.join(" ") : undefined,
       runId,
+      runStatus: status,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -262,6 +272,6 @@ export async function refreshShopifyState(
       differenceCount,
       error: message,
     });
-    return { ok: false, warning: message, runId };
+    return { ok: false, warning: message, runId, runStatus: "FAILED" };
   }
 }

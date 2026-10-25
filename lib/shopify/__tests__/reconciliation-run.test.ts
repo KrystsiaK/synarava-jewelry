@@ -53,6 +53,7 @@ import {
 } from "@/lib/shopify/reconciliation-run";
 
 function runRow(overrides: Partial<Record<string, unknown>> = {}) {
+  const now = new Date();
   return {
     id: "run-1",
     trigger: "MANUAL",
@@ -60,9 +61,10 @@ function runRow(overrides: Partial<Record<string, unknown>> = {}) {
     checkedCount: 0,
     differenceCount: 0,
     error: null,
-    startedAt: new Date(),
+    startedAt: now,
     completedAt: null,
-    createdAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   };
 }

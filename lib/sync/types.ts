@@ -9,7 +9,13 @@ export type SyncLeafKind = "commerce" | "translation" | "presence";
 
 export type SyncDirection = "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
 
-export type SyncResultState = "ready" | "checking" | "stale" | "failed" | "disconnected";
+export type SyncResultState =
+  | "ready"
+  | "checking"
+  | "stale"
+  | "failed"
+  | "disconnected"
+  | "unknown";
 
 /** One diverging field / presence / translation cell. */
 export type SyncLeaf = {
@@ -38,6 +44,11 @@ export type SyncResult = {
   checkedAt: string | null;
   state: SyncResultState;
   leaves: readonly SyncLeaf[];
+  /**
+   * Linked entities whose Shopify window was never fetched (shopifySnapshot null).
+   * Counted separately from conflicts — never treated as "all good".
+   */
+  uncheckedCount: number;
   recentlyUpdatedProducts: Readonly<Record<string, { updatedAt: string }>>;
 };
 
@@ -76,6 +87,7 @@ export function emptySyncResult(overrides?: Partial<SyncResult>): SyncResult {
     checkedAt: null,
     state: "disconnected",
     leaves: [],
+    uncheckedCount: 0,
     recentlyUpdatedProducts: {},
     ...overrides,
   };

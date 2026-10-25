@@ -35,6 +35,8 @@ export type { CollectionFieldName };
 export type CollectionActionState = {
   error?: string;
   success?: string;
+  warning?: string;
+  syncWarning?: string;
   resetKey?: number;
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
   collection?: SavedCollectionPayload;
@@ -528,12 +530,15 @@ export async function saveCollectionAction(
   revalidateStorefront();
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
 
+  let syncWarning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    syncWarning = check.warning;
   }
 
   return {
     success: `${collectionId ? "Collection updated." : "Collection created."}${cascadeNotice}`,
+    syncWarning,
     resetKey: collectionId ? undefined : Date.now(),
     collection: finalCollection,
   };

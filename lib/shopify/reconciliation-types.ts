@@ -18,6 +18,8 @@ export type ReconcileRunSummary = {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  /** Lease heartbeat — progress bumps this while QUEUED/RUNNING. */
+  updatedAt: string;
 };
 
 export type ReconcileDifferenceView = {

@@ -1416,8 +1416,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     after: savedProduct,
   });
 
+  let syncWarning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    syncWarning = check.warning;
   }
 
   return {
@@ -1425,6 +1427,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       ? `${wasCreate ? "Product created" : "Product saved"} locally. Commerce changes are ready to push.`
       : `${wasCreate ? "Product created" : "Product saved"} locally. Shopify commerce data is unchanged.`,
     warning: publishWarning,
+    syncWarning,
     created: wasCreate,
     product: savedProduct,
   };
