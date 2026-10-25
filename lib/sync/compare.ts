@@ -175,13 +175,29 @@ function asResourceType(value: string): SyncResourceType | null {
   return null;
 }
 
+/**
+ * Collection default-locale (EN) text is the same data as the shared commerce
+ * window (name / handle / description / SEO); every writer mirrors it into the
+ * `locale: "en"` translation row. Comparing it twice shows ONE difference as
+ * two conflicts, so the commerce leaf is the only one.
+ */
+const COLLECTION_COMMERCE_MIRRORED_TRANSLATION_FIELDS = new Set([
+  "name", "localizedHandle", "description", "seoTitle", "seoDescription",
+]);
+
 function translationLeaves(
   differences: SyncCompareInput["translationDifferences"],
   locales: readonly SyncLocaleRef[],
 ): SyncLeaf[] {
   const leaves: SyncLeaf[] = [];
   const seen = new Set<string>();
+  const defaultLocaleCode = locales.find((locale) => locale.isDefault)?.code;
   for (const difference of differences) {
+    if (
+      difference.rootEntityType === "COLLECTION"
+      && resolveLocaleCode(difference.locale, locales) === defaultLocaleCode
+      && COLLECTION_COMMERCE_MIRRORED_TRANSLATION_FIELDS.has(difference.fieldKey)
+    ) continue;
     // PR3: two-way compare emits CONFLICT for any Synarava ≠ Shopify.
     // Legacy LOCAL_ONLY / SHOPIFY_ONLY rows are ignored until re-checked.
     if (difference.kind !== "CONFLICT" && difference.rootEntityType === "PRODUCT") continue;
