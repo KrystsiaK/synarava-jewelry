@@ -784,6 +784,8 @@ model ShopifyReconcileRun {
 
   @@index([status, createdAt])
   @@index([completedAt])
+  // Matches getLatestReconcileRun ORDER BY "createdAt" DESC
+  @@index([createdAt])
 }
 
 // Latest catalog-level identity comparison. Field divergences belong to
@@ -831,6 +833,10 @@ model ShopifyFieldDivergence {
   @@index([bindingId, locale])
   @@index([rootEntityType, rootEntityId, locale])
   @@index([kind, resolvedAt])
+  // Partial open-diff index lives in SQL migration only (Prisma has no WHERE on @@index):
+  // ShopifyFieldDivergence_open_partition_idx
+  //   (bindingId, locale, fieldKey, createdAt DESC) WHERE resolvedAt IS NULL
+  // Matches getLatestReconcileDifferences ROW_NUMBER partition/order.
 }
 
 model TranslationSyncEvent {

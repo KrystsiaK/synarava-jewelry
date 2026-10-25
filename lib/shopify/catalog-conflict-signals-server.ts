@@ -2,6 +2,7 @@ import "server-only";
 
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { cleanupSyncHistoryBestEffort } from "@/lib/shopify/sync-history-retention";
 import {
   catalogConflictSignalsFromSyncResult,
   runSyncWaterfall,
@@ -101,11 +102,15 @@ export async function runCatalogConflictCheck(
   alreadyRunning?: boolean;
   result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"];
 }> {
-  return signalsFromWaterfall(
+  const checked = await signalsFromWaterfall(
     { kind: "catalog" },
     requestedBy,
     "PRODUCT",
     { trigger: options?.trigger ?? "MANUAL" },
   );
+  // Opportunistic 90-day retention — no app cron in this deployment
+  // (same pattern as cleanupExpiredCustomerSessions). Never blocks/fails the check.
+  void cleanupSyncHistoryBestEffort();
+  return checked;
 }
 

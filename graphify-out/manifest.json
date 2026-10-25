@@ -468,8 +468,8 @@
     "semantic_hash": ""
   },
   "app/admin/(admin)/layout.tsx": {
-    "mtime": 1792965887.1116118,
-    "seen": 1792966539.9978745,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9749846,
     "ast_hash": "82cecee00f6f6a1da9d249c4fc1faef8",
     "semantic_hash": ""
   },
@@ -552,9 +552,9 @@
     "semantic_hash": ""
   },
   "app/admin/actions/__tests__/pages.test.ts": {
-    "mtime": 1792772145.2843077,
-    "seen": 1792885495.0366576,
-    "ast_hash": "974625dea6d8fddc66496d6addb52082",
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9753065,
+    "ast_hash": "54b92f48320c4aaaa44758fe3ba4589a",
     "semantic_hash": ""
   },
   "app/admin/actions/__tests__/products.test.ts": {
@@ -600,9 +600,9 @@
     "semantic_hash": ""
   },
   "app/admin/actions/collections.ts": {
-    "mtime": 1792965900.53519,
-    "seen": 1792966539.998349,
-    "ast_hash": "87972e096363b8d6c1b8d3efb1396d79",
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.975446,
+    "ast_hash": "9802d93a1ed00161ad665752e9dfcbfe",
     "semantic_hash": ""
   },
   "app/admin/actions/commerce-copy.ts": {
@@ -618,9 +618,9 @@
     "semantic_hash": ""
   },
   "app/admin/actions/pages.ts": {
-    "mtime": 1792772145.2843077,
-    "seen": 1792885495.0366688,
-    "ast_hash": "5babda323b56467e1e12ed7e7b34e0e6",
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9754875,
+    "ast_hash": "07659d6304d11fb5e878aa9cb77fbded",
     "semantic_hash": ""
   },
   "app/admin/actions/product-organization.ts": {
@@ -630,9 +630,9 @@
     "semantic_hash": ""
   },
   "app/admin/actions/products.ts": {
-    "mtime": 1792965899.4352243,
-    "seen": 1792966539.9984365,
-    "ast_hash": "2ce077b2f044e78b585debc834acb85c",
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.975507,
+    "ast_hash": "cd51df37edbfb2c0ee5443519c3f6a79",
     "semantic_hash": ""
   },
   "app/admin/actions/shared.ts": {
@@ -660,8 +660,8 @@
     "semantic_hash": ""
   },
   "app/admin/actions/sync.ts": {
-    "mtime": 1792883331.3921375,
-    "seen": 1792885495.036679,
+    "mtime": 1792969339.2111475,
+    "seen": 1792969836.975605,
     "ast_hash": "fee35f984e86621031fe6f073ff8d78b",
     "semantic_hash": ""
   },
@@ -702,8 +702,8 @@
     "semantic_hash": ""
   },
   "app/admin/api/shopify/reconcile/apply/route.ts": {
-    "mtime": 1792772145.2843077,
-    "seen": 1792885495.0366874,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9757519,
     "ast_hash": "a8a21a2a0ece0da8d8c6ef0df7ad9418",
     "semantic_hash": ""
   },
@@ -858,8 +858,8 @@
     "semantic_hash": ""
   },
   "app/api/shopify/webhooks/products/route.ts": {
-    "mtime": 1792788463.7080328,
-    "seen": 1792885495.036716,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.976463,
     "ast_hash": "7ed7fc4eaf362ec7c79ae9978ed28b17",
     "semantic_hash": ""
   },
@@ -1176,14 +1176,14 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/catalog-conflict-signals.test.tsx": {
-    "mtime": 1792966256.3875175,
-    "seen": 1792966540.0005708,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9777827,
     "ast_hash": "97cfa0d00904ecfde875aa2cfbd970e0",
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/catalog-conflict-workspace.test.tsx": {
-    "mtime": 1792925929.600657,
-    "seen": 1792931126.2665472,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9778056,
     "ast_hash": "13446d1527dfdb874be88d54b9d43db3",
     "semantic_hash": ""
   },
@@ -1194,8 +1194,8 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-conflict-badge-count.test.ts": {
-    "mtime": 1792876238.414182,
-    "seen": 1792885495.0367951,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9778292,
     "ast_hash": "5f6cb1f09d49a4250f36bf4a9ace913d",
     "semantic_hash": ""
   },
@@ -1206,8 +1206,8 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-edit-form.test.tsx": {
-    "mtime": 1792925912.1128383,
-    "seen": 1792931126.2666538,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9778552,
     "ast_hash": "eb6e46f89ecba33e1481266d1143ec92",
     "semantic_hash": ""
   },
@@ -1260,8 +1260,8 @@
     "semantic_hash": ""
   },
   "components/admin/products/product-edit-form.tsx": {
-    "mtime": 1792924719.9016292,
-    "seen": 1792925071.8622708,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.978185,
     "ast_hash": "128fee840676ddfc519a5e2de7b6c4a5",
     "semantic_hash": ""
   },
@@ -1314,8 +1314,8 @@
     "semantic_hash": ""
   },
   "components/admin/products/product-locale-conflict-control.tsx": {
-    "mtime": 1792883331.3921375,
-    "seen": 1792885495.0368364,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9783342,
     "ast_hash": "b1b7038654c2354c4d9df3343b01b9e0",
     "semantic_hash": ""
   },
@@ -1350,8 +1350,8 @@
     "semantic_hash": ""
   },
   "components/admin/products/product-sync-strip.tsx": {
-    "mtime": 1792965548.843006,
-    "seen": 1792966540.001381,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9784462,
     "ast_hash": "e6e2fcf83e643d366b110f7bf8cf0db9",
     "semantic_hash": ""
   },
@@ -1512,8 +1512,8 @@
     "semantic_hash": ""
   },
   "components/admin/shared/__tests__/admin-nav-config.test.ts": {
-    "mtime": 1792876238.414182,
-    "seen": 1792885495.036882,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9790804,
     "ast_hash": "e8cc77b1b8ecfbe744c246deed099c12",
     "semantic_hash": ""
   },
@@ -1914,8 +1914,8 @@
     "semantic_hash": ""
   },
   "components/admin/translations/admin-shopify-sync-signal.tsx": {
-    "mtime": 1792965869.764175,
-    "seen": 1792966540.0036182,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9806583,
     "ast_hash": "14e44aae80dae34844124d65b089431b",
     "semantic_hash": ""
   },
@@ -4248,9 +4248,9 @@
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/collection-save-integration.test.ts": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.0375304,
-    "ast_hash": "62dd1d269ccb90e728e46dcdb060a9b7",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9883716,
+    "ast_hash": "e0f8174006eee4cdea800d822475ea87",
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/context.test.tsx": {
@@ -4278,15 +4278,15 @@
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/page-save-integration.test.ts": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.0375443,
-    "ast_hash": "8267c6469a9d4252f5919c9173b0a3d4",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9885433,
+    "ast_hash": "41c066499ae1fd1cbae1b22999dc6c55",
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/product-save-integration.test.ts": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.0375452,
-    "ast_hash": "31464624d0fdbf4def8d4e355d7eafb3",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9885442,
+    "ast_hash": "e3abdb1dc55ede124aade00a1b877470",
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/routing.test.ts": {
@@ -4764,8 +4764,8 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/catalog-conflict-apply.test.ts": {
-    "mtime": 1792793999.335192,
-    "seen": 1792885495.0376809,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9906716,
     "ast_hash": "51f531e972dd214bd356cb3c119bff60",
     "semantic_hash": ""
   },
@@ -4776,14 +4776,14 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/catalog-conflict-signals.test.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.037683,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9906914,
     "ast_hash": "7cc38f9ce89000861ae29743cdd0f5c6",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/catalog-conflict.test.ts": {
-    "mtime": 1792796001.7715607,
-    "seen": 1792885495.037684,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9906926,
     "ast_hash": "86d98575799b53eb5e0149414a7c9d00",
     "semantic_hash": ""
   },
@@ -4824,14 +4824,14 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/collection-conflict-apply.test.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0376923,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9908233,
     "ast_hash": "b94f10d7c211768fdfc266925b6600f6",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/collection-conflict.test.ts": {
-    "mtime": 1792933814.8939984,
-    "seen": 1792934331.2845752,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9908242,
     "ast_hash": "3d8a3f3c60230c4d40edb0a88eeed498",
     "semantic_hash": ""
   },
@@ -4980,8 +4980,8 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/product-translation-wipe-regression.test.ts": {
-    "mtime": 1792876238.5341973,
-    "seen": 1792885495.0377216,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9913216,
     "ast_hash": "22a2e962dc4cd38f13293285c82c140f",
     "semantic_hash": ""
   },
@@ -5010,14 +5010,14 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/reconciliation-run.test.ts": {
-    "mtime": 1792966027.2077541,
-    "seen": 1792966540.014266,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9913964,
     "ast_hash": "1267a31866b6ed6a51455da0057d37bb",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/reconciliation.test.ts": {
-    "mtime": 1792772145.2523108,
-    "seen": 1792885495.037727,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.991399,
     "ast_hash": "ba0ffc98205d6f7ab78c3af0b21121dc",
     "semantic_hash": ""
   },
@@ -5154,14 +5154,14 @@
     "semantic_hash": ""
   },
   "lib/shopify/catalog-conflict-apply.ts": {
-    "mtime": 1792793999.335192,
-    "seen": 1792885495.0377567,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.991852,
     "ast_hash": "beb73df4258a34f564694373a2011c7d",
     "semantic_hash": ""
   },
   "lib/shopify/catalog-conflict-policy.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0377576,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9918535,
     "ast_hash": "640f3ac27e01c8e1eaa1234ef1bcf402",
     "semantic_hash": ""
   },
@@ -5172,26 +5172,26 @@
     "semantic_hash": ""
   },
   "lib/shopify/catalog-conflict-signals-server.ts": {
-    "mtime": 1792886070.8786664,
-    "seen": 1792925071.876723,
-    "ast_hash": "6870efdccb2ca2846dff528ce16d562a",
+    "mtime": 1792969476.4993653,
+    "seen": 1792969836.9918723,
+    "ast_hash": "46a3db8f36dad020320161d16a7cd676",
     "semantic_hash": ""
   },
   "lib/shopify/catalog-conflict-signals.ts": {
-    "mtime": 1792965736.2130713,
-    "seen": 1792966540.0148294,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9918733,
     "ast_hash": "9740e4e6538dfbaacf73ec21a5a0f7d0",
     "semantic_hash": ""
   },
   "lib/shopify/catalog-conflict.ts": {
-    "mtime": 1792796001.7715607,
-    "seen": 1792885495.0377626,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9918742,
     "ast_hash": "fdaee2199f983087db755b3eadc1d18d",
     "semantic_hash": ""
   },
   "lib/shopify/catalog-presence-server.ts": {
-    "mtime": 1792965934.9221632,
-    "seen": 1792966540.0148463,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9918752,
     "ast_hash": "ffaf4b1d04c589dd167ca15b2dc35e47",
     "semantic_hash": ""
   },
@@ -5226,14 +5226,14 @@
     "semantic_hash": ""
   },
   "lib/shopify/collection-conflict-apply.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0377707,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9919603,
     "ast_hash": "c1f4e6a969d13eea54ffd97b81325dad",
     "semantic_hash": ""
   },
   "lib/shopify/collection-conflict.ts": {
-    "mtime": 1792933743.7305322,
-    "seen": 1792934331.2861443,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9919617,
     "ast_hash": "0251e62d91c85239ff09a260b84e1f7e",
     "semantic_hash": ""
   },
@@ -5250,9 +5250,9 @@
     "semantic_hash": ""
   },
   "lib/shopify/collection-presence-server.ts": {
-    "mtime": 1792965934.930163,
-    "seen": 1792966540.015009,
-    "ast_hash": "6d4136f2f16577deb1367d1c2f55ec48",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.991995,
+    "ast_hash": "cc9e2c80e569e05851ccc45cfc459deb",
     "semantic_hash": ""
   },
   "lib/shopify/collection-presence.ts": {
@@ -5388,9 +5388,9 @@
     "semantic_hash": ""
   },
   "lib/shopify/editorial-translation-sync.ts": {
-    "mtime": 1792796001.7715607,
-    "seen": 1792885495.0377982,
-    "ast_hash": "b6510b973bdc99ac207b062b0570b043",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.992439,
+    "ast_hash": "be13c32b7d8e0a7cc9537adea1ae24c2",
     "semantic_hash": ""
   },
   "lib/shopify/inventory-levels.ts": {
@@ -5496,8 +5496,8 @@
     "semantic_hash": ""
   },
   "lib/shopify/product-sync.ts": {
-    "mtime": 1792933755.7264438,
-    "seen": 1792934331.2872849,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9927506,
     "ast_hash": "83e89f2880d24422971acb5c3e0715f3",
     "semantic_hash": ""
   },
@@ -5520,20 +5520,20 @@
     "semantic_hash": ""
   },
   "lib/shopify/reconciliation-run.ts": {
-    "mtime": 1792965846.7169557,
-    "seen": 1792966540.0158029,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.992799,
     "ast_hash": "713139ef4ebcdf52fe0d69c697accdb5",
     "semantic_hash": ""
   },
   "lib/shopify/reconciliation-source.ts": {
-    "mtime": 1792796001.7755606,
-    "seen": 1792885495.0378218,
-    "ast_hash": "75819837b9b8cc364aae0ade522cdb19",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9928005,
+    "ast_hash": "b2855b6bbf177f8ee13851f300f72d68",
     "semantic_hash": ""
   },
   "lib/shopify/reconciliation.ts": {
-    "mtime": 1792772145.26031,
-    "seen": 1792885495.037824,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.992803,
     "ast_hash": "5d6c2cc432bededa8756e5a1c9909897",
     "semantic_hash": ""
   },
@@ -12408,26 +12408,26 @@
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-conflict-compare-banner.test.tsx": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.036797,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.977831,
     "ast_hash": "e1b22598bd350630b0891796bc6d8f7d",
     "semantic_hash": ""
   },
   "components/admin/products/__tests__/product-conflict-compare-summary.test.ts": {
-    "mtime": 1792876238.414182,
-    "seen": 1792885495.0367985,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9778326,
     "ast_hash": "1ee7ee269593c7dffa7352a479317202",
     "semantic_hash": ""
   },
   "components/admin/products/product-conflict-compare-banner.tsx": {
-    "mtime": 1792772145.2443116,
-    "seen": 1792885495.0368218,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9781632,
     "ast_hash": "d24063bd853cbf2ed68f268ef2fd29b8",
     "semantic_hash": ""
   },
   "components/admin/products/product-conflict-compare-summary.ts": {
-    "mtime": 1792876238.414182,
-    "seen": 1792885495.0368233,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9781647,
     "ast_hash": "59dbfa44ee94c82843a673fb0cce2b5a",
     "semantic_hash": ""
   },
@@ -12492,8 +12492,8 @@
     "semantic_hash": ""
   },
   "app/admin/actions/sku-assign.ts": {
-    "mtime": 1792965916.7546964,
-    "seen": 1792966539.998475,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9755464,
     "ast_hash": "486e03482c42db738f8e12fc8fb7229e",
     "semantic_hash": ""
   },
@@ -13632,14 +13632,14 @@
     "semantic_hash": ""
   },
   "docs/wiki/catalog-conflict-resolution-ux.md": {
-    "mtime": 1792876238.4181824,
-    "seen": 1792885495.0388455,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969837.0104618,
     "ast_hash": "7c2d26074932e2da7ffbdd593c0d8e8e",
     "semantic_hash": ""
   },
   "docs/wiki/commerce-sync.md": {
-    "mtime": 1792876238.4181824,
-    "seen": 1792885495.0388465,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969837.010463,
     "ast_hash": "5c8fbd98e10eda4f3275f9687eccfda5",
     "semantic_hash": ""
   },
@@ -14058,8 +14058,8 @@
     "semantic_hash": ""
   },
   "app/admin/actions/languages.ts": {
-    "mtime": 1792965936.214126,
-    "seen": 1792966539.9983974,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9754863,
     "ast_hash": "e263f4bc7cd321b3a25e5a608b2496b6",
     "semantic_hash": ""
   },
@@ -14166,9 +14166,9 @@
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/language-bundle.test.ts": {
-    "mtime": 1792804933.9965825,
-    "seen": 1792885495.0375342,
-    "ast_hash": "f8645f3aa3634dab4dade415497cf1cc",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.988411,
+    "ast_hash": "dfe890e6207172c58bb596288fdce543",
     "semantic_hash": ""
   },
   "lib/i18n/__tests__/language-export-receipt.test.ts": {
@@ -14208,9 +14208,9 @@
     "semantic_hash": ""
   },
   "lib/i18n/language-bundle.ts": {
-    "mtime": 1792804500.095834,
-    "seen": 1792885495.0375605,
-    "ast_hash": "e2ab3a0278a51cf9a6c49784564f95ef",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9887764,
+    "ast_hash": "d3a2a0d377dbe9db03ae21053e130e08",
     "semantic_hash": ""
   },
   "lib/i18n/language-export-receipt.ts": {
@@ -14274,8 +14274,8 @@
     "semantic_hash": ""
   },
   "lib/shopify/reconciliation-types.ts": {
-    "mtime": 1792965797.4507573,
-    "seen": 1792966540.0158198,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9928021,
     "ast_hash": "79c77fbfc0b4eee94c58210f9e824152",
     "semantic_hash": ""
   },
@@ -14430,20 +14430,20 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/auto-sync-no-synarava-writers.guard.test.ts": {
-    "mtime": 1792883331.4961374,
-    "seen": 1792885495.0376775,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9906316,
     "ast_hash": "90be0f9dee6120580fd9e02c20013342",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/refresh-shopify-product-state.test.ts": {
-    "mtime": 1792788463.7640321,
-    "seen": 1792885495.0377302,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.991402,
     "ast_hash": "76ee6e08a4466132b575b64b80f0a41f",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/webhook-products-no-synarava-write.test.ts": {
-    "mtime": 1792788463.7640321,
-    "seen": 1792885495.0377502,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9917612,
     "ast_hash": "0d4428c19ddd9228d4ce28bb77ba3b46",
     "semantic_hash": ""
   },
@@ -14592,8 +14592,8 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/inspect-product-sync-state.test.ts": {
-    "mtime": 1792933814.8979983,
-    "seen": 1792934331.284764,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9910269,
     "ast_hash": "1446aaec062877816b1beeb47dc54a77",
     "semantic_hash": ""
   },
@@ -14634,26 +14634,26 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/refresh-shopify-collection-state.test.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.037729,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9914007,
     "ast_hash": "16a189a3da289eb625d66f32d652247f",
     "semantic_hash": ""
   },
   "lib/shopify/collection-commerce-field-apply.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.037769,
-    "ast_hash": "43584c485ec8bbef24c65aa69987385d",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9919424,
+    "ast_hash": "d355604de8700e8c0f7b7d6e87a6f7f8",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/compare.characterization.test.ts": {
-    "mtime": 1792965548.8470058,
-    "seen": 1792966540.0165427,
-    "ast_hash": "bf241a3a5c3f416f7ad328fff559ee73",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9935322,
+    "ast_hash": "1eab63fa1abb82291274223997ac51e0",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/no-second-compare-or-counter.guard.test.ts": {
-    "mtime": 1792876238.5341973,
-    "seen": 1792885495.037878,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935544,
     "ast_hash": "fc0087447aa88f37e0410858e4a2f163",
     "semantic_hash": ""
   },
@@ -14664,62 +14664,62 @@
     "semantic_hash": ""
   },
   "lib/sync/apply/collection.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378833,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935803,
     "ast_hash": "272539ee4da0428436e4172843417acb",
     "semantic_hash": ""
   },
   "lib/sync/apply/index.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378845,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935813,
     "ast_hash": "5bae9ea7fa51b22f04f90cebb59b6ab0",
     "semantic_hash": ""
   },
   "lib/sync/apply/presence.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378854,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935822,
     "ast_hash": "861c123ca3617d7303ab3281c07e17ca",
     "semantic_hash": ""
   },
   "lib/sync/apply/product.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378864,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935834,
     "ast_hash": "051643fd419550cb99fdab8e996703e5",
     "semantic_hash": ""
   },
   "lib/sync/apply/translation.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.037888,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935846,
     "ast_hash": "5a36e7d02482dd6784530bbf55c671e2",
     "semantic_hash": ""
   },
   "lib/sync/badge-count.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378892,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935858,
     "ast_hash": "3256727d8b043084561721801f9ce1a0",
     "semantic_hash": ""
   },
   "lib/sync/build-signals.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378907,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.993587,
     "ast_hash": "21cb2a0206ad6982f27b6d9b47d6c665",
     "semantic_hash": ""
   },
   "lib/sync/compare.ts": {
-    "mtime": 1792965736.2370718,
-    "seen": 1792966540.0167308,
-    "ast_hash": "b7b5333a94509aff26d8ff2483a76640",
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9935884,
+    "ast_hash": "d069bcb3ee1cda8d83bd034ea60c9b35",
     "semantic_hash": ""
   },
   "lib/sync/index.ts": {
-    "mtime": 1792933652.959182,
-    "seen": 1792934331.2899935,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935894,
     "ast_hash": "b9965eb7353abd5a5ea3570744745c2a",
     "semantic_hash": ""
   },
   "lib/sync/nav-counts.ts": {
-    "mtime": 1792803648.24252,
-    "seen": 1792885495.0378938,
+    "mtime": 1792969339.2631476,
+    "seen": 1792969836.9935908,
     "ast_hash": "76f2baa752a0812145b6b4fe78acc4f6",
     "semantic_hash": ""
   },
@@ -14730,8 +14730,8 @@
     "semantic_hash": ""
   },
   "lib/sync/refresh-shopify-state.ts": {
-    "mtime": 1792965788.6350996,
-    "seen": 1792966540.016783,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.993611,
     "ast_hash": "131fbbb2badc915422611f0c0e149919",
     "semantic_hash": ""
   },
@@ -14742,20 +14742,20 @@
     "semantic_hash": ""
   },
   "lib/sync/signals-from-result.ts": {
-    "mtime": 1792965751.1646276,
-    "seen": 1792966540.0168016,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9936292,
     "ast_hash": "26a4d799ce5de7a32d10c54b50935ad7",
     "semantic_hash": ""
   },
   "lib/sync/types.ts": {
-    "mtime": 1792965721.5489092,
-    "seen": 1792966540.0168025,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9936302,
     "ast_hash": "354eb348e817131b766291719e7f5e98",
     "semantic_hash": ""
   },
   "lib/sync/waterfall.ts": {
-    "mtime": 1792965751.1646276,
-    "seen": 1792966540.0168037,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9936318,
     "ast_hash": "16dc744fc57df490e955577a6cffdd48",
     "semantic_hash": ""
   },
@@ -14772,9 +14772,9 @@
     "semantic_hash": ""
   },
   "docs/wiki/translation-operations.md": {
-    "mtime": 1792796167.1437955,
-    "seen": 1792885495.0388565,
-    "ast_hash": "2f4a93d12fd8e890a9b19b1b4b3875ad",
+    "mtime": 1792969339.5631483,
+    "seen": 1792969837.0106106,
+    "ast_hash": "2056f7c9c7abd1561494f3cc51edd976",
     "semantic_hash": ""
   },
   "components/admin/collections/collection-conflict-view.ts": {
@@ -14796,26 +14796,26 @@
     "semantic_hash": ""
   },
   "components/admin/shared/catalog-conflict-signals.tsx": {
-    "mtime": 1792965934.9221632,
-    "seen": 1792966540.0034463,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9804895,
     "ast_hash": "b87f7ead1c10d89c89010891e3d9ffc7",
     "semantic_hash": ""
   },
   "docs/user/sync-collections.md": {
-    "mtime": 1792933974.4967372,
-    "seen": 1792934331.3192291,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969837.0104237,
     "ast_hash": "0fd6519878b4bff3af70a83f19a59711",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/refresh-shopify-state-collections.test.ts": {
-    "mtime": 1792966072.642734,
-    "seen": 1792966540.0165834,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9935563,
     "ast_hash": "8a2b57324a927fe67faf77b25f40a60b",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/topbar-full-waterfall.test.ts": {
-    "mtime": 1792966087.11443,
-    "seen": 1792966540.0166037,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9935775,
     "ast_hash": "04185fb79634f616269600281257681b",
     "semantic_hash": ""
   },
@@ -14832,14 +14832,14 @@
     "semantic_hash": ""
   },
   "components/synarava-cms/__tests__/conflict-resolver.test.tsx": {
-    "mtime": 1792965548.8470058,
-    "seen": 1792966540.0063152,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9834247,
     "ast_hash": "cd50d059c1af47e4e9b8324765743b77",
     "semantic_hash": ""
   },
   "components/synarava-cms/conflict-resolver.stories.tsx": {
-    "mtime": 1792930877.3352563,
-    "seen": 1792931126.2724915,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9834435,
     "ast_hash": "891428d3474638ad7dc587c2f4b50703",
     "semantic_hash": ""
   },
@@ -14862,8 +14862,8 @@
     "semantic_hash": ""
   },
   "components/admin/translations/__tests__/admin-shopify-check-disable.test.tsx": {
-    "mtime": 1792926187.635176,
-    "seen": 1792931126.2697103,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.980635,
     "ast_hash": "02a9fd2674b8e25deb42120f126f1239",
     "semantic_hash": ""
   },
@@ -14874,38 +14874,38 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/after-save-catalog-check.guard.test.ts": {
-    "mtime": 1792886070.8786664,
-    "seen": 1792925071.8752584,
+    "mtime": 1792969339.2591476,
+    "seen": 1792969836.990629,
     "ast_hash": "3fe51394dd487dcfe8a11b045168e2c7",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/after-save-catalog-check.test.ts": {
-    "mtime": 1792966027.1917543,
-    "seen": 1792966540.0133781,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9906304,
     "ast_hash": "d23f1a63c9286533144708ec62d8acde",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/catalog-check-single-flight.test.ts": {
-    "mtime": 1792966028.9637127,
-    "seen": 1792966540.0134363,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9906707,
     "ast_hash": "4265cef6580eb8687f8258b9d4fbbdf2",
     "semantic_hash": ""
   },
   "lib/shopify/after-save-catalog-check.ts": {
-    "mtime": 1792965887.1196115,
-    "seen": 1792966540.0147293,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9918168,
     "ast_hash": "650559f3bc446fb30a92b1d6bbef426d",
     "semantic_hash": ""
   },
   "docs/user/shopify-sync-button.md": {
-    "mtime": 1792886070.8306663,
-    "seen": 1792925071.8959901,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969837.010422,
     "ast_hash": "a9aee87a3a44950d3e0e440737303ee3",
     "semantic_hash": ""
   },
   "components/synarava-cms/__tests__/conflict-resolver-confirm.test.ts": {
-    "mtime": 1792965548.8470058,
-    "seen": 1792966540.0063138,
+    "mtime": 1792969339.2151475,
+    "seen": 1792969836.9834228,
     "ast_hash": "c10232275f4fbf4b2ef7e9ebf3f2f084",
     "semantic_hash": ""
   },
@@ -14940,8 +14940,8 @@
     "semantic_hash": ""
   },
   "components/admin/translations/__tests__/admin-shopify-sync-signal.test.tsx": {
-    "mtime": 1792966071.4587593,
-    "seen": 1792966540.003596,
+    "mtime": 1792969339.5631483,
+    "seen": 1792969836.9806366,
     "ast_hash": "486a66cf0a2dd1587fcf829911785627",
     "semantic_hash": ""
   },
@@ -14964,45 +14964,81 @@
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/admin-shopify-sync-signal.guard.test.ts": {
-    "mtime": 1792966071.3547616,
-    "seen": 1792966540.0133348,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9906058,
     "ast_hash": "af80706735968f9dd590e3ea855cd26e",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/after-save-catalog-check.follow-up.test.ts": {
-    "mtime": 1792966003.8403194,
-    "seen": 1792966540.0133564,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.990627,
     "ast_hash": "55b56cfc809d6b39e674de198472dc44",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/finish-run-and-lease.test.ts": {
-    "mtime": 1792966003.8363194,
-    "seen": 1792966540.0138633,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.991024,
     "ast_hash": "3ea3f4562897f7148f7cc3ae0bc82d45",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/get-latest-full-catalog-run.test.ts": {
-    "mtime": 1792965977.3049972,
-    "seen": 1792966540.0138648,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9910254,
     "ast_hash": "af1ba73435d51950ac32f5d4347b29fe",
     "semantic_hash": ""
   },
   "lib/shopify/__tests__/one-active-reconcile-run.migration.test.ts": {
-    "mtime": 1792966026.8397627,
-    "seen": 1792966540.0139573,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9911022,
     "ast_hash": "1154c0fc990d05b209c124b40816bff1",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/compare-unchecked.test.ts": {
-    "mtime": 1792965977.2929974,
-    "seen": 1792966540.0165412,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9935303,
     "ast_hash": "53ef9e4efc907abfb1a6696fd5dfaeaf",
     "semantic_hash": ""
   },
   "lib/sync/__tests__/waterfall-checked-at.test.ts": {
-    "mtime": 1792965977.3129969,
-    "seen": 1792966540.016605,
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.993579,
     "ast_hash": "6d4424991f4a7049be8cd46feda2b399",
+    "semantic_hash": ""
+  },
+  "lib/i18n/__tests__/no-en-translation-rows.guard.test.ts": {
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9885411,
+    "ast_hash": "9cc769cfa63915c5fe724bb4b8c7a5aa",
+    "semantic_hash": ""
+  },
+  "lib/shopify/__tests__/reconciliation-source-en-base.test.ts": {
+    "mtime": 1792969339.6071482,
+    "seen": 1792969836.9913976,
+    "ast_hash": "98a6282e0d945cb3cbefc424fe23ce55",
+    "semantic_hash": ""
+  },
+  "lib/shopify/__tests__/sync-history-retention-indexes.migration.test.ts": {
+    "mtime": 1792969516.4234304,
+    "seen": 1792969836.9916098,
+    "ast_hash": "fa03cf760a1ab78539b470caab8792a5",
+    "semantic_hash": ""
+  },
+  "lib/shopify/__tests__/sync-history-retention.test.ts": {
+    "mtime": 1792969645.6796458,
+    "seen": 1792969836.9916115,
+    "ast_hash": "6ec18f8a02876a9c4cbc8419207454e8",
+    "semantic_hash": ""
+  },
+  "lib/shopify/sync-history-retention.ts": {
+    "mtime": 1792969569.2955177,
+    "seen": 1792969836.9929664,
+    "ast_hash": "8f47b34131ca90412a04b4d2ce5855e6",
+    "semantic_hash": ""
+  },
+  "scripts/db/cleanup-sync-history.mjs": {
+    "mtime": 1792969528.1234496,
+    "seen": 1792969836.9948695,
+    "ast_hash": "d52000251b1b41dcff3bb5e34773285d",
     "semantic_hash": ""
   }
 }
