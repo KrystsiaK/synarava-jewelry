@@ -163,7 +163,7 @@ describe("runTranslationReconciliation", () => {
   it("retires every unresolved row for the (binding, locale) and inserts the fresh ones in the same transaction — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
     setUpSingleBindingSingleLocaleCheck([{
       fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
-      baseValue: null, localValue: "A", shopifyValue: "B",
+      localValue: "A", shopifyValue: "B",
       localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
     }]);
     mocks.queryRaw.mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 1, differenceCount: 1 })]); // runById after finishRun
@@ -205,7 +205,7 @@ describe("runTranslationReconciliation", () => {
   it("does not lose existing conflicts when the insert half of persistDifferences fails — retire and insert roll back together", async () => {
     setUpSingleBindingSingleLocaleCheck([{
       fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
-      baseValue: null, localValue: "A", shopifyValue: "B",
+      localValue: "A", shopifyValue: "B",
       localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
     }]);
     mocks.queryRaw.mockResolvedValueOnce([runRow({

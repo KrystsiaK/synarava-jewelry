@@ -1360,12 +1360,12 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   let savedProduct = await getSavedProductPayload(product.id);
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
+  // Conflict inventory is SyncResult leaves — do not specially preserve CONFLICT.
+  // Commerce edit → PENDING (push intent). Identity CONFLICT stays until resolved.
   const nextSyncStatus = savedProduct.shopifyProductId
-    ? before?.syncStatus === "CONFLICT"
-      ? "CONFLICT"
-      : commerceChanged
-        ? "PENDING"
-        : savedProduct.syncStatus
+    ? commerceChanged
+      ? "PENDING"
+      : savedProduct.syncStatus
     : "UNLINKED";
 
   if (savedProduct.syncStatus !== nextSyncStatus || savedProduct.syncError) {
@@ -1687,9 +1687,8 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
     where: { id: productId },
     data: {
       ...state,
-      syncStatus: before?.shopifyProductId
-        ? before.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING"
-        : "UNLINKED",
+      // Status change is push intent — conflict inventory is SyncResult leaves.
+      syncStatus: before?.shopifyProductId ? "PENDING" : "UNLINKED",
       syncError: null,
     },
     select: { id: true, slug: true, status: true },

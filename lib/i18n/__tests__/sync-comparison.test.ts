@@ -72,10 +72,10 @@ describe("compareLocalizedFields (two-way)", () => {
       fieldLabel: "Title",
       targetKind: "native",
       kind: "conflict",
-      baseValue: null,
       localValue: "New ring",
       shopifyValue: "Ring",
     });
+    expect(differences[0]).not.toHaveProperty("baseValue");
   });
 
   it("marks Shopify-only value changes as conflict and carries remote freshness metadata", () => {
@@ -87,7 +87,6 @@ describe("compareLocalizedFields (two-way)", () => {
     expect(differences[0]).toMatchObject({
       fieldKey: "body",
       kind: "conflict",
-      baseValue: null,
       shopifyUpdatedAt: "2026-09-20T09:00:00.000Z",
       shopifyOutdated: false,
     });

@@ -1,6 +1,4 @@
 import {
-  determineSyncDirection,
-  diffFieldConflicts,
   entityLocaleReadiness,
   missingRequiredForPublish,
   resolveEntityLocale,
@@ -61,38 +59,6 @@ describe("missingRequiredForPublish", () => {
 
   it("passes when both locales are filled and PT is reviewed", () => {
     expect(missingRequiredForPublish(WIDGET_REGISTRY, complete, complete, { portugueseReviewed: true, isAlreadyPublic: false })).toEqual([]);
-  });
-});
-
-describe("diffFieldConflicts + determineSyncDirection", () => {
-  const base = { title: "Ring", caption: "Handmade", sku: "SKU-1" };
-
-  it("is noop when nothing changed", () => {
-    expect(determineSyncDirection(WIDGET_REGISTRY, base, base, base)).toBe("noop");
-  });
-
-  it("pushes when only local changed", () => {
-    const local = { ...base, title: "New Ring" };
-    expect(determineSyncDirection(WIDGET_REGISTRY, base, local, base)).toBe("push");
-  });
-
-  it("pulls when only remote changed", () => {
-    const remote = { ...base, title: "Remote Ring" };
-    expect(determineSyncDirection(WIDGET_REGISTRY, base, base, remote)).toBe("pull");
-  });
-
-  it("flags a field-level conflict when both sides changed the same field differently", () => {
-    const local = { ...base, title: "Local Ring" };
-    const remote = { ...base, title: "Remote Ring" };
-    expect(determineSyncDirection(WIDGET_REGISTRY, base, local, remote)).toBe("conflict");
-    expect(diffFieldConflicts(WIDGET_REGISTRY, base, local, remote)).toEqual([
-      { field: "title", local: "Local Ring", remote: "Remote Ring" },
-    ]);
-  });
-
-  it("ignores shared fields even when they differ from the base", () => {
-    const local = { ...base, sku: "SKU-2" };
-    expect(determineSyncDirection(WIDGET_REGISTRY, base, local, base)).toBe("noop");
   });
 });
 

@@ -30,12 +30,14 @@ export type LocaleBinding = {
   resourceId: string;
 };
 
+/** Shape stored on TranslationSyncEvent.fieldConflicts JSON — not a three-way engine. */
 export type FieldConflict<T = string> = {
   field: string;
   local: T;
   remote: T;
 };
 
+/** planReconcile summary direction — human Apply chooses side; not auto push/pull. */
 export type SyncDirection = "push" | "pull" | "conflict" | "noop";
 
 export type LocalizedRecord = Record<string, unknown>;
@@ -82,41 +84,3 @@ export function missingRequiredForPublish<T extends LocalizedRecord>(
   return missing;
 }
 
-/** Field-level three-way diff against the last-known-synced snapshot. Only localized fields participate — shared fields sync through commerce, not the translation platform. */
-export function diffFieldConflicts<T extends LocalizedRecord>(
-  registry: EntityFieldRegistry,
-  base: T | null | undefined,
-  local: T,
-  remote: T,
-): FieldConflict[] {
-  const conflicts: FieldConflict[] = [];
-  for (const field of localizedFields(registry)) {
-    const key = field.key as keyof T;
-    const baseValue = base ? base[key] : undefined;
-    const localValue = local[key];
-    const remoteValue = remote[key];
-    const localChanged = localValue !== baseValue;
-    const remoteChanged = remoteValue !== baseValue;
-    if (localChanged && remoteChanged && localValue !== remoteValue) {
-      conflicts.push({ field: field.key, local: String(localValue ?? ""), remote: String(remoteValue ?? "") });
-    }
-  }
-  return conflicts;
-}
-
-/** PUSH/PULL/CONFLICT/NOOP per docs/history/2026-09-en-pt-translation-plan.md "Pull и конфликты" — the primitive Task 7's reconcile engine builds on. */
-export function determineSyncDirection<T extends LocalizedRecord>(
-  registry: EntityFieldRegistry,
-  base: T | null | undefined,
-  local: T,
-  remote: T,
-): SyncDirection {
-  if (diffFieldConflicts(registry, base, local, remote).length > 0) return "conflict";
-  const changed = (content: T) =>
-    localizedFields(registry).some((field) => content[field.key as keyof T] !== (base ? base[field.key as keyof T] : undefined));
-  const localChanged = changed(local);
-  const remoteChanged = changed(remote);
-  if (localChanged && !remoteChanged) return "push";
-  if (remoteChanged && !localChanged) return "pull";
-  return "noop";
-}

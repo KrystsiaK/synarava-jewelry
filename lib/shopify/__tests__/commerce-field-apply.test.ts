@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   request: vi.fn(),
-  inspectProductSyncState: vi.fn(),
+  recheckEntityConflictLeaves: vi.fn(),
   fetchShopifyProduct: vi.fn(),
   adoptShopifyProjectionField: vi.fn(),
   pushProductToShopify: vi.fn(),
@@ -17,8 +17,14 @@ vi.mock("@/lib/shopify/admin", () => ({
   ShopifyAdminError: class ShopifyAdminError extends Error {},
   shopifyAdminRequest: mocks.request,
 }));
+vi.mock("@/lib/sync", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/sync")>("@/lib/sync");
+  return {
+    ...actual,
+    recheckEntityConflictLeaves: mocks.recheckEntityConflictLeaves,
+  };
+});
 vi.mock("@/lib/shopify/product-sync", () => ({
-  inspectProductSyncState: mocks.inspectProductSyncState,
   fetchShopifyProduct: mocks.fetchShopifyProduct,
   adoptShopifyProjectionField: mocks.adoptShopifyProjectionField,
   pushProductToShopify: mocks.pushProductToShopify,
@@ -36,13 +42,31 @@ vi.mock("@/lib/db", () => ({
 
 import { applyCommerceField, SCOPED_COMMERCE_FIELD_LABELS } from "@/lib/shopify/commerce-field-apply";
 import { commerceFingerprint } from "@/lib/shopify/catalog-conflict";
+import type { SyncLeaf } from "@/lib/sync";
 
-function inspection(overrides: Partial<Record<string, unknown>> = {}) {
-  return { state: "CONFLICT", remoteUpdatedAt: null, publications: [], differences: [], ...overrides };
+function leaf(label: string, local: string, shopify: string, overrides: Partial<SyncLeaf> = {}): SyncLeaf {
+  return {
+    id: `PRODUCT:product-1:commerce:${label}`,
+    resourceType: "PRODUCT",
+    resourceId: "product-1",
+    kind: "commerce",
+    locale: null,
+    fieldKey: `commerce:${label.toLowerCase().replace(/\s+/g, "-")}`,
+    label,
+    synaravaValue: local,
+    shopifyValue: shopify,
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    blockedReason: null,
+    sourceId: null,
+    path: label === "Vendor" ? "vendor" : label.toLowerCase(),
+    localFingerprint: commerceFingerprint(local),
+    shopifyFingerprint: commerceFingerprint(shopify),
+    ...overrides,
+  };
 }
 
-function diff(field: string, local: string, shopify: string) {
-  return { field, local, shopify };
+function leaves(...items: SyncLeaf[]) {
+  return { leaves: items };
 }
 
 function fingerprintsFor(local: string, shopify: string) {
@@ -50,12 +74,8 @@ function fingerprintsFor(local: string, shopify: string) {
 }
 
 beforeEach(() => {
-  // resetAllMocks (not clearAllMocks) so a test that throws before consuming
-  // every queued mockResolvedValueOnce() never leaks a stale value into the
-  // next test's first call.
   vi.resetAllMocks();
-  // Post-write refresh: default to "still conflicted" (no extra DB write) unless a test overrides it.
-  mocks.inspectProductSyncState.mockResolvedValue(inspection());
+  mocks.recheckEntityConflictLeaves.mockResolvedValue(leaves());
   mocks.adoptShopifyProjectionField.mockResolvedValue(undefined);
 });
 
@@ -69,9 +89,9 @@ describe("SCOPED_COMMERCE_FIELD_LABELS", () => {
 
 describe("applyCommerceField — Name and Handle", () => {
   it("writes Name locally from Shopify", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Name", "Old Name", "New Name")] }))
-      .mockResolvedValueOnce(inspection());
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Name", "Old Name", "New Name")))
+      .mockResolvedValueOnce(leaves());
     mocks.updateProduct.mockResolvedValue({ name: "New Name" });
 
     const result = await applyCommerceField({
@@ -89,7 +109,7 @@ describe("applyCommerceField — Name and Handle", () => {
   });
 
   it("pushes Handle to Shopify and rejects empty handles", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Handle", "—", "shop-handle")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Handle", "—", "shop-handle")));
     const empty = await applyCommerceField({
       productId: "product-1",
       label: "Handle",
@@ -99,9 +119,9 @@ describe("applyCommerceField — Name and Handle", () => {
     expect(empty).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
     expect(mocks.request).not.toHaveBeenCalled();
 
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Handle", "our-handle", "shop-handle")] }))
-      .mockResolvedValueOnce(inspection());
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Handle", "our-handle", "shop-handle")))
+      .mockResolvedValueOnce(leaves());
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.request.mockResolvedValue({
       productUpdate: {
@@ -128,8 +148,8 @@ describe("applyCommerceField — Name and Handle", () => {
 });
 
 describe("applyCommerceField — re-validates immediately before writing (TOCTOU)", () => {
-  it("returns STALE and writes nothing when the field is no longer in the fresh differences list", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [] }));
+  it("returns STALE and writes nothing when the field is no longer in the fresh leaves list", async () => {
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves());
 
     const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA",
@@ -143,8 +163,9 @@ describe("applyCommerceField — re-validates immediately before writing (TOCTOU
 
   it("returns STALE and writes nothing when Shopify's value changed between preview and this call", async () => {
     const previewedFingerprints = fingerprintsFor("Old Vendor", "Preview-time Vendor");
-    // By the time apply runs, Shopify's vendor has moved on again.
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "Changed-again Vendor")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(
+      leaves(leaf("Vendor", "Old Vendor", "Changed-again Vendor")),
+    );
 
     const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...previewedFingerprints,
@@ -156,8 +177,9 @@ describe("applyCommerceField — re-validates immediately before writing (TOCTOU
 
   it("returns STALE and writes nothing when Synarava's value changed between preview and this call", async () => {
     const previewedFingerprints = fingerprintsFor("Preview-time Vendor", "Shopify Vendor");
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Someone-else-edited Vendor", "Shopify Vendor")] }));
-    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(
+      leaves(leaf("Vendor", "Someone-else-edited Vendor", "Shopify Vendor")),
+    );
 
     const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SYNARAVA_TO_SHOPIFY", ...previewedFingerprints,
@@ -168,9 +190,9 @@ describe("applyCommerceField — re-validates immediately before writing (TOCTOU
   });
 
   it("proceeds to write when the fresh values still match what preview showed", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
-      .mockResolvedValueOnce(inspection()); // post-write refresh
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "—")))
+      .mockResolvedValueOnce(leaves());
     mocks.updateProduct.mockResolvedValue({ vendor: null });
 
     const result = await applyCommerceField({
@@ -184,9 +206,9 @@ describe("applyCommerceField — re-validates immediately before writing (TOCTOU
 
 describe("applyCommerceField — variant matching for SKU/Price/Compare-at price", () => {
   it("writes to the single local variant matched with the single Shopify variant — not just findFirst", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Price", "9900", "12000")] }))
-      .mockResolvedValueOnce(inspection());
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Price", "9900", "12000")))
+      .mockResolvedValueOnce(leaves());
     mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }]);
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "gid://shopify/ProductVariant/9" }] } });
@@ -202,7 +224,7 @@ describe("applyCommerceField — variant matching for SKU/Price/Compare-at price
   });
 
   it("returns UNSUPPORTED without writing when there are several local variants but only one Shopify variant", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Variant SKU", "SKU-1", "SKU-9")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Variant SKU", "SKU-1", "SKU-9")));
     mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }, { id: "variant-local-2" }]);
     mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "gid://shopify/ProductVariant/9" }] } });
 
@@ -216,7 +238,7 @@ describe("applyCommerceField — variant matching for SKU/Price/Compare-at price
   });
 
   it("returns UNSUPPORTED without writing when Shopify itself reports more than one variant", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Price", "9900", "12000")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Price", "9900", "12000")));
     mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }]);
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "v1" }, { id: "v2" }] } });
@@ -231,9 +253,9 @@ describe("applyCommerceField — variant matching for SKU/Price/Compare-at price
   });
 
   it("uses the freshly-fetched Shopify variant id for the write, not a possibly-stale local shopifyVariantId column", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Variant SKU", "SKU-OLD", "SKU-NEW")] }))
-      .mockResolvedValueOnce(inspection());
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Variant SKU", "SKU-OLD", "SKU-NEW")))
+      .mockResolvedValueOnce(leaves());
     mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }]);
     mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "gid://shopify/ProductVariant/live-9" }] } });
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
@@ -253,7 +275,7 @@ describe("applyCommerceField — variant matching for SKU/Price/Compare-at price
 
 describe("applyCommerceField — read-after-write verification", () => {
   it("fails when the local write's returned row doesn't reflect the intended value", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "New Vendor")));
     mocks.updateProduct.mockResolvedValue({ vendor: "Something else entirely" });
 
     const result = await applyCommerceField({
@@ -264,7 +286,7 @@ describe("applyCommerceField — read-after-write verification", () => {
   });
 
   it("fails when Shopify's mutation response doesn't echo back the value that was sent", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "New Vendor", "Old Vendor")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Vendor", "New Vendor", "Old Vendor")));
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.request.mockResolvedValue({ productUpdate: { product: { id: "gid://shopify/Product/1", vendor: "Not what we sent", productType: null }, userErrors: [] } });
 
@@ -276,7 +298,7 @@ describe("applyCommerceField — read-after-write verification", () => {
   });
 
   it("surfaces Shopify userErrors as a failed result instead of throwing", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "", "Old Vendor")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Vendor", "", "Old Vendor")));
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.request.mockResolvedValue({ productUpdate: { product: null, userErrors: [{ field: ["vendor"], message: "Vendor can't be blank" }] } });
 
@@ -288,7 +310,7 @@ describe("applyCommerceField — read-after-write verification", () => {
   });
 
   it("fails cleanly when the product isn't linked to Shopify, without touching the network", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "New Vendor", "Old Vendor")] }));
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Vendor", "New Vendor", "Old Vendor")));
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: null });
 
     const result = await applyCommerceField({
@@ -300,85 +322,44 @@ describe("applyCommerceField — read-after-write verification", () => {
   });
 });
 
-describe("applyCommerceField — refreshes persisted sync state after a successful write", () => {
-  it("clears the product off CONFLICT once nothing else differs, so it can drop out of the catalog-wide list", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] })) // pre-write check
-      .mockResolvedValueOnce(inspection({ state: "SYNCED", remoteUpdatedAt: "2026-09-23T00:00:00.000Z", differences: [] })); // post-write refresh
-    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself
+describe("applyCommerceField — post-write leaf verify (no syncStatus inventory write)", () => {
+  it("reports ok when the field leaf is gone after write — does not write syncStatus SYNCED", async () => {
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "—")))
+      .mockResolvedValueOnce(leaves());
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null });
 
     const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
     });
 
     expect(result).toMatchObject({ ok: true });
-    // Second updateProduct call is the sync-state refresh, distinct from the field write itself.
-    expect(mocks.updateProduct).toHaveBeenCalledTimes(2);
-    expect(mocks.updateProduct).toHaveBeenLastCalledWith({
+    // Only the field write itself — no second syncStatus SYNCED update.
+    expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
+    expect(mocks.updateProduct).toHaveBeenCalledWith({
       where: { id: "product-1" },
-      data: { syncStatus: "SYNCED", syncError: null, shopifyUpdatedAt: new Date("2026-09-23T00:00:00.000Z"), lastSyncedAt: expect.any(Date) },
+      data: { vendor: null },
     });
   });
 
-  it("REGRESSION: still clears CONFLICT when the post-write inspection reports state:'CONFLICT' with an empty differences list — the real shape inspectProductSyncState returns right after the only difference is resolved, because the persisted syncStatus/shopifyUpdatedAt columns this call is about to fix haven't been updated yet", async () => {
-    // This is exactly what the real (unmocked) inspectProductSyncState
-    // computes post-write: differences is empty (nothing left to
-    // reconcile), but state still reads CONFLICT because localChanged is
-    // still true (persisted syncStatus is still "CONFLICT" at read time)
-    // and remoteChanged is still true (local.shopifyUpdatedAt is still
-    // older than remote.updatedAt, which Shopify's own mutation just
-    // bumped). A fix keyed off `state` instead of `differences.length`
-    // would wrongly leave the product stuck showing a conflict badge.
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] })) // pre-write check
-      .mockResolvedValueOnce(inspection({ state: "CONFLICT", remoteUpdatedAt: "2026-09-23T00:00:00.000Z", differences: [] })); // post-write: stale flags, but truly nothing left
-    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself
-
-    const result = await applyCommerceField({
-      productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
-    });
-
-    expect(result).toMatchObject({ ok: true });
-    expect(mocks.updateProduct).toHaveBeenCalledTimes(2);
-    expect(mocks.updateProduct).toHaveBeenLastCalledWith({
-      where: { id: "product-1" },
-      data: { syncStatus: "SYNCED", syncError: null, shopifyUpdatedAt: new Date("2026-09-23T00:00:00.000Z"), lastSyncedAt: expect.any(Date) },
-    });
-  });
-
-  it("REGRESSION: reports failure — not ok:true — when the post-write re-check comes back REMOTE_MISSING, since the comparison never ran and an empty differences list there proves nothing", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
-      .mockResolvedValueOnce(inspection({ state: "REMOTE_MISSING", differences: [] }));
-    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself succeeds
+  it("REGRESSION: reports failure when post-write recheck cannot run (remote missing)", async () => {
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "—")))
+      .mockRejectedValueOnce(new Error("Shopify product gid://shopify/Product/1 was not found."));
+    mocks.updateProduct.mockResolvedValueOnce({ vendor: null });
 
     const result = await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
     });
 
     expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("no longer exists") });
-    // Only the one call for the field write itself — no second (sync-state refresh) call, never marked SYNCED.
     expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
   });
 
-  it("REGRESSION: reports failure — not ok:true — when the post-write re-check comes back UNLINKED, for the same reason", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "—")] }))
-      .mockResolvedValueOnce(inspection({ state: "UNLINKED", differences: [] }));
-    mocks.updateProduct.mockResolvedValueOnce({ vendor: null }); // the field write itself succeeds
-
-    const result = await applyCommerceField({
-      productId: "product-1", label: "Vendor", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("Old Vendor", "—"),
-    });
-
-    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED", message: expect.stringContaining("no longer linked") });
-    expect(mocks.updateProduct).toHaveBeenCalledTimes(1);
-  });
-
-  it("leaves the persisted sync state alone when another (unsupported) field is still genuinely conflicting — that conflict stays visible", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Price", "9900", "12000")] })) // pre-write check
-      .mockResolvedValueOnce(inspection({ state: "CONFLICT", differences: [diff("Status", "ACTIVE", "DRAFT")] })); // post-write: Status still conflicts
+  it("succeeds when another field still conflicts — applied leaf gone, no SYNCED write", async () => {
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Price", "9900", "12000")))
+      .mockResolvedValueOnce(leaves(leaf("Status", "ACTIVE", "DRAFT")));
     mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }]);
     mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "gid://shopify/ProductVariant/9" }] } });
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
@@ -391,22 +372,13 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
     });
 
     expect(result).toMatchObject({ ok: true });
-    // No local Product write at all here — the field itself was written to
-    // Shopify (variant mutation), and the still-CONFLICT refresh must not
-    // touch syncStatus either.
     expect(mocks.updateProduct).not.toHaveBeenCalled();
   });
 
-  it("REGRESSION: reports failure, not ok:true, when the just-applied field is still conflicting after re-checking — the write's own echo check passing is not enough", async () => {
-    // The mutation itself succeeds and echoes back the value we sent (so
-    // writeToShopify's own read-back check is satisfied), but the fresh,
-    // independent inspectProductSyncState called right after still lists
-    // this exact field as differing (e.g. something changed again
-    // immediately, or the authoritative comparison disagrees with the
-    // mutation's own echo). The admin must not be told this succeeded.
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] })) // pre-write check
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] })); // post-write: Vendor is STILL in the list
+  it("REGRESSION: reports failure when the just-applied field is still conflicting after re-checking", async () => {
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "New Vendor")))
+      .mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "New Vendor")));
     mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
     mocks.request.mockResolvedValue({ productUpdate: { product: { id: "gid://shopify/Product/1", vendor: "Old Vendor", productType: null }, userErrors: [] } });
 
@@ -415,49 +387,29 @@ describe("applyCommerceField — refreshes persisted sync state after a successf
     });
 
     expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
-    // Still genuinely conflicting — must not be marked SYNCED either.
     expect(mocks.updateProduct).not.toHaveBeenCalled();
   });
 
-  it("marks the product fully SYNCED when the write resolves the last difference and nothing else differs", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] }))
-      .mockResolvedValueOnce(inspection({ state: "SYNCED", remoteUpdatedAt: "2026-09-23T01:00:00.000Z", differences: [] }));
-    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
-    mocks.request.mockResolvedValue({ productUpdate: { product: { id: "gid://shopify/Product/1", vendor: "Old Vendor", productType: null }, userErrors: [] } });
-
-    const result = await applyCommerceField({
-      productId: "product-1", label: "Vendor", direction: "SYNARAVA_TO_SHOPIFY", ...fingerprintsFor("Old Vendor", "New Vendor"),
-    });
-    expect(result).toMatchObject({ ok: true });
-
-    expect(mocks.updateProduct).toHaveBeenCalledWith({
-      where: { id: "product-1" },
-      data: expect.objectContaining({ syncStatus: "SYNCED", syncError: null, lastSyncedAt: expect.any(Date) }),
-    });
-  });
-
-  it("does not refresh sync state at all when the write itself failed", async () => {
-    mocks.inspectProductSyncState.mockResolvedValueOnce(inspection({ differences: [diff("Vendor", "Old Vendor", "New Vendor")] }));
-    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: null }); // write fails: not linked to Shopify
+  it("does not recheck leaves when the write itself failed", async () => {
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Vendor", "Old Vendor", "New Vendor")));
+    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: null });
 
     await applyCommerceField({
       productId: "product-1", label: "Vendor", direction: "SYNARAVA_TO_SHOPIFY", ...fingerprintsFor("Old Vendor", "New Vendor"),
     });
 
-    // Only the one pre-write inspection call — no second (post-write refresh) call.
-    expect(mocks.inspectProductSyncState).toHaveBeenCalledTimes(1);
+    expect(mocks.recheckEntityConflictLeaves).toHaveBeenCalledTimes(1);
   });
 });
 
 describe("applyCommerceField — unsupported field", () => {
-  it("refuses a field outside SCOPED_COMMERCE_FIELD_LABELS without touching the network, DB, or even inspecting", async () => {
+  it("refuses a field outside SCOPED_COMMERCE_FIELD_LABELS without touching the network or DB", async () => {
     const result = await applyCommerceField({
       productId: "product-1", label: "Status", direction: "SHOPIFY_TO_SYNARAVA", ...fingerprintsFor("ACTIVE", "DRAFT"),
     });
 
     expect(result).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
-    expect(mocks.inspectProductSyncState).not.toHaveBeenCalled();
+    expect(mocks.recheckEntityConflictLeaves).not.toHaveBeenCalled();
     expect(mocks.request).not.toHaveBeenCalled();
     expect(mocks.updateProduct).not.toHaveBeenCalled();
     expect(mocks.updateVariant).not.toHaveBeenCalled();
@@ -466,11 +418,9 @@ describe("applyCommerceField — unsupported field", () => {
 
 describe("applyCommerceField — Media gallery", () => {
   it("Pull adopts the whole media path from Shopify into OUR", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({
-        differences: [diff("Media gallery (image 1)", "—", "ring.jpg")],
-      }))
-      .mockResolvedValueOnce(inspection({ differences: [] }));
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Media gallery (image 1)", "—", "ring.jpg", { path: "media" })))
+      .mockResolvedValueOnce(leaves());
 
     const result = await applyCommerceField({
       productId: "product-1",
@@ -485,11 +435,9 @@ describe("applyCommerceField — Media gallery", () => {
   });
 
   it("Push runs the product push pipeline then adopts media echo", async () => {
-    mocks.inspectProductSyncState
-      .mockResolvedValueOnce(inspection({
-        differences: [diff("Media gallery (image 1)", "local.jpg", "—")],
-      }))
-      .mockResolvedValueOnce(inspection({ differences: [] }));
+    mocks.recheckEntityConflictLeaves
+      .mockResolvedValueOnce(leaves(leaf("Media gallery (image 1)", "local.jpg", "—", { path: "media" })))
+      .mockResolvedValueOnce(leaves());
     mocks.pushProductToShopify.mockResolvedValue({ ok: true, shopifyProductId: "gid://shopify/Product/1" });
 
     const result = await applyCommerceField({

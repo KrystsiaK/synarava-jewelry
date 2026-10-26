@@ -28,7 +28,7 @@ import {
 import { applyCommerceField } from "./commerce-field-apply";
 import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
-import { applyShopifyProductToSynarava, inspectProductSyncState } from "./product-sync";
+import { applyShopifyProductToSynarava } from "./product-sync";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 function isVirtualPresenceProductId(productId: string): boolean {
@@ -37,24 +37,23 @@ function isVirtualPresenceProductId(productId: string): boolean {
 
 /**
  * Re-read conflict fields for apply/preview safety.
- * Live Shopify inspect for a linked local product is the ONLY allowed network
- * fetch on this path — then map persisted SyncResult leaves (skipRefresh).
+ * Linked products: refresh Shopify for this entity then map SyncResult leaves
+ * (same compare as the list). Virtual `shopify:*` presence rows skip network.
  */
 async function loadProductConflictForApply(
   productId: string,
   requestedBy: string,
 ): Promise<ProductCatalogConflict> {
-  if (!isVirtualPresenceProductId(productId)) {
-    // ONLY allowed live Shopify inspect for conflict apply safety.
-    try {
-      await inspectProductSyncState(productId);
-    } catch {
-      // Missing/unlinked product → empty fields / STALE below.
-    }
+  if (isVirtualPresenceProductId(productId)) {
+    return loadProductConflictFromSyncResult(productId, {
+      requestedBy,
+      skipRefresh: true,
+    });
   }
+  // skipRefresh: false → refreshShopifyProductState + compareSyncState leaves.
   return loadProductConflictFromSyncResult(productId, {
     requestedBy,
-    skipRefresh: true,
+    skipRefresh: false,
   });
 }
 
@@ -378,21 +377,17 @@ export async function applyCatalogConflictResolution({
   }
 
   for (const { input, field } of readyCommerce) {
-    // applyCommerceField re-validates against a *fresh* live inspection
-    // immediately before writing (closing the window since this loop's own
-    // batch-level fingerprint check above), so its own fingerprint inputs
-    // are passed straight through rather than the (by-then-possibly-stale)
-    // field snapshot this loop fetched earlier. It catches its own write
-    // errors and returns {ok:false}, but wrapped defensively anyway so a
-    // bug there can never take the rest of this batch down with it (same
-    // reasoning as the translation loop above).
+    // applyCommerceField re-validates against fresh SyncResult leaves
+    // (refresh + compareSyncState) immediately before writing.
     try {
       const outcome = await applyCommerceField({
         productId: input.productId,
         label: field.label,
+        fieldKey: field.fieldKey,
         direction: input.direction,
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+        requestedBy: actorUsername,
       });
       results.push(
         outcome.ok
