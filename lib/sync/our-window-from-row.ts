@@ -71,8 +71,8 @@ export function ourProductWindowFromRow(product: ProductRowForOurWindow): unknow
   );
   const collections = (product.collections ?? []).flatMap((row) => {
     const id = row.collection.shopifyCollectionId;
-    if (!id) return [];
-    return [{ id, handle: row.collection.slug, title: row.collection.name }];
+    if (!id || row.collection.slug === "frontpage") return [];
+    return [{ id }];
   });
   const variants: DeriveProductVariantInput[] = (product.variants ?? []).map((variant) => ({
     shopifyVariantId: variant.shopifyVariantId,

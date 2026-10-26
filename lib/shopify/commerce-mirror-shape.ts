@@ -27,14 +27,13 @@ export function mirrorInventoryItem(item: {
   return out;
 }
 
-/** id/handle/title only; drop frontpage / storefront-default. */
+/** Product membership = GID only; omit frontpage / storefront-default. */
 export function mirrorProductCollections(
-  nodes: Array<{ id?: string | null; handle?: string | null; title?: string | null; isStorefrontDefault?: boolean }>,
+  nodes: Array<{ id?: string | null; handle?: string | null; isStorefrontDefault?: boolean }>,
 ) {
   return nodes.flatMap((n) => {
     const id = typeof n.id === "string" ? n.id : "";
-    const handle = typeof n.handle === "string" ? n.handle : "";
-    if (!id || !handle || handle === "frontpage" || n.isStorefrontDefault) return [];
-    return [{ id, handle, title: typeof n.title === "string" ? n.title : "" }];
+    if (!id || n.isStorefrontDefault || n.handle === "frontpage") return [];
+    return [{ id }];
   });
 }
