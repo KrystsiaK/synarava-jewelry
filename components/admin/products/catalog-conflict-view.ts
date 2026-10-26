@@ -11,19 +11,20 @@ import type {
   CatalogConflictSignals,
 } from "@/lib/shopify/catalog-conflict-signals";
 /**
- * Locale / section chip count ≡ `selectSyncCounts(..., localeTab)`.
- * Signals already carry leaf-derived sharedCount / locale counts / presence
- * from `catalogConflictSignalsFromSyncResult` — reassemble localeTab without
- * a second counting formula or legacy shared=+1 fallback.
+ * Locale / section chip count ≡ `selectSyncCounts(..., localeTab)` tree node.
+ * Base/EN = shared + presence + EN locale rows. Sibling locales = that code only
+ * (shared never lights PT/RU).
  */
 function localeTabLeafCountFromSignal(
   signal: CatalogConflictProductSignal,
   locale: string,
 ): number {
   const code = normalizeLocaleCode(locale);
+  const isBase = code === "en" || code === "base";
   const localeCount = signal.locales
     .filter((entry) => normalizeLocaleCode(entry.code) === code)
     .reduce((sum, entry) => sum + entry.count, 0);
+  if (!isBase) return localeCount;
   const shared = Math.max(0, signal.sharedCount ?? 0);
   const presence = signal.presence ? 1 : 0;
   return shared + presence + localeCount;
@@ -44,15 +45,20 @@ function normalizeLocaleCode(locale: string) {
 }
 
 /**
- * Language shells include SHARED commerce under every locale (EN/PT/RU)
- * plus that locale's translation rows. See docs/wiki/commerce-sync.md marker tree.
+ * Tree display: SHARED / presence → base (EN) only. Locale rows → that code only.
+ * See docs/wiki/commerce-sync.md marker tree.
  */
 function isSharedScope(field: CatalogConflictField): boolean {
   return String(field.scope.kind).toUpperCase() === "SHARED";
 }
 
+function isBaseLocaleTab(locale: string): boolean {
+  const code = normalizeLocaleCode(locale);
+  return code === "en" || code === "base";
+}
+
 export function fieldMatchesViewLocale(field: CatalogConflictField, locale: string): boolean {
-  if (isSharedScope(field)) return true;
+  if (isSharedScope(field)) return isBaseLocaleTab(locale);
   return field.scope.kind === "LOCALE"
     && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
 }
@@ -63,7 +69,6 @@ export function fieldMatchesViewSection(
   locale: string,
 ): boolean {
   if (productEditorSectionForConflictField(field) !== section) return false;
-  if (isSharedScope(field)) return true;
   return fieldMatchesViewLocale(field, locale);
 }
 
@@ -92,27 +97,31 @@ export function filterSignalsForView(
     return { ...signals, products: { [productId]: signal }, totalCount: 1 };
   }
   const locale = normalizeLocaleCode(viewScope.locale);
+  const isBase = isBaseLocaleTab(locale);
   const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
-  const shared = Boolean(signal.shared);
+  const shared = isBase && Boolean(signal.shared);
+  const presence = isBase ? signal.presence : undefined;
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
-  if (!hasLocaleConflict && !shared && !signal.presence) {
+  if (!hasLocaleConflict && !shared && !presence) {
     return { ...signals, products: {}, totalCount: 0 };
   }
-  const leafCount = localeTabLeafCountFromSignal(
-    { ...signal, shared, locales },
-    viewScope.locale,
-  );
+  const scopedSignal = {
+    ...signal,
+    shared,
+    sharedCount: isBase ? signal.sharedCount : 0,
+    presence,
+    locales,
+  };
+  const leafCount = localeTabLeafCountFromSignal(scopedSignal, viewScope.locale);
   return {
     ...signals,
     products: {
       [productId]: {
-        ...signal,
-        shared,
-        locales,
+        ...scopedSignal,
         leafCount,
       },
     },
-    totalCount: 1,
+    totalCount: leafCount > 0 ? 1 : 0,
   };
 }
 

@@ -40,7 +40,7 @@ leaves — not from a `syncStatus: CONFLICT` database flag.
 :::steps
 ### Read the conflict banner
 
-On **Catalog → Collections**, the banner shows the saved SyncResult status:
+On **Catalog → Collections**, the list banner shows the saved SyncResult status:
 
 - **N collections with conflicts** when at least one collection has ≥1 open
   leaf, or **No conflicts** when the count is zero. N is the number of
@@ -53,6 +53,12 @@ On **Catalog → Collections**, the banner shows the saved SyncResult status:
   Shopify signal). Hover shows “Last full conflict check”.
 
 **Show conflicts** appears only when the count is greater than zero.
+
+On the **collection editor**, the same conflict indicator as products shows
+entity and locale-tab counts (`N conflict(s) for …`). Shared commerce conflicts
+belong on the **English / base** tab only; PT/RU tabs light only for that
+locale’s translation leaves. Counts come from one `slice` over SyncResult —
+product and collection behave the same.
 
 ### Open ConflictResolver
 

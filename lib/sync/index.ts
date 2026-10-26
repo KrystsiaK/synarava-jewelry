@@ -9,7 +9,20 @@ export {
   type SyncCompareInput,
   type SyncLocaleRef,
 } from "./compare";
-export { countConflictedItems, selectSyncCounts, selectSyncLocaleCodes } from "./select";
+export {
+  SYNC_BASE_NODE,
+  SYNC_DEFAULT_LOCALE,
+  conflictAddress,
+  countConflictedItems,
+  leafTreeNode,
+  selectSyncCounts,
+  selectSyncLocaleCodes,
+  slice,
+  treeNodeForLocale,
+  type SyncConflictAddress,
+  type SyncSliceFilter,
+  type SyncTreeNode,
+} from "./select";
 export {
   emptySyncResult,
   EMPTY_SYNC_NAV_COUNTS,

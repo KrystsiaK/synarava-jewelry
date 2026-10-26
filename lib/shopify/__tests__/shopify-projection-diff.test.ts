@@ -147,7 +147,7 @@ describe("diffShopifyProjections", () => {
     expect(diffs).toEqual([
       {
         path: "media[0]",
-        field: "Media gallery (image 1)",
+        field: "Image 1 exists only in Shopify, not in Synarava",
         local: "—",
         shopify: "ChatGPTImage.png",
       },
@@ -294,8 +294,26 @@ describe("projection path helpers", () => {
   it("labels known paths", () => {
     expect(labelForShopifyProjectionPath("vendor")).toBe("Vendor");
     expect(labelForShopifyProjectionPath("variants[0].taxable")).toBe("Charge tax");
-    expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Media gallery (image 1)");
+    expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Image 1");
     expect(labelForShopifyProjectionPath("media")).toBe("Media gallery");
+  });
+
+  it("states Synarava-only media clearly for the resolver", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [{
+          id: "local-1",
+          preview: { image: { url: "https://cdn.example/ring.jpg" } },
+        }],
+      },
+      { media: [] },
+    );
+    expect(diffs).toContainEqual({
+      path: "media[0]",
+      field: "Image 1 exists only in Synarava, not in Shopify",
+      local: "ring.jpg",
+      shopify: "—",
+    });
   });
 });
 

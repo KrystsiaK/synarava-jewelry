@@ -194,6 +194,11 @@ export {
 } from "@/components/admin/shared/catalog-conflict-signals";
 
 export {
+  SyncConflictIndicator,
+  formatSyncConflictLabel,
+} from "@/components/admin/shared/sync-conflict-indicator";
+
+export {
   ConflictResolver,
   ConflictRow,
   ConflictValueCell,

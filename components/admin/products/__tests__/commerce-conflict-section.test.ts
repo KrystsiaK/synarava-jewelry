@@ -99,7 +99,7 @@ describe("commerce conflict → editor section", () => {
     expect(sections.has("content" as never)).toBe(false);
   });
 
-  it("marks every language shell for a shared price conflict", () => {
+  it("marks only the base (EN) shell for a shared price conflict", () => {
     const sections = conflictSectionsFromDifferences([
       { path: "variants[0].price", field: "Price" },
     ]);
@@ -107,7 +107,7 @@ describe("commerce conflict → editor section", () => {
       localeCodes: ["en", "pt", "ru"],
       conflictSections: sections,
     });
-    expect([...locales].toSorted()).toEqual(["en", "pt", "ru"]);
+    expect([...locales]).toEqual(["en"]);
   });
 
   it("marks only PT for a PT-only locale signal without shared sections", () => {

@@ -70,15 +70,20 @@ but keeps the direct link and cart access available.
 ### Resolve Shopify conflicts in ConflictResolver
 
 When the products list or editor shows conflicts, open **Show conflicts** (or
-the conflict chip). One shared UI — ConflictResolver — lists every differing
-field with **Shopify** on the left and **Synarava** on the right. Items are
-headed **Product · Title  SKU …**. Scope chips say **All languages** (shared
-commerce) or **EN · English** / **PT · Português**. Click a cell to choose that
-side; Apply opens the confirm dialog grouped by the same item headers. Each
-change row leads with the field and direction (**Price: Shopify → Synarava**),
-shows source → target with before/after, and the footer counts changes to
-Shopify vs Synarava. Nothing is written until you confirm. There is no second
-Take/Keep or quick-pull dialog in the Sync strip.
+the conflict chip — text **N conflict(s) for …**). Conflicts sit on a tree:
+shared fields (image, price, …) on the **English / base** tab only; a
+Portuguese-only title conflict lights **PT** and the product total, never EN.
+The list banner is store-wide; the editor uses the same indicator at product,
+locale, and section level. One shared UI — ConflictResolver — lists every
+differing field with **Shopify** on the left and **Synarava** on the right.
+Items are headed **Product · Title  SKU …**. Scope chips say **Shared** (base
+commerce) or **EN · English** / **PT · Português**. Media rows state what they
+are (for example **Image 1 exists only in Synarava, not in Shopify**). Click a
+cell to choose that side; Apply opens the confirm dialog grouped by the same
+item headers. Each change row leads with the field and direction
+(**Price: Shopify → Synarava**), shows source → target with before/after, and
+the footer counts changes to Shopify vs Synarava. Nothing is written until you
+confirm. There is no second Take/Keep or quick-pull dialog in the Sync strip.
 
 Commerce fields that cannot be written field-by-field (for example Status or
 tags) still use the same cells. Choosing a side means a **whole-item** commerce

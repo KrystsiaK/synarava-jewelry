@@ -18,7 +18,7 @@ describe("productConflictCompareSummary", () => {
     expect(productConflictBadgeCount(null)).toBe(0);
   });
 
-  it("matches icon badge count from SyncResult leafCount for shared commerce", () => {
+  it("matches icon badge count; shared-only never lists language tabs", () => {
     const signal = {
       leafCount: 2,
       shared: true,
@@ -30,7 +30,7 @@ describe("productConflictCompareSummary", () => {
     });
     expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.count).toBe(2);
-    expect(summary.localeLabels).toEqual(["English", "Portuguese", "Russian"]);
+    expect(summary.localeLabels).toEqual(["Shared"]);
   });
 
   it("prefers SyncResult leafCount over sharedCount for the badge", () => {
@@ -65,7 +65,7 @@ describe("productConflictCompareSummary", () => {
     expect(summary.localeLabels).toEqual(["Portuguese", "Russian"]);
   });
 
-  it("combines commerce + translation CONFLICT counts like the icon", () => {
+  it("combines Shared label with locales that have translation leaves", () => {
     const signal = {
       leafCount: 5,
       shared: true,
@@ -80,6 +80,6 @@ describe("productConflictCompareSummary", () => {
     });
     expect(summary.count).toBe(5);
     expect(summary.count).toBe(productConflictBadgeCount(signal));
-    expect(summary.localeLabels).toEqual(["English", "Portuguese", "Russian"]);
+    expect(summary.localeLabels).toEqual(["Shared", "English", "Portuguese"]);
   });
 });
