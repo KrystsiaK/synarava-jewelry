@@ -1360,12 +1360,12 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   let savedProduct = await getSavedProductPayload(product.id);
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
+  // Conflict inventory is SyncResult leaves — do not specially preserve CONFLICT.
+  // Commerce edit → PENDING (push intent). Identity CONFLICT stays until resolved.
   const nextSyncStatus = savedProduct.shopifyProductId
-    ? before?.syncStatus === "CONFLICT"
-      ? "CONFLICT"
-      : commerceChanged
-        ? "PENDING"
-        : savedProduct.syncStatus
+    ? commerceChanged
+      ? "PENDING"
+      : savedProduct.syncStatus
     : "UNLINKED";
 
   if (savedProduct.syncStatus !== nextSyncStatus || savedProduct.syncError) {

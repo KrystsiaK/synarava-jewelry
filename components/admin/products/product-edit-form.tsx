@@ -582,6 +582,7 @@ export function EditProductForm({
                         dirty={isDirty}
                         inspection={inspection}
                         pending={isPending}
+                        hasOpenConflicts={(productConflict?.leafCount ?? 0) > 0}
                         onOpenDetail={() => setSyncDetailOpen(true)}
                       />
                     </div>

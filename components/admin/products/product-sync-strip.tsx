@@ -80,15 +80,28 @@ type SyncPresentationState =
   | "UNSAVED"
   | "PENDING";
 
-function syncPresentation(product: ProductRecord, dirty: boolean, inspection: ProductSyncInspection | null) {
-  const fallbackState: SyncPresentationState = product.shopifyProductId
-    ? product.syncStatus === "PENDING" || product.syncStatus === "FAILED"
-      ? "PENDING"
-      : product.syncStatus === "CONFLICT"
-        ? "CONFLICT"
-        : "SYNCED"
-    : "UNLINKED";
-  const syncState: SyncPresentationState = dirty ? "UNSAVED" : inspection?.state ?? fallbackState;
+function syncPresentation(
+  product: ProductRecord,
+  dirty: boolean,
+  inspection: ProductSyncInspection | null,
+  /** Open SyncResult leaves for this product — conflict inventory (not product.syncStatus). */
+  hasOpenConflicts = false,
+) {
+  let syncState: SyncPresentationState;
+  if (dirty) {
+    syncState = "UNSAVED";
+  } else if (!product.shopifyProductId || inspection?.state === "UNLINKED") {
+    syncState = "UNLINKED";
+  } else if (inspection?.state === "REMOTE_MISSING") {
+    syncState = "REMOTE_MISSING";
+  } else if (hasOpenConflicts) {
+    syncState = "CONFLICT";
+  } else if (product.syncStatus === "PENDING" || product.syncStatus === "FAILED") {
+    // Operational ahead/failed — not conflict inventory.
+    syncState = "PENDING";
+  } else {
+    syncState = "SYNCED";
+  }
   const healthy = syncState === "SYNCED";
   const failed = syncState === "CONFLICT" || syncState === "REMOTE_MISSING" || product.syncStatus === "FAILED";
   const stateLabel = syncState === "UNSAVED"
@@ -127,15 +140,17 @@ function syncPresentation(product: ProductRecord, dirty: boolean, inspection: Pr
   return { syncState, healthy, failed, stateLabel, stateDescription, actionable, actionLabel };
 }
 
-export function ProductSyncStrip({ product, dirty, inspection, pending, onOpenDetail }: {
+export function ProductSyncStrip({ product, dirty, inspection, pending, hasOpenConflicts = false, onOpenDetail }: {
   product: ProductRecord;
   dirty: boolean;
   inspection: ProductSyncInspection | null;
   pending: boolean;
+  /** From SyncResult leafCount / conflict signals — not product.syncStatus. */
+  hasOpenConflicts?: boolean;
   onOpenDetail: () => void;
 }) {
   const { healthy, failed, stateLabel, stateDescription, actionable, actionLabel } =
-    syncPresentation(product, dirty, inspection);
+    syncPresentation(product, dirty, inspection, hasOpenConflicts);
   const Icon = healthy ? Check : failed ? TriangleAlert : Clock3;
   const totalStock = product.variants.reduce((sum, variant) => sum + variant.stockOnHand, 0);
   const shopifyPublications = inspection?.publications ?? [];

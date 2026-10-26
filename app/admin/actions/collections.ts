@@ -475,12 +475,12 @@ export async function saveCollectionAction(
           seoDescription: linked.seoDescription,
         },
       );
-      const nextSyncStatus = linked.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING";
+      // Conflict inventory is SyncResult leaves — local save → PENDING push intent.
       await db.collection.update({
         where: { id: savedCollection.id },
         data: {
           workingSnapshot: nextWorking as Prisma.InputJsonValue,
-          syncStatus: nextSyncStatus,
+          syncStatus: "PENDING",
           syncError: null,
         },
       });
