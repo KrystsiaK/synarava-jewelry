@@ -433,8 +433,10 @@ describe("ConflictResolver", () => {
     fireEvent.click(screen.getByRole("button", { name: "Apply (2)" }));
 
     const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
-    expect(within(preview).getByRole("heading", { name: 'Create "Pets" in Shopify' })).toBeInTheDocument();
-    expect(within(preview).getByRole("heading", { name: "Update price in Shopify" })).toBeInTheDocument();
+    expect(within(preview).getByRole("heading", { name: "Collection · Pets /pets" })).toBeInTheDocument();
+    expect(within(preview).getByRole("heading", { name: "Create item: Synarava → Shopify" })).toBeInTheDocument();
+    expect(within(preview).getByRole("heading", { name: "Price: Synarava → Shopify" })).toBeInTheDocument();
+    expect(within(preview).getAllByText("All languages").length).toBeGreaterThanOrEqual(1);
     expect(within(preview).getByText("Not in Shopify")).toBeInTheDocument();
     expect(within(preview).getByText("110.00 EUR")).toBeInTheDocument();
     expect(within(preview).getAllByText("120.00 EUR").length).toBeGreaterThanOrEqual(2);
@@ -489,8 +491,10 @@ describe("ConflictResolver", () => {
       />,
     );
 
-    expect(await screen.findByRole("heading", { level: 3, name: "Home page" })).toBeInTheDocument();
-    expect(screen.getByText("/frontpage")).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { level: 3, name: "Collection · Home page /frontpage" }),
+    ).toBeInTheDocument();
     expect(screen.queryByText(shopifyOnlyId)).not.toBeInTheDocument();
+    expect(screen.getByText("All languages")).toBeInTheDocument();
   });
 });

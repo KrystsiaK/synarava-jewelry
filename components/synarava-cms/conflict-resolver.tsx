@@ -14,10 +14,13 @@ import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-f
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
 import {
   describeConflictConfirmChange,
+  formatConflictEntityHeader,
   formatConfirmDirectionSummary,
+  groupConfirmEntriesByEntityId,
   resolveConflictEntitySummary,
   summarizeConfirmDirections,
   type ConflictConfirmConsequence,
+  type ConflictConfirmEntity,
 } from "@/components/synarava-cms/conflict-resolver-confirm";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
@@ -201,18 +204,37 @@ export function ConflictLocaleMark({ field }: { field: CatalogConflictField }) {
     return (
       <span className="inline-flex items-center rounded-md border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold motion-safe:transition-colors">
         <GitCompareArrows className="mr-1 size-3" aria-hidden="true" />
-        Shared
+        All languages
       </span>
     );
   }
+  // Prefer native name (PT · Português); fall back to English language name.
+  const languageLabel = field.scope.nativeName?.trim() || field.scope.name;
   return (
     <span
       className="inline-flex items-center rounded-md border border-[var(--adm-warning)] px-2 py-1 text-[0.68rem] font-semibold motion-safe:transition-colors"
       title={`${field.scope.name} · ${field.scope.nativeName}`}
     >
       <Languages className="mr-1 size-3" aria-hidden="true" />
-      {field.scope.code.toUpperCase()} · {field.scope.nativeName}
+      {field.scope.code.toUpperCase()} · {languageLabel}
     </span>
+  );
+}
+
+/** Same item header for the conflict list and the Apply confirm dialog. */
+export function ConflictEntityHeader({
+  summary,
+  entityNoun,
+}: {
+  summary: ConflictConfirmEntity;
+  entityNoun: string;
+}) {
+  return (
+    <div className="border-b border-[var(--adm-border)] pb-2">
+      <h3 className="truncate text-sm font-semibold">
+        {formatConflictEntityHeader(summary, entityNoun)}
+      </h3>
+    </div>
   );
 }
 
@@ -396,6 +418,11 @@ function ConflictConfirmChangeRow({
           </p>
         </div>
       </div>
+      {view.consequence === "remove" ? (
+        <p className="mt-3 text-xs text-[var(--adm-muted)]">
+          Linked products stay.
+        </p>
+      ) : null}
       {entry.willClearNonEmptyValue && view.consequence !== "remove" ? (
         <p className="mt-3 text-xs font-semibold text-[var(--adm-warning)]">
           This clears a value that is not empty today.
@@ -440,6 +467,7 @@ function ConflictPreviewModal({
   const directionSummary = formatConfirmDirectionSummary(
     summarizeConfirmDirections(preview.entries),
   );
+  const entryGroups = groupConfirmEntriesByEntityId(preview.entries);
 
   return (
     <AnimatedModal
@@ -471,15 +499,28 @@ function ConflictPreviewModal({
           <X className="size-4" aria-hidden="true" />
         </AdminButton>
       </header>
-      <div className="adm-conflict-confirm min-h-0 space-y-4 overflow-y-auto p-5">
-        {preview.entries.map((entry) => (
-          <ConflictConfirmChangeRow
-            key={`${entry.entityId}:${entry.field.fieldKey}`}
-            entry={entry}
-            entity={entitiesById.get(entry.entityId)}
-            entityNoun={entityNoun}
-          />
-        ))}
+      <div className="adm-conflict-confirm min-h-0 space-y-6 overflow-y-auto p-5">
+        {entryGroups.map(({ entityId, entries }) => {
+          const summary = resolveConflictEntitySummary({
+            id: entityId,
+            entityNoun,
+            entity: entitiesById.get(entityId),
+            fields: entries.map((entry) => entry.field),
+          });
+          return (
+            <section key={entityId} className="space-y-3">
+              <ConflictEntityHeader summary={summary} entityNoun={entityNoun} />
+              {entries.map((entry) => (
+                <ConflictConfirmChangeRow
+                  key={`${entry.entityId}:${entry.field.fieldKey}`}
+                  entry={entry}
+                  entity={entitiesById.get(entry.entityId)}
+                  entityNoun={entityNoun}
+                />
+              ))}
+            </section>
+          );
+        })}
         {preview.excluded.length > 0 ? (
           <section className="rounded-xl border border-[var(--adm-warning)] p-4">
             <h3 className="text-sm font-semibold">Not included</h3>
@@ -1015,14 +1056,7 @@ function ConflictResolverSession({
               tabIndex={entityId === focusedEntityId ? -1 : undefined}
               className="space-y-3 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)]"
             >
-              <div className="border-b border-[var(--adm-border)] pb-2">
-                <h3 className="truncate text-sm font-semibold">
-                  {summary.name}
-                </h3>
-                {summary.detail ? (
-                  <p className="mt-1 text-xs text-[var(--adm-muted)]">{summary.detail}</p>
-                ) : null}
-              </div>
+              <ConflictEntityHeader summary={summary} entityNoun={adapter.entityNoun} />
               {fields.length === 0 && !loading ? (
                 <Notice>Nothing differs for this item in the current view.</Notice>
               ) : null}

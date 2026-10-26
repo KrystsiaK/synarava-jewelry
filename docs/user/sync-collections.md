@@ -78,11 +78,14 @@ Presence-only items use the same row model. The missing side shows
 
 ### Confirm preview
 
-Apply opens the confirm dialog for exactly the chosen changes. Each row shows:
+Apply opens the confirm dialog for exactly the chosen changes. Rows are
+grouped by item with the same header as the conflict list (for example
+**Collection · Pets /pets** — never a technical id). Each change row shows:
 
-- a plain-language headline (for example **Create "Pets" in Shopify**,
-  **Update price in Shopify**, **Take Shopify's title into Synarava**, or
-  **Remove "Pets" from Synarava (linked products stay)**)
+- the **field name** next to the direction (**Name: Shopify → Synarava**,
+  **Price: Synarava → Shopify**, **Create item: …**, **Remove item: …**)
+- scope as **All languages** (shared commerce/presence) or a language chip
+  (**EN · English**, **PT · Português**)
 - the chosen source cell, an arrow into the side that will be written, and
   that target’s **before → after** values (create starts from **Not in
   Shopify** / **Not in Synarava**; remove ends at **Removed**)

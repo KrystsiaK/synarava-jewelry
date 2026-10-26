@@ -71,10 +71,12 @@ but keeps the direct link and cart access available.
 
 When the products list or editor shows conflicts, open **Show conflicts** (or
 the conflict chip). One shared UI — ConflictResolver — lists every differing
-field with **Shopify** on the left and **Synarava** on the right. Click a cell
-to choose that side; Apply opens the confirm dialog for only the chosen
-changes. Each confirm row states the action in plain language, shows source →
-target with before/after on the written side, and the footer counts changes to
+field with **Shopify** on the left and **Synarava** on the right. Items are
+headed **Product · Title  SKU …**. Scope chips say **All languages** (shared
+commerce) or **EN · English** / **PT · Português**. Click a cell to choose that
+side; Apply opens the confirm dialog grouped by the same item headers. Each
+change row leads with the field and direction (**Price: Shopify → Synarava**),
+shows source → target with before/after, and the footer counts changes to
 Shopify vs Synarava. Nothing is written until you confirm. There is no second
 Take/Keep or quick-pull dialog in the Sync strip.
 

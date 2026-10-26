@@ -179,7 +179,13 @@ export const ConfirmUpdate: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Take Shopify for all" }));
     const preview = await openConfirm(canvasElement, "Apply (2)");
     await expect(within(preview).getByRole("heading", {
-      name: "Take Shopify's title into Synarava",
+      name: "Product · Lava Ring SKU LAVA-1",
+    })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", {
+      name: "Title: Shopify → Synarava",
+    })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", {
+      name: "Price: Shopify → Synarava",
     })).toBeInTheDocument();
     await expect(within(preview).getByText("0 changes to Shopify · 2 changes to Synarava")).toBeInTheDocument();
   },
@@ -201,9 +207,13 @@ export const ConfirmCreate: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Keep ours for all" }));
     const preview = await openConfirm(canvasElement, "Apply (1)");
     await expect(within(preview).getByRole("heading", {
-      name: 'Create "Pets" in Shopify',
+      name: "Collection · Pets /pets",
+    })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", {
+      name: "Create item: Synarava → Shopify",
     })).toBeInTheDocument();
     await expect(within(preview).getByText("Not in Shopify")).toBeInTheDocument();
+    await expect(within(preview).getByText("All languages")).toBeInTheDocument();
   },
 };
 
@@ -223,9 +233,13 @@ export const ConfirmRemove: Story = {
     await userEvent.click(canvas.getByRole("button", { name: "Take Shopify for all" }));
     const preview = await openConfirm(canvasElement, "Apply (1)");
     await expect(within(preview).getByRole("heading", {
-      name: 'Remove "Pets" from Synarava (linked products stay)',
+      name: "Collection · Pets /pets",
+    })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", {
+      name: "Remove item: Shopify → Synarava",
     })).toBeInTheDocument();
     await expect(within(preview).getByText("Removed")).toBeInTheDocument();
+    await expect(within(preview).getByText("Linked products stay.")).toBeInTheDocument();
   },
 };
 
@@ -247,8 +261,9 @@ export const ConfirmMixedDirections: Story = {
     await userEvent.click(within(priceSection as HTMLElement).getByRole("button", { name: /Shopify/i }));
     await userEvent.click(within(presenceSection as HTMLElement).getByRole("button", { name: /Keep ours/i }));
     const preview = await openConfirm(canvasElement, "Apply (2)");
-    await expect(within(preview).getByRole("heading", { name: "Take Shopify's price into Synarava" })).toBeInTheDocument();
-    await expect(within(preview).getByRole("heading", { name: 'Create "Pets" in Shopify' })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Collection · Pets /pets" })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Price: Shopify → Synarava" })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Create item: Synarava → Shopify" })).toBeInTheDocument();
     await expect(within(preview).getByText("1 change to Shopify · 1 change to Synarava")).toBeInTheDocument();
   },
 };
@@ -277,6 +292,10 @@ export const ConfirmReducedMotion: Story = {
     const preview = await openConfirm(canvasElement, "Apply (2)");
     const pulse = preview.querySelector(".adm-conflict-flow__pulse");
     await expect(pulse).toBeTruthy();
-    await expect(within(preview).getByRole("heading", { name: "Update price in Shopify" })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Product · Lava Ring SKU LAVA-1" })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Price: Synarava → Shopify" })).toBeInTheDocument();
+    await expect(within(preview).getByRole("heading", { name: "Title: Synarava → Shopify" })).toBeInTheDocument();
+    await expect(within(preview).getByText("All languages")).toBeInTheDocument();
+    await expect(within(preview).getByText("PT · Português")).toBeInTheDocument();
   },
 };
