@@ -10,17 +10,24 @@ import { describe, expect, it } from "vitest";
  * returning; only storefront / heavy work belongs in after().
  */
 describe("admin actions invalidate admin pages before the response", () => {
-  const dir = path.resolve(__dirname, "..");
-  const files = readdirSync(dir).filter((name) => name.endsWith(".ts"));
+  // Server actions AND the conflict service that finishes Apply for them.
+  const dirs = [
+    path.resolve(__dirname, ".."),
+    path.resolve(__dirname, "../../../../lib/sync/conflicts"),
+  ];
+  const files = dirs.flatMap((dir) =>
+    readdirSync(dir).filter((name) => name.endsWith(".ts")).map((name) => path.join(dir, name)),
+  );
 
   it("finds the action files", () => {
     expect(files.length).toBeGreaterThan(3);
+    expect(files.some((file) => file.endsWith(path.join("conflicts", "service.ts")))).toBe(true);
   });
 
   it("no revalidatePath('/admin…') inside an after(() => …) block", () => {
     const offenders: string[] = [];
     for (const name of files) {
-      const source = readFileSync(path.join(dir, name), "utf8");
+      const source = readFileSync(name, "utf8");
       let cursor = 0;
       while (true) {
         const start = source.indexOf("after(() =>", cursor);

@@ -2,6 +2,21 @@ import "server-only";
 
 import { db } from "@/lib/db";
 
+import {
+  COLLECTION_PRESENCE_UNSUPPORTED,
+  isSelectableCommerceField,
+  MAX_CONFLICT_APPLY_ENTRIES,
+  resolveConflictPreviewScope,
+  staleResult as sharedStaleResult,
+  summarizeApplyOutcome,
+  unsupportedDirectionReason as sharedUnsupportedDirectionReason,
+  willClear,
+  type ConflictApplyEntryInputBase,
+  type ConflictApplyEntryResultBase,
+  type ConflictApplyOutcomeBase,
+  type ConflictPreviewBase,
+} from "@/lib/sync/conflicts/apply-shared";
+
 import type {
   CatalogConflictDirection,
   CatalogConflictField,
@@ -22,7 +37,6 @@ import {
 import { applyReconcileChoice } from "./reconciliation-apply";
 
 const MAX_BULK_COLLECTIONS = 50;
-const MAX_APPLY_ENTRIES = 200;
 
 export type CollectionConflictApplyScope =
   | { kind: "BULK"; direction: CatalogConflictDirection }
@@ -43,58 +57,21 @@ export type ExcludedCollectionConflictEntry = {
   reason: string;
 };
 
-export type CollectionConflictPreview = {
-  entries: ResolvedCollectionConflictEntry[];
-  excluded: ExcludedCollectionConflictEntry[];
-  truncated: boolean;
+export type CollectionConflictPreview = ConflictPreviewBase<
+  ResolvedCollectionConflictEntry,
+  ExcludedCollectionConflictEntry
+>;
+
+export type CollectionConflictApplyEntryInput = ConflictApplyEntryInputBase & {
+  collectionId: string;
 };
 
-export type CollectionConflictApplyEntryInput = {
+export type CollectionConflictApplyEntryResult = ConflictApplyEntryResultBase & {
   collectionId: string;
-  fieldKey: string;
-  direction: CatalogConflictDirection;
-  expectedLocalFingerprint: string;
-  expectedShopifyFingerprint: string;
-};
-
-export type CollectionConflictApplyEntryResult = {
-  collectionId: string;
-  fieldKey: string;
-  ok: boolean;
-  reason?: "STALE" | "NEEDS_CLEAR_CONFIRMATION" | "WRITE_FAILED" | "UNSUPPORTED";
-  message: string;
   localCollectionId?: string;
 };
 
-export type CollectionConflictApplyOutcome = {
-  results: CollectionConflictApplyEntryResult[];
-  appliedCount: number;
-  failedCount: number;
-};
-
-function isEmptyValue(value: string): boolean {
-  const trimmed = value.trim();
-  return trimmed === "" || trimmed === "—";
-}
-
-function willClear(field: CatalogConflictField, direction: CatalogConflictDirection): boolean {
-  const [source, destination] = direction === "SHOPIFY_TO_SYNARAVA"
-    ? [field.shopifyValue, field.synaravaValue]
-    : [field.synaravaValue, field.shopifyValue];
-  return isEmptyValue(source) && !isEmptyValue(destination);
-}
-
-function unsupportedDirectionReason(field: CatalogConflictField): string {
-  if (field.origin === "PRESENCE") {
-    return field.presenceDifference?.kind === "SHOPIFY_ONLY"
-      ? "This collection only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
-      : "This collection only exists in Synarava. Push it to Shopify, or choose Shopify to remove it from Synarava.";
-  }
-  if (isAdoptShopifyConflictField(field)) {
-    return "Synarava has no commerce window yet. Adopt Shopify first (Shopify → Synarava).";
-  }
-  return field.blockedReason ?? "This direction isn't supported for this field.";
-}
+export type CollectionConflictApplyOutcome = ConflictApplyOutcomeBase<CollectionConflictApplyEntryResult>;
 
 function isPresenceDiscard(field: CatalogConflictField, direction: CatalogConflictDirection): boolean {
   return field.origin === "PRESENCE"
@@ -102,8 +79,8 @@ function isPresenceDiscard(field: CatalogConflictField, direction: CatalogConfli
     && direction === "SHOPIFY_TO_SYNARAVA";
 }
 
-function isSelectableCommerceField(field: CatalogConflictField): boolean {
-  return isAdoptShopifyConflictField(field) || isScopedCollectionCommerceFieldLabel(field.label);
+function isCollectionScoped(field: CatalogConflictField): boolean {
+  return isScopedCollectionCommerceFieldLabel(field.label);
 }
 
 /**
@@ -127,94 +104,44 @@ export async function previewCollectionConflictResolution(
   options?: { requestedBy?: string },
 ): Promise<CollectionConflictPreview> {
   const requestedBy = options?.requestedBy ?? "system";
-  const entries: ResolvedCollectionConflictEntry[] = [];
-  const excluded: ExcludedCollectionConflictEntry[] = [];
-  let truncated = false;
+  const normalized =
+    scope.kind === "BULK" ? scope
+    : scope.kind === "COLLECTION" ? { kind: "ENTITY" as const, entityId: scope.collectionId, direction: scope.direction }
+    : {
+        kind: "MANUAL" as const,
+        selections: scope.selections.map((selection) => ({
+          entityId: selection.collectionId,
+          fieldKey: selection.fieldKey,
+          direction: selection.direction,
+        })),
+      };
 
-  async function resolveCollectionDirection(
-    collectionId: string,
-    direction: CatalogConflictDirection,
-    onlyFieldKeys?: Set<string>,
-  ) {
-    const conflict = await loadCollectionConflictForApply(collectionId, requestedBy);
-    for (const field of conflict.fields) {
-      if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
-      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
-        excluded.push({
-          collectionId,
-          fieldKey: field.fieldKey,
-          label: field.label,
+  return resolveConflictPreviewScope({
+    maxBulk: MAX_BULK_COLLECTIONS,
+    listConflictedIds: listConflictedCollectionIds,
+    loadConflict: (collectionId) => loadCollectionConflictForApply(collectionId, requestedBy),
+    scope: normalized,
+    skipMissingKeysWhenGroupingManual: true,
+    classifyField(field, direction) {
+      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isCollectionScoped)) {
+        return {
+          kind: "exclude",
           reason: field.blockedReason ?? "This collection commerce field cannot be applied field-by-field.",
-        });
-        continue;
+        };
       }
       if (!field.allowedDirections.includes(direction) || field.blockedReason) {
-        excluded.push({
-          collectionId,
-          fieldKey: field.fieldKey,
-          label: field.label,
-          reason: unsupportedDirectionReason(field),
-        });
-        continue;
+        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED) };
       }
-      entries.push({
-        collectionId,
-        direction,
-        field,
+      return {
+        kind: "include",
         willClearNonEmptyValue: isPresenceDiscard(field, direction) || willClear(field, direction),
-      });
-    }
-  }
-
-  if (scope.kind === "BULK") {
-    const allIds = await listConflictedCollectionIds();
-    const collectionIds = allIds.slice(0, MAX_BULK_COLLECTIONS);
-    truncated = allIds.length > collectionIds.length;
-    for (const collectionId of collectionIds) await resolveCollectionDirection(collectionId, scope.direction);
-  } else if (scope.kind === "COLLECTION") {
-    await resolveCollectionDirection(scope.collectionId, scope.direction);
-  } else {
-    const byCollection = new Map<string, Array<{ fieldKey: string; direction: CatalogConflictDirection }>>();
-    for (const selection of scope.selections) {
-      const list = byCollection.get(selection.collectionId) ?? [];
-      list.push(selection);
-      byCollection.set(selection.collectionId, list);
-    }
-    for (const [collectionId, selections] of byCollection) {
-      const conflict = await loadCollectionConflictForApply(collectionId, requestedBy);
-      const currentFieldKeys = new Set(conflict.fields.map((field) => field.fieldKey));
-      for (const selection of selections) {
-        if (!currentFieldKeys.has(selection.fieldKey)) {
-          excluded.push({
-            collectionId,
-            fieldKey: selection.fieldKey,
-            label: selection.fieldKey,
-            reason: "This field is no longer conflicting.",
-          });
-        }
-      }
-      const byDirection = new Map<CatalogConflictDirection, Set<string>>();
-      for (const selection of selections) {
-        if (!currentFieldKeys.has(selection.fieldKey)) continue;
-        const set = byDirection.get(selection.direction) ?? new Set<string>();
-        set.add(selection.fieldKey);
-        byDirection.set(selection.direction, set);
-      }
-      for (const [direction, fieldKeys] of byDirection) {
-        await resolveCollectionDirection(collectionId, direction, fieldKeys);
-      }
-    }
-  }
-
-  return {
-    entries: entries.slice(0, MAX_APPLY_ENTRIES),
-    excluded,
-    truncated: truncated || entries.length > MAX_APPLY_ENTRIES,
-  };
-}
-
-function staleResult(entry: CollectionConflictApplyEntryInput, message: string): CollectionConflictApplyEntryResult {
-  return { collectionId: entry.collectionId, fieldKey: entry.fieldKey, ok: false, reason: "STALE", message };
+      };
+    },
+    toEntry: (collectionId, direction, field, willClearNonEmptyValue) => ({
+      collectionId, direction, field, willClearNonEmptyValue,
+    }),
+    toExcluded: (collectionId, fieldKey, label, reason) => ({ collectionId, fieldKey, label, reason }),
+  });
 }
 
 /** Re-validates fingerprints then applies COMMERCE / TRANSLATION / PRESENCE fields. */
@@ -227,8 +154,8 @@ export async function applyCollectionConflictResolution({
   acknowledgeClears: boolean;
   actorUsername: string;
 }): Promise<CollectionConflictApplyOutcome> {
-  if (entries.length > MAX_APPLY_ENTRIES) {
-    throw new Error(`Too many changes in one batch (${entries.length}); max is ${MAX_APPLY_ENTRIES}.`);
+  if (entries.length > MAX_CONFLICT_APPLY_ENTRIES) {
+    throw new Error(`Too many changes in one batch (${entries.length}); max is ${MAX_CONFLICT_APPLY_ENTRIES}.`);
   }
 
   const results: CollectionConflictApplyEntryResult[] = [];
@@ -255,14 +182,14 @@ export async function applyCollectionConflictResolution({
     const conflict = conflictsByCollection.get(entry.collectionId);
     const field = conflict?.fields.find((candidate) => candidate.fieldKey === entry.fieldKey);
     if (!field) {
-      results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
+      results.push(sharedStaleResult(entry, "collectionId", "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
     if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
-      results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+      results.push(sharedStaleResult(entry, "collectionId", "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
+    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isCollectionScoped)) {
       results.push({
         collectionId: entry.collectionId,
         fieldKey: entry.fieldKey,
@@ -278,7 +205,7 @@ export async function applyCollectionConflictResolution({
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: unsupportedDirectionReason(field),
+        message: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED),
       });
       continue;
     }
@@ -434,6 +361,5 @@ export async function applyCollectionConflictResolution({
     }
   }
 
-  const failedCount = results.filter((result) => !result.ok).length;
-  return { results, appliedCount: results.length - failedCount, failedCount };
+  return summarizeApplyOutcome(results);
 }

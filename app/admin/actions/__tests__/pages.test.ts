@@ -18,6 +18,7 @@ vi.mock("@/lib/auth/admin-session", () => ({
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: mocks.revalidateStorefrontPath,
   revalidateStorefrontTemplate: vi.fn(),
+  revalidateStorefront: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({
   db: {
