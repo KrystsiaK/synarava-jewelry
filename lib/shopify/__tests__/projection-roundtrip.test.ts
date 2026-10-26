@@ -1,34 +1,38 @@
 /**
- * Round-trip invariant: Shopify snapshot → pull mapping → derive → diff === [].
- * Any non-empty diff fails the fixture and lists the path.
+ * Round-trip: snapshotForShopifyProduct → pull mapping → derive → diff === [].
+ * Fixtures include inventoryLevels, KILOGRAMS 0, unitCost null, frontpage, "5.0", empty arrays, kg/oz/lb.
  */
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { shopifyAmountToCents } from "@/lib/shopify/money";
+import { weightInGrams } from "@/lib/shopify/commerce-mirror-shape";
 import { diffShopifyProjections } from "@/lib/shopify/shopify-projection-diff";
 import { deriveProductWindow } from "@/lib/sync/derive-window";
 import { productExtrasFromShopifySnapshot } from "@/lib/sync/extras";
 
+vi.mock("@/lib/env", () => ({ env: { SHOPIFY_LOCATION_ID: undefined } }));
+vi.mock("@/lib/db", () => ({ db: {} }));
+vi.mock("@/lib/shopify/admin", () => ({
+  shopifyAdminRequest: vi.fn(),
+  ShopifyAdminError: class ShopifyAdminError extends Error {},
+  shopifyNumericId: (v: unknown) => String(v),
+}));
+vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
+  getPublishedStorefrontLocales: vi.fn(async () => []),
+}));
+
+import { snapshotForShopifyProduct } from "@/lib/shopify/product-sync";
+
 type Snapshot = Record<string, unknown>;
 
-const WEIGHT_G: Record<string, number> = {
-  GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237,
-};
-
-/** Mirror of product-sync weightInGrams (pull path). */
-function weightInGrams(weight: unknown): number | null {
-  if (!weight || typeof weight !== "object") return null;
-  const w = weight as { value?: number; unit?: string };
-  if (w.value == null || w.value <= 0 || !w.unit) return null;
-  const mult = WEIGHT_G[w.unit];
-  if (mult == null) return null;
-  return Math.round(w.value * mult * 10000) / 10000;
+/** Snapshot money may be string or number after canonicalize. */
+function moneyToCents(value: unknown): number {
+  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value * 100);
+  if (typeof value === "string") return shopifyAmountToCents(value);
+  return 0;
 }
 
-/**
- * Real pull mapping: snapshot → columns + extras (no DB).
- * Mirrors upsert fields in product-sync + productExtrasFromShopifySnapshot.
- */
+/** Pull mapping: mapped snapshot → columns + extras (mirrors product-sync upsert). */
 function pullSnapshotToDeriveInput(snapshot: Snapshot) {
   const variants = Array.isArray(snapshot.variants) ? snapshot.variants : [];
   const seo = (snapshot.seo && typeof snapshot.seo === "object"
@@ -66,18 +70,16 @@ function pullSnapshotToDeriveInput(snapshot: Snapshot) {
         ? inv.unitCost as { amount?: string }
         : null;
       const measurement = inv.measurement && typeof inv.measurement === "object"
-        ? inv.measurement as { weight?: unknown }
+        ? inv.measurement as { weight?: { value: number; unit: "GRAMS" | "KILOGRAMS" | "OUNCES" | "POUNDS" } }
         : null;
       return {
         shopifyVariantId: typeof v.id === "string" ? v.id : null,
         sku: String(v.sku ?? ""),
         title: String(v.title ?? ""),
         barcode: typeof v.barcode === "string" ? v.barcode : null,
-        priceCents: shopifyAmountToCents(typeof v.price === "string" ? v.price : "0"),
-        compareAtCents: typeof v.compareAtPrice === "string"
-          ? shopifyAmountToCents(v.compareAtPrice)
-          : null,
-        costCents: unitCost?.amount ? shopifyAmountToCents(unitCost.amount) : null,
+        priceCents: moneyToCents(v.price),
+        compareAtCents: v.compareAtPrice == null ? null : moneyToCents(v.compareAtPrice),
+        costCents: unitCost?.amount != null ? moneyToCents(unitCost.amount) : null,
         inventoryPolicy: typeof v.inventoryPolicy === "string" ? v.inventoryPolicy : "DENY",
         stockOnHand: typeof v.inventoryQuantity === "number" ? v.inventoryQuantity : 0,
         taxable: Boolean(v.taxable),
@@ -92,7 +94,8 @@ function pullSnapshotToDeriveInput(snapshot: Snapshot) {
   };
 }
 
-function assertRoundTrip(name: string, snapshot: Snapshot) {
+function assertRoundTrip(name: string, remote: Parameters<typeof snapshotForShopifyProduct>[0]) {
+  const snapshot = snapshotForShopifyProduct(remote) as Snapshot;
   const derived = deriveProductWindow(pullSnapshotToDeriveInput(snapshot));
   const diffs = diffShopifyProjections(derived, snapshot);
   if (diffs.length > 0) {
@@ -100,67 +103,132 @@ function assertRoundTrip(name: string, snapshot: Snapshot) {
     throw new Error(`Round-trip failed for ${name}:\n${paths}`);
   }
   expect(diffs).toEqual([]);
-  expect(diffs.every((d) => d.local !== d.shopify)).toBe(true);
+  // Mapper must never keep inventoryLevels or collection sources.
+  const variants = Array.isArray(snapshot.variants) ? snapshot.variants : [];
+  for (const v of variants) {
+    const inv = v && typeof v === "object" ? (v as { inventoryItem?: Record<string, unknown> }).inventoryItem : null;
+    expect(inv).not.toHaveProperty("inventoryLevels");
+  }
+  const collections = Array.isArray(snapshot.collections) ? snapshot.collections : [];
+  for (const c of collections) {
+    expect(c).not.toHaveProperty("sources");
+    expect((c as { handle?: string }).handle).not.toBe("frontpage");
+  }
 }
 
-const baseVariant = {
-  id: "gid://shopify/ProductVariant/1",
-  title: "Default Title",
-  sku: "SKU-1",
-  barcode: null as string | null,
-  price: "5.0",
-  compareAtPrice: null as string | null,
-  inventoryPolicy: "DENY",
-  inventoryQuantity: 2,
-  taxable: true,
-  selectedOptions: [{ name: "Title", value: "Default Title" }],
-  inventoryItem: {
+const inventoryLevels = [{
+  location: { id: "gid://shopify/Location/1", name: "Shop" },
+  quantities: [
+    { name: "available", quantity: 2 },
+    { name: "on_hand", quantity: 2 },
+  ],
+}];
+
+function remoteProduct(
+  overrides: Record<string, unknown> = {},
+  variantPatch: Record<string, unknown> = {},
+) {
+  const invPatch = (variantPatch.inventoryItem ?? {}) as Record<string, unknown>;
+  const inventoryItem = {
     id: "gid://shopify/InventoryItem/1",
     requiresShipping: true,
     tracked: true,
     countryCodeOfOrigin: null as string | null,
     harmonizedSystemCode: null as string | null,
     unitCost: null as { amount: string; currencyCode: string } | null,
-    measurement: null as { weight: { value: number; unit: string } } | null,
-  },
-};
-
-function productSnapshot(overrides: Partial<Snapshot> = {}, variantPatch: Record<string, unknown> = {}): Snapshot {
-  const invPatch = (variantPatch.inventoryItem ?? {}) as Record<string, unknown>;
+    inventoryLevels,
+    measurement: null as { weight: { value: number; unit: "GRAMS" | "KILOGRAMS" | "OUNCES" | "POUNDS" } } | null,
+    ...invPatch,
+  };
   const variant = {
-    ...baseVariant,
+    id: "gid://shopify/ProductVariant/1",
+    title: "Default Title",
+    sku: "SKU-1",
+    barcode: null as string | null,
+    price: "5.0",
+    compareAtPrice: null as string | null,
+    inventoryPolicy: "DENY" as const,
+    inventoryQuantity: 2,
+    taxable: true,
+    selectedOptions: [{ name: "Title", value: "Default Title" }],
     ...variantPatch,
-    inventoryItem: { ...baseVariant.inventoryItem, ...invPatch },
+    inventoryItem,
   };
   return {
     id: "gid://shopify/Product/1",
     title: "Ring",
     handle: "ring",
     descriptionHtml: "<p>Hello</p>",
-    tags: [],
+    tags: [] as string[],
     status: "ACTIVE",
     vendor: "Synarava",
     productType: "Ring",
     category: null,
     seo: { title: null, description: null },
-    media: [],
+    media: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
     options: [{ id: "gid://shopify/ProductOption/1", name: "Title", position: 1, values: ["Default Title"] }],
-    metafields: [],
-    collections: [],
-    publications: [],
-    totalInventory: typeof overrides.totalInventory === "number" ? overrides.totalInventory : 2,
+    metafields: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
+    collections: {
+      pageInfo: { hasNextPage: false, endCursor: null },
+      nodes: [
+        {
+          id: "gid://shopify/Collection/frontpage",
+          handle: "frontpage",
+          title: "Home page",
+          sources: [{ __typename: "CollectionPublicationsSource", id: "s0", title: "sys" }],
+        },
+        {
+          id: "gid://shopify/Collection/1",
+          handle: "all",
+          title: "All",
+          sources: [{
+            __typename: "CollectionConditionsSource",
+            id: "s1",
+            title: "Synarava manual membership",
+            targetType: "PRODUCTS" as const,
+          }],
+        },
+      ],
+    },
+    resourcePublicationsV2: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [] },
+    variants: { pageInfo: { hasNextPage: false, endCursor: null }, nodes: [variant] },
+    totalInventory: 2,
+    updatedAt: "2026-01-01T00:00:00Z",
     ...overrides,
-    variants: Array.isArray(overrides.variants) ? overrides.variants : [variant],
-  };
+  } as Parameters<typeof snapshotForShopifyProduct>[0];
 }
 
 describe("projection round-trip invariant", () => {
-  it("null-heavy snapshot (optional fields null, empty arrays)", () => {
-    assertRoundTrip("null-heavy", productSnapshot());
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it("filled fields: money decimals, EUR cost, kg weight, json metafields, publications", () => {
-    assertRoundTrip("filled", productSnapshot({
+  it("leaky remote (inventoryLevels, frontpage, unitCost null, empty arrays) round-trips", () => {
+    assertRoundTrip("leaky-null", remoteProduct());
+  });
+
+  it("KILOGRAMS 0 weight is omitted; positive kg/oz/lb convert", () => {
+    assertRoundTrip("kg-zero", remoteProduct({}, {
+      inventoryItem: { measurement: { weight: { value: 0, unit: "KILOGRAMS" } } },
+    }));
+    assertRoundTrip("kilograms", remoteProduct({}, {
+      inventoryItem: {
+        unitCost: { amount: "5.0", currencyCode: "EUR" },
+        measurement: { weight: { value: 1, unit: "KILOGRAMS" } },
+        countryCodeOfOrigin: "PT",
+        harmonizedSystemCode: "7113.19",
+      },
+    }));
+    assertRoundTrip("ounces", remoteProduct({}, {
+      inventoryItem: { measurement: { weight: { value: 2, unit: "OUNCES" } } },
+    }));
+    assertRoundTrip("pounds", remoteProduct({}, {
+      inventoryItem: { measurement: { weight: { value: 0.5, unit: "POUNDS" } } },
+    }));
+  });
+
+  it("filled remote: decimals, metafields, publications, media", () => {
+    assertRoundTrip("filled", remoteProduct({
       title: "Pearl Ring\r\n ",
       descriptionHtml: "<p>Body with trailing </p>  ",
       tags: ["gold", "pearl"],
@@ -168,24 +236,32 @@ describe("projection round-trip invariant", () => {
       productType: "Ring  ",
       seo: { title: " SEO title ", description: "SEO desc\r\n" },
       category: { id: "gid://shopify/TaxonomyCategory/1", name: "Rings", fullName: "Jewelry > Rings" },
-      collections: [{ id: "gid://shopify/Collection/1", handle: "all", title: "All" }],
-      publications: [{
-        isPublished: true,
-        publishDate: "2026-01-01T00:00:00.000Z",
-        publication: { id: "gid://shopify/Publication/1", name: "Online Store" },
-      }],
-      metafields: [
-        { namespace: "custom", key: "spec", type: "json", value: "{\"a\":1}" },
-        { namespace: "custom", key: "count", type: "number_integer", value: "3" },
-        { namespace: "custom", key: "flag", type: "boolean", value: "true" },
-        { namespace: "custom", key: "tags", type: "list.single_line_text_field", value: "[\"a\",\"b\"]" },
-        { namespace: "custom", key: "empty_list", type: "list.single_line_text_field", value: "[]" },
-      ],
-      media: [{
-        id: "gid://shopify/MediaImage/1",
-        alt: " Front ",
-        preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=9" } },
-      }],
+      media: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{
+          id: "gid://shopify/MediaImage/1",
+          alt: " Front ",
+          preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=9" } },
+        }],
+      },
+      metafields: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [
+          { namespace: "custom", key: "spec", type: "json", value: "{\"a\":1}" },
+          { namespace: "custom", key: "count", type: "number_integer", value: "3" },
+          { namespace: "custom", key: "flag", type: "boolean", value: "true" },
+          { namespace: "custom", key: "tags", type: "list.single_line_text_field", value: "[\"a\",\"b\"]" },
+          { namespace: "custom", key: "empty_list", type: "list.single_line_text_field", value: "[]" },
+        ],
+      },
+      resourcePublicationsV2: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{
+          isPublished: true,
+          publishDate: "2026-01-01T00:00:00.000Z",
+          publication: { id: "gid://shopify/Publication/1", name: "Online Store" },
+        }],
+      },
       totalInventory: 5,
     }, {
       price: "5.0",
@@ -197,27 +273,22 @@ describe("projection round-trip invariant", () => {
         measurement: { weight: { value: 1, unit: "KILOGRAMS" } },
         countryCodeOfOrigin: "PT",
         harmonizedSystemCode: "7113.19",
+        inventoryLevels,
       },
     }));
   });
 
-  it("oz / lb weights and UNLISTED status", () => {
-    assertRoundTrip("ounces", productSnapshot({}, {
-      inventoryItem: { measurement: { weight: { value: 2, unit: "OUNCES" } } },
-    }));
-    assertRoundTrip("pounds", productSnapshot({}, {
-      inventoryItem: { measurement: { weight: { value: 0.5, unit: "POUNDS" } } },
-    }));
-    assertRoundTrip("unlisted", productSnapshot({ status: "UNLISTED" }));
-  });
-
-  it("non-empty metafield list and CRLF text", () => {
-    assertRoundTrip("crlf-text", productSnapshot({
+  it("UNLISTED status and CRLF text", () => {
+    assertRoundTrip("unlisted", remoteProduct({ status: "UNLISTED" }));
+    assertRoundTrip("crlf-text", remoteProduct({
       title: "Line\r\nTwo  ",
       descriptionHtml: "<p>Keep\r\nme</p>",
-      metafields: [
-        { namespace: "synarava", key: "care", type: "multi_line_text_field", value: "Dry\r\nflat  " },
-      ],
+      metafields: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [
+          { namespace: "synarava", key: "care", type: "multi_line_text_field", value: "Dry\r\nflat  " },
+        ],
+      },
     }));
   });
 });
