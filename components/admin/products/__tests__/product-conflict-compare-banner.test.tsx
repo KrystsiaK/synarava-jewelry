@@ -28,6 +28,7 @@ describe("ProductConflictCompareBanner", () => {
     render(
       <ProductConflictCompareBanner
         signal={{
+          leafCount: 3,
           shared: true,
           sharedCount: 2,
           locales: [

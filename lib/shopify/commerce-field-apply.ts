@@ -18,7 +18,6 @@ import {
 import {
   isMediaGalleryFieldLabel,
   isScopedCommerceFieldLabel,
-  SCOPED_COMMERCE_FIELD_LABELS,
 } from "./catalog-conflict-policy";
 
 export { SCOPED_COMMERCE_FIELD_LABELS, isMediaGalleryFieldLabel, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
