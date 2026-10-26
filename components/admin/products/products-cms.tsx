@@ -29,6 +29,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import type { CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-view";
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import { ProductListMetaLine, ProductListSignals } from "@/components/admin/products/product-list-signals";
@@ -144,7 +145,8 @@ export function ProductsCms({
   const [isOrderPending, startOrderTransition] = useTransition();
   const { pushToast } = useAdminToast();
   const router = useRouter();
-  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
+  // Follows server data: the banner/counters must update after router.refresh() (check / Apply / Save).
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictProductId(null);
