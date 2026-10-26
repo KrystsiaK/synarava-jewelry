@@ -35,7 +35,7 @@ Localized Shopify product title, description, and SEO copy are shared fields. Va
 registered Shopify locale, including Portuguese and Russian when that product's translation exists,
 can be edited in either Synarava or Shopify Translate & Adapt and are reconciled explicitly. Shopify
 has no translation-update webhook, so translation-only changes are discovered by a product refresh
-or the catalog conflict check. Concurrent edits require an explicit winner for the affected locale and field;
+or the top-bar Shopify sync button. Concurrent edits require an explicit winner for the affected locale and field;
 Synarava-only localized fields and other locales are not cleared by that decision.
 
 ## Ownership rules

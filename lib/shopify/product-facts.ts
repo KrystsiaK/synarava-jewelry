@@ -62,7 +62,7 @@ const SIMPLE_TEXT_TYPES = new Set(["single_line_text_field", "multi_line_text_fi
  * Shopify metafield translation → Passport TEXT overlay → taxonomy/code map → EN.
  * Display only — never implies a Shopify translation push.
  */
-export function localizePulledFactValue(input: {
+function localizePulledFactValue(input: {
   value: string;
   locale: Locale;
   characteristicKey?: string | null;
