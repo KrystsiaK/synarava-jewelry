@@ -27,8 +27,6 @@ import {
 import { applyShopifyProductToSynarava, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
-import { loadProductConflictFromSyncResult } from "@/lib/shopify/catalog-conflict";
-import { loadCollectionConflictFromSyncResult } from "@/lib/shopify/collection-conflict";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import {
   type CollectionConflictApplyEntryInput,
@@ -37,6 +35,7 @@ import {
 import { markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 import {
   applyResolution,
+  loadEntityConflict,
   loadSignals,
   previewResolution,
 } from "@/lib/sync/conflicts/service";
@@ -65,17 +64,7 @@ export async function loadCatalogConflictSignalsAction() {
 /** Display-only: SyncResult leaves via waterfall skipRefresh — NO Shopify fetch. */
 export async function loadProductCatalogConflictAction(productId: string) {
   const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    return {
-      conflict: await loadProductConflictFromSyncResult(productId, {
-        requestedBy: session.username,
-        skipRefresh: true,
-      }),
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
-  }
+  return loadEntityConflict("product", productId, session.username);
 }
 
 /** Merchant-owned PRODUCT metafield definitions (excludes synarava passport + shopify taxonomy). */
@@ -119,17 +108,7 @@ export async function loadCollectionConflictSignalsAction() {
 /** Display-only: SyncResult leaves via waterfall skipRefresh — NO Shopify fetch. */
 export async function loadCollectionCatalogConflictAction(collectionId: string) {
   const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    return {
-      conflict: await loadCollectionConflictFromSyncResult(collectionId, {
-        requestedBy: session.username,
-        skipRefresh: true,
-      }),
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load this collection's conflict details." };
-  }
+  return loadEntityConflict("collection", collectionId, session.username);
 }
 
 export async function previewCollectionConflictResolutionAction(scope: CollectionConflictApplyScope) {

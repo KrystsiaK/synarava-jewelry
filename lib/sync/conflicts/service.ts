@@ -3,7 +3,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
-import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
+import { revalidateStorefront } from "@/lib/content/revalidate-storefront";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import {
@@ -14,6 +14,7 @@ import {
   type CatalogConflictApplyScope,
   type CatalogConflictPreview,
 } from "@/lib/shopify/catalog-conflict-apply";
+import { loadProductConflictFromSyncResult } from "@/lib/shopify/catalog-conflict";
 import { markIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import {
@@ -29,20 +30,20 @@ import {
   type CollectionConflictApplyScope,
   type CollectionConflictPreview,
 } from "@/lib/shopify/collection-conflict-apply";
+import { loadCollectionConflictFromSyncResult } from "@/lib/shopify/collection-conflict";
 
 export type ConflictEntity = "product" | "collection";
 
-const CONFLICT_ACTION_ERRORS = {
+const ERRORS = {
   shopifyNotConfigured: "Shopify Admin API credentials are not configured.",
   previewFailed: "Could not preview the conflict resolution.",
   applyFailed: "Could not apply the conflict resolution.",
   signalsFailed: "Could not load conflict status.",
+  productConflictFailed: "Could not load this product's conflict details.",
+  collectionConflictFailed: "Could not load this collection's conflict details.",
 } as const;
 
-function conflictApplyMessages(appliedCount: number, failedCount: number): {
-  success?: string;
-  error?: string;
-} {
+function applyMessages(appliedCount: number, failedCount: number) {
   return {
     success: appliedCount > 0
       ? `${appliedCount} change${appliedCount === 1 ? "" : "s"} applied${failedCount > 0 ? `; ${failedCount} could not be applied` : ""}.`
@@ -62,18 +63,10 @@ export type ConflictApplyResult<T> = {
   success?: string;
   error?: string;
 };
+export type ConflictEntityLoadResult = { conflict?: unknown; error?: string };
 
 function err(error: unknown, fallback: string) {
   return { error: error instanceof Error ? error.message : fallback };
-}
-
-function revalidateConflictStorefront() {
-  revalidateStorefrontPath("/");
-  revalidateStorefrontPath("/shop");
-  revalidateStorefrontPath("/collections");
-  revalidateStorefrontTemplate("/collections/[slug]");
-  revalidateStorefrontTemplate("/products/[slug]");
-  revalidateStorefrontPath("/about");
 }
 
 async function markProductIncomingWatermark(
@@ -104,14 +97,12 @@ function finishApply<T extends { appliedCount: number; failedCount: number }>(
   adminPaths: string[],
   warning?: string,
 ): ConflictApplyResult<T> {
-  // Fire-and-forget cache work after the response path (same as pre-refactor).
   after(() => {
-    revalidateConflictStorefront();
+    revalidateStorefront();
     for (const path of adminPaths) revalidatePath(path);
   });
-  const messages = conflictApplyMessages(outcome.appliedCount, outcome.failedCount);
-  if (entity === "product") return { outcome, warning, ...messages };
-  return { outcome, ...messages };
+  const messages = applyMessages(outcome.appliedCount, outcome.failedCount);
+  return entity === "product" ? { outcome, warning, ...messages } : { outcome, ...messages };
 }
 
 export async function loadSignals(entity: ConflictEntity, username: string): Promise<ConflictSignalsResult> {
@@ -121,7 +112,44 @@ export async function loadSignals(entity: ConflictEntity, username: string): Pro
       : await getCollectionConflictSignals();
     return { signals };
   } catch (error) {
-    return err(error, CONFLICT_ACTION_ERRORS.signalsFailed);
+    return err(error, ERRORS.signalsFailed);
+  }
+}
+
+/** Display-only SyncResult leaf map (skipRefresh) — no Shopify fetch. */
+export async function loadEntityConflict(
+  entity: "product",
+  entityId: string,
+  username: string,
+): Promise<{ conflict?: Awaited<ReturnType<typeof loadProductConflictFromSyncResult>>; error?: string }>;
+export async function loadEntityConflict(
+  entity: "collection",
+  entityId: string,
+  username: string,
+): Promise<{ conflict?: Awaited<ReturnType<typeof loadCollectionConflictFromSyncResult>>; error?: string }>;
+export async function loadEntityConflict(
+  entity: ConflictEntity,
+  entityId: string,
+  username: string,
+): Promise<ConflictEntityLoadResult> {
+  if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
+  try {
+    if (entity === "product") {
+      return {
+        conflict: await loadProductConflictFromSyncResult(entityId, {
+          requestedBy: username,
+          skipRefresh: true,
+        }),
+      };
+    }
+    return {
+      conflict: await loadCollectionConflictFromSyncResult(entityId, {
+        requestedBy: username,
+        skipRefresh: true,
+      }),
+    };
+  } catch (error) {
+    return err(error, entity === "product" ? ERRORS.productConflictFailed : ERRORS.collectionConflictFailed);
   }
 }
 
@@ -140,7 +168,7 @@ export async function previewResolution(
   scope: CatalogConflictApplyScope | CollectionConflictApplyScope,
   username: string,
 ): Promise<ConflictPreviewResult<CatalogConflictPreview | CollectionConflictPreview>> {
-  if (!hasShopifyAdminConfig()) return { error: CONFLICT_ACTION_ERRORS.shopifyNotConfigured };
+  if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
   try {
     if (entity === "product") {
       const productScope = scope as CatalogConflictApplyScope;
@@ -160,7 +188,7 @@ export async function previewResolution(
       ),
     };
   } catch (error) {
-    return err(error, CONFLICT_ACTION_ERRORS.previewFailed);
+    return err(error, ERRORS.previewFailed);
   }
 }
 
@@ -182,7 +210,7 @@ export async function applyResolution(
   },
   username: string,
 ): Promise<ConflictApplyResult<CatalogConflictApplyOutcome | CollectionConflictApplyOutcome>> {
-  if (!hasShopifyAdminConfig()) return { error: CONFLICT_ACTION_ERRORS.shopifyNotConfigured };
+  if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
   try {
     if (entity === "product") {
       const productInput = input as { entries: CatalogConflictApplyEntryInput[]; acknowledgeClears: boolean };
@@ -200,12 +228,10 @@ export async function applyResolution(
     if (outcome.appliedCount > 0) await runAfterSaveCatalogConflictCheck(username);
     const adminPaths = [
       "/admin/collections",
-      ...[...new Set(collectionInput.entries.map((entry) => entry.collectionId))].map(
-        (id) => `/admin/collections/${id}`,
-      ),
+      ...[...new Set(collectionInput.entries.map((e) => e.collectionId))].map((id) => `/admin/collections/${id}`),
     ];
     return finishApply(entity, outcome, adminPaths);
   } catch (error) {
-    return err(error, CONFLICT_ACTION_ERRORS.applyFailed);
+    return err(error, ERRORS.applyFailed);
   }
 }

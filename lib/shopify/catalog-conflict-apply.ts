@@ -115,14 +115,6 @@ function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
 }
 
-function isProductSelectableCommerceField(field: CatalogConflictField): boolean {
-  return isSelectableCommerceField(field, isScopedCommerceField);
-}
-
-function unsupportedDirectionReason(field: CatalogConflictField): string {
-  return sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED);
-}
-
 export type CatalogConflictApplyScope =
   | { kind: "BULK"; direction: CatalogConflictDirection }
   | { kind: "PRODUCT"; productId: string; direction: CatalogConflictDirection }
@@ -177,11 +169,11 @@ export async function previewCatalogConflictResolution(
     loadConflict: (productId) => loadProductConflictForApply(productId, requestedBy),
     scope: normalized,
     classifyField(field, direction) {
-      if (field.origin === "COMMERCE" && !isProductSelectableCommerceField(field)) {
+      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isScopedCommerceField)) {
         return { kind: "exclude", reason: COMMERCE_UNSUPPORTED_REASON };
       }
       if (!field.allowedDirections.includes(direction)) {
-        return { kind: "exclude", reason: unsupportedDirectionReason(field) };
+        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED) };
       }
       if (field.blockedReason) {
         return { kind: "exclude", reason: field.blockedReason };
@@ -205,10 +197,6 @@ export type CatalogConflictApplyEntryResult = ConflictApplyEntryResultBase & {
 };
 
 export type CatalogConflictApplyOutcome = ConflictApplyOutcomeBase<CatalogConflictApplyEntryResult>;
-
-function staleResult(entry: CatalogConflictApplyEntryInput, message: string): CatalogConflictApplyEntryResult {
-  return sharedStaleResult(entry, "productId", message);
-}
 
 /**
  * Re-validates every requested entry against the product's current
@@ -264,7 +252,7 @@ export async function applyCatalogConflictResolution({
     const conflict = conflictsByProduct.get(entry.productId);
     const field = conflict?.fields.find((candidate) => candidate.fieldKey === entry.fieldKey);
     if (!field) {
-      results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
+      results.push(sharedStaleResult(entry, "productId", "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
     // Presence Pull (SHOPIFY_ONLY): re-scan may rematch SKU/handle and change
@@ -281,15 +269,21 @@ export async function applyCatalogConflictResolution({
       (field.origin !== "PRESENCE" && fingerprintsStale)
       || (isPresenceRemove && field.localFingerprint !== entry.expectedLocalFingerprint)
     ) {
-      results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+      results.push(sharedStaleResult(entry, "productId", "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE" && !isProductSelectableCommerceField(field)) {
+    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isScopedCommerceField)) {
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
     if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
-      results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: field.blockedReason ?? unsupportedDirectionReason(field) });
+      results.push({
+        productId: entry.productId,
+        fieldKey: entry.fieldKey,
+        ok: false,
+        reason: "UNSUPPORTED",
+        message: field.blockedReason ?? sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED),
+      });
       continue;
     }
     if (!acknowledgeClears && willClear(field, entry.direction)) {

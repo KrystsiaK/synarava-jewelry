@@ -26,3 +26,13 @@ export function revalidateStorefrontTemplate(pattern: string) {
     revalidatePath(`/${code}${pattern}`, "page");
   }
 }
+
+/** Common admin/storefront cache refresh after catalog writes. */
+export function revalidateStorefront() {
+  revalidateStorefrontPath("/");
+  revalidateStorefrontPath("/shop");
+  revalidateStorefrontPath("/collections");
+  revalidateStorefrontTemplate("/collections/[slug]");
+  revalidateStorefrontTemplate("/products/[slug]");
+  revalidateStorefrontPath("/about");
+}

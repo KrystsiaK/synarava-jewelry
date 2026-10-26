@@ -33,6 +33,8 @@ function extractFunction(source: string, name: string): string {
 const CONFLICT_ACTIONS = [
   "loadCatalogConflictSignalsAction",
   "loadCollectionConflictSignalsAction",
+  "loadProductCatalogConflictAction",
+  "loadCollectionCatalogConflictAction",
   "previewCatalogConflictResolutionAction",
   "previewCollectionConflictResolutionAction",
   "applyCatalogConflictResolutionAction",

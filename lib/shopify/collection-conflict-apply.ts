@@ -73,18 +73,14 @@ export type CollectionConflictApplyEntryResult = ConflictApplyEntryResultBase & 
 
 export type CollectionConflictApplyOutcome = ConflictApplyOutcomeBase<CollectionConflictApplyEntryResult>;
 
-function unsupportedDirectionReason(field: CatalogConflictField): string {
-  return sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED);
-}
-
 function isPresenceDiscard(field: CatalogConflictField, direction: CatalogConflictDirection): boolean {
   return field.origin === "PRESENCE"
     && field.presenceDifference?.kind === "SYNARAVA_ONLY"
     && direction === "SHOPIFY_TO_SYNARAVA";
 }
 
-function isCollectionSelectableCommerceField(field: CatalogConflictField): boolean {
-  return isSelectableCommerceField(field, (candidate) => isScopedCollectionCommerceFieldLabel(candidate.label));
+function isCollectionScoped(field: CatalogConflictField): boolean {
+  return isScopedCollectionCommerceFieldLabel(field.label);
 }
 
 /**
@@ -127,14 +123,14 @@ export async function previewCollectionConflictResolution(
     scope: normalized,
     skipMissingKeysWhenGroupingManual: true,
     classifyField(field, direction) {
-      if (field.origin === "COMMERCE" && !isCollectionSelectableCommerceField(field)) {
+      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isCollectionScoped)) {
         return {
           kind: "exclude",
           reason: field.blockedReason ?? "This collection commerce field cannot be applied field-by-field.",
         };
       }
       if (!field.allowedDirections.includes(direction) || field.blockedReason) {
-        return { kind: "exclude", reason: unsupportedDirectionReason(field) };
+        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED) };
       }
       return {
         kind: "include",
@@ -146,10 +142,6 @@ export async function previewCollectionConflictResolution(
     }),
     toExcluded: (collectionId, fieldKey, label, reason) => ({ collectionId, fieldKey, label, reason }),
   });
-}
-
-function staleResult(entry: CollectionConflictApplyEntryInput, message: string): CollectionConflictApplyEntryResult {
-  return sharedStaleResult(entry, "collectionId", message);
 }
 
 /** Re-validates fingerprints then applies COMMERCE / TRANSLATION / PRESENCE fields. */
@@ -190,14 +182,14 @@ export async function applyCollectionConflictResolution({
     const conflict = conflictsByCollection.get(entry.collectionId);
     const field = conflict?.fields.find((candidate) => candidate.fieldKey === entry.fieldKey);
     if (!field) {
-      results.push(staleResult(entry, "This conflict no longer exists — it may already have been resolved."));
+      results.push(sharedStaleResult(entry, "collectionId", "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
     if (field.localFingerprint !== entry.expectedLocalFingerprint || field.shopifyFingerprint !== entry.expectedShopifyFingerprint) {
-      results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
+      results.push(sharedStaleResult(entry, "collectionId", "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE" && !isCollectionSelectableCommerceField(field)) {
+    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isCollectionScoped)) {
       results.push({
         collectionId: entry.collectionId,
         fieldKey: entry.fieldKey,
@@ -213,7 +205,7 @@ export async function applyCollectionConflictResolution({
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: unsupportedDirectionReason(field),
+        message: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED),
       });
       continue;
     }
