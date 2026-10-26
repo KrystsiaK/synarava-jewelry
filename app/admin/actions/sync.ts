@@ -12,9 +12,7 @@ import {
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 import {
-  applyCatalogConflictResolution,
   assertWholeRecordFingerprintsFresh,
-  previewCatalogConflictResolution,
   type CatalogConflictApplyEntryInput,
   type CatalogConflictApplyScope,
   type WholeRecordFingerprintExpectation,
@@ -29,17 +27,18 @@ import {
 import { applyShopifyProductToSynarava, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
-import { runProductConflictCheck, getCatalogConflictSignals, getCollectionConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
-import { loadProductConflictFromSyncResult } from "@/lib/shopify/catalog-conflict";
-import { loadCollectionConflictFromSyncResult } from "@/lib/shopify/collection-conflict";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import {
-  applyCollectionConflictResolution,
-  previewCollectionConflictResolution,
   type CollectionConflictApplyEntryInput,
   type CollectionConflictApplyScope,
 } from "@/lib/shopify/collection-conflict-apply";
-import { markIncomingProductUpdates, markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
+import { markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
+import {
+  applyResolution,
+  loadEntityConflict,
+  loadSignals,
+  previewResolution,
+} from "@/lib/sync/conflicts/service";
 
 async function assertConfiguredShopifyStore() {
   const shop = await fetchShopifyShopIdentity();
@@ -59,27 +58,13 @@ export async function inspectProductSyncAction(productId: string) {
 
 export async function loadCatalogConflictSignalsAction() {
   const session = await requireAdminSession("/admin/products");
-  try {
-    return { signals: await getCatalogConflictSignals(session.username) };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load conflict status." };
-  }
+  return loadSignals("product", session.username);
 }
 
 /** Display-only: SyncResult leaves via waterfall skipRefresh — NO Shopify fetch. */
 export async function loadProductCatalogConflictAction(productId: string) {
   const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    return {
-      conflict: await loadProductConflictFromSyncResult(productId, {
-        requestedBy: session.username,
-        skipRefresh: true,
-      }),
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load this product's conflict details." };
-  }
+  return loadEntityConflict("product", productId, session.username);
 }
 
 /** Merchant-owned PRODUCT metafield definitions (excludes synarava passport + shopify taxonomy). */
@@ -106,9 +91,7 @@ export async function createProductMetafieldDefinitionAction(input: {
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     const definition = await createProductMetafieldDefinition(input);
-    after(() => {
-      revalidatePath("/admin/products");
-    });
+    revalidatePath("/admin/products");
     return { definition, success: `Definition “${definition.name}” created in Shopify.` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the metafield definition." };
@@ -116,38 +99,19 @@ export async function createProductMetafieldDefinitionAction(input: {
 }
 
 export async function loadCollectionConflictSignalsAction() {
-  await requireAdminSession("/admin/collections");
-  try {
-    return { signals: await getCollectionConflictSignals() };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load conflict status." };
-  }
+  const session = await requireAdminSession("/admin/collections");
+  return loadSignals("collection", session.username);
 }
 
 /** Display-only: SyncResult leaves via waterfall skipRefresh — NO Shopify fetch. */
 export async function loadCollectionCatalogConflictAction(collectionId: string) {
   const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    return {
-      conflict: await loadCollectionConflictFromSyncResult(collectionId, {
-        requestedBy: session.username,
-        skipRefresh: true,
-      }),
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not load this collection's conflict details." };
-  }
+  return loadEntityConflict("collection", collectionId, session.username);
 }
 
 export async function previewCollectionConflictResolutionAction(scope: CollectionConflictApplyScope) {
   const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    return { preview: await previewCollectionConflictResolution(scope, { requestedBy: session.username }) };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not preview the conflict resolution." };
-  }
+  return previewResolution("collection", scope, session.username);
 }
 
 export async function applyCollectionConflictResolutionAction(input: {
@@ -155,48 +119,13 @@ export async function applyCollectionConflictResolutionAction(input: {
   acknowledgeClears: boolean;
 }) {
   const session = await requireAdminSession("/admin/collections");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    const outcome = await applyCollectionConflictResolution({ ...input, actorUsername: session.username });
-    // After Apply: full check re-runs (waterfall) so SyncResult leaves / signals match writes.
-    if (outcome.appliedCount > 0) {
-      await runAfterSaveCatalogConflictCheck(session.username);
-    }
-    after(() => {
-      revalidateStorefront();
-      revalidatePath("/admin/collections");
-      for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
-        revalidatePath(`/admin/collections/${collectionId}`);
-      }
-    });
-    return {
-      outcome,
-      success: outcome.appliedCount > 0
-        ? `${outcome.appliedCount} change${outcome.appliedCount === 1 ? "" : "s"} applied${outcome.failedCount > 0 ? `; ${outcome.failedCount} could not be applied` : ""}.`
-        : undefined,
-      error: outcome.appliedCount === 0
-        ? "None of the selected changes could be applied. Review the results below."
-        : undefined,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not apply the conflict resolution." };
-  }
+  return applyResolution("collection", input, session.username);
 }
 
 /** Resolves a bulk direction, a single product's direction, or a hand-picked manual field list into the concrete fields it would touch — nothing is written. See docs/wiki/catalog-conflict-resolution-ux.md dialogs 1-3. */
 export async function previewCatalogConflictResolutionAction(scope: CatalogConflictApplyScope) {
   const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    if (scope.kind === "PRODUCT" && !scope.productId.startsWith("shopify:")) {
-      // Scoped waterfall refresh before preview; apply path still re-inspects live.
-      const checked = await runProductConflictCheck({ productId: scope.productId, requestedBy: session.username });
-      if (checked.warning) return { error: checked.warning };
-    }
-    return { preview: await previewCatalogConflictResolution(scope, { requestedBy: session.username }) };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not preview the conflict resolution." };
-  }
+  return previewResolution("product", scope, session.username);
 }
 
 /** Applies the entries a caller reviewed via previewCatalogConflictResolutionAction. Every entry is re-validated against the current conflict state before anything is written — a stale, already-resolved, or unacknowledged-clear entry is reported per-field rather than blocking the rest of the batch. */
@@ -205,50 +134,7 @@ export async function applyCatalogConflictResolutionAction(input: {
   acknowledgeClears: boolean;
 }) {
   const session = await requireAdminSession("/admin/products");
-  if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
-  try {
-    const outcome = await applyCatalogConflictResolution({ ...input, actorUsername: session.username });
-    const incomingProductIds = new Set(
-      outcome.results
-        .filter((result) => result.ok && input.entries.some((entry) =>
-          entry.productId === result.productId
-          && entry.fieldKey === result.fieldKey
-          && entry.direction === "SHOPIFY_TO_SYNARAVA",
-        ))
-        .map((result) => result.localProductId ?? result.productId)
-        // Presence applies use virtual ids like `shopify:123` until pull creates
-        // a local row — only watermark real Product ids (FK on ProductIncomingUpdate).
-        .filter((productId) => Boolean(productId) && !productId.startsWith("shopify:")),
-    );
-    let warning: string | undefined;
-    try {
-      await markIncomingProductUpdates([...incomingProductIds]);
-    } catch (error) {
-      console.error("[catalog-conflicts] applied values but could not record the review watermark", error);
-      warning = "Values were applied, but the new-from-Shopify review badge could not be saved.";
-    }
-    // After Apply: full check re-runs (waterfall) so SyncResult leaves / signals match writes.
-    if (outcome.appliedCount > 0) {
-      await runAfterSaveCatalogConflictCheck(session.username);
-    }
-    // Return write outcome immediately; cache refresh must not hold the client overlay.
-    after(() => {
-      revalidateStorefront();
-      revalidatePath("/admin/products");
-    });
-    return {
-      outcome,
-      warning,
-      success: outcome.appliedCount > 0
-        ? `${outcome.appliedCount} change${outcome.appliedCount === 1 ? "" : "s"} applied${outcome.failedCount > 0 ? `; ${outcome.failedCount} could not be applied` : ""}.`
-        : undefined,
-      error: outcome.appliedCount === 0
-        ? "None of the selected changes could be applied. Review the results below."
-        : undefined,
-    };
-  } catch (error) {
-    return { error: error instanceof Error ? error.message : "Could not apply the conflict resolution." };
-  }
+  return applyResolution("product", input, session.username);
 }
 
 export async function markProductIncomingUpdateViewedAction(productId: string) {
@@ -358,4 +244,3 @@ export async function pullSingleProductFromShopifyAction(
     return { error: error instanceof Error ? error.message : "Shopify pull failed." };
   }
 }
-

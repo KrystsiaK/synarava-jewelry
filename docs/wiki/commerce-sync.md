@@ -1,13 +1,18 @@
 # Commerce sync — two-state owner model
 
-**Status:** live on staging/main (sync-unification PR1–PR7 — **one** sync system).  
+**Status:** live on staging/main (**one** sync system).  
 **Date:** 2026-10-24  
-**Contract:** [`docs/proposals/sync-unification.md`](../proposals/sync-unification.md) Owner model; [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
+**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
 
 **Two states only:** Synarava `workingSnapshot` (OUR) ↔ Shopify `shopifySnapshot` (last fetched).  
+<<<<<<< HEAD
 **Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy; humans Apply.  
 **ONE compare → SyncResult leaves:** `lib/sync` (`compareSyncState` → `SyncResult` leaves → `selectSyncCounts` / ConflictResolver fields / list + banner). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor. No `CommerceSyncStore` catalog cache.  
 **`syncStatus` is not the conflict SoT** — list, banner, resolver, and badges derive from SyncResult leaves. `Product.syncStatus` / `Collection.syncStatus` remain operational (PENDING / FAILED / SYNCED / identity CONFLICT / UNLINKED), not a parallel conflict inventory.
+=======
+**Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy + flags; humans Apply.  
+**One compare + one selector:** `lib/sync` (`compareSyncState` → `SyncResult` → `selectSyncCounts`). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No common-ancestor / base snapshot. No `CommerceSyncStore` catalog cache.
+>>>>>>> 99956a0c (chore: remove dead sync helpers and stale sync docs)
 
 This is the only admin sync architecture doc for the current model. Older drafts
 (`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation,
@@ -92,10 +97,9 @@ Translation axis: two-way diverge rows only. Default-locale EN translation leave
 | After-save full check | `lib/shopify/after-save-catalog-check.ts` → `runCatalogConflictCheck` |
 
 Migrations: `product_working_snapshot`, `collection_commerce_windows`.  
-Dropped (PR6): `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`.  
-Dropped (PR7): `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
+Dropped: `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`, `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
 
-Collection projection: `lib/shopify/collection-commerce-projection.ts`, fetch `collection-commerce-fetch.ts`, push/pull windows in `collection-presence-server.ts`.
+Collection projection: `lib/shopify/collection-commerce-projection.ts`, push/pull windows in `collection-presence-server.ts`.
 
 ---
 

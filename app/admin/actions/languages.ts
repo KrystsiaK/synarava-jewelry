@@ -20,7 +20,6 @@ import {
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
-import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
 
 async function afterLanguageSettingSave(requestedBy: string): Promise<string | undefined> {
   if (!hasShopifyAdminConfig()) return undefined;
@@ -33,15 +32,6 @@ async function revalidateLanguagesAdmin() {
   revalidatePath("/admin", "layout");
   revalidatePath("/admin/translations");
   invalidateStorefrontLocaleCache();
-}
-
-export async function getWriteLocalesScopeAction() {
-  await requireAdminSession();
-  try {
-    return { hasWriteLocales: await hasWriteLocalesScope() };
-  } catch {
-    return { hasWriteLocales: false };
-  }
 }
 
 export async function addLanguageAction(input: {

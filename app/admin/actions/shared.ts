@@ -1,6 +1,7 @@
 import { getCurrentAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
-import { revalidateStorefrontPath, revalidateStorefrontTemplate } from "@/lib/content/revalidate-storefront";
+
+export { revalidateStorefront } from "@/lib/content/revalidate-storefront";
 
 export type AdminAuditEntityType =
   | "PRODUCT"
@@ -30,15 +31,6 @@ export type DraftAutosaveResult = {
 
 export function formValue(formData: FormData, key: string) {
   return String(formData.get(key) ?? "").trim();
-}
-
-export function revalidateStorefront() {
-  revalidateStorefrontPath("/");
-  revalidateStorefrontPath("/shop");
-  revalidateStorefrontPath("/collections");
-  revalidateStorefrontTemplate("/collections/[slug]");
-  revalidateStorefrontTemplate("/products/[slug]");
-  revalidateStorefrontPath("/about");
 }
 
 function toAuditJson(value: unknown) {

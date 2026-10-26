@@ -65,7 +65,7 @@ For bots (and humans) closing a `bug`-labeled issue:
 3. Open a **PR into `staging`** (never `main`) whose body includes **`Closes #N`** for the issue number.
 4. **Never merge** the PR yourself; leave merge to a human or to the `automerge` label + required checks.
 5. **Never touch production data** (no prod DB writes, no prod Shopify mutations, no prod env secrets).
-6. Follow sync rules in [`docs/proposals/sync-unification.md`](docs/proposals/sync-unification.md): **no automatic writes to Synarava data** — fetch / compare / show only unless a human Apply path is explicitly in scope.
+6. Follow sync rules in [`docs/history/sync-unification.md`](docs/history/sync-unification.md) / [ADR-0008](docs/adr/0008-sync-two-state-owner-model.md): **no automatic writes to Synarava data** — fetch / compare / show only unless a human Apply path is explicitly in scope.
 
 ## Ship finished work (staging → main)
 

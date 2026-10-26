@@ -132,15 +132,17 @@ describe("ONE SoT — ConflictResolver fields from SyncResult leaves", () => {
   });
 
   it("admin open-conflict actions force skipRefresh (display-only, no Shopify fetch)", () => {
-    const source = read("app/admin/actions/sync.ts");
-    const productLoad = extractFunction(source, "loadProductCatalogConflictAction");
-    expect(productLoad).toMatch(/loadProductConflictFromSyncResult/);
-    expect(productLoad).toMatch(/skipRefresh\s*:\s*true/);
-    expect(productLoad).not.toMatch(/inspectProductSyncState/);
+    // The actions are thin wrappers; the conflict service owns the load (one place).
+    const actions = read("app/admin/actions/sync.ts");
+    expect(extractFunction(actions, "loadProductCatalogConflictAction")).toMatch(/loadEntityConflict\(\s*"product"/);
+    expect(extractFunction(actions, "loadCollectionCatalogConflictAction")).toMatch(/loadEntityConflict\(\s*"collection"/);
 
-    const collectionLoad = extractFunction(source, "loadCollectionCatalogConflictAction");
-    expect(collectionLoad).toMatch(/loadCollectionConflictFromSyncResult/);
-    expect(collectionLoad).toMatch(/skipRefresh\s*:\s*true/);
+    const service = read("lib/sync/conflicts/service.ts");
+    const load = service.slice(service.indexOf("export async function loadEntityConflict(\n  entity: ConflictEntity"));
+    expect(load).toMatch(/loadProductConflictFromSyncResult/);
+    expect(load).toMatch(/loadCollectionConflictFromSyncResult/);
+    expect(load.match(/skipRefresh\s*:\s*true/g)?.length ?? 0).toBeGreaterThanOrEqual(2);
+    expect(load).not.toMatch(/inspectProductSyncState/);
   });
 
   it("apply path refreshes via waterfall then maps SyncResult leaves (no inspect.differences)", () => {

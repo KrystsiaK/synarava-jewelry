@@ -5,7 +5,6 @@ import {
   isManagedProductMetafieldNamespace,
   slugifyMetafieldKey,
   type ProductMetafieldDefinition,
-  type ProductMetafieldValueInput,
 } from "@/lib/shopify/product-metafields-shared";
 
 export type { ProductMetafieldDefinition, ProductMetafieldValueInput } from "@/lib/shopify/product-metafields-shared";
@@ -132,38 +131,4 @@ export async function createProductMetafieldDefinition(input: {
     type: created.type.name,
     description: created.description,
   };
-}
-
-/**
- * Set product metafield values (create or update). Max 25 per request.
- * @see https://shopify.dev/docs/api/admin-graphql/latest/mutations/metafieldsSet
- */
-export async function setProductMetafieldValues(input: {
-  shopifyProductId: string;
-  values: ProductMetafieldValueInput[];
-}) {
-  if (input.values.length === 0) return;
-  const chunks: ProductMetafieldValueInput[][] = [];
-  for (let index = 0; index < input.values.length; index += 25) {
-    chunks.push(input.values.slice(index, index + 25));
-  }
-  for (const chunk of chunks) {
-    const data = await shopifyAdminRequest<{
-      metafieldsSet: { userErrors: UserError[] };
-    }>(
-      `mutation SynaravaProductMetafieldsSet($metafields: [MetafieldsSetInput!]!) {
-        metafieldsSet(metafields: $metafields) { userErrors { field message } }
-      }`,
-      {
-        metafields: chunk.map((item) => ({
-          ownerId: input.shopifyProductId,
-          namespace: item.namespace,
-          key: item.key,
-          type: item.type,
-          value: item.value,
-        })),
-      },
-    );
-    userErrors(data.metafieldsSet.userErrors);
-  }
 }
