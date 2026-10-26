@@ -7,7 +7,7 @@ import {
   isScopedProductCommerceLabel,
   labelForWindowPath,
 } from "@/lib/sync/field-registry";
-import { assertCountInvariant, slice } from "@/lib/sync/select";
+import { slice } from "@/lib/sync/select";
 import { collectionWindowFromShopifyRemote } from "@/lib/shopify/collection-commerce-projection";
 import { diffShopifyProjections } from "@/lib/shopify/shopify-projection-diff";
 
@@ -250,11 +250,11 @@ describe("derive-synarava-state (ADR-0009)", () => {
       now: new Date("2026-10-23T10:01:00.000Z"),
     });
 
-    expect(slice(result, { entityId: "p1", node: "base" }).length).toBeGreaterThan(0);
-    expect(() => assertCountInvariant(result, "p1", ["pt"])).not.toThrow();
+    // Uses #279 slice only — no second selector / assertCountInvariant copy.
     const entity = slice(result, { entityId: "p1" }).length;
     const base = slice(result, { entityId: "p1", node: "base" }).length;
     const locale = slice(result, { entityId: "p1", node: "pt" }).length;
+    expect(base).toBeGreaterThan(0);
     expect(entity).toBe(base + locale);
   });
 });

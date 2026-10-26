@@ -18,10 +18,9 @@ import {
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
 import {
-  deriveCollectionWindow,
-  deriveProductWindow,
-  preferredHtmlFromShopifySnapshot,
-} from "@/lib/sync/derive-window";
+  ourCollectionWindowFromRow,
+  ourProductWindowFromRow,
+} from "@/lib/sync/our-window-from-row";
 
 import type { SyncCommerceWindow, SyncCompareInput, SyncLocaleRef } from "./compare";
 import type { RefreshShopifyStateScope } from "./refresh-shopify-state";
@@ -83,68 +82,12 @@ async function loadProductCommerceWindows(productId?: string): Promise<SyncComme
       },
     },
   });
-  return products.map((product) => {
-    const name = product.name?.trim() ?? "";
-    const slug = product.slug?.trim() ?? "";
-    if (!name && !slug) {
-      return {
-        resourceType: "PRODUCT" as const,
-        resourceId: product.id,
-        ourWindow: null,
-        shopifySnapshot: product.shopifySnapshot,
-      };
-    }
-    return {
-      resourceType: "PRODUCT" as const,
-      resourceId: product.id,
-      ourWindow: deriveProductWindow({
-        shopifyProductId: product.shopifyProductId,
-        name,
-        slug,
-        description: product.description,
-        vendor: product.vendor,
-        productType: product.productType,
-        status: product.status,
-        seoTitle: product.seoTitle,
-        seoDescription: product.seoDescription,
-        shopifyCategoryId: product.shopifyCategoryId,
-        shopifyCategoryName: product.shopifyCategoryName,
-        tags: product.tags.map((row) => row.tag.name),
-        collections: product.collections.flatMap((row) => {
-          const id = row.collection.shopifyCollectionId;
-          if (!id) return [];
-          return [{
-            id,
-            handle: row.collection.slug,
-            title: row.collection.name,
-          }];
-        }),
-        variants: product.variants.map((variant) => ({
-          shopifyVariantId: variant.shopifyVariantId,
-          sku: variant.sku,
-          title: variant.title,
-          barcode: variant.barcode,
-          priceCents: variant.priceCents,
-          compareAtCents: variant.compareAtCents,
-          inventoryPolicy: variant.inventoryPolicy,
-          stockOnHand: variant.stockOnHand,
-          taxable: variant.taxable,
-          selectedOptions: variant.selectedOptions,
-          shopifyInventoryItemId: variant.shopifyInventoryItemId,
-          requiresShipping: variant.requiresShipping,
-          tracked: variant.tracked,
-          costCents: variant.costCents,
-          weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
-        })),
-        extras: product.extras,
-        preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
-          product.shopifySnapshot,
-          "descriptionHtml",
-        ),
-      }),
-      shopifySnapshot: product.shopifySnapshot,
-    };
-  });
+  return products.map((product) => ({
+    resourceType: "PRODUCT" as const,
+    resourceId: product.id,
+    ourWindow: ourProductWindowFromRow(product),
+    shopifySnapshot: product.shopifySnapshot,
+  }));
 }
 
 async function loadCollectionCommerceWindows(collectionId?: string): Promise<SyncCommerceWindow[]> {
@@ -165,36 +108,12 @@ async function loadCollectionCommerceWindows(collectionId?: string): Promise<Syn
       seoDescription: true,
     },
   });
-  return collections.map((collection) => {
-    const name = collection.name?.trim() ?? "";
-    const slug = collection.slug?.trim() ?? "";
-    if (!name && !slug) {
-      return {
-        resourceType: "COLLECTION" as const,
-        resourceId: collection.id,
-        ourWindow: null,
-        shopifySnapshot: collection.shopifySnapshot,
-      };
-    }
-    return {
-      resourceType: "COLLECTION" as const,
-      resourceId: collection.id,
-      ourWindow: deriveCollectionWindow({
-        shopifyCollectionId: collection.shopifyCollectionId,
-        name,
-        slug,
-        description: collection.description,
-        seoTitle: collection.seoTitle,
-        seoDescription: collection.seoDescription,
-        extras: collection.extras,
-        preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
-          collection.shopifySnapshot,
-          "descriptionHtml",
-        ),
-      }),
-      shopifySnapshot: collection.shopifySnapshot,
-    };
-  });
+  return collections.map((collection) => ({
+    resourceType: "COLLECTION" as const,
+    resourceId: collection.id,
+    ourWindow: ourCollectionWindowFromRow(collection),
+    shopifySnapshot: collection.shopifySnapshot,
+  }));
 }
 
 export async function readSynaravaStateForCompare(

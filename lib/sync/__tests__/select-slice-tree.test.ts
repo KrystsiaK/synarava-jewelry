@@ -71,13 +71,13 @@ function mixedFixture(): SyncResult {
       {
         resourceType: "PRODUCT",
         resourceId: "p1",
-        workingSnapshot: { title: "Local", handle: "ring", vendor: "Us" },
+        ourWindow: { title: "Local", handle: "ring", vendor: "Us" },
         shopifySnapshot: { title: "Remote", handle: "ring", vendor: "Them" },
       },
       {
         resourceType: "COLLECTION",
         resourceId: "c1",
-        workingSnapshot: { title: "Local C", handle: "c" },
+        ourWindow: { title: "Local C", handle: "c" },
         shopifySnapshot: { title: "Remote C", handle: "c" },
       },
     ],

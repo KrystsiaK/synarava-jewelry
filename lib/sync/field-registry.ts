@@ -89,27 +89,3 @@ export function labelForWindowPath(path: string): string {
   const leaf = path.split(".").pop() ?? path;
   return leaf.replace(/\[\d+\]/g, "");
 }
-
-export function scopeForWindowPath(path: string): FieldScope {
-  const normalized = path.replace(/\[\d+\]/g, "[]");
-  for (const field of [...PRODUCT_COMMERCE_FIELDS, ...COLLECTION_COMMERCE_FIELDS]) {
-    if (field.scope === "synaravaOnly") continue;
-    if (field.windowPaths.some((p) => p === path || p === normalized || normalized.startsWith(p.replace(/\[\]$/, "")))) {
-      return field.scope;
-    }
-  }
-  return "base";
-}
-
-/** Leaf node address: base shared vs locale translation. Commerce shared → base. */
-export type SyncLeafAddress = {
-  entityType: "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
-  entityId: string;
-  node: "base" | string;
-  fieldKey: string;
-};
-
-export function commerceLeafNode(scope: FieldScope, locale: string | null): "base" | string {
-  if (scope === "locale" && locale && locale !== "en") return locale;
-  return "base";
-}

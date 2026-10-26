@@ -24,8 +24,6 @@ export type ProductExtras = {
   variantInventory?: Record<string, VariantInventoryExtras>;
 };
 
-export type CollectionExtras = Record<string, never>;
-
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
@@ -86,8 +84,4 @@ export function productExtrasFromShopifySnapshot(shopify: unknown): ProductExtra
 export function parseProductExtras(raw: unknown): ProductExtras {
   if (!isPlainObject(raw)) return {};
   return raw as ProductExtras;
-}
-
-export function parseCollectionExtras(_raw?: unknown): CollectionExtras {
-  return {};
 }
