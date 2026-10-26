@@ -43,12 +43,9 @@ export type ProductCatalogConflict = {
 };
 
 /**
- * Change-detection fingerprint for a commerce value — `inspectProductSyncState`'s
- * `compare()` already trims and normalizes it to a plain string ("—" for
- * empty), so no further normalization is needed before hashing. Exported so
- * `commerce-field-apply.ts` can recompute the identical hash when
- * re-validating a field immediately before writing it — using a different
- * hashing scheme there would silently break staleness detection.
+ * Change-detection fingerprint for a commerce value — same sha256 scheme as
+ * SyncResult leaf fingerprints (`compareSyncState`). Exported for callers that
+ * need to recompute the identical hash when re-validating fingerprints.
  */
 export function commerceFingerprint(value: string): string {
   return createHash("sha256").update(value).digest("hex");
@@ -83,8 +80,8 @@ export function findCatalogPresenceDifference(
 /**
  * ConflictResolver field list from SyncResult leaves (waterfall compare).
  * Opening the resolver must use `skipRefresh: true` — no Shopify fetch.
- * Apply/preview may refresh first, then call with skipRefresh after the
- * only allowed live inspect (see catalog-conflict-apply).
+ * Apply/preview uses `skipRefresh: false` (refresh Shopify for that entity,
+ * then the same compare → leaves).
  */
 export async function loadProductConflictFromSyncResult(
   productId: string,

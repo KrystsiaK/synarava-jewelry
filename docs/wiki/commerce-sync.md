@@ -38,7 +38,8 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 ONE fetch place (Shopify network):
   • Top-bar Shopify control — click (MANUAL) + once per login session (AUTO)
   • After Save (product / collection / language settings / SKU assign) — full catalog check
-  • Apply safety only — single-entity inspectProductSyncState immediately before write
+  • Apply safety only — single-entity refresh (`refreshShopifyProductState` /
+    `refreshShopifyCollectionState` via waterfall) then the same compare → leaves
 NOT a fetch:
   • Opening ConflictResolver / list / banner / layout badge → waterfall skipRefresh (persisted windows + SyncResult leaves)
 On push / pull / apply → refresh Shopify windows as needed; Synarava content writes are human Apply only
@@ -85,7 +86,7 @@ Translation axis: two-way diverge rows only. Default-locale EN translation leave
 | Waterfall / compare / select | `lib/sync/*` (`compareSyncState`, `selectSyncCounts`, `catalogConflictFieldsForEntity`) |
 | Projection / write-through / diff | `lib/shopify/local-commerce-projection.ts`, `shopify-projection-diff.ts` |
 | Refresh Shopify copy (no syncStatus CONFLICT write) | `refreshShopifyProductState`, `refreshShopifyCollectionState` |
-| Apply-only live inspect | `inspectProductSyncState` (single-entity safety before Apply write; does not persist syncStatus) |
+| Apply-only live refresh | `recheckEntityConflictLeaves` / waterfall `skipRefresh: false` (refresh Shopify window + SyncResult leaves; not `inspect.differences`) |
 | Resolver loaders (skipRefresh) | `loadProductConflictFromSyncResult`, `loadCollectionConflictFromSyncResult` |
 | Field conflict UI | `components/synarava-cms/conflict-resolver*` (+ product/collection adapters) |
 | After-save full check | `lib/shopify/after-save-catalog-check.ts` → `runCatalogConflictCheck` |

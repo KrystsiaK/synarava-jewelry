@@ -42,6 +42,13 @@ export {
 } from "./conflict-fields-from-leaves";
 export { productConflictBadgeCount } from "./badge-count";
 export {
+  findConflictLeaf,
+  leafMatchesExpectedFingerprints,
+  recheckEntityConflictLeaves,
+  type RecheckEntityConflictLeavesInput,
+  type RecheckEntityConflictLeavesResult,
+} from "./recheck-entity-leaves";
+export {
   selectAdminNavSyncCounts,
   type AdminNavSyncEntityType,
 } from "./nav-counts";

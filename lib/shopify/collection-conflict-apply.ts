@@ -114,11 +114,11 @@ async function loadCollectionConflictForApply(
   collectionId: string,
   requestedBy: string,
 ): Promise<CollectionCatalogConflict> {
-  // Collections already persist dual windows (no live inspect). Map leaves
-  // from the last waterfall — same no-fetch contract as the old loader.
+  // Refresh Shopify for this collection, then map SyncResult leaves
+  // (same compare as the list — no inspect.differences second compare).
   return loadCollectionConflictFromSyncResult(collectionId, {
     requestedBy,
-    skipRefresh: true,
+    skipRefresh: false,
   });
 }
 

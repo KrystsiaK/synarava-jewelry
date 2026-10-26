@@ -143,14 +143,20 @@ describe("ONE SoT — ConflictResolver fields from SyncResult leaves", () => {
     expect(collectionLoad).toMatch(/skipRefresh\s*:\s*true/);
   });
 
-  it("apply path may inspect once, then maps leaves with skipRefresh", () => {
+  it("apply path refreshes via waterfall then maps SyncResult leaves (no inspect.differences)", () => {
     const source = read("lib/shopify/catalog-conflict-apply.ts");
     const body = extractFunction(source, "loadProductConflictForApply");
-    expect(body).toMatch(/inspectProductSyncState/);
+    expect(stripComments(body)).not.toMatch(/inspectProductSyncState/);
     expect(body).toMatch(/loadProductConflictFromSyncResult/);
+    expect(body).toMatch(/skipRefresh\s*:\s*false/);
+    // Virtual presence still skipRefresh; linked products refresh+compare.
     expect(body).toMatch(/skipRefresh\s*:\s*true/);
-    // Must not resurrect the deleted dual-compare helper.
     expect(stripComments(source)).not.toMatch(/\bgetProductCatalogConflict\b/);
+
+    const commerceApply = read("lib/shopify/commerce-field-apply.ts");
+    expect(stripComments(commerceApply)).not.toMatch(/inspectProductSyncState/);
+    expect(commerceApply).toMatch(/recheckEntityConflictLeaves/);
+    expect(stripComments(commerceApply)).not.toMatch(/syncStatus\s*:\s*["']SYNCED["']/);
   });
 });
 

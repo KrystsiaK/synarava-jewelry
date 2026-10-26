@@ -281,7 +281,8 @@ export async function applyCollectionCommerceField({
       await writeToShopify(collectionId, label, value);
     }
 
-    // Re-check the applied field against stored windows.
+    // Re-check the applied field against stored windows (same compare as list).
+    // Do not write syncStatus SYNCED — conflict inventory is SyncResult leaves.
     const after = await db.collection.findUnique({
       where: { id: collectionId },
       select: { workingSnapshot: true, shopifySnapshot: true },
@@ -293,14 +294,6 @@ export async function applyCollectionCommerceField({
       .some((item) => item.field === label);
     if (stillOpen) {
       return { ok: false, reason: "WRITE_FAILED", message: "The field still differs after apply. Nothing is marked resolved." };
-    }
-
-    const remaining = diffCollectionCommerceWindows(after.workingSnapshot, after.shopifySnapshot);
-    if (remaining.length === 0) {
-      await db.collection.update({
-        where: { id: collectionId },
-        data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-      });
     }
 
     return {

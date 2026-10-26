@@ -8,7 +8,6 @@ const mocks = vi.hoisted(() => ({
   applyCatalogPresenceDifference: vi.fn(),
   scanAndSaveCatalogPresence: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
-  inspectProductSyncState: vi.fn(),
   findUniqueProduct: vi.fn(),
 }));
 
@@ -39,7 +38,6 @@ vi.mock("@/lib/shopify/product-sync", async () => {
   return {
     ...actual,
     applyShopifyProductToSynarava: mocks.applyShopifyProductToSynarava,
-    inspectProductSyncState: mocks.inspectProductSyncState,
   };
 });
 vi.mock("@/lib/db", () => ({
@@ -158,12 +156,6 @@ function conflict(fields: CatalogConflictField[], productId = "product-1"): Prod
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.inspectProductSyncState.mockResolvedValue({
-    state: "SYNCED",
-    remoteUpdatedAt: null,
-    publications: [],
-    differences: [],
-  });
 });
 
 describe("previewCatalogConflictResolution", () => {
