@@ -106,9 +106,7 @@ export async function createProductMetafieldDefinitionAction(input: {
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     const definition = await createProductMetafieldDefinition(input);
-    after(() => {
-      revalidatePath("/admin/products");
-    });
+    revalidatePath("/admin/products");
     return { definition, success: `Definition “${definition.name}” created in Shopify.` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the metafield definition." };
@@ -162,12 +160,14 @@ export async function applyCollectionConflictResolutionAction(input: {
     if (outcome.appliedCount > 0) {
       await runAfterSaveCatalogConflictCheck(session.username);
     }
+    // Admin pages are invalidated BEFORE the response: the client calls router.refresh() right after
+    // Apply, and a revalidatePath deferred to after() runs too late (stale page until next navigation).
+    revalidatePath("/admin/collections");
+    for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
+      revalidatePath(`/admin/collections/${collectionId}`);
+    }
     after(() => {
       revalidateStorefront();
-      revalidatePath("/admin/collections");
-      for (const collectionId of new Set(input.entries.map((entry) => entry.collectionId))) {
-        revalidatePath(`/admin/collections/${collectionId}`);
-      }
     });
     return {
       outcome,
@@ -231,10 +231,11 @@ export async function applyCatalogConflictResolutionAction(input: {
     if (outcome.appliedCount > 0) {
       await runAfterSaveCatalogConflictCheck(session.username);
     }
-    // Return write outcome immediately; cache refresh must not hold the client overlay.
+    // Admin page cache is invalidated BEFORE the response (the client router.refresh()es right after Apply);
+    // only the heavy storefront revalidation is deferred.
+    revalidatePath("/admin/products");
     after(() => {
       revalidateStorefront();
-      revalidatePath("/admin/products");
     });
     return {
       outcome,
