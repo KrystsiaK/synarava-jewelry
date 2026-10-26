@@ -6,7 +6,7 @@
 
 ## Context
 
-Shopify ↔ Synarava sync accumulated a third “common ancestor” state (`shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `lastSyncedSnapshot`), automatic Synarava overwrites from webhooks/pull/inspect, and parallel compare/UI paths. That made conflict resolution unpredictable and hard to reason about. The owner model is recorded in [`docs/proposals/sync-unification.md`](../proposals/sync-unification.md).
+Shopify ↔ Synarava sync accumulated a third “common ancestor” state (`shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `lastSyncedSnapshot`), automatic Synarava overwrites from webhooks/pull/inspect, and parallel compare/UI paths. That made conflict resolution unpredictable and hard to reason about. The owner model is recorded in [`docs/history/sync-unification.md`](../history/sync-unification.md).
 
 ## Decision
 

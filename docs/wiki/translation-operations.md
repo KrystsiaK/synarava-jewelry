@@ -1,9 +1,9 @@
 # Translation sync — two-state operations
 
-**Status:** live (sync-unification PR3 + PR6 cleanup)  
+**Status:** live (two-way translation compare)  
 **Date:** 2026-10-23  
 **Day-to-day checklist:** [`docs/runbooks/translation-operations.md`](../runbooks/translation-operations.md)  
-**Contract:** [ADR-0008](../adr/0008-sync-two-state-owner-model.md), [`docs/proposals/sync-unification.md`](../proposals/sync-unification.md)
+**Contract:** [ADR-0008](../adr/0008-sync-two-state-owner-model.md), [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical)
 
 ## Model
 
@@ -15,7 +15,7 @@
 
 **Data model rule (Option A):** English is authoritative on base columns. Translation tables hold only non-default locales (PT, RU, …). Admin EN tab reads/writes base columns; language bundle export/import for the default locale maps to/from those base columns. Archive + delete of historical `locale='en'` rows: migration `20261025214900_archive_and_drop_en_translation_rows` (rollback: `scripts/db/rollback-en-translation-rows.sql`; pre-check: `scripts/db/check-en-translation-rows.sql`).
 
-There is **no** third state: `ShopifyTranslationSnapshot` and `lastSyncedSnapshot` are removed. Language bundle export/import still ships locale rows + cache; legacy `translationSnapshots` in older bundles are ignored on import.
+Compare is two-way only: `ShopifyTranslationSnapshot` and `lastSyncedSnapshot` are removed. Language bundle export/import still ships locale rows + cache; legacy `translationSnapshots` in older bundles are ignored on import.
 
 ## Rules
 

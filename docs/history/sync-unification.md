@@ -1,9 +1,11 @@
 # Sync unification — two states only (Shopify vs Synarava)
 
+> **Historical.** Migration plan + owner-model write-up from the sync-unification series; live contract is [ADR-0008](../adr/0008-sync-two-state-owner-model.md) and [`docs/wiki/commerce-sync.md`](../wiki/commerce-sync.md).
+
 **Status:** **done (PR7 cleanup)** — one sync system on `lib/sync`; `CommerceSyncStore` dropped; two-way translations only; FieldConflictPanel is the Apply UI.  
 **Supersedes:** earlier “three pipelines / one engine” draft merged via #234  
 **Audited:** `origin/staging` @ `b7044f13` (2026-10-23); GraphQL check via Shopify Admin schema / docs (API **2026-07**, same as `SHOPIFY_ADMIN_API_VERSION` default)  
-**Related:** [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [commerce-sync](../wiki/commerce-sync.md), [languages-as-data](./languages-as-data.md), Mission Control [§0 Simplicity Contract](../runbooks/mission-control-hub-plan.md), skill `shopify-commerce-compare`
+**Related:** [ADR-0003](../adr/0003-commerce-conflict-deep-diff.md), [commerce-sync](../wiki/commerce-sync.md), [languages-as-data](../proposals/languages-as-data.md), Mission Control [§0 Simplicity Contract](../runbooks/mission-control-hub-plan.md), skill `shopify-commerce-compare`
 
 ## Owner model (hard)
 
