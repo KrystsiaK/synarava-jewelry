@@ -78,11 +78,12 @@ During a check:
 
 ### Read banners and counters after the check
 
-Catalog banners and counters (conflict count, **Last full check**, **Show
-conflicts**) all reflect the same SyncResult from that full check. When the
-count is greater than zero, open the list from **Show conflicts** and resolve
-with preview → Apply (Apply may refresh that one product/collection for safety
-before writing). Collections use the same pattern — see
+Catalog banners and counters (**N conflicts** = SyncResult leaf tally — not
+distinct products — plus **Last full check**, **Show conflicts**) all reflect
+the same SyncResult from that full check. Menu badges use the same leaf counts.
+When the count is greater than zero, open the list from **Show conflicts** and
+resolve with preview → Apply (Apply may refresh that one product/collection for
+safety before writing). Collections use the same pattern — see
 [Sync collections with Shopify](/admin/help/sync-collections).
 :::
 

@@ -94,7 +94,8 @@ export function filterSignalsForView(
     return { ...signals, products: {}, totalCount: 0 };
   }
   if (viewScope.kind === "product") {
-    return { ...signals, products: { [productId]: signal }, totalCount: 1 };
+    const leafCount = Math.max(0, signal.leafCount ?? 0);
+    return { ...signals, products: { [productId]: signal }, totalCount: leafCount };
   }
   const locale = normalizeLocaleCode(viewScope.locale);
   const isBase = isBaseLocaleTab(locale);
@@ -121,7 +122,7 @@ export function filterSignalsForView(
         leafCount,
       },
     },
-    totalCount: leafCount > 0 ? 1 : 0,
+    totalCount: leafCount,
   };
 }
 

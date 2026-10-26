@@ -42,11 +42,11 @@ leaves — not from a `syncStatus: CONFLICT` database flag.
 
 On **Catalog → Collections**, the list banner shows the saved SyncResult status:
 
-- **N collections with conflicts** when at least one collection has ≥1 open
-  leaf, or **No conflicts** when the count is zero. N is the number of
-  **distinct collections** with ≥1 open conflict (commerce, translation, or
-  presence) — the same `countConflictedItems` figure as the Collections menu
-  badge (not a `syncStatus` query).
+- **N conflicts** when at least one open leaf exists, or **No conflicts**
+  when the count is zero. N is the number of SyncResult **leaves**
+  (commerce, translation, or presence) for collections — the same leaf tally
+  as the Collections menu badge (not a `syncStatus` query, and not a count of
+  distinct collections).
 - **Last full check \<date\>** from `SyncResult.checkedAt`: a fresh waterfall
   stamps the run that produced the counts; skipRefresh reads use the latest
   SUCCEEDED AUTO/MANUAL reconcile `completedAt` (same source as the top-bar

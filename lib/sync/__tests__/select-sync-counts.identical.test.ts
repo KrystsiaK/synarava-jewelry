@@ -50,7 +50,7 @@ function singleProductFixture(): SyncResult {
 }
 
 describe("selectSyncCounts identical surfaces", () => {
-  it("nav counts DISTINCT items; per-item chips count leaves; locale tabs use tree nodes", () => {
+  it("nav / chip / banner count the same leaves; locale tabs use tree nodes", () => {
     const result = singleProductFixture();
     // 2 commerce (title + vendor) + 1 translation = 3 leaves on ONE product
     expect(result.leaves).toHaveLength(3);
@@ -79,8 +79,8 @@ describe("selectSyncCounts identical surfaces", () => {
       locale: "pt",
     });
 
-    expect(nav.products).toBe(1);
-    expect(nav.total).toBe(1);
+    expect(nav.products).toBe(3);
+    expect(nav.total).toBe(3);
     expect(listChip).toBe(3);
     expect(editorBanner).toBe(3);
     // Shared commerce under base/EN only; PT = translation leaf alone.

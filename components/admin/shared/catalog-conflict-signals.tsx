@@ -10,19 +10,19 @@ function plural(count: number, singular: string, pluralWord: string) {
   return `${count} ${count === 1 ? singular : pluralWord}`;
 }
 
-function statusText(signals: CatalogConflictSignals, entityNoun: { singular: string; plural: string }) {
+function statusText(signals: CatalogConflictSignals) {
   if (signals.state === "unknown") return "Conflict status unknown";
   if (signals.state === "failed") return "Last check failed or partial";
   const count = signals.totalCount;
   if (count === null) return "Conflict status unavailable";
   const unchecked = signals.uncheckedCount ?? 0;
   const uncheckedNote = unchecked > 0
-    ? ` · ${plural(unchecked, "item", "items")} not checked`
+    ? ` · ${plural(unchecked, "row", "rows")} not checked`
     : "";
   if (count === 0) {
     return unchecked > 0 ? `No conflicts${uncheckedNote}` : "No conflicts";
   }
-  return `${plural(count, entityNoun.singular, entityNoun.plural)} with conflicts${uncheckedNote}`;
+  return `${plural(count, "conflict", "conflicts")}${uncheckedNote}`;
 }
 
 const conflictTone = {
@@ -37,11 +37,11 @@ export function CatalogConflictStatus({
   signals,
   onShow,
   compact = false,
-  entityNoun = { singular: "product", plural: "products" },
 }: {
   signals: CatalogConflictSignals;
   onShow: () => void;
   compact?: boolean;
+  /** Ignored — counters are always leaf conflicts ("N conflicts"). */
   entityNoun?: { singular: string; plural: string };
 }) {
   const hasConflicts = signals.totalCount !== null && signals.totalCount > 0;
@@ -53,11 +53,10 @@ export function CatalogConflictStatus({
         onClick={onShow}
         className="inline-flex min-h-11 items-center gap-2 rounded-xl border px-3 py-2 text-xs font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--adm-conflict)]"
         style={{ borderColor: conflictTone.border, background: conflictTone.fill }}
-        aria-label={`Show conflict ${entityNoun.plural}`}
-        title={statusText(signals, entityNoun)}
+        title={statusText(signals)}
       >
         <GitCompareArrows className="size-4" style={{ color: conflictTone.ink }} aria-hidden="true" />
-        {plural(signals.totalCount!, `conflict ${entityNoun.singular}`, `conflict ${entityNoun.plural}`)}
+        {plural(signals.totalCount!, "conflict", "conflicts")}
       </button>
     );
   }
@@ -72,7 +71,7 @@ export function CatalogConflictStatus({
       role="status"
     >
       <GitCompareArrows className="size-4 shrink-0" style={{ color: conflictTone.ink }} aria-hidden="true" />
-      <span className="font-semibold">{statusText(signals, entityNoun)}</span>
+      <span className="font-semibold">{statusText(signals)}</span>
       {signals.checkedAt ? (
         <time
           className="text-[var(--adm-muted)]"

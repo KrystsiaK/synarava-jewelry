@@ -102,7 +102,7 @@ legal/service page sections are add/remove/reorder with editable names.
 - Фильтры: статус (`Published` / `Draft` / `Archived`), категория Shopify,
   коллекция.
 - На каждой строке — быстрые действия: **Draft / Publish / Archive / Delete**.
-- Полная сверка с Shopify — только кнопка в **верхней панели** админки (раз в сессию при входе и вручную по клику). Баннер каталога только показывает сохранённый результат: **N products with conflicts** / **No conflicts**, **Last full check**, и **Show conflicts** при N>0. Список конфликтов сам не открывается.
+- Полная сверка с Shopify — только кнопка в **верхней панели** админки (раз в сессию при входе и вручную по клику). Баннер каталога только показывает сохранённый результат: **N conflicts** / **No conflicts**, **Last full check**, и **Show conflicts** при N>0 (N — число SyncResult leaves, не число товаров). Список конфликтов сам не открывается.
 - В списке доступны массовые направления, три действия на товар и ручной выбор полей. Запись начинается только после обязательного preview. Поддерживаются переводы и commerce-поля **Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax**. Остальные commerce-поля (Status, media, tags, …) попадают в **Not included** с причиной — их резолвят через редактор товара → Sync → Push/Pull.
 - После успешного **Use Shopify** у товара появляется ссылка **Updated from Shopify · review**. Она снимается только после открытия страницы редактора `/admin/products/[id]`, не после просмотра списка. **Use Synarava** этот маркер не ставит.
 - Баннер отражает сохранённые расхождения после последней полной сверки верхней панели.

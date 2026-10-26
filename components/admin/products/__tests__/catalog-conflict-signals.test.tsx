@@ -21,17 +21,16 @@ describe("catalog conflict signals", () => {
   it("offers two equivalent explicit entrances and textual status", () => {
     const open = vi.fn();
     render(<><CatalogConflictStatus signals={signals} onShow={open} /><CatalogConflictStatus signals={signals} onShow={open} compact /></>);
-    expect(screen.getByText(/2 products with conflicts/)).toBeTruthy();
-    expect(screen.getByText("2 conflict products")).toBeTruthy();
+    expect(screen.getAllByText("2 conflicts")).toHaveLength(2);
     expect(screen.getByText(/Last full check/)).toBeTruthy();
     expect(screen.getByTitle("Last full conflict check")).toBeTruthy();
     expect(screen.queryByRole("button", { name: /run conflict check/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Show conflicts" }));
-    fireEvent.click(screen.getByRole("button", { name: "Show conflict products" }));
+    fireEvent.click(screen.getByRole("button", { name: "2 conflicts" }));
     expect(open).toHaveBeenCalledTimes(2);
   });
 
-  it("uses the entity noun for collections", () => {
+  it("ignores entityNoun — counters are always leaf conflicts", () => {
     render(
       <CatalogConflictStatus
         signals={signals}
@@ -39,7 +38,8 @@ describe("catalog conflict signals", () => {
         entityNoun={{ singular: "collection", plural: "collections" }}
       />,
     );
-    expect(screen.getByText(/2 collections with conflicts/)).toBeTruthy();
+    expect(screen.getByText("2 conflicts")).toBeTruthy();
+    expect(screen.queryByText(/collections with conflicts/i)).toBeNull();
     expect(screen.getByText(/Last full check/)).toBeTruthy();
   });
 
@@ -85,11 +85,11 @@ describe("catalog conflict signals", () => {
   it("updates both counters when the last persisted conflict disappears", () => {
     const { rerender } = render(<><CatalogConflictStatus signals={signals} onShow={vi.fn()} /><CatalogConflictStatus signals={signals} onShow={vi.fn()} compact /></>);
     expect(screen.getByRole("button", { name: "Show conflicts" })).toBeTruthy();
-    expect(screen.getByRole("button", { name: "Show conflict products" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "2 conflicts" })).toBeTruthy();
     const cleared: CatalogConflictSignals = { ...signals, totalCount: 0, products: {} };
     rerender(<><CatalogConflictStatus signals={cleared} onShow={vi.fn()} /><CatalogConflictStatus signals={cleared} onShow={vi.fn()} compact /></>);
     expect(screen.getByText("No conflicts")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Show conflicts" })).toBeNull();
-    expect(screen.queryByRole("button", { name: "Show conflict products" })).toBeNull();
+    expect(screen.queryByRole("button", { name: "2 conflicts" })).toBeNull();
   });
 });
