@@ -102,7 +102,7 @@ export const getMetaHealthReport = cache(async (): Promise<MetaHealthReport> => 
         name: true,
         slug: true,
         seoTitle: true,
-        workingSnapshot: true,
+        extras: true,
         media: {
           orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
           select: { alt: true, asset: { select: { filename: true } } },

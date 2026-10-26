@@ -647,7 +647,7 @@ export function EditProductForm({
                         activeLocale={activeLocale}
                         shopifyLinked={Boolean(currentProduct.shopifyProductId)}
                         shopifySnapshot={currentProduct.shopifySnapshot}
-                        workingSnapshot={currentProduct.workingSnapshot}
+                        workingSnapshot={currentProduct.extras}
                         shopifyCategoryName={currentProduct.shopifyCategoryName ?? draft.shopifyCategoryName}
                         vendor={currentProduct.vendor ?? draft.vendor}
                         productType={currentProduct.productType ?? draft.productType}
@@ -661,7 +661,7 @@ export function EditProductForm({
                         productId={currentProduct.id}
                         shopifyProductId={currentProduct.shopifyProductId}
                         shopifySnapshot={currentProduct.shopifySnapshot}
-                        workingSnapshot={currentProduct.workingSnapshot}
+                        workingSnapshot={currentProduct.extras}
                         activeLocale={activeLocale}
                         translationLocales={translationLocales}
                       />

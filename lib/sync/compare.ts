@@ -49,7 +49,8 @@ export type SyncLocaleRef = {
 export type SyncCommerceWindow = {
   resourceType: "PRODUCT" | "COLLECTION";
   resourceId: string;
-  workingSnapshot: unknown | null;
+  /** Derived OUR Shopify-shaped window (columns + extras). */
+  ourWindow: unknown | null;
   shopifySnapshot: unknown | null;
 };
 
@@ -155,6 +156,7 @@ function commerceLeaf(
 ): SyncLeaf {
   const supported = isScopedCommerceFieldLabel(diff.field);
   const keySource = diff.path?.trim() || diff.field;
+  // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
     id: `${resourceType}:${resourceId}:commerce:${slugFieldKey(keySource)}`,
     resourceType,
@@ -177,6 +179,7 @@ function commerceLeaf(
     targetKind: commerceTargetKind(diff.field),
     localFingerprint: leafFingerprint(diff.local),
     shopifyFingerprint: leafFingerprint(diff.shopify),
+    node: "base",
   };
 }
 
@@ -204,6 +207,7 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
     targetKind: "NATIVE",
     localFingerprint: leafFingerprint(synaravaValue),
     shopifyFingerprint: leafFingerprint(shopifySummary),
+    node: "base",
   };
 }
 
@@ -214,8 +218,8 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
   const leaves: SyncLeaf[] = [];
   let uncheckedCount = 0;
   for (const window of windows) {
-    if (window.shopifySnapshot == null && window.workingSnapshot == null) continue;
-    if (window.workingSnapshot == null && window.shopifySnapshot != null) {
+    if (window.shopifySnapshot == null && window.ourWindow == null) continue;
+    if (window.ourWindow == null && window.shopifySnapshot != null) {
       leaves.push(adoptLeaf(window.resourceType, window.resourceId, "— Shopify window present —"));
       continue;
     }
@@ -225,8 +229,8 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
       uncheckedCount += 1;
       continue;
     }
-    if (window.workingSnapshot == null) continue;
-    const diffs = diffShopifyProjections(window.workingSnapshot, window.shopifySnapshot);
+    if (window.ourWindow == null) continue;
+    const diffs = diffShopifyProjections(window.ourWindow, window.shopifySnapshot);
     for (const diff of diffs) {
       leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
     }

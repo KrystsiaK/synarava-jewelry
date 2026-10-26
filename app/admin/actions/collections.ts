@@ -447,44 +447,15 @@ export async function saveCollectionAction(
     after: savedCollection,
   });
 
-  // Dual window: Save write-through into workingSnapshot + patch OUR store slice.
+  // ADR-0009: columns are OUR SoT; Save only marks PENDING push intent for linked rows.
   if (savedCollection.shopifyCollectionId) {
-    const linked = await db.collection.findUnique({
+    await db.collection.update({
       where: { id: savedCollection.id },
-      select: {
-        shopifyCollectionId: true,
-        workingSnapshot: true,
-        shopifySnapshot: true,
-        name: true,
-        slug: true,
-        description: true,
-        seoTitle: true,
-        seoDescription: true,
-        syncStatus: true,
+      data: {
+        syncStatus: "PENDING",
+        syncError: null,
       },
     });
-    if (linked?.shopifyCollectionId) {
-      const nextWorking = writeThroughLocalCollectionToProjection(
-        linked.workingSnapshot ?? linked.shopifySnapshot ?? {},
-        {
-          id: linked.shopifyCollectionId,
-          title: linked.name,
-          handle: linked.slug,
-          description: linked.description,
-          seoTitle: linked.seoTitle,
-          seoDescription: linked.seoDescription,
-        },
-      );
-      // Conflict inventory is SyncResult leaves — local save → PENDING push intent.
-      await db.collection.update({
-        where: { id: savedCollection.id },
-        data: {
-          workingSnapshot: nextWorking as Prisma.InputJsonValue,
-          syncStatus: "PENDING",
-          syncError: null,
-        },
-      });
-    }
   } else {
     await db.collection.updateMany({
       where: { id: savedCollection.id, shopifyCollectionId: null },

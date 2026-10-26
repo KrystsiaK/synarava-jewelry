@@ -1,18 +1,13 @@
 # Commerce sync — two-state owner model
 
 **Status:** live on staging/main (**one** sync system).  
-**Date:** 2026-10-24  
-**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md).
+**Date:** 2026-10-26  
+**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md); [ADR-0009](../adr/0009-derive-synarava-commerce-state.md) (derive OUR window).
 
-**Two states only:** Synarava `workingSnapshot` (OUR) ↔ Shopify `shopifySnapshot` (last fetched).  
-<<<<<<< HEAD
+**Two states only:** Synarava **derived OUR window** (columns + `extras` + locale rows) ↔ Shopify `shopifySnapshot` (last fetched). No stored `workingSnapshot`.  
 **Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy; humans Apply.  
 **ONE compare → SyncResult leaves:** `lib/sync` (`compareSyncState` → `SyncResult` leaves → `selectSyncCounts` / ConflictResolver fields / list + banner). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor. No `CommerceSyncStore` catalog cache.  
 **`syncStatus` is not the conflict SoT** — list, banner, resolver, and badges derive from SyncResult leaves. `Product.syncStatus` / `Collection.syncStatus` remain operational (PENDING / FAILED / SYNCED / identity CONFLICT / UNLINKED), not a parallel conflict inventory.
-=======
-**Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy + flags; humans Apply.  
-**One compare + one selector:** `lib/sync` (`compareSyncState` → `SyncResult` → `selectSyncCounts`). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No common-ancestor / base snapshot. No `CommerceSyncStore` catalog cache.
->>>>>>> 99956a0c (chore: remove dead sync helpers and stale sync docs)
 
 This is the only admin sync architecture doc for the current model. Older drafts
 (`shopify-sync-architecture*`, target-architecture, dual-snapshot, marker-propagation,
@@ -20,7 +15,8 @@ This is the only admin sync architecture doc for the current model. Older drafts
 
 UX dialogs / field spines: [`catalog-conflict-resolution-ux.md`](./catalog-conflict-resolution-ux.md).  
 Field ownership: [`product-data-ownership.md`](product-data-ownership.md).\
-Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/skills/shopify-commerce-compare/SKILL.md).
+Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/skills/shopify-commerce-compare/SKILL.md).  
+Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synarava-state.md).
 
 ---
 
@@ -28,11 +24,11 @@ Agent rule: [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/s
 
 | Piece | Behavior |
 | --- | --- |
-| Per-product windows | `Product.workingSnapshot` (OUR) + `Product.shopifySnapshot` (last Shopify) |
-| Per-collection windows | `Collection.workingSnapshot` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
-| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `countConflictedItems` for every badge/chip/banner. **No** commerce field allowlists for detection |
-| Local Save | Write-through columns into `workingSnapshot`, then **after-save full catalog check** (`runAfterSaveCatalogConflictCheck`) — same full fetch+compare as the top-bar |
-| SKU assign (Family → Confirm / resume) | Same write-through + after-save full check as Save (`lib/sku/persist-local-sku.ts`). Column-only SKU writes must not skip the compare SoT |
+| Per-product windows | OUR = `deriveProductWindow(columns + Product.extras)` + `Product.shopifySnapshot` (last Shopify). Orphan keys (media GIDs, publications, metafields remainder, options, category object, variant HS/origin) live in `extras`. |
+| Per-collection windows | OUR = `deriveCollectionWindow(columns + Collection.extras)` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
+| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `countConflictedItems` for every badge/chip/banner. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
+| Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save full catalog check** (`runAfterSaveCatalogConflictCheck`) — same full fetch+compare as the top-bar |
+| SKU assign (Family → Confirm / resume) | Column write + after-save full check (`lib/sku/persist-local-sku.ts`). SKU is column-backed; derive reads `ProductVariant.sku` |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
 | Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
 | Translations | Two-way only: Synarava row ↔ Shopify translation. Differs = divergence; human Apply / force Push chooses. No `KEEP_LOCAL` / `APPLY_REMOTE` / `localIsDirty` auto paths |

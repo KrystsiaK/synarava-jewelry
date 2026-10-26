@@ -322,7 +322,7 @@ function toSummary(product: {
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
-  workingSnapshot?: unknown;
+  extras?: unknown;
   imageUrl: string | null;
   materialLine: string | null;
   symbolismLabel: string | null;
@@ -398,10 +398,10 @@ function toSummary(product: {
   const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
   const passportTextOverlay = parseCharacteristicTextOverlay(localized.details);
-  // OUR workingSnapshot owns Save-time PT/RU metafield overlays; shopifySnapshot
+  // OUR extras owns Save-time PT/RU metafield overlays; shopifySnapshot
   // fills gaps from the last Pull (admin already prefers working ?? shopify).
   const mergedMetafieldTranslations = storefrontMetafieldTranslations(
-    product.workingSnapshot,
+    product.extras,
     product.shopifySnapshot,
   );
   const shopifyMetafieldOverlay = characteristicOverlayFromMetafieldTranslations(
@@ -412,7 +412,7 @@ function toSummary(product: {
     shopifyMetafieldOverlay,
     passportTextOverlay,
   );
-  const commerceSnapshot = product.workingSnapshot ?? product.shopifySnapshot;
+  const commerceSnapshot = product.extras ?? product.shopifySnapshot;
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -448,7 +448,7 @@ function toSummary(product: {
     height: item.asset.height,
   }));
   const workingMedia = mediaFramesFromWorkingSnapshot(
-    product.workingSnapshot ?? product.shopifySnapshot,
+    product.extras ?? product.shopifySnapshot,
   ).map((frame) => ({
     id: frame.id,
     src: frame.url,

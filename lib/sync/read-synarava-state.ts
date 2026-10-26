@@ -2,8 +2,7 @@
  * Waterfall step 2 — read Synarava windows + latest reconcile / presence rows.
  * No network; no writes.
  *
- * Working snapshots: prefer persisted workingSnapshot; otherwise build from
- * Synarava columns so compare never invents "Adopt Shopify" for a real row.
+ * OUR commerce window is derived from columns + extras (ADR-0009) — never stored.
  */
 
 import "server-only";
@@ -15,13 +14,14 @@ import { getLatestCatalogPresenceDifferences } from "@/lib/shopify/catalog-prese
 import { getLatestCollectionPresenceDifferences } from "@/lib/shopify/collection-presence-server";
 import { listUnseenIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
 import {
-  resolveCollectionWorkingSnapshot,
-  resolveProductWorkingSnapshot,
-} from "@/lib/shopify/resolve-working-snapshot";
-import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
+import {
+  deriveCollectionWindow,
+  deriveProductWindow,
+  preferredHtmlFromShopifySnapshot,
+} from "@/lib/sync/derive-window";
 
 import type { SyncCommerceWindow, SyncCompareInput, SyncLocaleRef } from "./compare";
 import type { RefreshShopifyStateScope } from "./refresh-shopify-state";
@@ -34,48 +34,113 @@ async function loadProductCommerceWindows(productId?: string): Promise<SyncComme
     },
     select: {
       id: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
+      shopifyProductId: true,
       name: true,
       slug: true,
+      description: true,
       vendor: true,
       productType: true,
-      priceCents: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      tags: {
+        select: { tag: { select: { name: true } } },
+      },
+      collections: {
+        select: {
+          collection: {
+            select: {
+              shopifyCollectionId: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        take: 1,
         select: {
           shopifyVariantId: true,
           sku: true,
+          title: true,
+          barcode: true,
           priceCents: true,
-          taxable: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
           stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
         },
       },
     },
   });
   return products.map((product) => {
-    const variant = product.variants?.[0];
+    const name = product.name?.trim() ?? "";
+    const slug = product.slug?.trim() ?? "";
+    if (!name && !slug) {
+      return {
+        resourceType: "PRODUCT" as const,
+        resourceId: product.id,
+        ourWindow: null,
+        shopifySnapshot: product.shopifySnapshot,
+      };
+    }
     return {
       resourceType: "PRODUCT" as const,
       resourceId: product.id,
-      workingSnapshot: resolveProductWorkingSnapshot({
-        workingSnapshot: product.workingSnapshot,
-        shopifySnapshot: product.shopifySnapshot,
-        name: product.name,
-        slug: product.slug,
+      ourWindow: deriveProductWindow({
+        shopifyProductId: product.shopifyProductId,
+        name,
+        slug,
+        description: product.description,
         vendor: product.vendor,
         productType: product.productType,
-        priceCents: product.priceCents,
-        variant: variant
-          ? {
-              shopifyVariantId: variant.shopifyVariantId,
-              sku: variant.sku,
-              priceCents: variant.priceCents,
-              taxable: variant.taxable,
-              inventoryQuantity: variant.stockOnHand,
-            }
-          : null,
+        status: product.status,
+        seoTitle: product.seoTitle,
+        seoDescription: product.seoDescription,
+        shopifyCategoryId: product.shopifyCategoryId,
+        shopifyCategoryName: product.shopifyCategoryName,
+        tags: product.tags.map((row) => row.tag.name),
+        collections: product.collections.flatMap((row) => {
+          const id = row.collection.shopifyCollectionId;
+          if (!id) return [];
+          return [{
+            id,
+            handle: row.collection.slug,
+            title: row.collection.name,
+          }];
+        }),
+        variants: product.variants.map((variant) => ({
+          shopifyVariantId: variant.shopifyVariantId,
+          sku: variant.sku,
+          title: variant.title,
+          barcode: variant.barcode,
+          priceCents: variant.priceCents,
+          compareAtCents: variant.compareAtCents,
+          inventoryPolicy: variant.inventoryPolicy,
+          stockOnHand: variant.stockOnHand,
+          taxable: variant.taxable,
+          selectedOptions: variant.selectedOptions,
+          shopifyInventoryItemId: variant.shopifyInventoryItemId,
+          requiresShipping: variant.requiresShipping,
+          tracked: variant.tracked,
+          costCents: variant.costCents,
+          weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
+        })),
+        extras: product.extras,
+        preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
+          product.shopifySnapshot,
+          "descriptionHtml",
+        ),
       }),
       shopifySnapshot: product.shopifySnapshot,
     };
@@ -90,7 +155,7 @@ async function loadCollectionCommerceWindows(collectionId?: string): Promise<Syn
     },
     select: {
       id: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       shopifyCollectionId: true,
       name: true,
@@ -100,21 +165,36 @@ async function loadCollectionCommerceWindows(collectionId?: string): Promise<Syn
       seoDescription: true,
     },
   });
-  return collections.map((collection) => ({
-    resourceType: "COLLECTION" as const,
-    resourceId: collection.id,
-    workingSnapshot: resolveCollectionWorkingSnapshot({
-      workingSnapshot: collection.workingSnapshot,
+  return collections.map((collection) => {
+    const name = collection.name?.trim() ?? "";
+    const slug = collection.slug?.trim() ?? "";
+    if (!name && !slug) {
+      return {
+        resourceType: "COLLECTION" as const,
+        resourceId: collection.id,
+        ourWindow: null,
+        shopifySnapshot: collection.shopifySnapshot,
+      };
+    }
+    return {
+      resourceType: "COLLECTION" as const,
+      resourceId: collection.id,
+      ourWindow: deriveCollectionWindow({
+        shopifyCollectionId: collection.shopifyCollectionId,
+        name,
+        slug,
+        description: collection.description,
+        seoTitle: collection.seoTitle,
+        seoDescription: collection.seoDescription,
+        extras: collection.extras,
+        preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
+          collection.shopifySnapshot,
+          "descriptionHtml",
+        ),
+      }),
       shopifySnapshot: collection.shopifySnapshot,
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-    }),
-    shopifySnapshot: collection.shopifySnapshot,
-  }));
+    };
+  });
 }
 
 export async function readSynaravaStateForCompare(

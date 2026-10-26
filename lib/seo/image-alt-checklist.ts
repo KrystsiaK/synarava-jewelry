@@ -67,10 +67,12 @@ export function imageAltCoverageTone(bucket: ImageAltCoverageCounts) {
   return "ok" as const;
 }
 
-/** Gallery alts from local ProductMedia rows, else OUR workingSnapshot.media. */
+/** Gallery alts from local ProductMedia rows, else OUR extras.media. */
 export function productGalleryAltsForChecklist(product: {
   media: Array<{ alt: string | null; asset?: { filename?: string | null } | null }>;
-  workingSnapshot: unknown;
+  extras?: unknown;
+  /** @deprecated Prefer extras (ADR-0009). */
+  workingSnapshot?: unknown;
 }): Array<{ alt: string; filename?: string | null }> {
   if (product.media.length > 0) {
     return product.media.map((item) => ({
@@ -78,7 +80,7 @@ export function productGalleryAltsForChecklist(product: {
       filename: item.asset?.filename ?? null,
     }));
   }
-  return mediaFramesFromWorkingSnapshot(product.workingSnapshot).map((frame) => ({
+  return mediaFramesFromWorkingSnapshot(product.extras ?? product.workingSnapshot).map((frame) => ({
     alt: frame.alt,
     filename: null,
   }));

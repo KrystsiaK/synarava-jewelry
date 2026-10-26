@@ -76,8 +76,8 @@ model Collection {
   shopifyManualSourceId String?                 @unique
   shopifyHandle         String?
   shopifySnapshot       Json?
-  /// Synarava working commerce window (same Shopify-shaped JSON as shopifySnapshot).
-  workingSnapshot       Json?
+  /// Orphan Shopify-shaped keys with no column home (ADR-0009). OUR window is derived.
+  extras                Json?
   shopifyUpdatedAt      DateTime?
   lastSyncedAt          DateTime?
   syncStatus            ProductSyncStatus       @default(UNLINKED)
@@ -183,8 +183,8 @@ model Product {
   shopifyCategoryId   String?
   shopifyCategoryName String?
   shopifySnapshot     Json?
-  /// Synarava working commerce window (same Shopify-shaped JSON as shopifySnapshot).
-  workingSnapshot     Json?
+  /// Orphan Shopify-shaped keys with no column home (ADR-0009). OUR window is derived.
+  extras              Json?
   shopifyProductId    String?                 @unique
   shopifyHandle       String?
   shopifyUpdatedAt    DateTime?

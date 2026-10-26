@@ -1,6 +1,6 @@
 /**
  * Waterfall step 1 — fetch + persist Shopify copy only.
- * Never writes Synarava columns / workingSnapshot / translations.
+ * Never writes Synarava columns / extras / translations.
  */
 
 import "server-only";

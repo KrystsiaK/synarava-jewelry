@@ -22,7 +22,7 @@ import {
   diffCollectionCommerceWindows,
   plainDescriptionToHtml,
 } from "@/lib/shopify/collection-commerce-projection";
-import { resolveCollectionWorkingSnapshot } from "@/lib/shopify/resolve-working-snapshot";
+import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 
 const SNAPSHOT_ID = "collections";
@@ -72,7 +72,6 @@ async function applyCollectionCommerceWindows(
       shopifyHandle: remote.handle,
       shopifyManualSourceId: extra.shopifyManualSourceId ?? undefined,
       shopifySnapshot: window as Prisma.InputJsonValue,
-      workingSnapshot: window as Prisma.InputJsonValue,
       shopifyUpdatedAt: remote.updatedAt ? new Date(remote.updatedAt) : new Date(),
       lastSyncedAt: new Date(),
       syncStatus: "SYNCED",
@@ -94,7 +93,7 @@ export type RefreshShopifyCollectionResult = {
 
 /**
  * Automatic refresh (post-Push finish, future webhooks): persist Shopify-side
- * copy only (`shopifySnapshot` / handle / updatedAt). Never writes workingSnapshot,
+ * copy only (`shopifySnapshot` / handle / updatedAt). Never writes extras / Synarava columns,
  * Synarava columns, collectionTranslation rows, or `syncStatus` from compare —
  * conflict SoT is SyncResult leaves.
  */
@@ -106,8 +105,9 @@ export async function refreshShopifyCollectionState(
     where: { shopifyCollectionId: remote.id },
     select: {
       id: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
+      shopifyCollectionId: true,
       name: true,
       slug: true,
       description: true,
@@ -120,15 +120,9 @@ export async function refreshShopifyCollectionState(
   }
 
   const shopifySnapshot = collectionWindowFromShopifyRemote(remote);
-  const compareWorking = resolveCollectionWorkingSnapshot({
-    workingSnapshot: existing.workingSnapshot,
-    shopifySnapshot: existing.shopifySnapshot,
+  const compareWorking = ourCollectionWindowFromRow({
+    ...existing,
     shopifyCollectionId: remote.id,
-    name: existing.name,
-    slug: existing.slug,
-    description: existing.description,
-    seoTitle: existing.seoTitle,
-    seoDescription: existing.seoDescription,
   });
   const differences = compareWorking == null
     ? []
@@ -152,7 +146,7 @@ export async function refreshShopifyCollectionState(
 async function pushLinkedCollectionUpdate(collection: {
   id: string;
   shopifyCollectionId: string;
-  workingSnapshot: unknown;
+  extras: unknown;
   shopifySnapshot: unknown;
   name: string;
   slug: string;
@@ -160,7 +154,7 @@ async function pushLinkedCollectionUpdate(collection: {
   seoTitle: string | null;
   seoDescription: string | null;
 }) {
-  const window = collection.workingSnapshot
+  const window = ourCollectionWindowFromRow(collection)
     ?? buildCollectionWindowFromColumns({
       shopifyCollectionId: collection.shopifyCollectionId,
       name: collection.name,
@@ -290,7 +284,7 @@ async function fetchShopifyCollection(collectionId: string): Promise<ShopifyPres
 }
 
 /**
- * Human Apply / Pull: overwrite Synarava columns + workingSnapshot from Shopify.
+ * Human Apply / Pull: overwrite Synarava columns from Shopify (OUR window derived).
  * Automatic paths must call {@link refreshShopifyCollectionState} instead.
  */
 export async function applyShopifyCollectionToSynarava(
@@ -367,7 +361,7 @@ export async function pullShopifyCollection(
 
 /**
  * Push local collection commerce to Shopify.
- * Linked → collectionUpdate from workingSnapshot; unlinked → collectionCreate.
+ * Linked → collectionUpdate from derived OUR window; unlinked → collectionCreate.
  * After success, refreshes Shopify snapshot only (never overwrites Synarava window).
  */
 export async function pushCollectionToShopify(collectionId: string) {
@@ -380,7 +374,7 @@ export async function pushCollectionToShopify(collectionId: string) {
       return pushLinkedCollectionUpdate({
         id: collection.id,
         shopifyCollectionId: collection.shopifyCollectionId,
-        workingSnapshot: collection.workingSnapshot,
+        extras: collection.extras,
         shopifySnapshot: collection.shopifySnapshot,
         name: collection.name,
         slug: collection.slug,
@@ -390,7 +384,7 @@ export async function pushCollectionToShopify(collectionId: string) {
       });
     } catch (error) {
       // Audit ~387-406: unlink/wipe ONLY on confirmed Shopify missing —
-      // throttle/network/userErrors must leave the link and workingSnapshot intact.
+      // throttle/network/userErrors must leave the link and Synarava columns intact.
       const message = error instanceof Error ? error.message : String(error);
       if (!isMissingShopifyCollectionError(message)) {
         throw error instanceof Error ? error : new ShopifyAdminError(message);
@@ -407,7 +401,7 @@ export async function pushCollectionToShopify(collectionId: string) {
             shopifyManualSourceId: null,
             lastSyncedAt: null,
             shopifySnapshot: Prisma.JsonNull,
-            workingSnapshot: Prisma.JsonNull,
+            extras: Prisma.JsonNull,
             shopifyUpdatedAt: null,
             syncStatus: "UNLINKED",
             syncError: null,
@@ -417,7 +411,7 @@ export async function pushCollectionToShopify(collectionId: string) {
     }
   }
 
-  const window = collection.workingSnapshot
+  const window = ourCollectionWindowFromRow(collection)
     ?? buildCollectionWindowFromColumns({
       name: collection.name,
       slug: collection.slug,
@@ -459,26 +453,14 @@ export async function pushCollectionToShopify(collectionId: string) {
   const created = result.collectionCreate.collection;
   if (!created) throw new ShopifyAdminError("Shopify did not return the created collection.");
 
-  // Persist the window we just pushed so compare has both sides equal (no Adopt).
-  const workingSnapshot = resolveCollectionWorkingSnapshot({
-    workingSnapshot: window,
-    shopifySnapshot: collection.shopifySnapshot,
-    shopifyCollectionId: created.id,
-    name: collection.name,
-    slug: created.handle || collection.slug,
-    description: collection.description,
-    seoTitle: collection.seoTitle,
-    seoDescription: collection.seoDescription,
-  });
+  // Columns already hold OUR state; derive handles compare (ADR-0009).
   await db.collection.update({
     where: { id: collection.id },
     data: {
       shopifyCollectionId: created.id,
       shopifyHandle: created.handle,
       shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
-      ...(workingSnapshot != null
-        ? { workingSnapshot: workingSnapshot as Prisma.InputJsonValue }
-        : {}),
+      slug: created.handle || collection.slug,
     },
   });
   await refreshShopifyCollectionState(created.id);

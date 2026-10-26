@@ -94,7 +94,7 @@ export type SavedProductPayload = {
   vendor: string | null;
   productType: string | null;
   shopifySnapshot: unknown;
-  workingSnapshot: unknown;
+  extras: unknown;
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
@@ -222,7 +222,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       vendor: true,
       productType: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
       seriesLabel: true,
       shortDescription: true,
       description: true,
@@ -323,7 +323,7 @@ async function finishProductMediaMutation(productId: string, success: string): P
     where: { id: productId },
     select: {
       shopifyProductId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       media: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -337,11 +337,17 @@ async function finishProductMediaMutation(productId: string, success: string): P
   });
 
   if (linked?.shopifyProductId) {
-    const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot ?? {};
-    const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
-      ? baseWindow as Record<string, unknown>
+    const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
+      ? { ...(linked.extras as Record<string, unknown>) }
+      : {};
+    const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
+      ? linked.shopifySnapshot as Record<string, unknown>
       : null;
-    const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+    const baseMedia = Array.isArray(extrasRecord.media)
+      ? [...extrasRecord.media]
+      : Array.isArray(shopifyRecord?.media)
+        ? [...shopifyRecord.media]
+        : [];
     const media = mergeLocalMediaRowsIntoWorkingMedia({
       baseMedia,
       localRows: linked.media.map((item) => ({
@@ -352,13 +358,12 @@ async function finishProductMediaMutation(productId: string, success: string): P
         height: item.asset.height,
       })),
     });
-    const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, { media });
     await db.product.update({
       where: { id: productId },
       data: {
         syncStatus: "PENDING",
         syncError: null,
-        workingSnapshot: nextWorking as Prisma.InputJsonValue,
+        extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
       },
     });
   } else {
@@ -488,7 +493,7 @@ export async function updateProductMediaAltAction(
 }
 
 /**
- * Update alt on OUR workingSnapshot.media when local ProductMedia rows are empty
+ * Update alt on OUR extras.media when local ProductMedia rows are empty
  * (typical after Pull). Index matches Media tab order.
  */
 export async function updateWorkingSnapshotMediaAltAction(
@@ -499,17 +504,21 @@ export async function updateWorkingSnapshotMediaAltAction(
   await requireAdminSession("/admin/products");
   const product = await db.product.findUnique({
     where: { id: productId },
-    select: { id: true, shopifyProductId: true, workingSnapshot: true, shopifySnapshot: true },
+    select: { id: true, shopifyProductId: true, extras: true, shopifySnapshot: true },
   });
   if (!product) return { error: "Product not found." };
 
-  const base =
-    product.workingSnapshot && typeof product.workingSnapshot === "object"
-      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
-      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
-        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
-        : {};
-  const media = Array.isArray(base.media) ? [...base.media] : [];
+  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
+    ? structuredClone(product.extras) as Record<string, unknown>
+    : {};
+  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
+    ? product.shopifySnapshot as Record<string, unknown>
+    : null;
+  const media = Array.isArray(extrasRecord.media)
+    ? [...extrasRecord.media]
+    : Array.isArray(shopifyRecord?.media)
+      ? [...shopifyRecord.media]
+      : [];
   if (mediaIndex < 0 || mediaIndex >= media.length) {
     return { error: "Gallery image not found in the commerce tree." };
   }
@@ -518,7 +527,6 @@ export async function updateWorkingSnapshotMediaAltAction(
     return { error: "Gallery image not found in the commerce tree." };
   }
   media[mediaIndex] = { ...node, alt: alt.trim() };
-  const nextWorking = writeThroughLocalCommerceToProjection(base, { media });
 
   await db.product.update({
     where: { id: productId },
@@ -526,7 +534,7 @@ export async function updateWorkingSnapshotMediaAltAction(
       ...(product.shopifyProductId
         ? { syncStatus: "PENDING" as const, syncError: null }
         : {}),
-      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
     },
   });
 
@@ -536,7 +544,7 @@ export async function updateWorkingSnapshotMediaAltAction(
 }
 
 /**
- * Remove a gallery frame from OUR workingSnapshot.media (Media tab after Pull).
+ * Remove a gallery frame from OUR extras.media (Media tab after Pull).
  * Marks sync PENDING; Push omits the Shopify media id so productSet deletes it remotely.
  */
 export async function removeWorkingSnapshotMediaAction(
@@ -549,7 +557,7 @@ export async function removeWorkingSnapshotMediaAction(
     select: {
       id: true,
       shopifyProductId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       media: { select: { id: true }, take: 1 },
     },
@@ -559,18 +567,21 @@ export async function removeWorkingSnapshotMediaAction(
     return { error: "Use Remove on the staging gallery row for this product." };
   }
 
-  const base =
-    product.workingSnapshot && typeof product.workingSnapshot === "object"
-      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
-      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
-        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
-        : {};
-  const currentMedia = Array.isArray(base.media) ? [...base.media] : [];
+  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
+    ? structuredClone(product.extras) as Record<string, unknown>
+    : {};
+  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
+    ? product.shopifySnapshot as Record<string, unknown>
+    : null;
+  const currentMedia = Array.isArray(extrasRecord.media)
+    ? [...extrasRecord.media]
+    : Array.isArray(shopifyRecord?.media)
+      ? [...shopifyRecord.media]
+      : [];
   const nextMedia = removeWorkingSnapshotMediaAtIndex(currentMedia, mediaIndex);
   if (!nextMedia) {
     return { error: "Gallery image not found in the commerce tree." };
   }
-  const nextWorking = writeThroughLocalCommerceToProjection(base, { media: nextMedia });
   const coverUrl = nextMedia.length > 0 ? mediaNodePreviewUrl(nextMedia[0]) : null;
 
   await db.product.update({
@@ -579,7 +590,7 @@ export async function removeWorkingSnapshotMediaAction(
       ...(product.shopifyProductId
         ? { syncStatus: "PENDING" as const, syncError: null }
         : {}),
-      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      extras: { ...extrasRecord, media: nextMedia } as Prisma.InputJsonValue,
       imageUrl: coverUrl,
     },
   });
@@ -826,7 +837,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   // touched identities (including empties) clear without wiping untouched keys.
   const metafieldTranslations = parsedMetafieldTranslations
     ? mergeMetafieldTranslations(
-      metafieldTranslationsFromSnapshot(before?.workingSnapshot ?? before?.shopifySnapshot),
+      metafieldTranslationsFromSnapshot(before?.extras ?? before?.shopifySnapshot),
       parsedMetafieldTranslations,
       metafieldTranslationTouchesFromForm(formData),
     )
@@ -1202,13 +1213,13 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ]);
   }
 
-  // Dual snapshot: Save updates working only; shopifySnapshot changes on refresh/pull.
+  // ADR-0009: Save updates columns + extras orphans; shopifySnapshot changes on refresh/pull.
   if (before?.shopifyProductId) {
     const linked = await db.product.findUnique({
       where: { id: product.id },
       select: {
         shopifyProductId: true,
-        workingSnapshot: true,
+        extras: true,
         shopifySnapshot: true,
         name: true,
         slug: true,
@@ -1230,16 +1241,20 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
     });
     if (linked?.shopifyProductId) {
-      const variant = linked.variants[0];
-      const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
-      let mediaPatch: unknown[] | undefined;
-      const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
-        ? baseWindow as Record<string, unknown>
+      // ADR-0009: columns already updated above; patch orphan keys into extras only.
+      const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
+        ? { ...(linked.extras as Record<string, unknown>) }
+        : {};
+      const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
+        ? linked.shopifySnapshot as Record<string, unknown>
         : null;
-      const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+      const baseMedia = Array.isArray(extrasRecord.media)
+        ? [...extrasRecord.media]
+        : Array.isArray(shopifyRecord?.media)
+          ? [...shopifyRecord.media]
+          : [];
+      let mediaPatch: unknown[] | undefined;
       if (linked.media.length > 0) {
-        // Prefer local alts; keep prior OUR-tree alts when staging alt is still empty
-        // so Save cannot collapse distinct gallery copy into blanks / product title.
         mediaPatch = mergeLocalMediaRowsIntoWorkingMedia({
           baseMedia,
           localRows: linked.media.map((item) => ({
@@ -1253,35 +1268,23 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       } else if (mediaAltUpdates.tree.length > 0) {
         mediaPatch = applyTreeMediaAltUpdates(baseMedia, mediaAltUpdates.tree);
       }
-      const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
-        title: linked.name,
-        descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(rich.description ?? "")),
-        seo: { title: seoTitle || "", description: rich.seoDescription || "" },
-        handle: linked.slug,
-        vendor: linked.vendor,
-        productType: linked.productType,
-        tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
-        customMetafields: customMetafields.length > 0 ? customMetafields : undefined,
-        metafieldTranslations,
-        media: mediaPatch,
-        variant: variant
-          ? {
-              shopifyVariantId: variant.shopifyVariantId,
-              sku: variant.sku,
-              priceCents: variant.priceCents,
-              taxable: variant.taxable,
-              inventoryQuantity: variant.stockOnHand,
-            }
-          : {
-              sku,
-              priceCents,
-              taxable,
-              inventoryQuantity: stockOnHand,
-            },
-      });
+      const nextExtras: Record<string, unknown> = { ...extrasRecord };
+      if (mediaPatch !== undefined) nextExtras.media = mediaPatch;
+      if (customMetafields.length > 0) {
+        const seeded = writeThroughLocalCommerceToProjection(
+          { metafields: extrasRecord.metafields ?? shopifyRecord?.metafields ?? [] },
+          { customMetafields },
+        );
+        if (seeded && typeof seeded === "object" && !Array.isArray(seeded) && "metafields" in seeded) {
+          nextExtras.metafields = (seeded as Record<string, unknown>).metafields;
+        }
+      }
+      if (metafieldTranslations) {
+        nextExtras.metafieldTranslations = metafieldTranslations;
+      }
       await db.product.update({
         where: { id: product.id },
-        data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
+        data: { extras: nextExtras as Prisma.InputJsonValue },
       });
     }
   }

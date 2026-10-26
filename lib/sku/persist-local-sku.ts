@@ -3,7 +3,6 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 
 export type PersistLocalSkuInput = {
   productId: string;
@@ -13,12 +12,8 @@ export type PersistLocalSkuInput = {
 };
 
 /**
- * Persist assigned SKU into Prisma view columns **and** write-through into the
- * commerce compare SoT (`workingSnapshot` + OUR store slice).
- *
- * Column-only SKU writes are invisible to `inspectProductSyncState` (deep-diff
- * of windows), so conflict chips stay stale until this path runs — same
- * contract as product Save (`docs/wiki/commerce-sync.md`).
+ * Persist assigned SKU into Prisma columns (ADR-0009).
+ * OUR commerce window is derived from columns + extras — no workingSnapshot write-through.
  */
 export async function persistLocalSku(
   input: PersistLocalSkuInput,
@@ -66,6 +61,7 @@ export async function persistLocalSku(
     return { variantId: created.id };
   });
 
+  // No-op write-through retained for call-site compatibility (SKU is column-backed).
   await writeThroughAssignedSkuToWorkingSnapshot({
     productId: input.productId,
     variantId,
@@ -75,38 +71,11 @@ export async function persistLocalSku(
   return { variantId };
 }
 
-/** Write-through assigned SKU into workingSnapshot + patch OUR dual-store slice. */
-export async function writeThroughAssignedSkuToWorkingSnapshot(input: {
+/** @deprecated ADR-0009 — SKU is column-backed; derive reads columns. Kept as no-op. */
+export async function writeThroughAssignedSkuToWorkingSnapshot(_input: {
   productId: string;
   variantId: string;
   sku: string;
 }): Promise<void> {
-  const product = await db.product.findUnique({
-    where: { id: input.productId },
-    select: {
-      shopifyProductId: true,
-      workingSnapshot: true,
-      shopifySnapshot: true,
-      variants: {
-        where: { id: input.variantId },
-        select: { shopifyVariantId: true },
-        take: 1,
-      },
-    },
-  });
-  if (!product) return;
-
-  const baseWindow = product.workingSnapshot ?? product.shopifySnapshot ?? {};
-  const shopifyVariantId = product.variants[0]?.shopifyVariantId ?? null;
-  const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
-    variant: {
-      shopifyVariantId,
-      sku: input.sku,
-    },
-  });
-
-  await db.product.update({
-    where: { id: input.productId },
-    data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
-  });
+  // Intentionally empty — OUR window derives SKU from ProductVariant.sku.
 }

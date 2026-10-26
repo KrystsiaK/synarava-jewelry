@@ -58,20 +58,7 @@ describe("persistLocalSku", () => {
     mockVariantUpdate.mockResolvedValue({});
   });
 
-  it("writes SKU columns and write-throughs workingSnapshot", async () => {
-    mockFindUnique.mockResolvedValue({
-      shopifyProductId: "gid://shopify/Product/1",
-      workingSnapshot: {
-        title: "Ring",
-        variants: [{ id: "gid://shopify/ProductVariant/9", sku: "" }],
-      },
-      shopifySnapshot: {
-        title: "Ring",
-        variants: [{ id: "gid://shopify/ProductVariant/9", sku: "" }],
-      },
-      variants: [{ shopifyVariantId: "gid://shopify/ProductVariant/9" }],
-    });
-
+  it("writes SKU columns (ADR-0009: no snapshot write-through)", async () => {
     const result = await persistLocalSku({
       productId: "prod-1",
       variantId: "var-1",
@@ -84,32 +71,18 @@ describe("persistLocalSku", () => {
       where: { id: "var-1" },
       data: { sku: "JW-NECK-001" },
     });
+    expect(mockProductUpdate).toHaveBeenCalledTimes(1);
     expect(mockProductUpdate).toHaveBeenCalledWith(
       expect.objectContaining({
         where: { id: "prod-1" },
         data: expect.objectContaining({ sku: "JW-NECK-001" }),
       }),
     );
-    // Second product.update is the write-through of workingSnapshot
-    expect(mockProductUpdate).toHaveBeenCalledWith({
-      where: { id: "prod-1" },
-      data: {
-        workingSnapshot: {
-          title: "Ring",
-          variants: [{ id: "gid://shopify/ProductVariant/9", sku: "JW-NECK-001" }],
-        },
-      },
-    });
+    expect(mockProductUpdate.mock.calls[0][0].data).not.toHaveProperty("workingSnapshot");
+    expect(mockProductUpdate.mock.calls[0][0].data).not.toHaveProperty("extras");
   });
 
-  it("write-throughs workingSnapshot when product is not Shopify-linked", async () => {
-    mockFindUnique.mockResolvedValue({
-      shopifyProductId: null,
-      workingSnapshot: { title: "Local", variants: [{ sku: "PENDING-p1-v1" }] },
-      shopifySnapshot: null,
-      variants: [{ shopifyVariantId: null }],
-    });
-
+  it("updates SKU columns when product is not Shopify-linked", async () => {
     await persistLocalSku({
       productId: "prod-2",
       variantId: "var-1",
@@ -117,13 +90,12 @@ describe("persistLocalSku", () => {
       details: { skuAssignmentPendings: {} },
     });
 
+    expect(mockProductUpdate).toHaveBeenCalledTimes(1);
     expect(mockProductUpdate).toHaveBeenCalledWith({
       where: { id: "prod-2" },
       data: {
-        workingSnapshot: {
-          title: "Local",
-          variants: [{ sku: "JW-NECK-002" }],
-        },
+        sku: "JW-NECK-002",
+        details: { skuAssignmentPendings: {} },
       },
     });
   });
