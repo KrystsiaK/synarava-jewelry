@@ -69,6 +69,21 @@ describe("finishCatalogCheckRun status guard", () => {
     expect(blob).toMatch(/QUEUED/);
     expect(blob).toMatch(/RUNNING/);
   });
+
+  it("returns the status actually stored after a lost-lease no-op finish", async () => {
+    // UPDATE matched 0 rows (lease already FAILED the run); read-back is FAILED.
+    mocks.executeRaw.mockResolvedValue(undefined);
+    mocks.queryRaw.mockResolvedValueOnce([runRow({ status: "FAILED", error: "Check timed out (lease expired after 10 minutes)." })]);
+
+    const finished = await finishCatalogCheckRun("run-1", {
+      status: "SUCCEEDED",
+      checkedCount: 10,
+      differenceCount: 0,
+    });
+
+    expect(finished?.status).toBe("FAILED");
+    expect(finished?.status).not.toBe("SUCCEEDED");
+  });
 });
 
 describe("heartbeat and lease by updatedAt", () => {

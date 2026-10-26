@@ -58,8 +58,21 @@ async function deleteResolvedDivergencesBatch(cutoff: Date, batchSize: number): 
 async function deleteFinishedReconcileRunsBatch(cutoff: Date, batchSize: number): Promise<number> {
   // Finished only. Skip runs that still own unresolved divergences so cascade
   // cannot wipe the open-conflict SoT used by getLatestReconcileDifferences.
+  // Never delete the newest full catalog run (null scope, AUTO/MANUAL) — that
+  // row is the SoT for top-bar checkedAt / last-check status.
   return db.$executeRaw`
-    WITH doomed AS (
+    WITH newest_full AS (
+      SELECT run."id"
+      FROM "ShopifyReconcileRun" AS run
+      WHERE run."trigger" IN (
+          CAST('AUTO' AS "ShopifyReconcileTrigger"),
+          CAST('MANUAL' AS "ShopifyReconcileTrigger")
+        )
+        AND (run."scope" IS NULL OR run."scope" = 'null'::jsonb)
+      ORDER BY run."createdAt" DESC
+      LIMIT 1
+    ),
+    doomed AS (
       SELECT run."id"
       FROM "ShopifyReconcileRun" AS run
       WHERE run."status" IN (
@@ -68,6 +81,7 @@ async function deleteFinishedReconcileRunsBatch(cutoff: Date, batchSize: number)
           CAST('FAILED' AS "ShopifyReconcileStatus")
         )
         AND run."createdAt" < ${cutoff}
+        AND run."id" NOT IN (SELECT "id" FROM newest_full)
         AND NOT EXISTS (
           SELECT 1
           FROM "ShopifyFieldDivergence" AS difference

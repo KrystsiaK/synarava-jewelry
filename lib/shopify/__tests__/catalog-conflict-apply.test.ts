@@ -50,7 +50,11 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-import { applyCatalogConflictResolution, previewCatalogConflictResolution } from "@/lib/shopify/catalog-conflict-apply";
+import {
+  applyCatalogConflictResolution,
+  assertWholeRecordFingerprintsFresh,
+  previewCatalogConflictResolution,
+} from "@/lib/shopify/catalog-conflict-apply";
 import type { CatalogConflictField, ProductCatalogConflict } from "@/lib/shopify/catalog-conflict";
 
 // A commerce field with no scoped write yet (see SCOPED_COMMERCE_FIELD_LABELS
@@ -279,6 +283,43 @@ describe("previewCatalogConflictResolution", () => {
   });
 });
 
+describe("assertWholeRecordFingerprintsFresh", () => {
+  it("refuses when a previewed blocked commerce fingerprint no longer matches", async () => {
+    const field = commerceField({ blockedReason: "No safe field-by-field write yet", allowedDirections: [] });
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(
+      conflict([commerceField({ ...field, localFingerprint: "changed-local" })]),
+    );
+
+    await expect(assertWholeRecordFingerprintsFresh({
+      productId: "product-1",
+      actorUsername: "admin",
+      expected: [{
+        fieldKey: field.fieldKey,
+        expectedLocalFingerprint: field.localFingerprint,
+        expectedShopifyFingerprint: field.shopifyFingerprint,
+      }],
+    })).resolves.toMatchObject({
+      ok: false,
+      error: expect.stringMatching(/changed since this was reviewed/i),
+    });
+  });
+
+  it("allows whole-record when fingerprints still match the preview", async () => {
+    const field = commerceField({ blockedReason: "No safe field-by-field write yet", allowedDirections: [] });
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
+
+    await expect(assertWholeRecordFingerprintsFresh({
+      productId: "product-1",
+      actorUsername: "admin",
+      expected: [{
+        fieldKey: field.fieldKey,
+        expectedLocalFingerprint: field.localFingerprint,
+        expectedShopifyFingerprint: field.shopifyFingerprint,
+      }],
+    })).resolves.toEqual({ ok: true });
+  });
+});
+
 describe("applyCatalogConflictResolution", () => {
   function entryFor(field: CatalogConflictField, direction: "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY" = "SHOPIFY_TO_SYNARAVA", productId = "product-1") {
     return {
@@ -405,6 +446,52 @@ describe("applyCatalogConflictResolution", () => {
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(previewField, "SHOPIFY_TO_SYNARAVA", "shopify:42")],
+      acknowledgeClears: false,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results[0]).toMatchObject({ ok: false, reason: "STALE" });
+    expect(mocks.applyCatalogPresenceDifference).not.toHaveBeenCalled();
+  });
+
+  it("reports STALE for Remove-from-Synarava when identity fingerprint changed since preview", async () => {
+    const previewField = presenceField({
+      label: "Product exists only in Synarava",
+      synaravaValue: "Local ring · SKU R-1",
+      shopifyValue: "— Product is missing —",
+      localFingerprint: "identity-preview",
+      shopifyFingerprint: "missing",
+      allowedDirections: ["SYNARAVA_TO_SHOPIFY"],
+      presenceDifference: {
+        id: "product-1",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "product-1",
+        shopifyProductId: null,
+        name: "Local ring",
+        handle: "local-ring",
+        sku: "R-1",
+        localFingerprint: "identity-preview",
+        shopifyFingerprint: "missing",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: { name: "Local ring", handle: "local-ring", sku: "R-1" },
+        shopifyIdentity: null,
+      },
+    });
+    const afterScan = presenceField({
+      ...previewField,
+      localFingerprint: "identity-after-relink",
+      presenceDifference: {
+        ...previewField.presenceDifference!,
+        shopifyProductId: "gid://shopify/Product/77",
+        localFingerprint: "identity-after-relink",
+      },
+    });
+    mocks.scanAndSaveCatalogPresence.mockResolvedValue([]);
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([afterScan]));
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(previewField, "SYNARAVA_TO_SHOPIFY")],
       acknowledgeClears: false,
       actorUsername: "admin",
     });

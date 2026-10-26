@@ -619,6 +619,8 @@ export async function runTranslationReconciliation({
           failures.push(`${binding.entityId} (${locale}): ${message}`);
         }
       }
+      // Heartbeat per binding so long translation loops keep the lease.
+      await heartbeatCatalogCheckRun(runId);
     }
 
     const error = failures.length > 0

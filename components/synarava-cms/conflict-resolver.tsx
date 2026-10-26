@@ -113,6 +113,11 @@ export type ConflictResolverAdapter = {
   applyWholeRecord?: (
     entityId: string,
     direction: CatalogConflictDirection,
+    expectedFingerprints?: Array<{
+      fieldKey: string;
+      expectedLocalFingerprint: string;
+      expectedShopifyFingerprint: string;
+    }>,
   ) => Promise<{ ok: boolean; success?: string; error?: string }>;
 };
 
@@ -842,13 +847,13 @@ function ConflictResolverSession({
     setResultMessage(null);
     setApplying(true);
     void (async () => {
+      let appliedCount = 0;
+      let failedCount = 0;
+      const results: ConflictApplyOutcome["results"] = [];
+      const successNotes: string[] = [];
       try {
         const fieldEntries = submitted.entries.filter((entry) => !entry.wholeRecord);
         const wholeEntries = submitted.entries.filter((entry) => entry.wholeRecord);
-        let appliedCount = 0;
-        let failedCount = 0;
-        const results: ConflictApplyOutcome["results"] = [];
-        const successNotes: string[] = [];
 
         if (fieldEntries.length > 0) {
           const result = await adapter.applySelections({
@@ -880,17 +885,32 @@ function ConflictResolverSession({
           wholeByEntity.set(entry.entityId, entry.direction);
         }
         for (const [entityId, direction] of wholeByEntity) {
-          const whole = await adapter.applyWholeRecord?.(entityId, direction);
-          if (!whole?.ok) {
+          const expectedFingerprints = wholeEntries
+            .filter((entry) => entry.entityId === entityId)
+            .map((entry) => ({
+              fieldKey: entry.field.fieldKey,
+              expectedLocalFingerprint: entry.field.localFingerprint,
+              expectedShopifyFingerprint: entry.field.shopifyFingerprint,
+            }));
+          try {
+            const whole = await adapter.applyWholeRecord?.(entityId, direction, expectedFingerprints);
+            if (!whole?.ok) {
+              failedCount += 1;
+              const message = whole?.error ?? "Whole-item sync failed.";
+              results.push({ entityId, ok: false, message });
+              onToast(message, "error");
+              continue;
+            }
+            appliedCount += 1;
+            results.push({ entityId, ok: true, message: whole.success });
+            if (whole.success) successNotes.push(whole.success);
+          } catch (error) {
+            // Per-item result: earlier field writes / wholes stay recorded.
             failedCount += 1;
-            const message = whole?.error ?? "Whole-item sync failed.";
+            const message = error instanceof Error ? error.message : "Whole-item sync failed.";
             results.push({ entityId, ok: false, message });
             onToast(message, "error");
-            continue;
           }
-          appliedCount += 1;
-          results.push({ entityId, ok: true, message: whole.success });
-          if (whole.success) successNotes.push(whole.success);
         }
 
         const outcome: ConflictApplyOutcome = { appliedCount, failedCount, results };
@@ -904,7 +924,6 @@ function ConflictResolverSession({
           onToast(message, "error");
         }
         setSelections({});
-        setApplying(false);
         if (outcome.appliedCount > 0) {
           const ids = [...new Set(outcome.results.filter((item) => item.ok).map((item) => item.entityId))];
           onApplied?.({ entityIds: ids, appliedCount: outcome.appliedCount });
@@ -913,7 +932,13 @@ function ConflictResolverSession({
       } catch (error) {
         const message = error instanceof Error ? error.message : "Could not apply the changes.";
         setResultMessage(message);
-        onToast(message, "error");
+        onToast(message, appliedCount > 0 ? "info" : "error");
+        // Audit ~846-905: field writes already done — still notify when appliedCount > 0.
+        if (appliedCount > 0) {
+          const ids = [...new Set(results.filter((item) => item.ok).map((item) => item.entityId))];
+          onApplied?.({ entityIds: ids, appliedCount });
+          onClose();
+        }
       } finally {
         setApplying(false);
       }

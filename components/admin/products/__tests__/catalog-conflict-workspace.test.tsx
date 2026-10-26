@@ -163,7 +163,13 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
       fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
     });
     await waitFor(() => {
-      expect(adminSyncActionMocks.pullSingleProductFromShopifyAction).toHaveBeenCalledWith("p1", true);
+      expect(adminSyncActionMocks.pullSingleProductFromShopifyAction).toHaveBeenCalledWith(
+        "p1",
+        true,
+        expect.arrayContaining([
+          expect.objectContaining({ fieldKey: "commerce:status" }),
+        ]),
+      );
     });
   });
 });

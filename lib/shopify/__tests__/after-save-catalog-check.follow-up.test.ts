@@ -1,20 +1,23 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
- * Audit #6: after-save returns warning; if alreadyRunning, wait once then
- * re-run a single follow-up check.
+ * Audit #6: after-save must not hold the save action for up to 11 minutes.
+ * If alreadyRunning, return immediately; optional non-blocking follow-up only.
  */
 
 const mocks = vi.hoisted(() => ({
   runCatalogConflictCheck: vi.fn(),
-  getLatestReconcileRun: vi.fn(),
+  after: vi.fn((cb: () => void) => {
+    // Capture scheduled work without running it during the action.
+    void cb;
+  }),
 }));
 
 vi.mock("@/lib/shopify/catalog-conflict-signals-server", () => ({
   runCatalogConflictCheck: mocks.runCatalogConflictCheck,
 }));
-vi.mock("@/lib/shopify/reconciliation-run", () => ({
-  getLatestReconcileRun: mocks.getLatestReconcileRun,
+vi.mock("next/server", () => ({
+  after: mocks.after,
 }));
 
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
@@ -36,53 +39,24 @@ describe("runAfterSaveCatalogConflictCheck follow-up", () => {
       ok: true,
       warning: "Collection presence could not be checked.",
     });
+    expect(mocks.after).not.toHaveBeenCalled();
   });
 
-  it("waits for the active run then runs one follow-up when alreadyRunning", async () => {
-    mocks.runCatalogConflictCheck
-      .mockResolvedValueOnce({
-        alreadyRunning: true,
-        warning: "already running",
-        signals: { state: "checking", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
-        result: { state: "checking", checkedAt: null, leaves: [], uncheckedCount: 0, recentlyUpdatedProducts: {} },
-      })
-      .mockResolvedValueOnce({
-        warning: "translations not rechecked",
-        signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
-        result: { state: "ready", checkedAt: null, leaves: [], uncheckedCount: 0, recentlyUpdatedProducts: {} },
-      });
-
-    mocks.getLatestReconcileRun
-      .mockResolvedValueOnce({
-        id: "active",
-        status: "RUNNING",
-        trigger: "MANUAL",
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        startedAt: new Date().toISOString(),
-        completedAt: null,
-        checkedCount: 0,
-        differenceCount: 0,
-        error: null,
-      })
-      .mockResolvedValueOnce({
-        id: "active",
-        status: "SUCCEEDED",
-        trigger: "MANUAL",
-        updatedAt: new Date().toISOString(),
-        createdAt: new Date().toISOString(),
-        startedAt: new Date().toISOString(),
-        completedAt: new Date().toISOString(),
-        checkedCount: 1,
-        differenceCount: 0,
-        error: null,
-      });
+  it("returns alreadyRunning immediately without polling when a check is active", async () => {
+    mocks.runCatalogConflictCheck.mockResolvedValueOnce({
+      alreadyRunning: true,
+      warning: "already running",
+      signals: { state: "checking", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
+      result: { state: "checking", checkedAt: null, leaves: [], uncheckedCount: 0, recentlyUpdatedProducts: {} },
+    });
 
     await expect(runAfterSaveCatalogConflictCheck("admin")).resolves.toEqual({
-      alreadyRunning: false,
+      alreadyRunning: true,
       ok: true,
-      warning: "translations not rechecked",
+      warning: "already running",
     });
-    expect(mocks.runCatalogConflictCheck).toHaveBeenCalledTimes(2);
+    // Action returns after one call — no wait loop.
+    expect(mocks.runCatalogConflictCheck).toHaveBeenCalledTimes(1);
+    expect(mocks.after).toHaveBeenCalledTimes(1);
   });
 });

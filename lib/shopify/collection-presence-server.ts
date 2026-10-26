@@ -10,7 +10,11 @@ import {
   type LocalCollectionIdentity,
   type RemoteCollectionIdentity,
 } from "@/lib/shopify/collection-presence";
-import { findManagedCollectionSourceId, type ShopifyCollectionSource } from "@/lib/shopify/collection-membership";
+import {
+  findManagedCollectionSourceId,
+  isMissingShopifyCollectionError,
+  type ShopifyCollectionSource,
+} from "@/lib/shopify/collection-membership";
 import {
   buildCollectionWindowFromColumns,
   collectionCommerceInputFromWindow,
@@ -384,7 +388,13 @@ export async function pushCollectionToShopify(collectionId: string) {
         seoTitle: collection.seoTitle,
         seoDescription: collection.seoDescription,
       });
-    } catch {
+    } catch (error) {
+      // Audit ~387-406: unlink/wipe ONLY on confirmed Shopify missing —
+      // throttle/network/userErrors must leave the link and workingSnapshot intact.
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isMissingShopifyCollectionError(message)) {
+        throw error instanceof Error ? error : new ShopifyAdminError(message);
+      }
       await db.$transaction([
         db.shopifyTranslationBinding.deleteMany({
           where: { resourceType: "COLLECTION", entityId: collection.id },

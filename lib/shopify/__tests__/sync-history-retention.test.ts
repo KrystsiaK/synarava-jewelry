@@ -84,6 +84,17 @@ describe("cleanupSyncHistory", () => {
     expect(runSql).toContain('"resolvedAt" IS NULL');
   });
 
+  it("never deletes the newest full catalog run (null scope AUTO/MANUAL)", async () => {
+    mocks.executeRaw.mockResolvedValue(0);
+    await cleanupSyncHistory({ now: new Date("2026-10-25T12:00:00.000Z") });
+    const runSql = sqlFromCall(mocks.executeRaw.mock.calls[1] as unknown[]);
+    expect(runSql).toMatch(/newest_full/);
+    expect(runSql).toMatch(/NOT IN/);
+    expect(runSql).toMatch(/AUTO/);
+    expect(runSql).toMatch(/MANUAL/);
+    expect(runSql).toMatch(/scope/);
+  });
+
   it("keeps recent rows by comparing createdAt/resolvedAt to cutoff", async () => {
     const now = new Date("2026-10-25T12:00:00.000Z");
     const expectedCutoff = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
