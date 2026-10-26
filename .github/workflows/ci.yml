@@ -169,8 +169,9 @@ jobs:
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      # Service hostname (not localhost) when the job runs in a container.
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/synarava_ci
+      # db-guard requires localhost/127.0.0.1; job containers reach services via
+      # hostname only, so we TCP-forward 127.0.0.1:5432 → postgres:5432 below.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/synarava_ci
       APP_URL: http://localhost:3000
       # Image ships browsers under /ms-playwright (HOME is /github/home in-container).
       PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
@@ -184,6 +185,40 @@ jobs:
           cache: pnpm
       - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
+
+      # Job containers reach services by hostname; db-guard requires 127.0.0.1.
+      # setsid+nohup keeps the forwarder alive across later steps (no apt).
+      - name: Forward Postgres to localhost
+        run: |
+          set -euo pipefail
+          cat > /tmp/pg-fwd.mjs <<'EOF'
+          import net from "node:net";
+          const server = net.createServer((client) => {
+            const upstream = net.connect(5432, "postgres");
+            client.pipe(upstream);
+            upstream.pipe(client);
+            const close = () => {
+              client.destroy();
+              upstream.destroy();
+            };
+            client.on("error", close);
+            upstream.on("error", close);
+          });
+          server.listen(5432, "127.0.0.1");
+          EOF
+          setsid nohup node /tmp/pg-fwd.mjs >/tmp/pg-fwd.log 2>&1 < /dev/null &
+          echo $! > /tmp/pg-fwd.pid
+          for i in $(seq 1 40); do
+            if node -e 'const n=require("node:net");const s=n.connect({host:"127.0.0.1",port:5432},()=>{s.end();process.exit(0)});s.on("error",()=>process.exit(1))'; then
+              echo "Postgres forward ready on 127.0.0.1:5432 (pid $(cat /tmp/pg-fwd.pid))"
+              exit 0
+            fi
+            sleep 0.25
+          done
+          echo "Timed out waiting for 127.0.0.1:5432 forward" >&2
+          cat /tmp/pg-fwd.log >&2 || true
+          exit 1
+
       - run: pnpm prisma:push
 
       # Build before smoke so Playwright starts `next start` (fast, deterministic)
