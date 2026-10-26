@@ -23,23 +23,6 @@ export async function ensureTranslationBinding({
   });
 }
 
-export async function findTranslationBinding(resourceType: TranslationResourceType, entityId: string) {
-  return db.shopifyTranslationBinding.findUnique({ where: { resourceType_entityId: { resourceType, entityId } } });
-}
-
-/**
- * @deprecated PR3 stopped all hot-path readers/writers. Table stays until PR6.
- * Kept as a no-op so any stray import fails closed without resurrecting the third state.
- */
-export async function saveTranslationSnapshot(args: {
-  bindingId: string;
-  locale: string;
-  values: Record<string, unknown>;
-}): Promise<void> {
-  void args;
-  // Intentionally empty — two-way compare uses live Shopify vs Synarava only.
-}
-
 /** Every push/pull/reconcile attempt gets its own event row — the audit trail docs/history/2026-09-en-pt-translation-plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */
 export async function recordSyncEvent({
   bindingId,
@@ -101,30 +84,4 @@ export async function recordReconcileAuditDetails({
       "updatedAt" = CURRENT_TIMESTAMP
     WHERE "id" = ${eventId}
   `);
-}
-
-/**
- * Re-runs `perform` for an existing event and updates its status in place —
- * idempotent because it never touches the locally persisted translation
- * content, only this bookkeeping row, so a failed retry cannot lose local
- * copy (docs/history/2026-09-en-pt-translation-plan.md Task 6 acceptance).
- */
-export async function retrySyncEvent(eventId: string, perform: () => Promise<void>) {
-  await db.translationSyncEvent.update({
-    where: { id: eventId },
-    data: { status: "PROCESSING", attemptCount: { increment: 1 } },
-  });
-
-  try {
-    await perform();
-    return db.translationSyncEvent.update({
-      where: { id: eventId },
-      data: { status: "SUCCEEDED", error: null, completedAt: new Date() },
-    });
-  } catch (error) {
-    return db.translationSyncEvent.update({
-      where: { id: eventId },
-      data: { status: "FAILED", error: error instanceof Error ? error.message : String(error), completedAt: new Date() },
-    });
-  }
 }

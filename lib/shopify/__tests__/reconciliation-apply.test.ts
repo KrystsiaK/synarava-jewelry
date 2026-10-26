@@ -23,7 +23,6 @@ const mocks = vi.hoisted(() => ({
   updateSource: vi.fn(),
   recordSyncEvent: vi.fn(),
   recordAuditDetails: vi.fn(),
-  saveSnapshot: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/product-sync", () => ({ adoptShopifyProjectionField: mocks.adoptProjection }));
@@ -56,7 +55,6 @@ vi.mock("@/lib/shopify/source-content", () => ({
 vi.mock("@/lib/shopify/translation-sync", () => ({
   recordReconcileAuditDetails: mocks.recordAuditDetails,
   recordSyncEvent: mocks.recordSyncEvent,
-  saveTranslationSnapshot: mocks.saveSnapshot,
 }));
 
 import { applyReconcileChoice } from "@/lib/shopify/reconciliation-apply";
@@ -90,7 +88,6 @@ beforeEach(() => {
   mocks.executeRaw.mockResolvedValue(1);
   mocks.recordSyncEvent.mockResolvedValue({ id: "event-1" });
   mocks.recordAuditDetails.mockResolvedValue(undefined);
-  mocks.saveSnapshot.mockResolvedValue(undefined);
   mocks.registerTranslations.mockResolvedValue({ registeredKeys: ["title"] });
   mocks.updateSource.mockResolvedValue({ mutation: "productUpdate", key: "title" });
 });
@@ -135,7 +132,6 @@ describe("applyReconcileChoice", () => {
       locale: "pt-PT",
       values: { title: "Local title" },
     });
-    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ direction: "PUSH", status: "SUCCEEDED" }));
     expect(mocks.recordAuditDetails).toHaveBeenCalledWith(expect.objectContaining({
       eventId: "event-1",
@@ -171,7 +167,6 @@ describe("applyReconcileChoice", () => {
       shopifyValue: "Remote title",
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
-    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ direction: "PULL", status: "SUCCEEDED" }));
   });
 
@@ -198,7 +193,6 @@ describe("applyReconcileChoice", () => {
       value: "Local title",
     }));
     expect(mocks.registerTranslations).not.toHaveBeenCalled();
-    expect(mocks.saveSnapshot).not.toHaveBeenCalled();
     expect(mocks.recordSyncEvent).toHaveBeenCalledWith(expect.objectContaining({ locale: "en" }));
     expect(mocks.adoptProjection).toHaveBeenCalledWith("product-1", "title");
   });

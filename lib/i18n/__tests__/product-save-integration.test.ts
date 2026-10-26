@@ -19,6 +19,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: vi.fn(),
   revalidateStorefrontTemplate: vi.fn(),
+  revalidateStorefront: vi.fn(),
 }));
 vi.mock("@/lib/media/local-upload", () => ({ saveProductImageUpload: vi.fn() }));
 vi.mock("@/lib/shopify/config", () => ({ isShopifyConfigured: vi.fn(() => false) }));

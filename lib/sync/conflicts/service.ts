@@ -97,9 +97,11 @@ function finishApply<T extends { appliedCount: number; failedCount: number }>(
   adminPaths: string[],
   warning?: string,
 ): ConflictApplyResult<T> {
+  // Admin pages are invalidated BEFORE the response: the client router.refresh()es right after Apply,
+  // and a revalidatePath deferred to after() runs too late (stale page until the next navigation).
+  for (const path of adminPaths) revalidatePath(path);
   after(() => {
     revalidateStorefront();
-    for (const path of adminPaths) revalidatePath(path);
   });
   const messages = applyMessages(outcome.appliedCount, outcome.failedCount);
   return entity === "product" ? { outcome, warning, ...messages } : { outcome, ...messages };

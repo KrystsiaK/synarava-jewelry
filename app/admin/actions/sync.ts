@@ -91,9 +91,7 @@ export async function createProductMetafieldDefinitionAction(input: {
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
     const definition = await createProductMetafieldDefinition(input);
-    after(() => {
-      revalidatePath("/admin/products");
-    });
+    revalidatePath("/admin/products");
     return { definition, success: `Definition “${definition.name}” created in Shopify.` };
   } catch (error) {
     return { error: error instanceof Error ? error.message : "Could not create the metafield definition." };

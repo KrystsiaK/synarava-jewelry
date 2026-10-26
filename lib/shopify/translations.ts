@@ -220,7 +220,7 @@ function isDigestError(errors: TranslationUserError[]) {
   return errors.some((error) => /digest|outdated|stale/i.test(error.message));
 }
 
-export async function removeTranslationKeys(resourceId: string, locale: string, translationKeys: string[]) {
+async function removeTranslationKeys(resourceId: string, locale: string, translationKeys: string[]) {
   if (translationKeys.length === 0) return;
 
   const data = await shopifyAdminRequest<{

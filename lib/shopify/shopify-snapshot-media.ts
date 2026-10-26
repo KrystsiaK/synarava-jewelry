@@ -3,7 +3,7 @@
  * ProductMedia / S3 rows are a staging cache — conflict UI and Media tab read the tree.
  */
 
-export type WorkingSnapshotMediaFrame = {
+type WorkingSnapshotMediaFrame = {
   id: string | null;
   url: string;
   alt: string;
@@ -48,12 +48,4 @@ export function mediaFramesFromWorkingSnapshot(workingSnapshot: unknown): Workin
     const frame = frameFromMediaNode(node, index);
     return frame ? [frame] : [];
   });
-}
-
-/** @deprecated use mediaFramesFromWorkingSnapshot */
-export function mediaFramesFromProductSnapshots(input: {
-  shopifySnapshot?: unknown;
-  workingSnapshot?: unknown;
-}): WorkingSnapshotMediaFrame[] {
-  return mediaFramesFromWorkingSnapshot(input.workingSnapshot);
 }

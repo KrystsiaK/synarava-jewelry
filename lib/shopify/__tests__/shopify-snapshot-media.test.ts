@@ -1,9 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  mediaFramesFromWorkingSnapshot,
-  mediaFramesFromProductSnapshots,
-} from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
 
 describe("mediaFramesFromWorkingSnapshot", () => {
   it("reads preview URLs from OUR workingSnapshot media nodes", () => {
@@ -20,18 +17,6 @@ describe("mediaFramesFromWorkingSnapshot", () => {
       width: 100,
       height: 80,
     }]);
-  });
-
-  it("never falls back to shopifySnapshot", () => {
-    expect(mediaFramesFromProductSnapshots({
-      shopifySnapshot: {
-        media: [{
-          id: "gid://shopify/MediaImage/1",
-          preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
-        }],
-      },
-      workingSnapshot: { media: [] },
-    })).toEqual([]);
   });
 
   it("returns empty when OUR tree has no usable media", () => {
