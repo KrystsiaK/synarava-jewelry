@@ -2,8 +2,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 /**
  * PR2 contract: inspectProductSyncState may refresh the Shopify-side copy and
- * compute status in memory. It must never create/change workingSnapshot,
- * product commerce columns, translations, TaxonomyValueLabel, or syncStatus.
+ * compute status in memory. It must never write workingSnapshot / extras as
+ * Synarava content, product commerce columns, translations, TaxonomyValueLabel,
+ * or syncStatus (ADR-0009 — OUR window is derived).
  */
 
 const mocks = vi.hoisted(() => ({
@@ -97,26 +98,43 @@ function remoteProduct(overrides: { title?: string; price?: string } = {}) {
 }
 
 function localProduct(overrides: {
-  workingSnapshot?: unknown;
+  extras?: unknown;
   name?: string;
+  status?: string;
 } = {}) {
   return {
     shopifyProductId: "gid://shopify/Product/99",
     shopifySnapshot: { title: "Old shopify" },
-    workingSnapshot: overrides.workingSnapshot === undefined
-      ? { title: "Local title", handle: "local-handle" }
-      : overrides.workingSnapshot,
+    extras: overrides.extras === undefined ? null : overrides.extras,
     name: overrides.name ?? "Local title",
     slug: "local-handle",
+    description: null,
     vendor: "Synarava",
     productType: "Ring",
+    status: overrides.status ?? "ACTIVE",
+    seoTitle: null,
+    seoDescription: null,
+    shopifyCategoryId: null,
+    shopifyCategoryName: null,
     priceCents: 10000,
+    tags: [],
+    collections: [],
     variants: [{
       shopifyVariantId: "gid://shopify/ProductVariant/1",
       sku: "SKU-1",
+      title: "Default",
+      barcode: null,
       priceCents: 10000,
+      compareAtCents: null,
+      inventoryPolicy: "DENY",
       taxable: true,
       stockOnHand: 2,
+      selectedOptions: [],
+      shopifyInventoryItemId: null,
+      requiresShipping: true,
+      tracked: true,
+      costCents: null,
+      weightGrams: null,
     }],
   };
 }
@@ -137,8 +155,8 @@ describe("inspectProductSyncState — no Synarava writes", () => {
     mocks.updateProduct.mockResolvedValue({ id: "local-1" });
   });
 
-  it("builds compare window from columns when workingSnapshot is missing — no Adopt", async () => {
-    mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({ workingSnapshot: null }));
+  it("builds compare window from columns + extras — no Adopt when columns exist", async () => {
+    mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({ extras: null }));
 
     const inspection = await inspectProductSyncState("local-1");
 
@@ -159,15 +177,14 @@ describe("inspectProductSyncState — no Synarava writes", () => {
     expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
   });
 
-  it("refreshes shopifySnapshot and never rewrites workingSnapshot or syncStatus", async () => {
-    const existingWorking = {
-      title: "Local title",
-      handle: "local-handle",
-      metafields: {
-        "custom.color": { namespace: "custom", key: "color", value: "gid://1", type: "product_taxonomy_value_reference" },
+  it("refreshes shopifySnapshot and never rewrites extras or syncStatus", async () => {
+    mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({
+      extras: {
+        metafields: {
+          "custom.color": { namespace: "custom", key: "color", value: "gid://1", type: "product_taxonomy_value_reference" },
+        },
       },
-    };
-    mocks.findUniqueOrThrowProduct.mockResolvedValue(localProduct({ workingSnapshot: existingWorking }));
+    }));
 
     const inspection = await inspectProductSyncState("local-1");
 
@@ -177,6 +194,7 @@ describe("inspectProductSyncState — no Synarava writes", () => {
       expect(data.shopifySnapshot).toBeDefined();
       expect((data.shopifySnapshot as { title?: string }).title).toBe("Shopify title");
       expect(data).not.toHaveProperty("workingSnapshot");
+      expect(data).not.toHaveProperty("extras");
       expect(data).not.toHaveProperty("name");
       expect(data).not.toHaveProperty("syncStatus");
       expect(data).not.toHaveProperty("syncError");

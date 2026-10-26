@@ -168,7 +168,7 @@ describe("applyCollectionPresenceDifference", () => {
     }));
   });
 
-  it("pushes a Synarava-only collection to Shopify and persists workingSnapshot", async () => {
+  it("pushes a Synarava-only collection to Shopify and links without writing workingSnapshot", async () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-7",
       name: "Local kits",
@@ -177,7 +177,7 @@ describe("applyCollectionPresenceDifference", () => {
       seoTitle: null,
       seoDescription: null,
       shopifyCollectionId: null,
-      workingSnapshot: null,
+      extras: null,
       shopifySnapshot: null,
     });
     mocks.shopifyAdminRequest.mockImplementation(async (query: string) => {
@@ -215,7 +215,7 @@ describe("applyCollectionPresenceDifference", () => {
         seoTitle: null,
         seoDescription: null,
         shopifyCollectionId: null,
-        workingSnapshot: null,
+        extras: null,
         shopifySnapshot: null,
       })
       .mockResolvedValueOnce({
@@ -226,12 +226,7 @@ describe("applyCollectionPresenceDifference", () => {
         seoTitle: null,
         seoDescription: null,
         shopifyCollectionId: "gid://shopify/Collection/70",
-        workingSnapshot: {
-          title: "Local kits",
-          handle: "local-kits",
-          descriptionHtml: "<p>Desc</p>",
-          seo: { title: null, description: null },
-        },
+        extras: null,
         shopifySnapshot: null,
       });
     mocks.updateCollection.mockResolvedValue({ id: "local-7" });
@@ -248,12 +243,13 @@ describe("applyCollectionPresenceDifference", () => {
       shopifyResourceId: "gid://shopify/Collection/70",
     });
     const linkWrite = mocks.updateCollection.mock.calls.find((call) =>
-      call[0]?.data && "workingSnapshot" in call[0].data && call[0].data.shopifyCollectionId,
+      call[0]?.data && call[0].data.shopifyCollectionId === "gid://shopify/Collection/70",
     );
-    expect(linkWrite?.[0].data.workingSnapshot).toMatchObject({
-      title: "Local kits",
-      handle: "local-kits",
+    expect(linkWrite?.[0].data).toMatchObject({
+      shopifyCollectionId: "gid://shopify/Collection/70",
+      shopifyHandle: "local-kits",
     });
+    expect(linkWrite?.[0].data).not.toHaveProperty("workingSnapshot");
   });
 
   it("deletes a Synarava-only collection when Shopify side is chosen", async () => {

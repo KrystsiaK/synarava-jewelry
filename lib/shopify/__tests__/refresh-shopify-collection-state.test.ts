@@ -58,7 +58,7 @@ describe("refreshShopifyCollectionState — no Synarava writes", () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-1",
       shopifyCollectionId: "gid://shopify/Collection/99",
-      workingSnapshot: { title: "Local title", handle: "local-handle" },
+      extras: null,
       shopifySnapshot: { title: "Old shopify" },
       name: "Local title",
       slug: "local-handle",
@@ -88,7 +88,7 @@ describe("refreshShopifyCollectionState — no Synarava writes", () => {
     mocks.findUniqueCollection.mockResolvedValue({
       id: "local-1",
       shopifyCollectionId: "gid://shopify/Collection/99",
-      workingSnapshot: { title: "Local title", handle: "local-handle", descriptionHtml: "", seo: { title: null, description: null } },
+      extras: null,
       shopifySnapshot: null,
       name: "Local title",
       slug: "local-handle",

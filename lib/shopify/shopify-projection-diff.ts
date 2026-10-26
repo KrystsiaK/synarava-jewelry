@@ -6,12 +6,14 @@ import {
   withMetafieldTranslations,
   type MetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
+import { labelForWindowPath } from "@/lib/sync/field-registry";
 
 /**
  * Object-level Shopify projection compare.
  *
  * Detection compares full Shopify-shaped JSON (denylist of technical noise only),
- * not a hand-maintained allowlist of commerce fields.
+ * not a hand-maintained allowlist of commerce fields. Human path labels come from
+ * `lib/sync/field-registry` (ADR-0009) — not a parallel PATH_LABELS table.
  */
 
 export type ShopifyProjectionDiff = {
@@ -32,29 +34,6 @@ const TECHNICAL_KEYS = new Set([
 ]);
 
 const SHOPIFY_CDN_HOST_RE = /(^|\.)cdn\.shopify\.com$/i;
-
-/** Human labels for known projection paths (Catalog Conflicts UI + scoped apply). */
-const PATH_LABELS: Array<{ match: RegExp; label: string }> = [
-  { match: /^title$/, label: "Name" },
-  { match: /^handle$/, label: "Handle" },
-  { match: /^descriptionHtml$/, label: "Description" },
-  { match: /^category(\.id)?$/, label: "Product category" },
-  { match: /^productType$/, label: "Product type" },
-  { match: /^vendor$/, label: "Vendor" },
-  { match: /^seo\.title$/, label: "SEO title" },
-  { match: /^seo\.description$/, label: "SEO description" },
-  { match: /^status$/, label: "Status" },
-  { match: /^tags$/, label: "Tags" },
-  { match: /^variants\[\d+\]\.sku$/, label: "Variant SKU" },
-  { match: /^variants\[\d+\]\.price$/, label: "Price" },
-  { match: /^variants\[\d+\]\.compareAtPrice$/, label: "Compare-at price" },
-  { match: /^variants\[\d+\]\.taxable$/, label: "Charge tax" },
-  { match: /^variants\[\d+\]\.inventoryQuantity$/, label: "Available quantity" },
-  { match: /^totalInventory$/, label: "Total inventory" },
-  { match: /^variants\[\d+\]\.barcode$/, label: "Barcode" },
-  { match: /^variants\[\d+\]\.inventoryPolicy$/, label: "Inventory policy" },
-  { match: /^variants\[\d+\]\.inventoryItem\.unitCost/, label: "Cost" },
-];
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -265,23 +244,10 @@ export function mediaConflictFieldLabel(
 }
 
 export function labelForShopifyProjectionPath(path: string): string {
-  for (const entry of PATH_LABELS) {
-    if (entry.match.test(path)) return entry.label;
-  }
   if (path === "media" || path.startsWith("media.")) return "Media gallery";
   const mediaMatch = path.match(/^media\[(\d+)\]/);
   if (mediaMatch) {
     return `Image ${Number(mediaMatch[1]) + 1}`;
-  }
-  // variants[0].sku → Variant SKU; generic fallback keeps path readable
-  const variantMatch = path.match(/^variants\[(\d+)\]\.(.+)$/);
-  if (variantMatch) {
-    const rest = variantMatch[2];
-    for (const entry of PATH_LABELS) {
-      if (entry.match.test(`variants[0].${rest}`)) {
-        return `${entry.label} (variant ${Number(variantMatch[1]) + 1})`;
-      }
-    }
   }
   const metafieldMatch = path.match(/^metafields\.([^.]+)(?:\.(.+))?$/);
   if (metafieldMatch) {
@@ -292,7 +258,8 @@ export function labelForShopifyProjectionPath(path: string): string {
     const label = metafieldLabel({ namespace: identity.slice(0, sep), key: identity.slice(sep + 2) });
     return !rest || rest === "value" ? label : `${label} · ${rest}`;
   }
-  return path;
+  // Registry owns commerce path → label (including variants[].*).
+  return labelForWindowPath(path);
 }
 
 function metafieldLabel(field: Record<string, unknown>): string {
