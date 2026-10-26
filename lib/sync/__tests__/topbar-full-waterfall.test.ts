@@ -103,10 +103,10 @@ describe("top-bar full catalog waterfall", () => {
     mocks.scanAndSaveCatalogPresence.mockResolvedValue(undefined);
     mocks.scanAndSaveCollectionPresence.mockResolvedValue(undefined);
     mocks.findManyProducts.mockResolvedValue([
-      { shopifyProductId: "gid://shopify/Product/1", id: "prod-1", workingSnapshot: { title: "Local" }, shopifySnapshot: { title: "Remote" } },
+      { shopifyProductId: "gid://shopify/Product/1", id: "prod-1", extras: { title: "Local" }, shopifySnapshot: { title: "Remote" } },
     ]);
     mocks.findManyCollections.mockResolvedValue([
-      { shopifyCollectionId: "gid://shopify/Collection/1", id: "col-1", workingSnapshot: { title: "Local Col" }, shopifySnapshot: { title: "Remote Col" } },
+      { shopifyCollectionId: "gid://shopify/Collection/1", id: "col-1", extras: { title: "Local Col" }, shopifySnapshot: { title: "Remote Col" } },
     ]);
   });
 

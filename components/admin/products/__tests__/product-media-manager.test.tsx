@@ -61,7 +61,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     syncStatus: "UNLINKED",
     syncError: null,
     shopifySnapshot: null,
-    workingSnapshot: null,
+    extras: null,
     media: [
       {
         id: "media-1",
@@ -151,7 +151,7 @@ describe("ProductMediaManager alt editing", () => {
       <ProductMediaManager
         product={makeProduct({
           media: [],
-          workingSnapshot: {
+          extras: {
             media: [
               {
                 id: "gid://1",
@@ -199,7 +199,7 @@ describe("ProductMediaManager alt editing", () => {
       <ProductMediaManager
         product={makeProduct({
           media: [],
-          workingSnapshot: {
+          extras: {
             media: [
               {
                 id: "gid://1",
@@ -241,7 +241,7 @@ describe("ProductMediaManager alt editing", () => {
       <ProductMediaManager
         product={makeProduct({
           media: [],
-          workingSnapshot: {
+          extras: {
             media: [
               {
                 id: "gid://shopify/MediaImage/1",
@@ -279,7 +279,7 @@ describe("ProductMediaManager alt editing", () => {
       <ProductMediaManager
         product={makeProduct({
           media: [],
-          workingSnapshot: {
+          extras: {
             media: [
               {
                 id: "gid://shopify/MediaImage/1",

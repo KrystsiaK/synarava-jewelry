@@ -48,7 +48,6 @@ const DIFF_SHOPIFY_PROJECTIONS_ALLOW = new Set([
   "lib/sync/compare.ts", // ONE compare
   "lib/shopify/product-sync.ts", // refresh/inspect informational status + strip snapshot
   "lib/shopify/collection-commerce-projection.ts", // collection window helper used by compare path
-  "lib/shopify/local-commerce-projection.ts",
 ]);
 
 const FETCH_SHOPIFY_PRODUCT_ALLOW = new Set([

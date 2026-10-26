@@ -16,7 +16,7 @@ import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 import { AdminButton, AdminTextField } from "@/components/synarava-cms";
 import { imageAltSoftWarning } from "@/lib/seo/image-alt-checklist";
-import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
 
 export function ProductMediaManager({
   product,
@@ -34,7 +34,7 @@ export function ProductMediaManager({
   const inputRef = useRef<HTMLInputElement>(null);
   const { pushToast } = useAdminToast();
   const localMedia = product?.media ?? [];
-  const treeFrames = product ? mediaFramesFromWorkingSnapshot(product.workingSnapshot) : [];
+  const treeFrames = product ? mediaFramesFromOurWindow(product.extras) : [];
   // OUR tree is SoT for display when local ProductMedia rows are empty (e.g. after Pull).
   const showLocalEditor = localMedia.length > 0;
   const showTreeFrames = !showLocalEditor && treeFrames.length > 0;
@@ -107,7 +107,7 @@ export function ProductMediaManager({
           <p className="adm-label">Product gallery</p>
           <p className="mt-1 text-xs text-[var(--adm-muted)]">
             Upload up to 250 images. Position 1 is the catalog cover. Gallery lives in the OUR commerce tree
-            (`workingSnapshot.media`); uploads and removes write through there for conflict detect. Remove drops
+            (`extras.media`); uploads and removes write through there for conflict detect. Remove drops
             a frame locally; Push omits it from Shopify so the remote media is deleted. Descriptive alt text is
             part of the publish checklist (Shopify <code className="text-[0.7rem]">MEDIA_IMAGE.alt</code>).
           </p>

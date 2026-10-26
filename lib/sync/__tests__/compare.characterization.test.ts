@@ -14,7 +14,7 @@ describe("compareSyncState (characterization)", () => {
         {
           resourceType: "PRODUCT",
           resourceId: "p1",
-          workingSnapshot: { title: "Local", handle: "ring" },
+          ourWindow: { title: "Local", handle: "ring" },
           shopifySnapshot: { title: "Remote", handle: "ring" },
         },
       ],
@@ -42,13 +42,13 @@ describe("compareSyncState (characterization)", () => {
     });
   });
 
-  it("emits adopt leaf when workingSnapshot is missing", () => {
+  it("emits adopt leaf when ourWindow is missing", () => {
     const result = compareSyncState({
       commerceWindows: [
         {
           resourceType: "PRODUCT",
           resourceId: "p1",
-          workingSnapshot: null,
+          ourWindow: null,
           shopifySnapshot: { title: "Remote" },
         },
       ],
@@ -127,7 +127,7 @@ describe("compareSyncState (characterization)", () => {
         {
           resourceType: "PRODUCT",
           resourceId: "p1",
-          workingSnapshot: { title: "A" },
+          ourWindow: { title: "A" },
           shopifySnapshot: { title: "B" },
         },
       ],
@@ -242,7 +242,7 @@ describe("compareSyncState (characterization)", () => {
         {
           resourceType: "COLLECTION",
           resourceId: "c1",
-          workingSnapshot: { title: "Pets", handle: "pets" },
+          ourWindow: { title: "Pets", handle: "pets" },
           shopifySnapshot: { title: "Pets & Animals", handle: "pets" },
         },
       ],

@@ -37,6 +37,11 @@ export type SyncLeaf = {
   blockedReason: string | null;
   sourceId: string | null;
   path: string | null;
+  /**
+   * Leaf address node: shared commerce/presence → `"base"`;
+   * translation → locale code. Never put shared commerce under a locale tab.
+   */
+  node?: "base" | string;
   /** Presence display — title/handle/sku for ConflictResolver entity summary. */
   displayName?: string | null;
   displayHandle?: string | null;

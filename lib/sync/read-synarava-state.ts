@@ -2,8 +2,7 @@
  * Waterfall step 2 — read Synarava windows + latest reconcile / presence rows.
  * No network; no writes.
  *
- * Working snapshots: prefer persisted workingSnapshot; otherwise build from
- * Synarava columns so compare never invents "Adopt Shopify" for a real row.
+ * OUR commerce window is derived from columns + extras (ADR-0009) — never stored.
  */
 
 import "server-only";
@@ -15,13 +14,13 @@ import { getLatestCatalogPresenceDifferences } from "@/lib/shopify/catalog-prese
 import { getLatestCollectionPresenceDifferences } from "@/lib/shopify/collection-presence-server";
 import { listUnseenIncomingProductUpdates } from "@/lib/shopify/catalog-conflict-review";
 import {
-  resolveCollectionWorkingSnapshot,
-  resolveProductWorkingSnapshot,
-} from "@/lib/shopify/resolve-working-snapshot";
-import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
+import {
+  ourCollectionWindowFromRow,
+  ourProductWindowFromRow,
+} from "@/lib/sync/our-window-from-row";
 
 import type { SyncCommerceWindow, SyncCompareInput, SyncLocaleRef } from "./compare";
 import type { RefreshShopifyStateScope } from "./refresh-shopify-state";
@@ -34,52 +33,61 @@ async function loadProductCommerceWindows(productId?: string): Promise<SyncComme
     },
     select: {
       id: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
+      shopifyProductId: true,
       name: true,
       slug: true,
+      description: true,
       vendor: true,
       productType: true,
-      priceCents: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      tags: {
+        select: { tag: { select: { name: true } } },
+      },
+      collections: {
+        select: {
+          collection: {
+            select: {
+              shopifyCollectionId: true,
+              slug: true,
+              name: true,
+            },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        take: 1,
         select: {
           shopifyVariantId: true,
           sku: true,
+          title: true,
+          barcode: true,
           priceCents: true,
-          taxable: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
           stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
         },
       },
     },
   });
-  return products.map((product) => {
-    const variant = product.variants?.[0];
-    return {
-      resourceType: "PRODUCT" as const,
-      resourceId: product.id,
-      workingSnapshot: resolveProductWorkingSnapshot({
-        workingSnapshot: product.workingSnapshot,
-        shopifySnapshot: product.shopifySnapshot,
-        name: product.name,
-        slug: product.slug,
-        vendor: product.vendor,
-        productType: product.productType,
-        priceCents: product.priceCents,
-        variant: variant
-          ? {
-              shopifyVariantId: variant.shopifyVariantId,
-              sku: variant.sku,
-              priceCents: variant.priceCents,
-              taxable: variant.taxable,
-              inventoryQuantity: variant.stockOnHand,
-            }
-          : null,
-      }),
-      shopifySnapshot: product.shopifySnapshot,
-    };
-  });
+  return products.map((product) => ({
+    resourceType: "PRODUCT" as const,
+    resourceId: product.id,
+    ourWindow: ourProductWindowFromRow(product),
+    shopifySnapshot: product.shopifySnapshot,
+  }));
 }
 
 async function loadCollectionCommerceWindows(collectionId?: string): Promise<SyncCommerceWindow[]> {
@@ -90,7 +98,7 @@ async function loadCollectionCommerceWindows(collectionId?: string): Promise<Syn
     },
     select: {
       id: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       shopifyCollectionId: true,
       name: true,
@@ -103,16 +111,7 @@ async function loadCollectionCommerceWindows(collectionId?: string): Promise<Syn
   return collections.map((collection) => ({
     resourceType: "COLLECTION" as const,
     resourceId: collection.id,
-    workingSnapshot: resolveCollectionWorkingSnapshot({
-      workingSnapshot: collection.workingSnapshot,
-      shopifySnapshot: collection.shopifySnapshot,
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-    }),
+    ourWindow: ourCollectionWindowFromRow(collection),
     shopifySnapshot: collection.shopifySnapshot,
   }));
 }

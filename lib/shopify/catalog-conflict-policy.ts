@@ -1,24 +1,30 @@
-export const SCOPED_COMMERCE_FIELD_LABELS = new Set([
-  "Name",
-  "Handle",
-  "Vendor",
-  "Product type",
-  "Variant SKU",
-  "Price",
-  "Compare-at price",
-  "Charge tax",
-]);
+/**
+ * Commerce field Apply policy + Adopt Shopify synthetic leaf.
+ * Scoped label sets live in `lib/sync/field-registry` (ADR-0009); re-exported here
+ * so existing imports keep working.
+ */
 
-/** Collection commerce scalars from dual windows (title/handle/description/seo). */
-export const SCOPED_COLLECTION_COMMERCE_FIELD_LABELS = new Set([
-  "Name",
-  "Handle",
-  "Description",
-  "SEO title",
-  "SEO description",
-]);
+import {
+  COLLECTION_COMMERCE_FIELDS,
+  PRODUCT_COMMERCE_FIELDS,
+  isScopedCollectionCommerceLabel,
+  isScopedCommerceFieldLabel as isScopedCommerceFieldLabelFromRegistry,
+  isScopedProductCommerceLabel,
+} from "@/lib/sync/field-registry";
 
-/** Synthetic commerce row when Synarava `workingSnapshot` is absent (human Adopt). */
+/** @deprecated Prefer field-registry; kept for callers that iterate the Set. */
+export const SCOPED_COMMERCE_FIELD_LABELS = new Set(
+  PRODUCT_COMMERCE_FIELDS.filter((f) => f.scopedApply).map((f) => f.label),
+);
+
+/** @deprecated Prefer field-registry; kept for callers that iterate the Set. */
+export const SCOPED_COLLECTION_COMMERCE_FIELD_LABELS = new Set(
+  COLLECTION_COMMERCE_FIELDS.filter((f) => f.scopedApply).map((f) => f.label),
+);
+
+export const SCOPED_PRODUCT_COMMERCE_FIELD_LABELS = SCOPED_COMMERCE_FIELD_LABELS;
+
+/** Synthetic commerce row when Synarava has no derived OUR window (human Adopt). */
 export const ADOPT_SHOPIFY_FIELD_KEY = "commerce:adopt-shopify";
 export const ADOPT_SHOPIFY_FIELD_LABEL = "Adopt Shopify";
 export const ADOPT_SHOPIFY_FIELD_PATH = "_adopt";
@@ -31,12 +37,14 @@ export function isMediaGalleryFieldLabel(label: string): boolean {
 }
 
 export function isScopedCommerceFieldLabel(label: string): boolean {
-  return SCOPED_COMMERCE_FIELD_LABELS.has(label) || isMediaGalleryFieldLabel(label);
+  return isScopedCommerceFieldLabelFromRegistry(label) || isMediaGalleryFieldLabel(label);
 }
 
 export function isScopedCollectionCommerceFieldLabel(label: string): boolean {
-  return SCOPED_COLLECTION_COMMERCE_FIELD_LABELS.has(label);
+  return isScopedCollectionCommerceLabel(label);
 }
+
+export { isScopedProductCommerceLabel };
 
 export function isAdoptShopifyConflictField(field: {
   fieldKey?: string | null;

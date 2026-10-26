@@ -51,9 +51,9 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import {
-  rawMediaAltsFromWorkingSnapshot,
+  rawMediaAltsFromOurWindow,
   resolveGalleryMediaAlt,
-  workingSnapshotMediaNodes,
+  ourMediaNodes,
 } from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
@@ -82,13 +82,16 @@ import {
   getProjectionPath,
   setProjectionPath,
   alignMetafieldResolvedValues,
-  writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
 import {
   ADOPT_SHOPIFY_FIELD_LABEL,
   ADOPT_SHOPIFY_FIELD_PATH,
 } from "@/lib/shopify/catalog-conflict-policy";
-import { resolveProductWorkingSnapshot } from "@/lib/shopify/resolve-working-snapshot";
+import {
+  extractProductExtrasFromWorkingSnapshot,
+  productExtrasFromShopifySnapshot,
+} from "@/lib/sync/extras";
+import { ourProductWindowFromRow } from "@/lib/sync/our-window-from-row";
 
 export {
   ADOPT_SHOPIFY_FIELD_KEY,
@@ -396,10 +399,16 @@ async function shopifySnapshotOnlyWrite(remote: ShopifyProduct) {
   return withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
 }
 
-/** L and B agree with live Shopify after successful human pull/push. */
+/** Shopify observation + extras orphans agree after successful human pull/push (ADR-0009). */
 async function agreedProjectionWrite(remote: ShopifyProduct) {
   const withTranslations = await shopifySnapshotOnlyWrite(remote);
-  return { shopifySnapshot: withTranslations, workingSnapshot: withTranslations };
+  const extras = productExtrasFromShopifySnapshot(withTranslations);
+  return {
+    shopifySnapshot: withTranslations,
+    extras: Object.keys(extras).length > 0
+      ? (extras as Prisma.InputJsonValue)
+      : Prisma.JsonNull,
+  };
 }
 
 async function syncOnlineStorePublication(productId: string, published: boolean) {
@@ -1207,7 +1216,7 @@ async function finishPulledProduct(
 }
 
 /**
- * Human Apply / Pull: overwrite Synarava columns + workingSnapshot from Shopify.
+ * Human Apply / Pull: overwrite Synarava columns + extras from Shopify.
  * Webhooks and other automatic paths must call {@link refreshShopifyProductState} instead.
  */
 export async function applyShopifyProductToSynarava(
@@ -1227,7 +1236,7 @@ export async function applyShopifyProductToSynarava(
 /**
  * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy only
  * (`shopifySnapshot` / `shopifyUpdatedAt`). Never writes Synarava commerce columns,
- * workingSnapshot, translations, variants, TaxonomyValueLabel, or `syncStatus`
+ * extras, translations, variants, TaxonomyValueLabel, or `syncStatus`
  * from compare — conflict SoT is SyncResult leaves.
  */
 export async function refreshShopifyProductState(id: string, eventId?: string) {
@@ -1240,19 +1249,44 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
       id: true,
       name: true,
       slug: true,
+      description: true,
       vendor: true,
       productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      shopifyProductId: true,
+      extras: true,
+      shopifySnapshot: true,
       priceCents: true,
-      workingSnapshot: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        take: 1,
         select: {
           shopifyVariantId: true,
           sku: true,
+          title: true,
+          barcode: true,
           priceCents: true,
-          taxable: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
           stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
         },
       },
     },
@@ -1270,26 +1304,12 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
   }
 
   const shopifySnapshot = await shopifySnapshotOnlyWrite(remote);
-  const variant = existing.variants[0];
-  const synaravaWindow = existing.workingSnapshot
-    ?? writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: existing.name,
-      handle: existing.slug,
-      vendor: existing.vendor,
-      productType: existing.productType,
-      variant: variant
-        ? {
-            shopifyVariantId: variant.shopifyVariantId,
-            sku: variant.sku,
-            priceCents: variant.priceCents,
-            taxable: variant.taxable,
-            inventoryQuantity: variant.stockOnHand,
-          }
-        : { priceCents: existing.priceCents },
-    });
+  // ADR-0009: OUR window is derived only — never seed/write-through from Shopify.
+  const synaravaWindow = ourProductWindowFromRow(existing);
 
   // Compare is informational for the sync-event row / return value only.
-  const diverged = diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
+  const diverged = synaravaWindow == null
+    || diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
   const status = diverged ? "CONFLICT" as const : "SYNCED" as const;
 
   await db.product.update({
@@ -1330,7 +1350,7 @@ export type ProductSyncInspectDebug = {
   shopifyResponse: unknown;
   /** 2 — window stored as shopifySnapshot (same shape, thin canonicalize). */
   shopifySnapshot: unknown;
-  /** 3 — workingSnapshot from our DB. */
+  /** 3 — derived OUR window (columns + extras). */
   workingSnapshot: unknown;
   /** 4 — path diffs working vs shopify. */
   differences: ProductSyncDifference[];
@@ -1349,7 +1369,7 @@ export type ProductSyncInspection = {
 /**
  * Dual-snapshot inspect (read path — never writes Synarava content or syncStatus):
  * 1) fetch Shopify → write shopifySnapshot / shopifyUpdatedAt only
- * 2) read workingSnapshot (do not seed/align-persist)
+ * 2) derive OUR window from columns + extras
  * 3) diff in memory → return state; missing window → Adopt Shopify row
  *
  * Conflict apply/preview safety: this is the ONLY allowed live Shopify
@@ -1364,21 +1384,44 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     select: {
       shopifyProductId: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
       name: true,
       slug: true,
+      description: true,
       vendor: true,
       productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
       priceCents: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        take: 1,
         select: {
           shopifyVariantId: true,
           sku: true,
+          title: true,
+          barcode: true,
           priceCents: true,
-          taxable: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
           stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
         },
       },
     },
@@ -1393,26 +1436,8 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
-  const variant = local.variants[0];
-  const resolvedWorking = resolveProductWorkingSnapshot({
-    workingSnapshot: local.workingSnapshot,
-    shopifySnapshot: local.shopifySnapshot,
-    name: local.name,
-    slug: local.slug,
-    vendor: local.vendor,
-    productType: local.productType,
-    priceCents: local.priceCents,
-    variant: variant
-      ? {
-          shopifyVariantId: variant.shopifyVariantId,
-          sku: variant.sku,
-          priceCents: variant.priceCents,
-          taxable: variant.taxable,
-          inventoryQuantity: variant.stockOnHand,
-        }
-      : null,
-  });
-  // Adopt only when Synarava has no commerce counterpart (no snapshot and no columns).
+  const resolvedWorking = ourProductWindowFromRow(local);
+  // Adopt only when Synarava has no commerce counterpart (no columns).
   const workingSnapshotMissing = resolvedWorking == null;
   const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
@@ -1463,7 +1488,7 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   };
 }
 
-/** Patch one path from live Shopify into working (+ refresh shopify window). */
+/** Patch one path from live Shopify into columns/extras (+ refresh shopify window). */
 export async function adoptShopifyProjectionField(
   productId: string,
   path: string | undefined,
@@ -1474,10 +1499,45 @@ export async function adoptShopifyProjectionField(
     select: {
       shopifyProductId: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
+      name: true,
+      slug: true,
+      description: true,
+      vendor: true,
+      productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        select: { id: true, shopifyVariantId: true },
+        select: {
+          id: true,
+          shopifyVariantId: true,
+          sku: true,
+          title: true,
+          barcode: true,
+          priceCents: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
+          stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
+        },
       },
     },
   });
@@ -1486,16 +1546,16 @@ export async function adoptShopifyProjectionField(
   if (!remote) return;
   const live = snapshotForProduct(remote);
   const value = getProjectionPath(live, path);
-  const nextWorking = setProjectionPath(
-    product.workingSnapshot ?? product.shopifySnapshot ?? {},
-    path,
-    value,
-  );
+  const baseWindow = ourProductWindowFromRow(product) ?? product.shopifySnapshot ?? {};
+  const nextWorking = setProjectionPath(baseWindow, path, value);
   const { metafieldTranslationsFromSnapshot, withMetafieldTranslations } = await import(
     "@/lib/shopify/product-metafields-shared"
   );
   const preservedTranslations = metafieldTranslationsFromSnapshot(
-    product.workingSnapshot ?? product.shopifySnapshot,
+    product.extras ?? product.shopifySnapshot,
+  );
+  const nextExtras = extractProductExtrasFromWorkingSnapshot(
+    withMetafieldTranslations(canonicalizeShopifyProjection(nextWorking), preservedTranslations),
   );
 
   const columnData: Prisma.ProductUpdateInput = {
@@ -1503,10 +1563,9 @@ export async function adoptShopifyProjectionField(
       live,
       metafieldTranslationsFromSnapshot(product.shopifySnapshot),
     ) as Prisma.InputJsonValue,
-    workingSnapshot: withMetafieldTranslations(
-      canonicalizeShopifyProjection(nextWorking),
-      preservedTranslations,
-    ) as Prisma.InputJsonValue,
+    extras: nextExtras
+      ? (nextExtras as Prisma.InputJsonValue)
+      : Prisma.JsonNull,
   };
 
   if (path === "title" && typeof value === "string") {
@@ -1518,16 +1577,6 @@ export async function adoptShopifyProjectionField(
   if (path === "seo.title" || path === "seo.description") {
     if (path === "seo.title") columnData.seoTitle = typeof value === "string" ? value || null : null;
     else columnData.seoDescription = typeof value === "string" ? value || null : null;
-    const seo = getProjectionPath(nextWorking, "seo");
-    if (seo && typeof seo === "object" && !Array.isArray(seo)) {
-      const fields = seo as Record<string, unknown>;
-      columnData.workingSnapshot = withMetafieldTranslations(writeThroughLocalCommerceToProjection(nextWorking, {
-        seo: {
-          title: typeof fields.title === "string" ? fields.title : "",
-          description: typeof fields.description === "string" ? fields.description : "",
-        },
-      }), preservedTranslations) as Prisma.InputJsonValue;
-    }
   }
   if (path === "handle" && typeof value === "string" && value.trim()) {
     columnData.slug = value.trim();
@@ -1621,7 +1670,7 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * Pushes a local product's title, description, price, SKU, inventory,
  * tags, collection membership, product type, vendor, SEO title/description,
  * and `synarava.*` characteristic metafields plus merchant custom metafields
- * from `workingSnapshot` to Shopify via the Admin GraphQL API, creating the
+ * from derived OUR window / extras to Shopify via the Admin GraphQL API, creating the
  * remote product on first push. Product type,
  * and vendor are omitted when we have no local value. Linked products send
  * empty SEO overrides explicitly so clearing a saved value reaches Shopify.
@@ -1685,8 +1734,9 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         ...(item.certificateUrl ? [{ namespace: "synarava", key: `${item.key}_certificate`, type: "url", value: item.certificateUrl }] : []),
       ];
     });
-    const { customMetafieldsFromWorkingSnapshot } = await import("@/lib/shopify/product-metafields-shared");
-    for (const item of customMetafieldsFromWorkingSnapshot(product.workingSnapshot)) {
+    const ourWindow = ourProductWindowFromRow(product);
+    const { customMetafieldsFromOurWindow } = await import("@/lib/shopify/product-metafields-shared");
+    for (const item of customMetafieldsFromOurWindow(ourWindow ?? product.extras)) {
       if (!item.value.trim()) continue;
       metafields.push({
         namespace: item.namespace,
@@ -1725,7 +1775,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // OUR tree alts (Media tab after Pull / after local media released on Push).
     // Must ride productSet — falling back to product.name for every image made
     // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
-    const treeAlts = rawMediaAltsFromWorkingSnapshot(product.workingSnapshot);
+    const treeAlts = rawMediaAltsFromOurWindow(ourWindow ?? product.extras);
     const localAssetsById = new Map<string, LocalProductAsset & { sortIndex: number }>();
     product.media.forEach((item, index) => {
       localAssetsById.set(item.assetId, {
@@ -1804,13 +1854,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       }
     }
     // Remaining gallery frames after local ProductMedia is released (typical post-Push /
-    // post-Pull Media tab): OUR `workingSnapshot.media` is SoT. Include those Shopify
+    // post-Pull Media tab): OUR derived window / extras.media is SoT. Include those Shopify
     // GIDs (with tree alts) and omit remote media removed from the tree so productSet
     // list-field semantics delete them on Shopify
     // (https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet).
     const remoteNodes = currentRemote?.media.nodes ?? [];
     const remoteById = new Map(remoteNodes.map((item) => [item.id, item] as const));
-    const treeMedia = workingSnapshotMediaNodes(product.workingSnapshot);
+    const treeMedia = ourMediaNodes(ourWindow ?? product.extras);
     if (treeMedia) {
       for (const [treeIndex, node] of treeMedia.entries()) {
         if (!node || typeof node !== "object" || Array.isArray(node)) continue;
@@ -1932,7 +1982,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       ownerId: remote.id,
       desired: metafields,
       remote: currentRemote?.metafields.nodes ?? remote.metafields.nodes,
-      hasCustomWindow: getProjectionPath(product.workingSnapshot, "metafields") != null,
+      hasCustomWindow: getProjectionPath(ourWindow ?? product.extras, "metafields") != null,
       managedPassportKeys: new Set<string>(PASSPORT_CHARACTERISTICS.flatMap((item) =>
         "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
       )),
@@ -1951,7 +2001,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       ].filter((item) => desiredIdentities.has(`${item.namespace}:${item.key}`));
       await pushCustomMetafieldTranslations({
         metafieldRefs: refs,
-        workingSnapshot: product.workingSnapshot,
+        workingSnapshot: ourWindow ?? product.extras,
         locales: pushLocales.map((locale) => ({
           code: locale.code,
           shopifyLocale: locale.shopifyLocale,

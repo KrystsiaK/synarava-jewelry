@@ -11,13 +11,15 @@ import {
   SCOPED_COLLECTION_COMMERCE_FIELD_LABELS,
 } from "./catalog-conflict-policy";
 import {
-  buildCollectionWindowFromColumns,
   collectionCommerceInputFromWindow,
   diffCollectionCommerceWindows,
-  writeThroughLocalCollectionToProjection,
 } from "./collection-commerce-projection";
 import { refreshShopifyCollectionState } from "./collection-presence-server";
-import { resolveCollectionWorkingSnapshot } from "./resolve-working-snapshot";
+import {
+  deriveCollectionWindow,
+  preferredHtmlFromShopifySnapshot,
+} from "@/lib/sync/derive-window";
+import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 
 export { isScopedCollectionCommerceFieldLabel, SCOPED_COLLECTION_COMMERCE_FIELD_LABELS };
 
@@ -49,7 +51,7 @@ async function writeLocally(collectionId: string, label: string, value: string) 
     where: { id: collectionId },
     select: {
       shopifyCollectionId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       name: true,
       slug: true,
@@ -80,27 +82,12 @@ async function writeLocally(collectionId: string, label: string, value: string) 
   if (label === "SEO title") columnData.seoTitle = value || null;
   if (label === "SEO description") columnData.seoDescription = value || null;
 
-  const base = collection.workingSnapshot
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-      shopifySnapshot: collection.shopifySnapshot,
-    });
-  const nextWorking = writeThroughLocalCollectionToProjection(base, {
-    id: collection.shopifyCollectionId,
-    ...patchForLabel(label, value),
-  });
-
   const updated = await db.collection.update({
     where: { id: collectionId },
     data: {
       ...columnData,
-      workingSnapshot: nextWorking as Prisma.InputJsonValue,
       // Local field write → merchant intent to push; conflict SoT is SyncResult.
+      // OUR window is derived from columns (ADR-0009).
       syncStatus: "PENDING",
       syncError: null,
     },
@@ -121,7 +108,7 @@ async function writeToShopify(collectionId: string, label: string, value: string
     where: { id: collectionId },
     select: {
       shopifyCollectionId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       name: true,
       slug: true,
@@ -135,19 +122,20 @@ async function writeToShopify(collectionId: string, label: string, value: string
     throw new ShopifyAdminError("This collection is not linked to Shopify.");
   }
 
-  const window = writeThroughLocalCollectionToProjection(
-    collection.workingSnapshot
-      ?? buildCollectionWindowFromColumns({
-        shopifyCollectionId: collection.shopifyCollectionId,
-        name: collection.name,
-        slug: collection.slug,
-        description: collection.description,
-        seoTitle: collection.seoTitle,
-        seoDescription: collection.seoDescription,
-        shopifySnapshot: collection.shopifySnapshot,
-      }),
-    { id: collection.shopifyCollectionId, ...patchForLabel(label, value) },
-  );
+  const patch = patchForLabel(label, value);
+  const window = deriveCollectionWindow({
+    shopifyCollectionId: collection.shopifyCollectionId,
+    name: patch.title ?? collection.name,
+    slug: patch.handle ?? collection.slug,
+    description: patch.description !== undefined ? patch.description : collection.description,
+    seoTitle: patch.seoTitle !== undefined ? patch.seoTitle : collection.seoTitle,
+    seoDescription: patch.seoDescription !== undefined ? patch.seoDescription : collection.seoDescription,
+    extras: collection.extras,
+    preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
+      collection.shopifySnapshot,
+      "descriptionHtml",
+    ),
+  });
   const input = collectionCommerceInputFromWindow(window);
   const result = await shopifyAdminRequest<{
     collectionUpdate: {
@@ -178,11 +166,10 @@ async function writeToShopify(collectionId: string, label: string, value: string
     throw new ShopifyAdminError("Shopify did not return the updated collection.");
   }
 
-  // Keep OUR window in sync with what we pushed for this field, then refresh Shopify copy.
+  // Columns are OUR SoT; refresh Shopify copy after push (ADR-0009).
   await db.collection.update({
     where: { id: collectionId },
     data: {
-      workingSnapshot: window as Prisma.InputJsonValue,
       ...(label === "Name" ? { name: value } : {}),
       ...(label === "Handle" ? { slug: value.trim(), shopifyHandle: value.trim() } : {}),
       ...(label === "Description" ? { description: value || null } : {}),
@@ -218,7 +205,7 @@ export async function applyCollectionCommerceField({
     where: { id: collectionId },
     select: {
       shopifyCollectionId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       name: true,
       slug: true,
@@ -235,16 +222,7 @@ export async function applyCollectionCommerceField({
   }
   // Same resolver as the compare (read-synarava-state): a collection that has columns but no stored
   // window is still comparable, so it must be applicable too (the resolver showed this conflict).
-  const working = resolveCollectionWorkingSnapshot({
-    workingSnapshot: collection.workingSnapshot,
-    shopifySnapshot: collection.shopifySnapshot,
-    shopifyCollectionId: collection.shopifyCollectionId,
-    name: collection.name,
-    slug: collection.slug,
-    description: collection.description,
-    seoTitle: collection.seoTitle,
-    seoDescription: collection.seoDescription,
-  });
+  const working = ourCollectionWindowFromRow(collection);
   if (working == null) {
     return {
       ok: false,
@@ -253,14 +231,7 @@ export async function applyCollectionCommerceField({
     };
   }
   const shopify = collection.shopifySnapshot
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-    });
+    ?? ourCollectionWindowFromRow(collection);
   const differences = diffCollectionCommerceWindows(working, shopify);
   const difference = differences.find((item) => item.field === label);
   if (!difference) {
@@ -285,13 +256,24 @@ export async function applyCollectionCommerceField({
     // Do not write syncStatus SYNCED — conflict inventory is SyncResult leaves.
     const after = await db.collection.findUnique({
       where: { id: collectionId },
-      select: { workingSnapshot: true, shopifySnapshot: true },
+      select: {
+        extras: true,
+        shopifySnapshot: true,
+        shopifyCollectionId: true,
+        name: true,
+        slug: true,
+        description: true,
+        seoTitle: true,
+        seoDescription: true,
+      },
     });
     if (!after) {
       return { ok: false, reason: "WRITE_FAILED", message: "Collection disappeared after apply." };
     }
-    const stillOpen = diffCollectionCommerceWindows(after.workingSnapshot, after.shopifySnapshot)
-      .some((item) => item.field === label);
+    const stillOpen = diffCollectionCommerceWindows(
+      ourCollectionWindowFromRow(after),
+      after.shopifySnapshot,
+    ).some((item) => item.field === label);
     if (stillOpen) {
       return { ok: false, reason: "WRITE_FAILED", message: "The field still differs after apply. Nothing is marked resolved." };
     }

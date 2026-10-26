@@ -383,7 +383,7 @@ export function metafieldsArrayFromSnapshot(value: unknown): SnapshotMetafield[]
 }
 
 /** Merchant-owned metafields from OUR working window (for Push). */
-export function customMetafieldsFromWorkingSnapshot(workingSnapshot: unknown): ProductMetafieldValueInput[] {
+export function customMetafieldsFromOurWindow(workingSnapshot: unknown): ProductMetafieldValueInput[] {
   return metafieldsArrayFromSnapshot(workingSnapshot)
     .filter((item) => !isManagedProductMetafieldNamespace(item.namespace))
     .map((item) => ({

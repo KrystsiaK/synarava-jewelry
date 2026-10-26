@@ -4,12 +4,13 @@ import {
   applyTreeMediaAltUpdates,
   isMediaAltFormField,
   mediaAltUpdatesFromForm,
+  mediaFramesFromOurWindow,
   mergeLocalMediaRowsIntoWorkingMedia,
-  rawMediaAltsFromWorkingSnapshot,
-  removeWorkingSnapshotMediaAtIndex,
+  ourMediaNodes,
+  rawMediaAltsFromOurWindow,
+  removeOurMediaAtIndex,
   resolveGalleryMediaAlt,
-  retainedShopifyMediaIdsFromWorkingSnapshot,
-  workingSnapshotMediaNodes,
+  retainedShopifyMediaIds,
 } from "@/lib/shopify/product-media-alt-form";
 
 describe("isMediaAltFormField", () => {
@@ -104,10 +105,10 @@ describe("applyTreeMediaAltUpdates", () => {
   });
 });
 
-describe("rawMediaAltsFromWorkingSnapshot", () => {
+describe("rawMediaAltsFromOurWindow", () => {
   it("reads per-image alts from OUR tree without inventing product title", () => {
     expect(
-      rawMediaAltsFromWorkingSnapshot({
+      rawMediaAltsFromOurWindow({
         title: "Soleil Lemon Bag Charm",
         media: [
           { id: "gid://1", alt: "Lemon charm, front" },
@@ -202,31 +203,31 @@ describe("mergeLocalMediaRowsIntoWorkingMedia", () => {
   });
 });
 
-describe("removeWorkingSnapshotMediaAtIndex", () => {
+describe("removeOurMediaAtIndex", () => {
   it("splices one frame and rejects out-of-range indexes", () => {
     const media = [
       { id: "gid://1", alt: "A" },
       { id: "gid://2", alt: "B" },
       { id: "gid://3", alt: "C" },
     ];
-    expect(removeWorkingSnapshotMediaAtIndex(media, 1)).toEqual([
+    expect(removeOurMediaAtIndex(media, 1)).toEqual([
       { id: "gid://1", alt: "A" },
       { id: "gid://3", alt: "C" },
     ]);
     expect(media).toHaveLength(3);
-    expect(removeWorkingSnapshotMediaAtIndex(media, -1)).toBeNull();
-    expect(removeWorkingSnapshotMediaAtIndex(media, 3)).toBeNull();
+    expect(removeOurMediaAtIndex(media, -1)).toBeNull();
+    expect(removeOurMediaAtIndex(media, 3)).toBeNull();
   });
 });
 
-describe("workingSnapshotMediaNodes / retainedShopifyMediaIdsFromWorkingSnapshot", () => {
+describe("ourMediaNodes / retainedShopifyMediaIds / mediaFramesFromOurWindow", () => {
   it("returns null when media key is absent, and nodes/GIDs when present", () => {
-    expect(workingSnapshotMediaNodes({ title: "Ring" })).toBeNull();
-    expect(workingSnapshotMediaNodes({ media: [] })).toEqual([]);
-    expect(retainedShopifyMediaIdsFromWorkingSnapshot({ title: "Ring" })).toBeNull();
-    expect(retainedShopifyMediaIdsFromWorkingSnapshot({ media: [] })).toEqual([]);
+    expect(ourMediaNodes({ title: "Ring" })).toBeNull();
+    expect(ourMediaNodes({ media: [] })).toEqual([]);
+    expect(retainedShopifyMediaIds({ title: "Ring" })).toBeNull();
+    expect(retainedShopifyMediaIds({ media: [] })).toEqual([]);
     expect(
-      retainedShopifyMediaIdsFromWorkingSnapshot({
+      retainedShopifyMediaIds({
         media: [
           { id: "gid://shopify/MediaImage/1" },
           { id: "local:asset-2" },
@@ -234,5 +235,23 @@ describe("workingSnapshotMediaNodes / retainedShopifyMediaIdsFromWorkingSnapshot
         ],
       }),
     ).toEqual(["gid://shopify/MediaImage/1", "gid://shopify/MediaImage/3"]);
+  });
+
+  it("reads preview URLs from OUR extras/window media nodes", () => {
+    expect(mediaFramesFromOurWindow({
+      media: [{
+        id: "gid://shopify/MediaImage/1",
+        alt: "Front",
+        preview: { image: { url: "https://cdn.shopify.com/a.webp?v=1", width: 800, height: 800 } },
+      }],
+    })).toEqual([{
+      id: "gid://shopify/MediaImage/1",
+      url: "https://cdn.shopify.com/a.webp?v=1",
+      alt: "Front",
+      width: 800,
+      height: 800,
+    }]);
+    expect(mediaFramesFromOurWindow({ media: [] })).toEqual([]);
+    expect(mediaFramesFromOurWindow({})).toEqual([]);
   });
 });

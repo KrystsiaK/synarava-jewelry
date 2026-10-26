@@ -71,14 +71,12 @@ describe("pullShopifyInventory", () => {
         productType: null,
         priceCents: 1000,
         syncStatus: "SYNCED",
-        workingSnapshot: {
-          title: "Local",
-          handle: "local",
-          variants: [{ id: "gid://shopify/ProductVariant/1", inventoryQuantity: 2, price: "10.00" }],
-        },
+        status: "ACTIVE",
+        extras: null,
         variants: [{
           shopifyVariantId: "gid://shopify/ProductVariant/1",
           sku: "SKU",
+          title: "Default",
           priceCents: 1000,
           taxable: true,
           stockOnHand: 2,

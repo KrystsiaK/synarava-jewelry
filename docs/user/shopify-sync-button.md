@@ -3,7 +3,7 @@ title: Shopify sync button
 section: Catalog
 status: draft
 verifiedOn:
-updatedOn: 2026-10-25
+updatedOn: 2026-10-26
 ---
 
 # Shopify sync button
@@ -25,9 +25,10 @@ counters stay in sync with that check — not with `syncStatus` flags.
 :::good-to-know
 There are two copies of commerce data: a **Shopify** copy (fetched
 automatically, read-only in the conflict UI) and a **Synarava** copy
-(editable). A check never writes Synarava content. Only a human **Apply**
-(Take Shopify / Keep ours, including the “for all” actions) writes after
-preview.
+(editable columns + `extras`). A check never writes Synarava content. Only a
+human **Apply** (Take Shopify / Keep ours, including the “for all” actions)
+writes after preview. Synarava’s compare window is **derived** on the fly
+(ADR-0009) — it is not a stored duplicate JSON blob.
 :::
 
 ## Steps
@@ -35,17 +36,11 @@ preview.
 :::steps
 ### Find the top-bar Shopify sync button
 
-<<<<<<< HEAD
 In admin, the top bar shows the Shopify sync control. Together with the
 after-Save full check, this is the fetch+compare path for the catalog.
 Opening **Show conflicts** / ConflictResolver does **not** fetch Shopify again
 — it reads the last SyncResult leaves. Separate “Check Shopify” or “Run
 conflict check” controls on catalog pages are not part of this model.
-=======
-In admin, the top bar shows the Shopify sync control. This is the one place
-that fetches the whole Shopify state and compares it with Synarava. Catalog
-pages do not carry a separate check control.
->>>>>>> 99956a0c (chore: remove dead sync helpers and stale sync docs)
 
 ### Read the button state
 
@@ -125,7 +120,7 @@ continue editing if there is nothing to resolve.
 
 ### Check failed — is my data lost?
 
-**Cause:** The Shopify fetch or compare did not complete (network, credentials,
+**Cause:** The Shopify fetch or compare did not finish (network, credentials,
 or Shopify error).
 
 **What happens:** The button shows red **Check failed**. The Save that already
@@ -147,7 +142,7 @@ retry after a failure, or if you want a fresh compare before the next Save.
 ## Known limits
 
 - A check refreshes the Shopify-side copy and rebuilds SyncResult leaves. It
-  never writes Synarava columns or `workingSnapshot`; only human Apply does.
+  never writes Synarava columns or `extras`; only human Apply / Save does.
   Default-locale EN translation rows that duplicate a commerce field already in
   the compare are not listed twice; page copy and non-commerce editorial
   translations still appear as their own rows.
@@ -161,10 +156,11 @@ retry after a failure, or if you want a fresh compare before the next Save.
 
 ## Verified on
 
-Draft. Grounded in the two-state sync model (`lib/sync` → SyncResult leaves),
-the top-bar control (`components/admin/translations/admin-shopify-sync-signal.tsx`),
-the reconcile route full-catalog path (`app/admin/api/shopify/reconcile/route.ts`
-→ `runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), after-Save
-full check (`runAfterSaveCatalogConflictCheck`), catalog conflict banners
-(`CatalogConflictStatus`), ConflictResolver open via `skipRefresh` loaders, and
-product webhooks (`app/api/shopify/webhooks/products/route.ts`).
+Draft. Grounded in the derived two-state sync model (ADR-0009, `lib/sync` →
+SyncResult leaves), the top-bar control
+(`components/admin/translations/admin-shopify-sync-signal.tsx`), the reconcile
+route full-catalog path (`app/admin/api/shopify/reconcile/route.ts` →
+`runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), after-Save full
+check (`runAfterSaveCatalogConflictCheck`), catalog conflict banners,
+ConflictResolver open via `skipRefresh` loaders, and product webhooks
+(`app/api/shopify/webhooks/products/route.ts`).

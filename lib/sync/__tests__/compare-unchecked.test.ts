@@ -14,7 +14,7 @@ describe("compareSyncState unchecked commerce windows", () => {
         {
           resourceType: "COLLECTION",
           resourceId: "c1",
-          workingSnapshot: { title: "Pets", handle: "pets" },
+          ourWindow: { title: "Pets", handle: "pets" },
           shopifySnapshot: null,
         },
       ],
@@ -39,7 +39,7 @@ describe("compareSyncState unchecked commerce windows", () => {
         {
           resourceType: "PRODUCT",
           resourceId: "p1",
-          workingSnapshot: null,
+          ourWindow: null,
           shopifySnapshot: { title: "Remote" },
         },
       ],

@@ -38,7 +38,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
-import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 import {
   isVariantPurchasable,
@@ -278,7 +278,7 @@ function shopifyProjection(
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
   return {
     // Prefer shared frame parser (id + preview/image URL) so gallery dedupe can key by MediaImage GID.
-    media: mediaFramesFromWorkingSnapshot(value).map((frame) => ({
+    media: mediaFramesFromOurWindow(value).map((frame) => ({
       id: frame.id,
       src: frame.url,
       alt: frame.alt,
@@ -322,7 +322,7 @@ function toSummary(product: {
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
-  workingSnapshot?: unknown;
+  extras?: unknown;
   imageUrl: string | null;
   materialLine: string | null;
   symbolismLabel: string | null;
@@ -398,10 +398,10 @@ function toSummary(product: {
   const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
   const passportTextOverlay = parseCharacteristicTextOverlay(localized.details);
-  // OUR workingSnapshot owns Save-time PT/RU metafield overlays; shopifySnapshot
+  // OUR extras owns Save-time PT/RU metafield overlays; shopifySnapshot
   // fills gaps from the last Pull (admin already prefers working ?? shopify).
   const mergedMetafieldTranslations = storefrontMetafieldTranslations(
-    product.workingSnapshot,
+    product.extras,
     product.shopifySnapshot,
   );
   const shopifyMetafieldOverlay = characteristicOverlayFromMetafieldTranslations(
@@ -412,7 +412,7 @@ function toSummary(product: {
     shopifyMetafieldOverlay,
     passportTextOverlay,
   );
-  const commerceSnapshot = product.workingSnapshot ?? product.shopifySnapshot;
+  const commerceSnapshot = product.extras ?? product.shopifySnapshot;
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -447,8 +447,8 @@ function toSummary(product: {
     width: item.asset.width,
     height: item.asset.height,
   }));
-  const workingMedia = mediaFramesFromWorkingSnapshot(
-    product.workingSnapshot ?? product.shopifySnapshot,
+  const workingMedia = mediaFramesFromOurWindow(
+    product.extras ?? product.shopifySnapshot,
   ).map((frame) => ({
     id: frame.id,
     src: frame.url,

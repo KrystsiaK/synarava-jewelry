@@ -140,8 +140,8 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    текущую секцию × язык (shared-секции → EN/shared). Check → список
    конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
    что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
-   читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
-   — staging для upload/reorder/remove (write-through в то же дерево). После
+   читает **OUR** дерево (`extras.media` → derive); локальные `ProductMedia`
+   — staging для upload/reorder/remove (Save патчит `extras.media`). После
    Pull кнопка **Remove** на кадре удаляет его из OUR дерева; **Push** не
    включает этот Shopify media id в `productSet.files`, и Shopify удаляет
    файл. У каждого кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`):

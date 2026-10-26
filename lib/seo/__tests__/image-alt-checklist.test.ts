@@ -21,11 +21,11 @@ describe("image alt checklist", () => {
     expect(imageAltSoftWarning("photo.jpg")).toMatch(/filename/i);
   });
 
-  it("reads local ProductMedia before workingSnapshot frames", () => {
+  it("reads local ProductMedia before extras.media frames", () => {
     expect(
       productGalleryAltsForChecklist({
         media: [{ alt: "Cover", asset: { filename: "cover.webp" } }],
-        workingSnapshot: {
+        extras: {
           media: [{ id: "gid://shopify/MediaImage/1", alt: "Tree", preview: { image: { url: "/a.webp" } } }],
         },
       }),
@@ -34,7 +34,7 @@ describe("image alt checklist", () => {
     expect(
       productGalleryAltsForChecklist({
         media: [],
-        workingSnapshot: {
+        extras: {
           media: [{ id: "gid://shopify/MediaImage/1", alt: "Image 1", preview: { image: { url: "/a.webp" } } }],
         },
       }),

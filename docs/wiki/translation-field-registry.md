@@ -34,7 +34,7 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 Structured Synarava CMS copy still uses `$app:` metaobjects (Task 16). Merchant
 **Fields** tab text metafields (e.g. Care instructions) use Shopify Metafield
 translations (`translationsRegister` / `key: value`) so each locale can differ.
-Overlays live in `workingSnapshot.metafieldTranslations` and are stripped from
+Overlays live in `extras.metafieldTranslations` and are stripped from
 commerce conflict compare.
 
 Product URLs use the shared `slug` for every language (`/pt/products/{slug}`).

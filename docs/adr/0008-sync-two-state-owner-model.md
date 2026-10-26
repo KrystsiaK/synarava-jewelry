@@ -1,7 +1,7 @@
 # ADR-0008: Sync — two states, nothing automatic, one module
 
 **Date**: 2026-10-23
-**Status**: accepted
+**Status**: superseded by [ADR-0009](0009-derive-synarava-commerce-state.md)
 **Deciders**: владелец проекта
 
 ## Context

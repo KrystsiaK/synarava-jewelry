@@ -16,7 +16,7 @@ function singleProductFixture(): SyncResult {
       {
         resourceType: "PRODUCT",
         resourceId: "p1",
-        workingSnapshot: { title: "Local", handle: "ring", vendor: "Us" },
+        ourWindow: { title: "Local", handle: "ring", vendor: "Us" },
         shopifySnapshot: { title: "Remote", handle: "ring", vendor: "Them" },
       },
     ],

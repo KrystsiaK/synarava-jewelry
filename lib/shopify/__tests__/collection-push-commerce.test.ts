@@ -35,20 +35,14 @@ describe("pushCollectionToShopify linked update", () => {
     mocks.update.mockResolvedValue({});
     mocks.findUnique.mockResolvedValue({
       id: "col-1",
-      name: "Rings",
+      name: "Rings Local",
       slug: "rings",
       description: "Fine rings",
       seoTitle: "Rings SEO",
       seoDescription: null,
       shopifyCollectionId: "gid://shopify/Collection/1",
       shopifyHandle: "rings",
-      workingSnapshot: {
-        id: "gid://shopify/Collection/1",
-        title: "Rings Local",
-        handle: "rings",
-        descriptionHtml: "<p>Fine rings</p>",
-        seo: { title: "Rings SEO", description: null },
-      },
+      extras: null,
       shopifySnapshot: null,
     });
     mocks.shopifyAdminRequest
@@ -97,7 +91,7 @@ describe("pushCollectionToShopify linked update", () => {
     );
   });
 
-  it("does not unlink or wipe workingSnapshot when Shopify fetch fails for a non-missing reason", async () => {
+  it("does not unlink or wipe extras when Shopify fetch fails for a non-missing reason", async () => {
     mocks.shopifyAdminRequest.mockReset();
     mocks.shopifyAdminRequest.mockRejectedValueOnce(new Error("Throttled: Exceeded rate limit"));
 
@@ -108,7 +102,7 @@ describe("pushCollectionToShopify linked update", () => {
     expect(db.$transaction).not.toHaveBeenCalled();
   });
 
-  it("unlinks and clears snapshots only when Shopify confirms the collection is missing", async () => {
+  it("unlinks and clears shopifySnapshot/extras only when Shopify confirms the collection is missing", async () => {
     mocks.shopifyAdminRequest.mockReset();
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({ collection: null })
@@ -135,6 +129,7 @@ describe("pushCollectionToShopify linked update", () => {
       });
 
     const { db } = await import("@/lib/db");
+    const { Prisma } = await import("@prisma/client");
     await pushCollectionToShopify("col-1");
 
     expect(db.$transaction).toHaveBeenCalled();
@@ -142,10 +137,14 @@ describe("pushCollectionToShopify linked update", () => {
       expect.objectContaining({
         data: expect.objectContaining({
           shopifyCollectionId: null,
-          workingSnapshot: expect.anything(),
+          shopifySnapshot: Prisma.JsonNull,
+          extras: Prisma.JsonNull,
           syncStatus: "UNLINKED",
         }),
       }),
     );
+    for (const call of mocks.update.mock.calls) {
+      expect(call[0].data).not.toHaveProperty("workingSnapshot");
+    }
   });
 });
