@@ -39,8 +39,32 @@ describe("ProductConflictCompareBanner", () => {
         onOpen={onOpen}
       />,
     );
-    expect(screen.getByRole("button", { name: /3 fields differ from Shopify/i })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /3 fields differ from Shopify/i }));
+    const button = screen.getByRole("button", { name: /3 fields differ from Shopify/i });
+    expect(button).toBeInTheDocument();
+    // Shared never lists every language tab — only Shared + locales with leaves.
+    expect(button.textContent).toMatch(/Shared/);
+    expect(button.textContent).toMatch(/Portuguese/);
+    expect(button.textContent).not.toMatch(/English/);
+    expect(button.textContent).not.toMatch(/Russian/);
+    await user.click(button);
     expect(onOpen).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not list languages for shared-only conflicts", () => {
+    render(
+      <ProductConflictCompareBanner
+        signal={{
+          leafCount: 1,
+          shared: true,
+          sharedCount: 1,
+          locales: [],
+        }}
+        localeTabs={LOCALE_TABS}
+        onOpen={() => {}}
+      />,
+    );
+    const button = screen.getByRole("button", { name: /1 field differ from Shopify/i });
+    expect(button.textContent).toMatch(/Shared/);
+    expect(button.textContent).not.toMatch(/Portuguese|Russian|English/);
   });
 });

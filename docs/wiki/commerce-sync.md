@@ -56,16 +56,24 @@ Collection **membership** (which products belong to a collection) stays product-
 
 ## Marker tree (short)
 
-Language is a **shell** over the same product. Shared commerce (price, …) is one
-payload shown under every language. One price conflict → catalog row + product +
-all locale shells + **Price** tab only (not every section).
+Conflict **display** is a tree: entity = branch; inside it the **base** node
+(EN tab — shared commerce + base text) and sibling **locale** nodes (PT, RU, …).
+Shared fields (image, price, status…) live once on base — editable from any
+locale form as a window into that single instance — but their conflicts belong
+to **base only**. A shared conflict never lights a PT/RU tab; the banner never
+lists languages for shared-only conflicts.
+
+Counts come from one selector: `lib/sync/select.ts` → `slice(result, { entityId?, node? })`
+with invariant `count(entity) == count(base) + sum(count(locale))`. Locale tab
+dots use `slice(node=<locale>)`. One indicator (`SyncConflictIndicator` in
+synarava-cms) is used at list / entity / locale / section chrome.
 
 Opening conflicts from a **section** chip opens only that section’s fields.
 Product and language chrome open the full product / locale set.
 
-Code: `commerce-conflict-section.ts`, `catalog-conflict-view.ts` filters
-(`product` · `productLocale` · `productSection`), `AdminLocaleTabs` / section conflict chips.
-Workspaces only wire `FieldConflictPanel` to actions.
+Code: `lib/sync/select.ts`, `commerce-conflict-section.ts`, `catalog-conflict-view.ts`
+filters (`product` · `productLocale` · `productSection`), `SyncConflictIndicator`,
+`AdminLocaleTabs` / section conflict chips.
 
 ### One compare result (banner · icon · ConflictResolver)
 
@@ -225,8 +233,9 @@ deleted when other sources remain; for the final collection-scoped source the
 Shopify-supported legacy stopgap remains. Shopify-authored sources are not removed
 as a fallback.
 
-Locale-scoped conflict direction arrows include SHARED commerce under every language
-shell. When the direction matrix has no per-field writes (blocked commerce, one-way
+Locale-scoped conflict direction arrows follow the tree: SHARED commerce under the
+**base (EN)** shell only; PT/RU shells show translation leaves for that locale.
+When the direction matrix has no per-field writes (blocked commerce, one-way
 presence, or an empty set), the UI opens whole-record Pull/Push details instead of a
 “No supported fields…” toast that looks like a broken sync.
 

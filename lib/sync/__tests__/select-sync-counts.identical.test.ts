@@ -1,12 +1,13 @@
 import { describe, expect, it } from "vitest";
 
 import { compareSyncState } from "@/lib/sync/compare";
-import { selectSyncCounts } from "@/lib/sync/select";
+import { selectSyncCounts, slice } from "@/lib/sync/select";
 import type { SyncResult } from "@/lib/sync/types";
 
 /**
  * Contract: nav badge, list chip, editor banner, and locale tab derive from
- * ONE selector over the same SyncResult — identical numbers for the same fixture.
+ * ONE selector over the same SyncResult. Locale tabs use the tree node
+ * (shared → base/EN only; never under PT/RU).
  */
 
 function singleProductFixture(): SyncResult {
@@ -49,7 +50,7 @@ function singleProductFixture(): SyncResult {
 }
 
 describe("selectSyncCounts identical surfaces", () => {
-  it("nav counts DISTINCT items; per-item chips count leaves on that resource", () => {
+  it("nav counts DISTINCT items; per-item chips count leaves; locale tabs use tree nodes", () => {
     const result = singleProductFixture();
     // 2 commerce (title + vendor) + 1 translation = 3 leaves on ONE product
     expect(result.leaves).toHaveLength(3);
@@ -65,8 +66,13 @@ describe("selectSyncCounts identical surfaces", () => {
       resourceType: "PRODUCT",
       resourceId: "p1",
     });
-    // Shared commerce counts under every locale shell; + pt translation.
-    const localeTab = selectSyncCounts(result, {
+    const enTab = selectSyncCounts(result, {
+      kind: "localeTab",
+      resourceType: "PRODUCT",
+      resourceId: "p1",
+      locale: "en",
+    });
+    const ptTab = selectSyncCounts(result, {
       kind: "localeTab",
       resourceType: "PRODUCT",
       resourceId: "p1",
@@ -77,9 +83,12 @@ describe("selectSyncCounts identical surfaces", () => {
     expect(nav.total).toBe(1);
     expect(listChip).toBe(3);
     expect(editorBanner).toBe(3);
-    expect(localeTab).toBe(3);
-    // Per-item surfaces that show leaf depth still agree.
-    expect(new Set([listChip, editorBanner, localeTab]).size).toBe(1);
+    // Shared commerce under base/EN only; PT = translation leaf alone.
+    expect(enTab).toBe(2);
+    expect(ptTab).toBe(1);
+    expect(enTab + ptTab).toBe(listChip);
+    expect(slice(result, { entityId: "p1", node: "base" })).toHaveLength(enTab);
+    expect(slice(result, { entityId: "p1", node: "pt" })).toHaveLength(ptTab);
   });
 
   it("does not invent a second count for a different product id", () => {

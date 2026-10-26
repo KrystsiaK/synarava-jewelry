@@ -23,19 +23,23 @@ import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type Adm
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminIconButton, AdminPanel } from "@/components/synarava-cms";
+import { AdminAlert, AdminIconButton, AdminPanel, SyncConflictIndicator } from "@/components/synarava-cms";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
-import type { CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-view";
+import {
+  filterSignalsForView,
+  type CatalogConflictViewScope,
+} from "@/components/admin/products/catalog-conflict-view";
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
 } from "@/components/admin/products/commerce-conflict-section";
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
-import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import {
   requestProductSaveWithValidation,
@@ -107,7 +111,7 @@ export function EditProductForm({
   const [dirtyScopes, setDirtyScopes] = useState<Set<DirtyScopeKey>>(() => new Set());
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
   const [syncDetailOpen, setSyncDetailOpen] = useState(false);
-  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
   const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
@@ -146,20 +150,36 @@ export function EditProductForm({
   // shared/locale/presence counts — banner + locale chips use those.
   const conflictSections = new Set<ProductEditorSection>();
   if (productConflict?.presence) conflictSections.add("shopify");
-  // Language shells: shared commerce → EN+PT+RU; locale-only → that locale.
+  // Tree: shared commerce → base (EN) only; locale-only → that locale.
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
     conflictSections,
     sharedSignal: productConflict?.shared,
     presenceSignal: Boolean(productConflict?.presence),
     localeSignals: productConflict?.locales,
+    baseLocale: SOURCE_LOCALE,
   });
   const activeSectionHasConflict = conflictSections.has(activeSection)
     || (Boolean(productConflict?.shared) && isSharedSection(activeSection));
-  const sectionConflictSignals = activeSectionHasConflict || Boolean(productConflict)
-    ? conflictSignals
-    : { ...conflictSignals, products: {}, totalCount: 0 };
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
+  const entityConflictCount = productConflictBadgeCount(productConflict);
+  const localeConflictCount = productConflictBadgeCount(
+    filterSignalsForView(conflictSignals, {
+      kind: "productLocale",
+      productId: currentProduct.id,
+      locale: activeLocale,
+    }).products[currentProduct.id],
+  );
+  // Section chip: only light when this section owns a conflict (no zeroing blob).
+  const sectionConflictCount = activeSectionHasConflict
+    ? productConflictBadgeCount(
+      filterSignalsForView(conflictSignals, {
+        kind: "productLocale",
+        productId: currentProduct.id,
+        locale: syncLocale,
+      }).products[currentProduct.id],
+    )
+    : 0;
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
@@ -470,13 +490,10 @@ export function EditProductForm({
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
               {currentProduct.shopifyProductId ? (
-                <ProductLocaleConflictControl
-                  scope="product"
+                <SyncConflictIndicator
                   checkIconOnly
-                  productId={currentProduct.id}
-                  locale={SOURCE_LOCALE}
-                  localeLabel="this product"
-                  signals={conflictSignals}
+                  label="this product"
+                  count={entityConflictCount}
                   onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
                 />
               ) : null}
@@ -523,12 +540,10 @@ export function EditProductForm({
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
                   currentProduct.shopifyProductId ? (
-                    <ProductLocaleConflictControl
+                    <SyncConflictIndicator
                       checkIconOnly
-                      productId={currentProduct.id}
-                      locale={activeLocale}
-                      localeLabel={`${activeLocaleLabel} (all sections)`}
-                      signals={conflictSignals}
+                      label={`${activeLocaleLabel} (all sections)`}
+                      count={localeConflictCount}
                       onOpen={() => openConflicts({
                         kind: "productLocale",
                         productId: currentProduct.id,
@@ -549,16 +564,14 @@ export function EditProductForm({
                 conflictSections={conflictSections}
                 aside={
                   currentProduct.shopifyProductId && activeSection !== "shopify" ? (
-                    <ProductLocaleConflictControl
+                    <SyncConflictIndicator
                       checkIconOnly
-                      productId={currentProduct.id}
-                      locale={syncLocale}
-                      localeLabel={
+                      label={
                         isSharedSection(activeSection)
                           ? `shared · ${activeSection}`
                           : `${activeLocaleLabel} · ${activeSection}`
                       }
-                      signals={sectionConflictSignals}
+                      count={sectionConflictCount}
                       onOpen={() => openConflicts({
                         kind: "productSection",
                         productId: currentProduct.id,

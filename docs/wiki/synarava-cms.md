@@ -45,6 +45,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
 | `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
 | `ConflictResolver` / `ConflictRow` | ONE Shopify-vs-Synarava conflict UI (cell select → Apply → confirm preview → write). Confirm rows use plain-language headlines, source→target flow, and before/after on the written side (`conflict-resolver-confirm`). Adapters only supply data/apply. |
+| `SyncConflictIndicator` | ONE conflict chip for entity / locale / section chrome (`N conflict(s) for <label>`). Counts from `lib/sync` `slice` / `selectSyncCounts`. Lists keep `CatalogConflictStatus`. |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 

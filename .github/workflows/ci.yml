@@ -196,10 +196,31 @@ jobs:
       - name: Install Playwright browsers
         run: |
           set -euo pipefail
+          # After timeout/OOM kills (exit 137), apt-get may still hold dpkg locks.
+          # Wait for locks to clear before retrying; never race a second --with-deps.
+          wait_for_dpkg_lock() {
+            local waited=0
+            local max_wait=120
+            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 \
+              || sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 \
+              || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
+              if [ "$waited" -ge "$max_wait" ]; then
+                echo "dpkg/apt lock still held after ${max_wait}s — killing leftover apt/dpkg"
+                sudo killall -q apt-get apt dpkg || true
+                sleep 5
+                sudo dpkg --configure -a || true
+                return 0
+              fi
+              echo "Waiting for dpkg/apt lock… (${waited}s)"
+              sleep 5
+              waited=$((waited + 5))
+            done
+          }
           attempt=1
           max_attempts=3
           while [ "$attempt" -le "$max_attempts" ]; do
             echo "Playwright install attempt ${attempt}/${max_attempts}"
+            wait_for_dpkg_lock
             status=0
             # Capture non-zero in || so a failed command does not leave status stuck at 0.
             # -k 30: SIGKILL if the child ignores SIGTERM after the 300s budget.
@@ -207,13 +228,13 @@ jobs:
             if [ "$status" -eq 0 ]; then
               exit 0
             fi
-            # timeout(1) exits 124 on deadline; other non-zero = install failure
+            # timeout(1) exits 124 on deadline; 137 = SIGKILL (OOM/timeout -k)
             echo "Playwright install attempt ${attempt} failed (exit ${status})"
             if [ "$attempt" -eq "$max_attempts" ]; then
               exit "$status"
             fi
             attempt=$((attempt + 1))
-            sleep 5
+            sleep 10
           done
 
       - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke

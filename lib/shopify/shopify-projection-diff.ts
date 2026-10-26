@@ -244,6 +244,26 @@ function displayValueForPath(path: string, value: unknown): string {
   return displayValue(value);
 }
 
+/** Resolver copy for media leaves — states which side owns the image. */
+export function mediaConflictFieldLabel(
+  path: string,
+  local: unknown,
+  shopify: unknown,
+): string | null {
+  const mediaMatch = path.match(/^media\[(\d+)\]$/);
+  if (!mediaMatch) return null;
+  const n = Number(mediaMatch[1]) + 1;
+  const localMissing = local == null;
+  const shopifyMissing = shopify == null;
+  if (!localMissing && shopifyMissing) {
+    return `Image ${n} exists only in Synarava, not in Shopify`;
+  }
+  if (localMissing && !shopifyMissing) {
+    return `Image ${n} exists only in Shopify, not in Synarava`;
+  }
+  return `Image ${n}`;
+}
+
 export function labelForShopifyProjectionPath(path: string): string {
   for (const entry of PATH_LABELS) {
     if (entry.match.test(path)) return entry.label;
@@ -251,7 +271,7 @@ export function labelForShopifyProjectionPath(path: string): string {
   if (path === "media" || path.startsWith("media.")) return "Media gallery";
   const mediaMatch = path.match(/^media\[(\d+)\]/);
   if (mediaMatch) {
-    return `Media gallery (image ${Number(mediaMatch[1]) + 1})`;
+    return `Image ${Number(mediaMatch[1]) + 1}`;
   }
   // variants[0].sku → Variant SKU; generic fallback keeps path readable
   const variantMatch = path.match(/^variants\[(\d+)\]\.(.+)$/);
@@ -314,7 +334,7 @@ function walkDiff(
 
   out.push({
     path,
-    field: labelForShopifyProjectionPath(path),
+    field: mediaConflictFieldLabel(path, local, shopify) ?? labelForShopifyProjectionPath(path),
     local: displayValueForPath(path, local),
     shopify: displayValueForPath(path, shopify),
   });

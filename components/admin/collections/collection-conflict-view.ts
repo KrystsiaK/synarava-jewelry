@@ -15,9 +15,14 @@ function normalizeLocaleCode(locale: string) {
   return locale.trim().toLowerCase();
 }
 
-/** Shared commerce/presence under every language shell; plus that locale's rows. */
+function isBaseLocaleTab(locale: string): boolean {
+  const code = normalizeLocaleCode(locale);
+  return code === "en" || code === "base";
+}
+
+/** Tree display: SHARED → base/EN only; locale rows → that code only. */
 export function fieldMatchesCollectionViewLocale(field: CatalogConflictField, locale: string): boolean {
-  if (String(field.scope.kind).toUpperCase() === "SHARED") return true;
+  if (String(field.scope.kind).toUpperCase() === "SHARED") return isBaseLocaleTab(locale);
   return field.scope.kind === "LOCALE"
     && normalizeLocaleCode(field.scope.code) === normalizeLocaleCode(locale);
 }
@@ -42,16 +47,30 @@ export function filterCollectionSignalsForView(
     return { ...signals, products: { [collectionId]: signal }, totalCount: 1 };
   }
   const locale = normalizeLocaleCode(viewScope.locale);
+  const isBase = isBaseLocaleTab(locale);
   const locales = signal.locales.filter((entry) => normalizeLocaleCode(entry.code) === locale);
-  const shared = Boolean(signal.shared);
+  const shared = isBase && Boolean(signal.shared);
+  const presence = isBase ? signal.presence : undefined;
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
-  if (!hasLocaleConflict && !shared && !signal.presence) {
+  if (!hasLocaleConflict && !shared && !presence) {
     return { ...signals, products: {}, totalCount: 0 };
   }
+  const leafCount = (isBase ? Math.max(0, signal.sharedCount ?? 0) : 0)
+    + (presence ? 1 : 0)
+    + locales.reduce((sum, entry) => sum + entry.count, 0);
   return {
     ...signals,
-    products: { [collectionId]: { ...signal, shared, locales } },
-    totalCount: 1,
+    products: {
+      [collectionId]: {
+        ...signal,
+        shared,
+        sharedCount: isBase ? signal.sharedCount : 0,
+        presence,
+        locales,
+        leafCount,
+      },
+    },
+    totalCount: leafCount > 0 ? 1 : 0,
   };
 }
 

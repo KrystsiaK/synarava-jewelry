@@ -25,7 +25,9 @@ export const ADOPT_SHOPIFY_FIELD_PATH = "_adopt";
 
 /** Media gallery rows — adopt whole `media` (Pull) or Push pipeline (Push). */
 export function isMediaGalleryFieldLabel(label: string): boolean {
-  return label === "Media gallery" || label.startsWith("Media gallery (");
+  return label === "Media gallery"
+    || label.startsWith("Media gallery (")
+    || /^Image \d+(\s|$)/.test(label);
 }
 
 export function isScopedCommerceFieldLabel(label: string): boolean {
