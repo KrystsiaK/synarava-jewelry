@@ -42,6 +42,7 @@ export type CatalogConflictProductSignal = {
 
 export type CatalogConflictSignals = {
   state: CatalogConflictSignalState;
+  /** Open conflict leaf count for this section (same as nav badge). */
   totalCount: number | null;
   checkedAt: string | null;
   /** Linked rows with no Shopify window yet — shown as "N not checked", not conflicts. */

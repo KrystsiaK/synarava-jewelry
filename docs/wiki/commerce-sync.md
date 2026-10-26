@@ -26,7 +26,7 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 | --- | --- |
 | Per-product windows | OUR = `deriveProductWindow(columns + Product.extras)` + `Product.shopifySnapshot` (last Shopify). Orphan keys (media GIDs, publications, metafields remainder, options, category object, variant HS/origin) live in `extras`. |
 | Per-collection windows | OUR = `deriveCollectionWindow(columns + Collection.extras)` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
-| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `countConflictedItems` for every badge/chip/banner. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
+| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner. Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
 | Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save full catalog check** (`runAfterSaveCatalogConflictCheck`) — same full fetch+compare as the top-bar |
 | SKU assign (Family → Confirm / resume) | Column write + after-save full check (`lib/sku/persist-local-sku.ts`). SKU is column-backed; derive reads `ProductVariant.sku` |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
@@ -77,7 +77,7 @@ Every conflict surface shares **one** `SyncResult` from `lib/sync` (leaves are t
 
 | Surface | Source |
 | --- | --- |
-| Catalog / collection banners | `selectSyncCounts` / `countConflictedItems` over SyncResult leaves |
+| Catalog / collection banners | `selectSyncCounts` / `slice` over SyncResult leaves (leaf conflict count) |
 | Nav / list chips | `selectSyncCounts(SyncResult, view)` |
 | ConflictResolver field list | `catalogConflictFieldsForEntity(SyncResult, …)` via `load*ConflictFromSyncResult` (`skipRefresh` on open) |
 | Product editor chrome | Conflict signals derived from the same leaves (no per-open Shopify inspect) |

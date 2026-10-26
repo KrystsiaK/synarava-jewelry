@@ -91,30 +91,20 @@ function leavesForResource(
   return slice(result, { entityType: resourceType, entityId: resourceId });
 }
 
-/**
- * Number of DISTINCT items (products / collections / pages / settings) that
- * have at least one open conflict leaf (commerce, translation, or presence).
- * Menu badge, list banner, header chip, and top-bar section counts use this.
- */
-export function countConflictedItems(
-  result: SyncResult,
-  resourceType?: SyncResourceType,
-): number {
-  const ids = new Set<string>();
-  for (const leaf of result.leaves) {
-    if (resourceType != null && leaf.resourceType !== resourceType) continue;
-    ids.add(`${leaf.resourceType}:${leaf.resourceId}`);
-  }
-  return ids.size;
+/** Leaf tally for one resource type (or the whole result). */
+function leafCount(result: SyncResult, resourceType?: SyncResourceType): number {
+  if (resourceType == null) return result.leaves.length;
+  return slice(result, { entityType: resourceType }).length;
 }
 
+/** Nav badges = leaf conflicts per section (not distinct entities). */
 function countNav(result: SyncResult): SyncNavCounts {
   return {
-    products: countConflictedItems(result, "PRODUCT"),
-    collections: countConflictedItems(result, "COLLECTION"),
-    pages: countConflictedItems(result, "PAGE"),
-    settings: countConflictedItems(result, "STOREFRONT_COPY"),
-    total: countConflictedItems(result),
+    products: leafCount(result, "PRODUCT"),
+    collections: leafCount(result, "COLLECTION"),
+    pages: leafCount(result, "PAGE"),
+    settings: leafCount(result, "STOREFRONT_COPY"),
+    total: leafCount(result),
   };
 }
 

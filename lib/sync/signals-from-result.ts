@@ -9,7 +9,7 @@ import type {
   CatalogConflictSignals,
 } from "@/lib/shopify/catalog-conflict-signals";
 
-import { countConflictedItems, selectSyncCounts } from "./select";
+import { selectSyncCounts, slice } from "./select";
 import type { SyncLeaf, SyncResourceType, SyncResult } from "./types";
 
 function localeSignal(
@@ -28,8 +28,8 @@ function localeSignal(
 
 /**
  * Build CatalogConflictSignals from SyncResult for one root entity type.
- * totalCount = countConflictedItems (same definition as nav section counts).
- * Per-item leafCount still comes from selectSyncCounts(listChip).
+ * totalCount = leaf conflicts for the type (same as nav section via selectSyncCounts).
+ * Per-entity leafCount comes from selectSyncCounts(listChip).
  */
 export function catalogConflictSignalsFromSyncResult(
   result: SyncResult,
@@ -95,7 +95,7 @@ export function catalogConflictSignalsFromSyncResult(
     };
   }
 
-  const totalCount = countConflictedItems(result, rootEntityType);
+  const totalCount = slice(result, { entityType: rootEntityType }).length;
 
   return {
     state: result.state,

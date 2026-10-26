@@ -269,7 +269,10 @@ export function ManualConflictWorkspaceShell({
           signalRefresh.onSignalsChange({
             ...signalRefresh.sourceSignals,
             products: nextProducts,
-            totalCount: Object.keys(nextProducts).length,
+            totalCount: Object.values(nextProducts).reduce(
+              (sum, signal) => sum + Math.max(0, signal.leafCount ?? 0),
+              0,
+            ),
           });
         }
       }}

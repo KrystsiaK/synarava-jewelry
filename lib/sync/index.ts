@@ -13,7 +13,6 @@ export {
   SYNC_BASE_NODE,
   SYNC_DEFAULT_LOCALE,
   conflictAddress,
-  countConflictedItems,
   leafTreeNode,
   selectSyncCounts,
   selectSyncLocaleCodes,
