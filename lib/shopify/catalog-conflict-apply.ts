@@ -3,6 +3,21 @@ import "server-only";
 import { db } from "@/lib/db";
 
 import {
+  isSelectableCommerceField,
+  MAX_CONFLICT_APPLY_ENTRIES,
+  PRODUCT_PRESENCE_UNSUPPORTED,
+  resolveConflictPreviewScope,
+  staleResult as sharedStaleResult,
+  summarizeApplyOutcome,
+  unsupportedDirectionReason as sharedUnsupportedDirectionReason,
+  willClear,
+  type ConflictApplyEntryInputBase,
+  type ConflictApplyEntryResultBase,
+  type ConflictApplyOutcomeBase,
+  type ConflictPreviewBase,
+} from "@/lib/sync/conflicts/apply-shared";
+
+import {
   isAdoptShopifyConflictField,
   listConflictedProductIds,
   loadProductConflictFromSyncResult,
@@ -81,10 +96,6 @@ export async function assertWholeRecordFingerprintsFresh(input: {
 // product with many conflicting fields still contributes all of them; this
 // only bounds how many *products* a single bulk operation touches.
 const MAX_BULK_PRODUCTS = 50;
-// Hard ceiling on how many field-level entries one applyCatalogConflictResolution
-// call will attempt, regardless of scope shape (bulk, product, or hand-picked
-// manual selections) — a defensive bound on request size, not a tuned value.
-const MAX_APPLY_ENTRIES = 200;
 
 // Most commerce fields still have no safe scoped write: pushProductToShopify
 // and applyShopifyProductToSynarava are whole-product — a forced push/pull rewrites
@@ -104,8 +115,12 @@ function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
 }
 
-function isSelectableCommerceField(field: CatalogConflictField): boolean {
-  return isAdoptShopifyConflictField(field) || isScopedCommerceField(field);
+function isProductSelectableCommerceField(field: CatalogConflictField): boolean {
+  return isSelectableCommerceField(field, isScopedCommerceField);
+}
+
+function unsupportedDirectionReason(field: CatalogConflictField): string {
+  return sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED);
 }
 
 export type CatalogConflictApplyScope =
@@ -128,36 +143,7 @@ export type ExcludedCatalogConflictEntry = {
   reason: string;
 };
 
-export type CatalogConflictPreview = {
-  entries: ResolvedCatalogConflictEntry[];
-  excluded: ExcludedCatalogConflictEntry[];
-  /** True when a BULK scope had more conflicted products than MAX_BULK_PRODUCTS and was cut off. */
-  truncated: boolean;
-};
-
-function isEmptyValue(value: string): boolean {
-  const trimmed = value.trim();
-  return trimmed === "" || trimmed === "—";
-}
-
-function willClear(field: CatalogConflictField, direction: CatalogConflictDirection): boolean {
-  const [source, destination] = direction === "SHOPIFY_TO_SYNARAVA"
-    ? [field.shopifyValue, field.synaravaValue]
-    : [field.synaravaValue, field.shopifyValue];
-  return isEmptyValue(source) && !isEmptyValue(destination);
-}
-
-function unsupportedDirectionReason(field: CatalogConflictField): string {
-  if (field.origin === "PRESENCE") {
-    return field.presenceDifference?.kind === "SHOPIFY_ONLY"
-      ? "This product only exists in Shopify. Pull it first, or run the Shopify → Synarava bulk action."
-      : "This product only exists in Synarava. Push it first, or run the Synarava → Shopify bulk action.";
-  }
-  if (isAdoptShopifyConflictField(field)) {
-    return "Synarava has no commerce window yet. Adopt Shopify first (Shopify → Synarava).";
-  }
-  return field.blockedReason ?? "This direction isn't supported for this field.";
-}
+export type CatalogConflictPreview = ConflictPreviewBase<ResolvedCatalogConflictEntry, ExcludedCatalogConflictEntry>;
 
 /**
  * Resolves a scope into the concrete fields it would touch — the same
@@ -173,90 +159,55 @@ export async function previewCatalogConflictResolution(
   options?: { requestedBy?: string },
 ): Promise<CatalogConflictPreview> {
   const requestedBy = options?.requestedBy ?? "system";
-  const entries: ResolvedCatalogConflictEntry[] = [];
-  const excluded: ExcludedCatalogConflictEntry[] = [];
-  let truncated = false;
+  const normalized =
+    scope.kind === "BULK" ? scope
+    : scope.kind === "PRODUCT" ? { kind: "ENTITY" as const, entityId: scope.productId, direction: scope.direction }
+    : {
+        kind: "MANUAL" as const,
+        selections: scope.selections.map((selection) => ({
+          entityId: selection.productId,
+          fieldKey: selection.fieldKey,
+          direction: selection.direction,
+        })),
+      };
 
-  async function resolveProductDirection(productId: string, direction: CatalogConflictDirection, onlyFieldKeys?: Set<string>) {
-    const conflict = await loadProductConflictForApply(productId, requestedBy);
-    for (const field of conflict.fields) {
-      if (onlyFieldKeys && !onlyFieldKeys.has(field.fieldKey)) continue;
-      if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
-        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: COMMERCE_UNSUPPORTED_REASON });
-        continue;
+  return resolveConflictPreviewScope({
+    maxBulk: MAX_BULK_PRODUCTS,
+    listConflictedIds: listConflictedProductIds,
+    loadConflict: (productId) => loadProductConflictForApply(productId, requestedBy),
+    scope: normalized,
+    classifyField(field, direction) {
+      if (field.origin === "COMMERCE" && !isProductSelectableCommerceField(field)) {
+        return { kind: "exclude", reason: COMMERCE_UNSUPPORTED_REASON };
       }
       if (!field.allowedDirections.includes(direction)) {
-        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: unsupportedDirectionReason(field) });
-        continue;
+        return { kind: "exclude", reason: unsupportedDirectionReason(field) };
       }
       if (field.blockedReason) {
-        excluded.push({ productId, fieldKey: field.fieldKey, label: field.label, reason: field.blockedReason });
-        continue;
+        return { kind: "exclude", reason: field.blockedReason };
       }
-      entries.push({ productId, direction, field, willClearNonEmptyValue: willClear(field, direction) });
-    }
-  }
-
-  if (scope.kind === "BULK") {
-    const allProductIds = await listConflictedProductIds();
-    const productIds = allProductIds.slice(0, MAX_BULK_PRODUCTS);
-    truncated = allProductIds.length > productIds.length;
-    for (const productId of productIds) await resolveProductDirection(productId, scope.direction);
-  } else if (scope.kind === "PRODUCT") {
-    await resolveProductDirection(scope.productId, scope.direction);
-  } else {
-    const selectionsByProduct = new Map<string, Array<{ fieldKey: string; direction: CatalogConflictDirection }>>();
-    for (const selection of scope.selections) {
-      const list = selectionsByProduct.get(selection.productId) ?? [];
-      list.push(selection);
-      selectionsByProduct.set(selection.productId, list);
-    }
-    for (const [productId, selections] of selectionsByProduct) {
-      const conflict = await loadProductConflictForApply(productId, requestedBy);
-      const currentFieldKeys = new Set(conflict.fields.map((field) => field.fieldKey));
-      for (const selection of selections) {
-        if (!currentFieldKeys.has(selection.fieldKey)) {
-          excluded.push({ productId, fieldKey: selection.fieldKey, label: selection.fieldKey, reason: "This field is no longer conflicting." });
-        }
-      }
-      const byDirection = new Map<CatalogConflictDirection, Set<string>>();
-      for (const selection of selections) {
-        const set = byDirection.get(selection.direction) ?? new Set<string>();
-        set.add(selection.fieldKey);
-        byDirection.set(selection.direction, set);
-      }
-      for (const [direction, fieldKeys] of byDirection) await resolveProductDirection(productId, direction, fieldKeys);
-    }
-  }
-
-  return { entries: entries.slice(0, MAX_APPLY_ENTRIES), excluded, truncated: truncated || entries.length > MAX_APPLY_ENTRIES };
+      return { kind: "include", willClearNonEmptyValue: willClear(field, direction) };
+    },
+    toEntry: (productId, direction, field, willClearNonEmptyValue) => ({
+      productId, direction, field, willClearNonEmptyValue,
+    }),
+    toExcluded: (productId, fieldKey, label, reason) => ({ productId, fieldKey, label, reason }),
+  });
 }
 
-export type CatalogConflictApplyEntryInput = {
+export type CatalogConflictApplyEntryInput = ConflictApplyEntryInputBase & {
   productId: string;
-  fieldKey: string;
-  direction: CatalogConflictDirection;
-  expectedLocalFingerprint: string;
-  expectedShopifyFingerprint: string;
 };
 
-export type CatalogConflictApplyEntryResult = {
+export type CatalogConflictApplyEntryResult = ConflictApplyEntryResultBase & {
   productId: string;
-  fieldKey: string;
-  ok: boolean;
-  reason?: "STALE" | "NEEDS_CLEAR_CONFIRMATION" | "WRITE_FAILED" | "UNSUPPORTED";
-  message: string;
   localProductId?: string;
 };
 
-export type CatalogConflictApplyOutcome = {
-  results: CatalogConflictApplyEntryResult[];
-  appliedCount: number;
-  failedCount: number;
-};
+export type CatalogConflictApplyOutcome = ConflictApplyOutcomeBase<CatalogConflictApplyEntryResult>;
 
 function staleResult(entry: CatalogConflictApplyEntryInput, message: string): CatalogConflictApplyEntryResult {
-  return { productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "STALE", message };
+  return sharedStaleResult(entry, "productId", message);
 }
 
 /**
@@ -285,8 +236,8 @@ export async function applyCatalogConflictResolution({
   acknowledgeClears: boolean;
   actorUsername: string;
 }): Promise<CatalogConflictApplyOutcome> {
-  if (entries.length > MAX_APPLY_ENTRIES) {
-    throw new Error(`Too many changes in one batch (${entries.length}); max is ${MAX_APPLY_ENTRIES}.`);
+  if (entries.length > MAX_CONFLICT_APPLY_ENTRIES) {
+    throw new Error(`Too many changes in one batch (${entries.length}); max is ${MAX_CONFLICT_APPLY_ENTRIES}.`);
   }
 
   const results: CatalogConflictApplyEntryResult[] = [];
@@ -333,7 +284,7 @@ export async function applyCatalogConflictResolution({
       results.push(staleResult(entry, "Synarava or Shopify changed since this was reviewed. Refresh and try again."));
       continue;
     }
-    if (field.origin === "COMMERCE" && !isSelectableCommerceField(field)) {
+    if (field.origin === "COMMERCE" && !isProductSelectableCommerceField(field)) {
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
@@ -460,6 +411,5 @@ export async function applyCatalogConflictResolution({
     }
   }
 
-  const failedCount = results.filter((result) => !result.ok).length;
-  return { results, appliedCount: results.length - failedCount, failedCount };
+  return summarizeApplyOutcome(results);
 }
