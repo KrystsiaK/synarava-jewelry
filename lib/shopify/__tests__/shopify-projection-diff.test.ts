@@ -83,8 +83,34 @@ describe("canonicalizeShopifyProjection", () => {
     });
     expect(canonical).toEqual({
       status: "ACTIVE",
-      variants: [{ id: "v1", price: "12.00", taxable: false }],
+      variants: [{ id: "v1", price: 12, taxable: false }],
     });
+  });
+
+  it("equates money decimals, blank strings, and weight units", () => {
+    expect(diffShopifyProjections(
+      { variants: [{ id: "v1", price: "5.0", compareAtPrice: "10.00", inventoryItem: {
+        unitCost: { amount: "5.00", currencyCode: "EUR" },
+        measurement: { weight: { value: 1, unit: "KILOGRAMS" } },
+      } }] },
+      { variants: [{ id: "v1", price: "5.00", compareAtPrice: "10.0", inventoryItem: {
+        unitCost: { amount: "5.0", currencyCode: "EUR" },
+        measurement: { weight: { value: 1000, unit: "GRAMS" } },
+      } }] },
+    )).toEqual([]);
+  });
+
+  it("equates null / undefined / whitespace and never emits identical displayValues", () => {
+    expect(diffShopifyProjections(
+      { vendor: "", productType: "  ", seo: { title: null }, barcode: undefined },
+      { vendor: null, productType: null, seo: { title: "" }, barcode: null },
+    )).toEqual([]);
+    const diffs = diffShopifyProjections(
+      { title: "A", variants: [{ id: "v1", price: "1.0" }] },
+      { title: "B", variants: [{ id: "v1", price: "1.00" }] },
+    );
+    expect(diffs.every((d) => d.local !== d.shopify)).toBe(true);
+    expect(diffs.map((d) => d.path)).toEqual(["title"]);
   });
 });
 
@@ -127,8 +153,8 @@ describe("diffShopifyProjections", () => {
       {
         path: "variants[0].price",
         field: "Price",
-        local: "10.00",
-        shopify: "12.00",
+        local: "10",
+        shopify: "12",
       },
     ]);
   });
