@@ -522,9 +522,11 @@ describe("applyCatalogConflictResolution", () => {
     expect(mocks.applyCommerceField).toHaveBeenCalledWith({
       productId: "product-1",
       label: "Vendor",
+      fieldKey: field.fieldKey,
       direction: "SYNARAVA_TO_SHOPIFY",
       expectedLocalFingerprint: field.localFingerprint,
       expectedShopifyFingerprint: field.shopifyFingerprint,
+      requestedBy: "admin",
     });
     expect(outcome).toMatchObject({ appliedCount: 1, failedCount: 0 });
     expect(outcome.results[0]).toMatchObject({ ok: true });

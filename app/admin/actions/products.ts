@@ -1687,9 +1687,8 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
     where: { id: productId },
     data: {
       ...state,
-      syncStatus: before?.shopifyProductId
-        ? before.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING"
-        : "UNLINKED",
+      // Status change is push intent — conflict inventory is SyncResult leaves.
+      syncStatus: before?.shopifyProductId ? "PENDING" : "UNLINKED",
       syncError: null,
     },
     select: { id: true, slug: true, status: true },
