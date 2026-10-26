@@ -156,7 +156,6 @@ function commerceLeaf(
 ): SyncLeaf {
   const supported = isScopedCommerceFieldLabel(diff.field);
   const keySource = diff.path?.trim() || diff.field;
-  // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
     id: `${resourceType}:${resourceId}:commerce:${slugFieldKey(keySource)}`,
     resourceType,
@@ -179,6 +178,33 @@ function commerceLeaf(
     targetKind: commerceTargetKind(diff.field),
     localFingerprint: leafFingerprint(diff.local),
     shopifyFingerprint: leafFingerprint(diff.shopify),
+    node: "base",
+  };
+}
+
+/** Non-scoped product diffs → one whole-record pull/push leaf. */
+function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjectionDiff[]): SyncLeaf {
+  const sorted = [...diffs].toSorted((a, b) => a.field.localeCompare(b.field) || a.path.localeCompare(b.path));
+  const syn = sorted.map((d) => `${d.field}: ${d.local}`).join("\n");
+  const shop = sorted.map((d) => `${d.field}: ${d.shopify}`).join("\n");
+  return {
+    id: `PRODUCT:${resourceId}:commerce:whole-item`,
+    resourceType: "PRODUCT",
+    resourceId,
+    kind: "commerce",
+    locale: null,
+    fieldKey: "commerce:whole-item",
+    label: `Other product data (${sorted.length} fields)`,
+    synaravaValue: syn,
+    shopifyValue: shop,
+    allowedDirections: [],
+    blockedReason: COMMERCE_UNSUPPORTED_REASON,
+    sourceId: null,
+    path: null,
+    presenceSide: null,
+    targetKind: "NATIVE",
+    localFingerprint: leafFingerprint(syn),
+    shopifyFingerprint: leafFingerprint(shop),
     node: "base",
   };
 }
@@ -231,9 +257,16 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
     }
     if (window.ourWindow == null) continue;
     const diffs = diffShopifyProjections(window.ourWindow, window.shopifySnapshot);
-    for (const diff of diffs) {
-      leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
+    if (window.resourceType !== "PRODUCT") {
+      for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
+      continue;
     }
+    const unscoped: ShopifyProjectionDiff[] = [];
+    for (const diff of diffs) {
+      if (isScopedCommerceFieldLabel(diff.field)) leaves.push(commerceLeaf("PRODUCT", window.resourceId, diff));
+      else unscoped.push(diff);
+    }
+    if (unscoped.length > 0) leaves.push(wholeItemCommerceLeaf(window.resourceId, unscoped));
   }
   return { leaves, uncheckedCount };
 }

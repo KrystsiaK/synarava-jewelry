@@ -59,6 +59,7 @@ describe("conflict leaf badges — menu ≡ banner ≡ entity ≡ table", () => 
 
     const base = slice(result, { entityType: "PRODUCT", entityId: "p1", node: "base" }).length;
     const pt = slice(result, { entityType: "PRODUCT", entityId: "p1", node: "pt" }).length;
+    // Invariant: entity leaf count = base + sum(locales). Whole-item group is one base leaf.
     expect(base).toBe(2);
     expect(pt).toBe(1);
     expect(base + pt).toBe(3);

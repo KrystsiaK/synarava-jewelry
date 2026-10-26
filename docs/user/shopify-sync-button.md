@@ -85,6 +85,13 @@ When the count is greater than zero, open the list from **Show conflicts** and
 resolve with preview → Apply (Apply may refresh that one product/collection for
 safety before writing). Collections use the same pattern — see
 [Sync collections with Shopify](/admin/help/sync-collections).
+
+Product commerce fields that cannot be written field-by-field (cost, weight,
+barcode, tags, status, SEO, category, publications, collections, metafields,
+description, options, and similar) appear as **one** conflict card —
+**Other product data (N fields)** — not N separate rows. Choosing a side on that
+card runs the existing whole-item Pull/Push for the product. Scoped fields such
+as Price stay their own cards and can be selected independently.
 :::
 
 :::note

@@ -202,13 +202,75 @@ describe("ConflictResolver", () => {
     expect(confirm).toBeEnabled();
   });
 
+  it("selects whole-item group and scoped Price independently", async () => {
+    const price: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:variants-0-price",
+      label: "Price",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "10",
+      shopifyValue: "12",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+      blockedReason: null,
+      sourceId: null,
+    };
+    const group: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:whole-item",
+      label: "Other product data (2 fields)",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "Barcode: 1\nCost: 1.00",
+      shopifyValue: "Barcode: 9\nCost: 9.00",
+      allowedDirections: [],
+      blockedReason: "No safe field-by-field write yet",
+      sourceId: null,
+    };
+    const applyWholeRecord = vi.fn(async () => ({ ok: true, success: "Whole item synced." }));
+    const adapter = createAdapter({
+      supportsWholeRecord: true,
+      applyWholeRecord,
+      loadEntityFields: vi.fn(async () => ({ fields: [price, group] })),
+      previewSelections: vi.fn(async () => ({ preview: { truncated: false, excluded: [], entries: [] } })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "Lava Ring" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+        onApplied={vi.fn()}
+      />,
+    );
+    expect(await screen.findByText("Price")).toBeInTheDocument();
+    expect(screen.getByText("Other product data (2 fields)")).toBeInTheDocument();
+
+    const priceSection = screen.getByText("Price").closest("section") as HTMLElement;
+    fireEvent.click(within(priceSection).getByRole("button", { name: /Shopify/i }));
+    expect(screen.getByRole("button", { name: "Apply (1)" })).toBeEnabled();
+
+    const groupSection = screen.getByText("Other product data (2 fields)").closest("section") as HTMLElement;
+    fireEvent.click(within(groupSection).getByRole("button", { name: /Shopify/i }));
+    expect(screen.getByRole("button", { name: "Apply (2)" })).toBeEnabled();
+
+    // Deselect Price — group stays selected alone.
+    fireEvent.click(within(priceSection).getByRole("button", { name: /Shopify/i }));
+    expect(screen.getByRole("button", { name: "Apply (1)" })).toBeEnabled();
+  });
+
   it("makes blocked commerce fields selectable when whole-record is supported", async () => {
     const blocked: CatalogConflictField = {
       ...field,
-      fieldKey: "commerce:status",
-      label: "Status",
+      fieldKey: "commerce:whole-item",
+      label: "Other product data (1 fields)",
       scope: { kind: "SHARED" },
       origin: "COMMERCE",
+      synaravaValue: "Status: ACTIVE",
+      shopifyValue: "Status: DRAFT",
       allowedDirections: [],
       blockedReason: "No safe field-by-field write yet",
       sourceId: null,
@@ -232,10 +294,10 @@ describe("ConflictResolver", () => {
         onApplied={vi.fn()}
       />,
     );
-    expect(await screen.findByText("Status")).toBeInTheDocument();
-    expect(screen.getByText(/Whole-item sync/)).toBeInTheDocument();
-    const statusSection = screen.getByText("Status").closest("section") as HTMLElement;
-    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    expect(await screen.findByText("Other product data (1 fields)")).toBeInTheDocument();
+    expect(screen.getByText(/whole product commerce record/i)).toBeInTheDocument();
+    const groupSection = screen.getByText("Other product data (1 fields)").closest("section") as HTMLElement;
+    fireEvent.click(within(groupSection).getByRole("button", { name: /Shopify/i }));
     fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
 
     const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
@@ -248,7 +310,7 @@ describe("ConflictResolver", () => {
         "SHOPIFY_TO_SYNARAVA",
         expect.arrayContaining([
           expect.objectContaining({
-            fieldKey: "commerce:status",
+            fieldKey: "commerce:whole-item",
             expectedLocalFingerprint: blocked.localFingerprint,
             expectedShopifyFingerprint: blocked.shopifyFingerprint,
           }),
@@ -272,8 +334,8 @@ describe("ConflictResolver", () => {
           field,
           {
             ...field,
-            fieldKey: "commerce:status",
-            label: "Status",
+            fieldKey: "commerce:whole-item",
+            label: "Other product data (1 fields)",
             origin: "COMMERCE" as const,
             allowedDirections: [] as CatalogConflictField["allowedDirections"],
             blockedReason: "No safe field-by-field write yet",
@@ -317,8 +379,8 @@ describe("ConflictResolver", () => {
     expect(await screen.findByText("Title")).toBeInTheDocument();
     const titleSection = screen.getByText("Title").closest("section") as HTMLElement;
     fireEvent.click(within(titleSection).getByRole("button", { name: /Shopify/i }));
-    const statusSection = screen.getByText("Status").closest("section") as HTMLElement;
-    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    const groupSection = screen.getByText("Other product data (1 fields)").closest("section") as HTMLElement;
+    fireEvent.click(within(groupSection).getByRole("button", { name: /Shopify/i }));
     fireEvent.click(screen.getByRole("button", { name: "Apply (2)" }));
     const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
     fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
@@ -333,8 +395,8 @@ describe("ConflictResolver", () => {
   it("keeps blocked commerce non-selectable without whole-record support", async () => {
     const blocked: CatalogConflictField = {
       ...field,
-      fieldKey: "commerce:status",
-      label: "Status",
+      fieldKey: "commerce:whole-item",
+      label: "Other product data (1 fields)",
       scope: { kind: "SHARED" },
       origin: "COMMERCE",
       allowedDirections: [],
@@ -356,7 +418,7 @@ describe("ConflictResolver", () => {
         onToast={vi.fn()}
       />,
     );
-    expect(await screen.findByText("Status")).toBeInTheDocument();
+    expect(await screen.findByText("Other product data (1 fields)")).toBeInTheDocument();
     expect(screen.getByText(/Cannot choose here/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Apply (0)" })).toBeDisabled();
   });

@@ -516,7 +516,6 @@ export function EditProductForm({
           {currentProduct.shopifyProductId ? (
             <ProductConflictCompareBanner
               signal={productConflict}
-              localeTabs={localeTabs.map((tab) => ({ code: tab.code, label: tab.label }))}
               onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
             />
           ) : null}
