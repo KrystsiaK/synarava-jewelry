@@ -17,6 +17,7 @@ import {
   writeThroughLocalCollectionToProjection,
 } from "./collection-commerce-projection";
 import { refreshShopifyCollectionState } from "./collection-presence-server";
+import { resolveCollectionWorkingSnapshot } from "./resolve-working-snapshot";
 
 export { isScopedCollectionCommerceFieldLabel, SCOPED_COLLECTION_COMMERCE_FIELD_LABELS };
 
@@ -232,15 +233,25 @@ export async function applyCollectionCommerceField({
   if (!collection.shopifyCollectionId) {
     return { ok: false, reason: "UNSUPPORTED", message: "This collection is not linked to Shopify." };
   }
-  if (collection.workingSnapshot == null) {
+  // Same resolver as the compare (read-synarava-state): a collection that has columns but no stored
+  // window is still comparable, so it must be applicable too (the resolver showed this conflict).
+  const working = resolveCollectionWorkingSnapshot({
+    workingSnapshot: collection.workingSnapshot,
+    shopifySnapshot: collection.shopifySnapshot,
+    shopifyCollectionId: collection.shopifyCollectionId,
+    name: collection.name,
+    slug: collection.slug,
+    description: collection.description,
+    seoTitle: collection.seoTitle,
+    seoDescription: collection.seoDescription,
+  });
+  if (working == null) {
     return {
       ok: false,
       reason: "UNSUPPORTED",
       message: "Synarava has no commerce window yet. Adopt Shopify first.",
     };
   }
-
-  const working = collection.workingSnapshot;
   const shopify = collection.shopifySnapshot
     ?? buildCollectionWindowFromColumns({
       shopifyCollectionId: collection.shopifyCollectionId,
