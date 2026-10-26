@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -22,6 +22,7 @@ import {
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import type { CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-view";
 import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-adapter";
 import {
@@ -53,7 +54,9 @@ export function CollectionsCms({
   collections: AdminCollection[];
   initialConflictSignals: CatalogConflictSignals;
 }) {
-  const [items, setItems] = useState(() => normalizeCollections(collections));
+  // Follow server data: after router.refresh() (check / Apply / Save) the list must show fresh values.
+  const serverItems = useMemo(() => normalizeCollections(collections), [collections]);
+  const [items, setItems] = useSyncedState(serverItems);
   const [rowAction, setRowAction] = useState<CollectionRowAction | null>(null);
   const [editingCollection, setEditingCollection] = useState<AdminCollection | null>(null);
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
@@ -63,7 +66,7 @@ export function CollectionsCms({
   const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
-  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictCollectionId(null);
