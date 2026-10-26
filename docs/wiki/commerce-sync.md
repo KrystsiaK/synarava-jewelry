@@ -82,7 +82,7 @@ Every conflict surface shares **one** `SyncResult` from `lib/sync` (leaves are t
 | ConflictResolver field list | `catalogConflictFieldsForEntity(SyncResult, …)` via `load*ConflictFromSyncResult` (`skipRefresh` on open) |
 | Product editor chrome | Conflict signals derived from the same leaves (no per-open Shopify inspect) |
 
-Commerce axis: full Shopify-shaped windows (derived OUR vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
+Commerce axis: full Shopify-shaped windows (derived OUR vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Compare sees only what the mapper keeps (`snapshotForShopifyProduct` / collection adopt + shared mirror helpers). Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
 
 Translation axis: two-way diverge rows only. Default-locale EN translation leaves that mirror a commerce leaf for the same product/collection field are dropped in `compareSyncState` (narrow map); PAGE and non-commerce editorial stay as translation leaves. Do **not** drive the product banner from raw `getLatestReconcileDifferences()`, `Product.syncStatus === "CONFLICT"`, or a resurrected `get*CatalogConflict` dual compare.
 

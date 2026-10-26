@@ -7,6 +7,10 @@ import {
   plainDescriptionToHtml,
   stripCollectionHtml,
 } from "@/lib/shopify/collection-commerce-projection";
+import {
+  mirrorInventoryItem,
+  mirrorProductCollections,
+} from "@/lib/shopify/commerce-mirror-shape";
 import { withMetafieldTranslations } from "@/lib/shopify/product-metafields-shared";
 import { canonicalizeShopifyProjection } from "@/lib/shopify/shopify-projection-diff";
 import {
@@ -67,42 +71,25 @@ export type DeriveProductInput = {
   preferredDescriptionHtml?: string | null;
 };
 
-function mergeVariantInventory(
-  variant: DeriveProductVariantInput,
-  extras: ProductExtras,
-): Record<string, unknown> {
-  const inventory: Record<string, unknown> = {
-    id: variant.shopifyInventoryItemId ?? null,
-    requiresShipping: variant.requiresShipping ?? true,
-    tracked: variant.tracked ?? true,
-  };
-  if (variant.costCents != null) {
-    inventory.unitCost = {
-      amount: centsToShopifyAmount(variant.costCents),
-      currencyCode: "EUR",
-    };
-  }
-  if (variant.weightGrams != null && Number(variant.weightGrams) > 0) {
-    inventory.measurement = {
-      weight: { value: Number(variant.weightGrams), unit: "GRAMS" },
-    };
-  }
-
-  const key =
-    (variant.shopifyVariantId && variant.shopifyVariantId.trim())
+function mergeVariantInventory(variant: DeriveProductVariantInput, extras: ProductExtras) {
+  const key = (variant.shopifyVariantId?.trim())
     || (variant.sku.trim() ? `sku:${variant.sku.trim()}` : null);
   const orphan: VariantInventoryExtras | undefined = key
     ? extras.variantInventory?.[key]
     : undefined;
-  if (orphan) {
-    if ("countryCodeOfOrigin" in orphan) {
-      inventory.countryCodeOfOrigin = orphan.countryCodeOfOrigin ?? null;
-    }
-    if ("harmonizedSystemCode" in orphan) {
-      inventory.harmonizedSystemCode = orphan.harmonizedSystemCode ?? null;
-    }
-  }
-  return inventory;
+  const grams = variant.weightGrams != null ? Number(variant.weightGrams) : null;
+  return mirrorInventoryItem({
+    id: variant.shopifyInventoryItemId ?? null,
+    requiresShipping: variant.requiresShipping ?? true,
+    tracked: variant.tracked ?? true,
+    ...(orphan && "countryCodeOfOrigin" in orphan
+      ? { countryCodeOfOrigin: orphan.countryCodeOfOrigin ?? null } : {}),
+    ...(orphan && "harmonizedSystemCode" in orphan
+      ? { harmonizedSystemCode: orphan.harmonizedSystemCode ?? null } : {}),
+    unitCost: variant.costCents != null
+      ? { amount: centsToShopifyAmount(variant.costCents), currencyCode: "EUR" } : null,
+    measurement: grams != null && grams > 0 ? { weight: { value: grams, unit: "GRAMS" } } : null,
+  }) ?? {};
 }
 
 function descriptionHtmlForProduct(input: DeriveProductInput): string {
@@ -165,7 +152,7 @@ export function deriveProductWindow(input: DeriveProductInput): unknown {
     media: extras.media ?? [],
     options: extras.options ?? [],
     metafields: extras.metafields ?? [],
-    collections: input.collections ?? [],
+    collections: mirrorProductCollections(input.collections ?? []),
     publications: extras.publications ?? [],
     totalInventory,
     variants,

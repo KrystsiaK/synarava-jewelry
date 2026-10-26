@@ -77,6 +77,11 @@ import {
 } from "@/lib/shopify/translations";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import {
+  mirrorInventoryItem,
+  mirrorProductCollections,
+  weightInGrams,
+} from "@/lib/shopify/commerce-mirror-shape";
+import {
   canonicalizeShopifyProjection,
   diffShopifyProjections,
   getProjectionPath,
@@ -332,17 +337,6 @@ function metafieldType(valueType: "TEXT" | "NUMBER" | "BOOLEAN") {
   return "single_line_text_field";
 }
 
-function weightInGrams(weight: NonNullable<NonNullable<ShopifyProduct["variants"]["nodes"][number]["inventoryItem"]>["measurement"]>["weight"]) {
-  if (!weight || weight.value <= 0) return null;
-  const multiplier = {
-    GRAMS: 1,
-    KILOGRAMS: 1000,
-    OUNCES: 28.349523125,
-    POUNDS: 453.59237,
-  }[weight.unit];
-  return Math.round(weight.value * multiplier * 10000) / 10000;
-}
-
 /** Shopify-shaped projection; noise stripped before persist and before compare. */
 export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return canonicalizeShopifyProjection({
@@ -359,7 +353,7 @@ export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJ
     media: remote.media.nodes,
     options: remote.options,
     metafields: remote.metafields.nodes,
-    collections: remote.collections.nodes,
+    collections: mirrorProductCollections(remote.collections.nodes),
     publications: remote.resourcePublicationsV2.nodes,
     totalInventory: remote.totalInventory,
     variants: remote.variants.nodes.map((variant) => ({
@@ -373,7 +367,7 @@ export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJ
       inventoryQuantity: variant.inventoryQuantity,
       taxable: variant.taxable,
       selectedOptions: variant.selectedOptions,
-      inventoryItem: variant.inventoryItem,
+      inventoryItem: mirrorInventoryItem(variant.inventoryItem),
     })),
     updatedAt: remote.updatedAt,
   }) as Prisma.InputJsonValue;

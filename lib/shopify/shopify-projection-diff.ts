@@ -27,7 +27,14 @@ const TECHNICAL_KEYS = new Set([
   "__typename",
   // Local locale overlays for merchant text metafields — not part of Shopify product JSON.
   "metafieldTranslations",
+  "inventoryLevels",
 ]);
+
+const MONEY_PATH_RE = /(?:^|\.)(?:price|compareAtPrice|amount)$/;
+const INSTANT_PATH_RE = /(?:^|\.)(?:publishDate|publishedAt)$/;
+const WEIGHT_G: Record<string, number> = {
+  GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237,
+};
 
 const SHOPIFY_CDN_HOST_RE = /(^|\.)cdn\.shopify\.com$/i;
 
@@ -95,12 +102,37 @@ function metafieldsToIdentityMap(items: unknown[]): Record<string, unknown> {
  * Strip technical noise and normalize volatile values so equality is commerce-meaningful.
  */
 export function canonicalizeShopifyProjection(value: unknown, path = ""): unknown {
-  if (value == null) return /^seo\.(title|description)$/.test(path) ? "" : null;
+  if (value == null) return null;
   if (typeof value === "string") {
-    if (/^https?:\/\//i.test(value)) return normalizeShopifyCdnUrl(value);
-    return value;
+    const s = value.replace(/\r\n/g, "\n").normalize("NFC").trim();
+    if (!s) return null;
+    if (path === "status" && s === "UNLISTED") return "ACTIVE";
+    if (MONEY_PATH_RE.test(path)) { const n = Number(s); return Number.isFinite(n) ? n : s; }
+    if (INSTANT_PATH_RE.test(path)) {
+      const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
+    }
+    return /^https?:\/\//i.test(s) ? normalizeShopifyCdnUrl(s) : s;
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
+  if (isPlainObject(value) && path.endsWith("measurement.weight") && typeof value.unit === "string") {
+    const m = WEIGHT_G[value.unit]; const v = Number(value.value);
+    if (m != null && Number.isFinite(v) && v > 0) return { unit: "GRAMS", value: Math.round(v * m * 1e4) / 1e4 };
+  }
+  if (
+    isPlainObject(value) && typeof value.type === "string" && typeof value.value === "string"
+    && /(^|\.)metafields(\.|$)/.test(path)
+  ) {
+    const t = value.type; const raw = value.value; let parsed: unknown = raw;
+    if (t === "boolean") parsed = raw === "true";
+    else if (t.startsWith("number_")) { const n = Number(raw); parsed = Number.isFinite(n) ? n : raw; }
+    else if (t === "json" || t.startsWith("list.")) {
+      try {
+        const p: unknown = JSON.parse(raw);
+        parsed = t.startsWith("list.") && !Array.isArray(p) ? raw : p;
+      } catch { /* keep raw */ }
+    }
+    value = { ...value, value: parsed };
+  }
   if (Array.isArray(value)) {
     if (isMetafieldListPath(path)) {
       const rows = coerceMetafieldRows(value)
@@ -271,7 +303,7 @@ function walkDiff(
   path: string,
   out: ShopifyProjectionDiff[],
 ): void {
-  if (Object.is(local, shopify)) return;
+  if (Object.is(local, shopify) || local == null && shopify == null) return;
 
   const localIsObj = isPlainObject(local);
   const shopifyIsObj = isPlainObject(shopify);
@@ -360,7 +392,7 @@ export function diffShopifyProjections(
   const right = canonicalizeShopifyProjection(shopifyProjection);
   const differences: ShopifyProjectionDiff[] = [];
   walkDiff(left, right, "", differences);
-  return differences;
+  return differences.filter((d) => d.local !== d.shopify);
 }
 
 function parsePathSegments(path: string): Array<string | number> {
