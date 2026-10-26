@@ -11,12 +11,14 @@ import {
   SCOPED_COLLECTION_COMMERCE_FIELD_LABELS,
 } from "./catalog-conflict-policy";
 import {
-  buildCollectionWindowFromColumns,
   collectionCommerceInputFromWindow,
   diffCollectionCommerceWindows,
-  writeThroughLocalCollectionToProjection,
 } from "./collection-commerce-projection";
 import { refreshShopifyCollectionState } from "./collection-presence-server";
+import {
+  deriveCollectionWindow,
+  preferredHtmlFromShopifySnapshot,
+} from "@/lib/sync/derive-window";
 import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 
 export { isScopedCollectionCommerceFieldLabel, SCOPED_COLLECTION_COMMERCE_FIELD_LABELS };
@@ -120,19 +122,20 @@ async function writeToShopify(collectionId: string, label: string, value: string
     throw new ShopifyAdminError("This collection is not linked to Shopify.");
   }
 
-  const window = writeThroughLocalCollectionToProjection(
-    ourCollectionWindowFromRow(collection)
-      ?? buildCollectionWindowFromColumns({
-        shopifyCollectionId: collection.shopifyCollectionId,
-        name: collection.name,
-        slug: collection.slug,
-        description: collection.description,
-        seoTitle: collection.seoTitle,
-        seoDescription: collection.seoDescription,
-        shopifySnapshot: collection.shopifySnapshot,
-      }),
-    { id: collection.shopifyCollectionId, ...patchForLabel(label, value) },
-  );
+  const patch = patchForLabel(label, value);
+  const window = deriveCollectionWindow({
+    shopifyCollectionId: collection.shopifyCollectionId,
+    name: patch.title ?? collection.name,
+    slug: patch.handle ?? collection.slug,
+    description: patch.description !== undefined ? patch.description : collection.description,
+    seoTitle: patch.seoTitle !== undefined ? patch.seoTitle : collection.seoTitle,
+    seoDescription: patch.seoDescription !== undefined ? patch.seoDescription : collection.seoDescription,
+    extras: collection.extras,
+    preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(
+      collection.shopifySnapshot,
+      "descriptionHtml",
+    ),
+  });
   const input = collectionCommerceInputFromWindow(window);
   const result = await shopifyAdminRequest<{
     collectionUpdate: {
@@ -228,14 +231,7 @@ export async function applyCollectionCommerceField({
     };
   }
   const shopify = collection.shopifySnapshot
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-    });
+    ?? ourCollectionWindowFromRow(collection);
   const differences = diffCollectionCommerceWindows(working, shopify);
   const difference = differences.find((item) => item.field === label);
   if (!difference) {

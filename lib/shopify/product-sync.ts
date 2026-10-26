@@ -82,7 +82,6 @@ import {
   getProjectionPath,
   setProjectionPath,
   alignMetafieldResolvedValues,
-  writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
 import {
   ADOPT_SHOPIFY_FIELD_LABEL,
@@ -1305,25 +1304,12 @@ export async function refreshShopifyProductState(id: string, eventId?: string) {
   }
 
   const shopifySnapshot = await shopifySnapshotOnlyWrite(remote);
-  const synaravaWindow = ourProductWindowFromRow(existing)
-    ?? writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: existing.name,
-      handle: existing.slug,
-      vendor: existing.vendor,
-      productType: existing.productType,
-      variant: existing.variants[0]
-        ? {
-            shopifyVariantId: existing.variants[0].shopifyVariantId,
-            sku: existing.variants[0].sku,
-            priceCents: existing.variants[0].priceCents,
-            taxable: existing.variants[0].taxable,
-            inventoryQuantity: existing.variants[0].stockOnHand,
-          }
-        : { priceCents: existing.priceCents },
-    });
+  // ADR-0009: OUR window is derived only — never seed/write-through from Shopify.
+  const synaravaWindow = ourProductWindowFromRow(existing);
 
   // Compare is informational for the sync-event row / return value only.
-  const diverged = diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
+  const diverged = synaravaWindow == null
+    || diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
   const status = diverged ? "CONFLICT" as const : "SYNCED" as const;
 
   await db.product.update({

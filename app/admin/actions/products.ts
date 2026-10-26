@@ -31,6 +31,7 @@ import {
 } from "@/lib/products/shopify-product-specs";
 import {
   formDataHasMetafieldTranslationFields,
+  mergeCustomMetafieldsIntoList,
   mergeMetafieldTranslations,
   metafieldTranslationsFromSnapshot,
   metafieldTranslationTouchesFromForm,
@@ -47,7 +48,6 @@ import {
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
-import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
@@ -1271,13 +1271,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       const nextExtras: Record<string, unknown> = { ...extrasRecord };
       if (mediaPatch !== undefined) nextExtras.media = mediaPatch;
       if (customMetafields.length > 0) {
-        const seeded = writeThroughLocalCommerceToProjection(
-          { metafields: extrasRecord.metafields ?? shopifyRecord?.metafields ?? [] },
-          { customMetafields },
+        nextExtras.metafields = mergeCustomMetafieldsIntoList(
+          extrasRecord.metafields ?? shopifyRecord?.metafields ?? [],
+          customMetafields,
         );
-        if (seeded && typeof seeded === "object" && !Array.isArray(seeded) && "metafields" in seeded) {
-          nextExtras.metafields = (seeded as Record<string, unknown>).metafields;
-        }
       }
       if (metafieldTranslations) {
         nextExtras.metafieldTranslations = metafieldTranslations;

@@ -16,7 +16,6 @@ import {
   type ShopifyCollectionSource,
 } from "@/lib/shopify/collection-membership";
 import {
-  buildCollectionWindowFromColumns,
   collectionCommerceInputFromWindow,
   collectionWindowFromShopifyRemote,
   diffCollectionCommerceWindows,
@@ -154,16 +153,10 @@ async function pushLinkedCollectionUpdate(collection: {
   seoTitle: string | null;
   seoDescription: string | null;
 }) {
-  const window = ourCollectionWindowFromRow(collection)
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-      shopifySnapshot: collection.shopifySnapshot,
-    });
+  const window = ourCollectionWindowFromRow(collection);
+  if (window == null) {
+    throw new ShopifyAdminError("Synarava collection has no commerce window to push.");
+  }
   const input = collectionCommerceInputFromWindow(window);
   const result = await shopifyAdminRequest<{
     collectionUpdate: {
@@ -411,15 +404,10 @@ export async function pushCollectionToShopify(collectionId: string) {
     }
   }
 
-  const window = ourCollectionWindowFromRow(collection)
-    ?? buildCollectionWindowFromColumns({
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-      shopifySnapshot: collection.shopifySnapshot,
-    });
+  const window = ourCollectionWindowFromRow(collection);
+  if (window == null) {
+    throw new ShopifyAdminError("Synarava collection has no commerce window to create in Shopify.");
+  }
   const input = collectionCommerceInputFromWindow(window);
   const descriptionHtml = input.descriptionHtml || plainDescriptionToHtml(collection.description);
   const result = await shopifyAdminRequest<{

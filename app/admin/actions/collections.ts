@@ -20,7 +20,6 @@ import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
-import { writeThroughLocalCollectionToProjection } from "@/lib/shopify/collection-commerce-projection";
 import { validateCollectionInput, type CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import {
   createDraftToken,

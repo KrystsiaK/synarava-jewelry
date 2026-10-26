@@ -82,7 +82,7 @@ Every conflict surface shares **one** `SyncResult` from `lib/sync` (leaves are t
 | ConflictResolver field list | `catalogConflictFieldsForEntity(SyncResult, …)` via `load*ConflictFromSyncResult` (`skipRefresh` on open) |
 | Product editor chrome | Conflict signals derived from the same leaves (no per-open Shopify inspect) |
 
-Commerce axis: full Shopify-shaped windows (`workingSnapshot` vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
+Commerce axis: full Shopify-shaped windows (derived OUR vs `shopifySnapshot`), one normalize, deep-diff — **no** field allowlists. Synarava overlays (`metafieldTranslations`, …) are stripped in normalize and must not pollute compare.
 
 Translation axis: two-way diverge rows only. Default-locale EN translation leaves that mirror a commerce leaf for the same product/collection field are dropped in `compareSyncState` (narrow map); PAGE and non-commerce editorial stay as translation leaves. Do **not** drive the product banner from raw `getLatestReconcileDifferences()`, `Product.syncStatus === "CONFLICT"`, or a resurrected `get*CatalogConflict` dual compare.
 
@@ -93,17 +93,18 @@ Translation axis: two-way diverge rows only. Default-locale EN translation leave
 | Piece | Path |
 | --- | --- |
 | Waterfall / compare / select | `lib/sync/*` (`compareSyncState`, `selectSyncCounts`, `catalogConflictFieldsForEntity`) |
-| Projection / write-through / diff | `lib/shopify/local-commerce-projection.ts`, `shopify-projection-diff.ts` |
+| Derive OUR window | `lib/sync/derive-window.ts`, `lib/sync/our-window-from-row.ts`, `lib/sync/extras.ts` |
+| Normalize + deep-diff | `lib/shopify/shopify-projection-diff.ts` (`canonicalizeShopifyProjection`, `diffShopifyProjections`) |
 | Refresh Shopify copy (no syncStatus CONFLICT write) | `refreshShopifyProductState`, `refreshShopifyCollectionState` |
 | Apply-only live refresh | `recheckEntityConflictLeaves` / waterfall `skipRefresh: false` (refresh Shopify window + SyncResult leaves; not `inspect.differences`) |
 | Resolver loaders (skipRefresh) | `loadProductConflictFromSyncResult`, `loadCollectionConflictFromSyncResult` |
 | Field conflict UI | `components/synarava-cms/conflict-resolver*` (+ product/collection adapters) |
 | After-save full check | `lib/shopify/after-save-catalog-check.ts` → `runCatalogConflictCheck` |
 
-Migrations: `product_working_snapshot`, `collection_commerce_windows`.  
-Dropped: `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`, `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
+Migrations: `product_working_snapshot` (archived then dropped), `collection_commerce_windows`, `extras` backfill.  
+Dropped: `Product.workingSnapshot` / `Collection.workingSnapshot` (ADR-0009), `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`, `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
 
-Collection projection: `lib/shopify/collection-commerce-projection.ts`, push/pull windows in `collection-presence-server.ts`.
+Collection windows: `deriveCollectionWindow` + `lib/shopify/collection-commerce-projection.ts` (normalize / remote adopt / push input), push/pull in `collection-presence-server.ts`.
 
 ---
 
@@ -117,18 +118,19 @@ Mirror Shopify Admin product header + Product organization:
 - Category + Collections + site publish live on the Product tab (Shopify organization);
   Media stays separate
 - **Shopify product specs** — editable `custom.*` jewelry facts (material, care,
-  finish, wrist fit, color, metal, stone, plating, size). Save →
-  `workingSnapshot.metafields` (+ locale overlays) → Push via `metafieldsSet`.
-  Also projects matching `ProductCharacteristic` rows for PDP/filters. These
-  fields must **not** appear under Synarava → Passport.
+  finish, wrist fit, color, metal, stone, plating, size). Save → columns +
+  `extras.metafields` (+ locale overlays in `extras.metafieldTranslations`) →
+  derive merges them for compare/Push via `metafieldsSet`. Also projects matching
+  `ProductCharacteristic` rows for PDP/filters. These fields must **not** appear
+  under Synarava → Passport.
 - Last Pull — verification for taxonomy attribute selections, unit weight,
   country of origin, and other non-editable Pull projections
 - Synarava-only passport (chain lengths, compliance → synarava.*) lives on
   Synarava → Passport
 
-Local Save write-through includes title, description HTML, SEO (including legacy
-`global` SEO aliases), vendor, productType, tags, and Product-tab custom specs into
-`workingSnapshot` so conflict markers refresh after save.
+Local Save updates Prisma columns and patches `extras` (media / metafields /
+metafieldTranslations) as needed. After Save, the full catalog check re-derives
+OUR windows so conflict markers refresh — there is no stored commerce JSON blob.
 
 ---
 
@@ -138,15 +140,15 @@ Gallery is part of the dual commerce windows — **not** a parallel ProductMedia
 
 | Piece | Behavior |
 | --- | --- |
-| SoT for detect / Media UI | `workingSnapshot.media` (OUR tree) |
-| Local upload / reorder / remove | `ProductMedia` staging → write-through into `workingSnapshot.media` (merge matches prior nodes by URL so Shopify media ids survive remove/reorder) |
-| After Pull with no local rows | Media tab shows OUR tree frames (CDN URLs from Shopify adopt); **Remove** splices that index from OUR tree and marks sync PENDING |
+| SoT for detect / Media UI | Derived OUR `media` from `Product.extras.media` (merged by `deriveProductWindow`) |
+| Local upload / reorder / remove | `ProductMedia` staging → Save/media actions patch `extras.media` (merge matches prior nodes by URL so Shopify media ids survive remove/reorder) |
+| After Pull with no local rows | Media tab shows OUR tree frames (CDN URLs from Shopify adopt into `extras.media`); **Remove** splices that index from `extras.media` and marks sync PENDING |
 | Delete → Shopify | Push builds `productSet.files` from local staging + retained OUR-tree Shopify GIDs only. Remote media omitted from that list are deleted by productSet list-field semantics. Windows without a `media` key keep the legacy “preserve all remote” behavior (no wipe). |
-| Alt text | Blur-saves via media actions (fields stay editable; no `router.refresh`); also in FormData as `media-alt-*` / `media-alt-tree-*` on product Save (Media-owned branch). Blur clears Media dirty synchronously so leave-guard does not false-positive. **Per-image alts stay distinct:** Push prefers local → OUR `workingSnapshot.media` → remote; never broadcasts the product title onto every image. Save merges local rows without wiping prior tree alts when staging alt is empty. |
-| Field Decisions | Media labels are choosable: Pull adopts whole `media`; Push runs product media pipeline |
+| Alt text | Blur-saves via media actions (fields stay editable; no `router.refresh`); also in FormData as `media-alt-*` / `media-alt-tree-*` on product Save (Media-owned branch). Blur clears Media dirty synchronously so leave-guard does not false-positive. **Per-image alts stay distinct:** Push prefers local → OUR derived `media` → remote; never broadcasts the product title onto every image. Save merges local rows without wiping prior tree alts when staging alt is empty. |
+| Field Decisions | Media labels are choosable: Pull adopts whole `media` into columns/`extras`; Push runs product media pipeline |
 | Whole-record fallback | Status / tags still use inline **Pull from Shopify** / **Push to Shopify** in the same dialog (no “Go to Sync”) |
 
-Code: `shopify-snapshot-media.ts`, `finishProductMediaMutation` write-through,
+Code: `shopify-snapshot-media.ts`, media actions patching `extras.media`,
 `product-media-alt-form.ts`, `isMediaGalleryFieldLabel` in `catalog-conflict-policy.ts`,
 `applyCommerceField` media branch.
 
@@ -171,8 +173,8 @@ Shopify-native custom product fields (not the `synarava.*` passport):
 
 | Step | Behavior |
 | --- | --- |
-| Edit EN values | Form fields → **Save** write-through into `workingSnapshot.metafields` |
-| Edit PT/RU text | Locale overlays → `workingSnapshot.metafieldTranslations` (stripped from commerce compare) |
+| Edit EN values | Form fields → **Save** patches `extras.metafields` (`mergeCustomMetafieldsIntoList`) |
+| Edit PT/RU text | Locale overlays → `extras.metafieldTranslations` (stripped from commerce compare) |
 | Sync to Shopify | **Push**: EN via `metafieldsSet`; PT/RU text via `translationsRegister` on Metafield GID (`key: value`) |
 | List definitions | `metafieldDefinitions(ownerType: PRODUCT)` |
 | Add definition | `metafieldDefinitionCreate` (shop-wide schema only; not product sync) |
@@ -190,14 +192,15 @@ on Save. Gallery alt text is persisted on product Save from `media-alt-*` fields
 
 Code: `lib/shopify/product-metafields-*.ts`,
 `lib/shopify/product-metafield-translations.ts`,
-`ProductMetafieldsPanel`, write-through in `shopify-projection-diff.ts`,
+`ProductMetafieldsPanel`, Save merge in `app/admin/actions/products.ts`,
 Push registers per-locale Metafield translations.
 [Manage translated content](https://shopify.dev/docs/apps/build/markets/manage-translated-content).
 
-Push merges custom values from `workingSnapshot`. Cleared custom values delete
-Shopify metafields by owner/namespace/key; unset form definitions do not create
-empty metafields. Writes are batched at 25 entries. Passport deletion uses both
-namespace and key so a same-named custom field cannot prevent a passport clear.
+Push merges custom values from the derived OUR window (`extras.metafields`).
+Cleared custom values delete Shopify metafields by owner/namespace/key; unset
+form definitions do not create empty metafields. Writes are batched at 25
+entries. Passport deletion uses both namespace and key so a same-named custom
+field cannot prevent a passport clear.
 
 Product and locale descriptions retain sanitized rich HTML through Pull/Save/Push.
 Push clears empty SEO overrides on linked products rather than retaining the old value.
@@ -273,13 +276,14 @@ metafields still need whole-record **Pull**.
 
 ### Metafield identity (normalize)
 
-`canonicalizeShopifyProjection` (save **and** compare) maps `metafields` by
+`canonicalizeShopifyProjection` (observe **and** compare) maps `metafields` by
 `namespace::key` — not array index. Reordered-but-equal sets produce **zero**
 conflicts; membership/value mismatches surface as identity paths
 (`metafields.synarava::neck_fit.value`), never cascading `metafields[n].key`
-phantoms. Inventory Save write-through updates `variants[].inventoryQuantity`
-and `totalInventory` together. After Push inventory, refresh retries until the
-live quantity settles so a second Push cycle is not required for lag alone.
+phantoms. Inventory Save updates variant columns; derive rebuilds
+`variants[].inventoryQuantity` and `totalInventory` together. After Push
+inventory, refresh retries until the live quantity settles so a second Push
+cycle is not required for lag alone.
 
 ## Known gaps (next branches)
 

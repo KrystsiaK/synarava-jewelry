@@ -88,6 +88,6 @@ export function parseProductExtras(raw: unknown): ProductExtras {
   return raw as ProductExtras;
 }
 
-export function parseCollectionExtras(raw: unknown): CollectionExtras {
+export function parseCollectionExtras(_raw?: unknown): CollectionExtras {
   return {};
 }

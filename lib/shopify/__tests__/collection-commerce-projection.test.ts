@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  buildCollectionWindowFromColumns,
   collectionCommerceInputFromWindow,
   collectionWindowFromShopifyRemote,
   normalizeCollectionCommerceWindow,
-  writeThroughLocalCollectionToProjection,
 } from "@/lib/shopify/collection-commerce-projection";
+import {
+  deriveCollectionWindow,
+  preferredHtmlFromShopifySnapshot,
+} from "@/lib/sync/derive-window";
 
 describe("collection commerce projection", () => {
-  it("builds a Shopify-shaped window from local columns", () => {
-    const window = buildCollectionWindowFromColumns({
+  it("builds a Shopify-shaped window from local columns via derive", () => {
+    const window = deriveCollectionWindow({
       shopifyCollectionId: "gid://shopify/Collection/1",
       name: "Rings",
       slug: "rings",
@@ -27,30 +29,34 @@ describe("collection commerce projection", () => {
     });
   });
 
-  it("preserves rich HTML when stripped text matches local description", () => {
-    const base = collectionWindowFromShopifyRemote({
+  it("preserves rich HTML when preferred stripped text matches local description", () => {
+    const remote = collectionWindowFromShopifyRemote({
       id: "gid://shopify/Collection/1",
       title: "Rings",
       handle: "rings",
       descriptionHtml: "<p><strong>Fine rings</strong></p>",
       seo: { title: null, description: null },
     });
-    const next = writeThroughLocalCollectionToProjection(base, {
-      title: "Rings",
-      handle: "rings",
+    const window = deriveCollectionWindow({
+      shopifyCollectionId: "gid://shopify/Collection/1",
+      name: "Rings",
+      slug: "rings",
       description: "Fine rings",
+      preferredDescriptionHtml: preferredHtmlFromShopifySnapshot(remote, "descriptionHtml"),
     });
-    expect(next).toMatchObject({
+    expect(window).toMatchObject({
       descriptionHtml: "<p><strong>Fine rings</strong></p>",
     });
   });
 
   it("replaces descriptionHtml when local text diverges", () => {
-    const next = writeThroughLocalCollectionToProjection(
-      { descriptionHtml: "<p>Old</p>" },
-      { description: "New copy" },
-    );
-    expect(next).toMatchObject({ descriptionHtml: "<p>New copy</p>" });
+    const window = deriveCollectionWindow({
+      name: "Rings",
+      slug: "rings",
+      description: "New copy",
+      preferredDescriptionHtml: "<p>Old</p>",
+    });
+    expect(window).toMatchObject({ descriptionHtml: "<p>New copy</p>" });
   });
 
   it("reads push input from a window", () => {

@@ -11,7 +11,7 @@
 | --- | --- | --- | --- |
 | Non-default locale field | `ProductTranslation` / `CollectionTranslation` / `PageTranslation` row + binding | Live Translations API value | Two-way compare (both sides, or one-sided) |
 | Default locale (EN) | **Base columns only** on `Product` / `Collection` / `Page` (never a `locale='en'` translation row) | Shopify source / `translatableContent` | Commerce window deep-diff (product/collection); page EN via base columns in reconcile apply |
-| Commerce (shared) | `workingSnapshot` | `shopifySnapshot` | Deep-diff after one normalize (ADR-0003) |
+| Commerce (shared) | Derived OUR window (columns + `extras`) | `shopifySnapshot` | Deep-diff after one normalize (ADR-0003 / ADR-0009) |
 
 **Data model rule (Option A):** English is authoritative on base columns. Translation tables hold only non-default locales (PT, RU, …). Admin EN tab reads/writes base columns; language bundle export/import for the default locale maps to/from those base columns. Archive + delete of historical `locale='en'` rows: migration `20261025214900_archive_and_drop_en_translation_rows` (rollback: `scripts/db/rollback-en-translation-rows.sql`; pre-check: `scripts/db/check-en-translation-rows.sql`).
 
