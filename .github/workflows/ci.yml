@@ -186,9 +186,11 @@ jobs:
       - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
 
-      # Job containers reach services by hostname; db-guard requires 127.0.0.1.
-      # setsid+nohup keeps the forwarder alive across later steps (no apt).
-      - name: Forward Postgres to localhost
+      # Job containers default to `sh` (no pipefail). Keep the TCP forward in the
+      # same bash step as prisma/build/smoke so it is not killed between steps.
+      # db-guard requires 127.0.0.1; services are only reachable as hostname `postgres`.
+      - name: Schema, build, and storefront smoke
+        shell: bash
         run: |
           set -euo pipefail
           cat > /tmp/pg-fwd.mjs <<'EOF'
@@ -206,23 +208,22 @@ jobs:
           });
           server.listen(5432, "127.0.0.1");
           EOF
-          setsid nohup node /tmp/pg-fwd.mjs >/tmp/pg-fwd.log 2>&1 < /dev/null &
-          echo $! > /tmp/pg-fwd.pid
+          node /tmp/pg-fwd.mjs &
+          fwd_pid=$!
+          trap 'kill "$fwd_pid" 2>/dev/null || true' EXIT
           for i in $(seq 1 40); do
             if node -e 'const n=require("node:net");const s=n.connect({host:"127.0.0.1",port:5432},()=>{s.end();process.exit(0)});s.on("error",()=>process.exit(1))'; then
-              echo "Postgres forward ready on 127.0.0.1:5432 (pid $(cat /tmp/pg-fwd.pid))"
-              exit 0
+              echo "Postgres forward ready on 127.0.0.1:5432 (pid ${fwd_pid})"
+              break
+            fi
+            if [ "$i" -eq 40 ]; then
+              echo "Timed out waiting for 127.0.0.1:5432 forward" >&2
+              exit 1
             fi
             sleep 0.25
           done
-          echo "Timed out waiting for 127.0.0.1:5432 forward" >&2
-          cat /tmp/pg-fwd.log >&2 || true
-          exit 1
-
-      - run: pnpm prisma:push
-
-      # Build before smoke so Playwright starts `next start` (fast, deterministic)
-      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
-      - run: pnpm build
-
-      - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
+          pnpm prisma:push
+          # Build before smoke so Playwright starts `next start` (fast, deterministic)
+          # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
+          pnpm build
+          pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
