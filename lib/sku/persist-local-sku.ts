@@ -61,21 +61,5 @@ export async function persistLocalSku(
     return { variantId: created.id };
   });
 
-  // No-op write-through retained for call-site compatibility (SKU is column-backed).
-  await writeThroughAssignedSkuToWorkingSnapshot({
-    productId: input.productId,
-    variantId,
-    sku: input.sku,
-  });
-
   return { variantId };
-}
-
-/** @deprecated ADR-0009 — SKU is column-backed; derive reads columns. Kept as no-op. */
-export async function writeThroughAssignedSkuToWorkingSnapshot(_input: {
-  productId: string;
-  variantId: string;
-  sku: string;
-}): Promise<void> {
-  // Intentionally empty — OUR window derives SKU from ProductVariant.sku.
 }

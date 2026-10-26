@@ -51,9 +51,9 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import {
-  rawMediaAltsFromWorkingSnapshot,
+  rawMediaAltsFromOurWindow,
   resolveGalleryMediaAlt,
-  workingSnapshotMediaNodes,
+  ourMediaNodes,
 } from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
@@ -1735,8 +1735,8 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       ];
     });
     const ourWindow = ourProductWindowFromRow(product);
-    const { customMetafieldsFromWorkingSnapshot } = await import("@/lib/shopify/product-metafields-shared");
-    for (const item of customMetafieldsFromWorkingSnapshot(ourWindow ?? product.extras)) {
+    const { customMetafieldsFromOurWindow } = await import("@/lib/shopify/product-metafields-shared");
+    for (const item of customMetafieldsFromOurWindow(ourWindow ?? product.extras)) {
       if (!item.value.trim()) continue;
       metafields.push({
         namespace: item.namespace,
@@ -1775,7 +1775,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // OUR tree alts (Media tab after Pull / after local media released on Push).
     // Must ride productSet — falling back to product.name for every image made
     // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
-    const treeAlts = rawMediaAltsFromWorkingSnapshot(ourWindow ?? product.extras);
+    const treeAlts = rawMediaAltsFromOurWindow(ourWindow ?? product.extras);
     const localAssetsById = new Map<string, LocalProductAsset & { sortIndex: number }>();
     product.media.forEach((item, index) => {
       localAssetsById.set(item.assetId, {
@@ -1860,7 +1860,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // (https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet).
     const remoteNodes = currentRemote?.media.nodes ?? [];
     const remoteById = new Map(remoteNodes.map((item) => [item.id, item] as const));
-    const treeMedia = workingSnapshotMediaNodes(ourWindow ?? product.extras);
+    const treeMedia = ourMediaNodes(ourWindow ?? product.extras);
     if (treeMedia) {
       for (const [treeIndex, node] of treeMedia.entries()) {
         if (!node || typeof node !== "object" || Array.isArray(node)) continue;

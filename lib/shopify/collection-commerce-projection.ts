@@ -33,11 +33,6 @@ export function plainDescriptionToHtml(description: string | null | undefined): 
   return `<p>${plain.replace(/[<>&]/g, "")}</p>`;
 }
 
-/** Normalize once — before save into windows and before compare. */
-export function normalizeCollectionCommerceWindow(value: unknown): unknown {
-  return canonicalizeShopifyProjection(value);
-}
-
 /** Adopt a Shopify GraphQL collection node into a compare window. */
 export function collectionWindowFromShopifyRemote(remote: {
   id: string;
@@ -46,7 +41,7 @@ export function collectionWindowFromShopifyRemote(remote: {
   descriptionHtml?: string | null;
   seo?: { title?: string | null; description?: string | null } | null;
 }): unknown {
-  return normalizeCollectionCommerceWindow({
+  return canonicalizeShopifyProjection({
     id: remote.id,
     title: remote.title,
     handle: remote.handle,
@@ -79,6 +74,8 @@ export function collectionCommerceInputFromWindow(window: unknown): {
   };
 }
 
+/** Thin alias — Apply modules must not import diffShopifyProjections directly. */
 export function diffCollectionCommerceWindows(left: unknown, right: unknown) {
   return diffShopifyProjections(left, right);
 }
+

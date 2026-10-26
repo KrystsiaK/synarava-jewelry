@@ -43,7 +43,7 @@ import {
   mediaAltUpdatesFromForm,
   mediaNodePreviewUrl,
   mergeLocalMediaRowsIntoWorkingMedia,
-  removeWorkingSnapshotMediaAtIndex,
+  removeOurMediaAtIndex,
 } from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -578,7 +578,7 @@ export async function removeWorkingSnapshotMediaAction(
     : Array.isArray(shopifyRecord?.media)
       ? [...shopifyRecord.media]
       : [];
-  const nextMedia = removeWorkingSnapshotMediaAtIndex(currentMedia, mediaIndex);
+  const nextMedia = removeOurMediaAtIndex(currentMedia, mediaIndex);
   if (!nextMedia) {
     return { error: "Gallery image not found in the commerce tree." };
   }

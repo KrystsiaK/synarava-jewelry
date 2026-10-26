@@ -38,7 +38,7 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
-import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 import {
   isVariantPurchasable,
@@ -278,7 +278,7 @@ function shopifyProjection(
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
   return {
     // Prefer shared frame parser (id + preview/image URL) so gallery dedupe can key by MediaImage GID.
-    media: mediaFramesFromWorkingSnapshot(value).map((frame) => ({
+    media: mediaFramesFromOurWindow(value).map((frame) => ({
       id: frame.id,
       src: frame.url,
       alt: frame.alt,
@@ -447,7 +447,7 @@ function toSummary(product: {
     width: item.asset.width,
     height: item.asset.height,
   }));
-  const workingMedia = mediaFramesFromWorkingSnapshot(
+  const workingMedia = mediaFramesFromOurWindow(
     product.extras ?? product.shopifySnapshot,
   ).map((frame) => ({
     id: frame.id,

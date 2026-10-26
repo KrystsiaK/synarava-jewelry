@@ -3,7 +3,7 @@
  * Shopify SoT for MEDIA_IMAGE.alt — we surface gaps, not a second alt store.
  */
 
-import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
 
 export function normalizeImageAlt(value: string | null | undefined) {
   return value?.trim() ?? "";
@@ -71,8 +71,6 @@ export function imageAltCoverageTone(bucket: ImageAltCoverageCounts) {
 export function productGalleryAltsForChecklist(product: {
   media: Array<{ alt: string | null; asset?: { filename?: string | null } | null }>;
   extras?: unknown;
-  /** @deprecated Prefer extras (ADR-0009). */
-  workingSnapshot?: unknown;
 }): Array<{ alt: string; filename?: string | null }> {
   if (product.media.length > 0) {
     return product.media.map((item) => ({
@@ -80,7 +78,7 @@ export function productGalleryAltsForChecklist(product: {
       filename: item.asset?.filename ?? null,
     }));
   }
-  return mediaFramesFromWorkingSnapshot(product.extras ?? product.workingSnapshot).map((frame) => ({
+  return mediaFramesFromOurWindow(product.extras).map((frame) => ({
     alt: frame.alt,
     filename: null,
   }));
