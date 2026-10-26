@@ -148,6 +148,11 @@ jobs:
     if: ${{ needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Pin to @playwright/test in package.json/lockfile. Browsers + OS deps are
+    # preinstalled — no apt / --with-deps (avoids intermittent dpkg lock / exit 137).
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-jammy
+      options: --ipc=host
     services:
       postgres:
         image: postgres:16
@@ -155,8 +160,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: synarava_ci
-        ports:
-          - 5432:5432
+        # Job container ↔ service network alias; ports map is for host jobs only.
         options: >-
           --health-cmd "pg_isready -U postgres -d synarava_ci"
           --health-interval 5s
@@ -165,8 +169,12 @@ jobs:
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      # db-guard requires localhost/127.0.0.1; job containers reach services via
+      # hostname only, so we TCP-forward 127.0.0.1:5432 → postgres:5432 below.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/synarava_ci
       APP_URL: http://localhost:3000
+      # Image ships browsers under /ms-playwright (HOME is /github/home in-container).
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
@@ -177,64 +185,45 @@ jobs:
           cache: pnpm
       - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
-      - run: pnpm prisma:push
 
-      # Build before smoke so Playwright starts `next start` (fast, deterministic)
-      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
-      - run: pnpm build
-
-      # Cache browser binaries; hang-prone install is retried with a hard per-attempt timeout.
-      # Always --with-deps: OS libs (e.g. libwoff2dec for webkit) are not in the browser cache.
-      - name: Cache Playwright browsers
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
-          restore-keys: |
-            playwright-${{ runner.os }}-
-
-      - name: Install Playwright browsers
+      # Job containers default to `sh` (no pipefail). Keep the TCP forward in the
+      # same bash step as prisma/build/smoke so it is not killed between steps.
+      # db-guard requires 127.0.0.1; services are only reachable as hostname `postgres`.
+      - name: Schema, build, and storefront smoke
+        shell: bash
         run: |
           set -euo pipefail
-          # After timeout/OOM kills (exit 137), apt-get may still hold dpkg locks.
-          # Wait for locks to clear before retrying; never race a second --with-deps.
-          wait_for_dpkg_lock() {
-            local waited=0
-            local max_wait=120
-            while sudo fuser /var/lib/dpkg/lock-frontend >/dev/null 2>&1 \
-              || sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1 \
-              || sudo fuser /var/lib/apt/lists/lock >/dev/null 2>&1; do
-              if [ "$waited" -ge "$max_wait" ]; then
-                echo "dpkg/apt lock still held after ${max_wait}s — killing leftover apt/dpkg"
-                sudo killall -q apt-get apt dpkg || true
-                sleep 5
-                sudo dpkg --configure -a || true
-                return 0
-              fi
-              echo "Waiting for dpkg/apt lock… (${waited}s)"
-              sleep 5
-              waited=$((waited + 5))
-            done
-          }
-          attempt=1
-          max_attempts=3
-          while [ "$attempt" -le "$max_attempts" ]; do
-            echo "Playwright install attempt ${attempt}/${max_attempts}"
-            wait_for_dpkg_lock
-            status=0
-            # Capture non-zero in || so a failed command does not leave status stuck at 0.
-            # -k 30: SIGKILL if the child ignores SIGTERM after the 300s budget.
-            timeout -k 30 300 pnpm exec playwright install --with-deps chromium webkit || status=$?
-            if [ "$status" -eq 0 ]; then
-              exit 0
+          cat > /tmp/pg-fwd.mjs <<'EOF'
+          import net from "node:net";
+          const server = net.createServer((client) => {
+            const upstream = net.connect(5432, "postgres");
+            client.pipe(upstream);
+            upstream.pipe(client);
+            const close = () => {
+              client.destroy();
+              upstream.destroy();
+            };
+            client.on("error", close);
+            upstream.on("error", close);
+          });
+          server.listen(5432, "127.0.0.1");
+          EOF
+          node /tmp/pg-fwd.mjs &
+          fwd_pid=$!
+          trap 'kill "$fwd_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if node -e 'const n=require("node:net");const s=n.connect({host:"127.0.0.1",port:5432},()=>{s.end();process.exit(0)});s.on("error",()=>process.exit(1))'; then
+              echo "Postgres forward ready on 127.0.0.1:5432 (pid ${fwd_pid})"
+              break
             fi
-            # timeout(1) exits 124 on deadline; 137 = SIGKILL (OOM/timeout -k)
-            echo "Playwright install attempt ${attempt} failed (exit ${status})"
-            if [ "$attempt" -eq "$max_attempts" ]; then
-              exit "$status"
+            if [ "$i" -eq 40 ]; then
+              echo "Timed out waiting for 127.0.0.1:5432 forward" >&2
+              exit 1
             fi
-            attempt=$((attempt + 1))
-            sleep 10
+            sleep 0.25
           done
-
-      - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
+          pnpm prisma:push
+          # Build before smoke so Playwright starts `next start` (fast, deterministic)
+          # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
+          pnpm build
+          pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
