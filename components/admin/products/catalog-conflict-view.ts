@@ -6,8 +6,28 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { productEditorSectionForConflictField } from "@/components/admin/products/commerce-conflict-section";
 import type { CatalogConflictField } from "@/lib/shopify/catalog-conflict";
-import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
-import { productConflictBadgeCount } from "@/lib/sync/badge-count";
+import type {
+  CatalogConflictProductSignal,
+  CatalogConflictSignals,
+} from "@/lib/shopify/catalog-conflict-signals";
+/**
+ * Locale / section chip count ≡ `selectSyncCounts(..., localeTab)`.
+ * Signals already carry leaf-derived sharedCount / locale counts / presence
+ * from `catalogConflictSignalsFromSyncResult` — reassemble localeTab without
+ * a second counting formula or legacy shared=+1 fallback.
+ */
+function localeTabLeafCountFromSignal(
+  signal: CatalogConflictProductSignal,
+  locale: string,
+): number {
+  const code = normalizeLocaleCode(locale);
+  const localeCount = signal.locales
+    .filter((entry) => normalizeLocaleCode(entry.code) === code)
+    .reduce((sum, entry) => sum + entry.count, 0);
+  const shared = Math.max(0, signal.sharedCount ?? 0);
+  const presence = signal.presence ? 1 : 0;
+  return shared + presence + localeCount;
+}
 
 /**
  * Same conflict UI, different tree node:
@@ -78,18 +98,18 @@ export function filterSignalsForView(
   if (!hasLocaleConflict && !shared && !signal.presence) {
     return { ...signals, products: {}, totalCount: 0 };
   }
-  const scoped = {
-    ...signal,
-    shared,
-    locales,
-    leafCount: undefined,
-  };
+  const leafCount = localeTabLeafCountFromSignal(
+    { ...signal, shared, locales },
+    viewScope.locale,
+  );
   return {
     ...signals,
     products: {
       [productId]: {
-        ...scoped,
-        leafCount: productConflictBadgeCount(scoped),
+        ...signal,
+        shared,
+        locales,
+        leafCount,
       },
     },
     totalCount: 1,

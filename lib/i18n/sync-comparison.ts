@@ -24,8 +24,6 @@ export type SyncFieldDifference = {
   fieldLabel: string;
   targetKind: "native" | "metafield" | "metaobject";
   kind: SyncDifferenceKind;
-  /** Always null under two-way compare (no common-ancestor base). Column kept until PR6. */
-  baseValue: unknown;
   localValue: unknown;
   shopifyValue: unknown;
   localFingerprint: string;
@@ -160,7 +158,6 @@ export function compareLocalizedFields(
       fieldLabel: field.label,
       targetKind: target.kind,
       kind: "conflict",
-      baseValue: null,
       localValue: localValue ?? null,
       shopifyValue: shopifyValue ?? null,
       localFingerprint: fingerprintSyncValue(field, localValue),

@@ -285,9 +285,9 @@ function translationLeaves(
       && resolveLocaleCode(difference.locale, locales) === defaultLocaleCode
       && coveredByCommerce.has(`${resourceType}:${difference.rootEntityId}:${difference.fieldKey}`)
     ) continue;
-    // PR3: two-way compare emits CONFLICT for any Synarava ≠ Shopify.
-    // Legacy LOCAL_ONLY / SHOPIFY_ONLY rows are ignored until re-checked.
-    if (difference.kind !== "CONFLICT" && difference.rootEntityType === "PRODUCT") continue;
+    // Two-way compare emits CONFLICT only. Legacy LOCAL_ONLY / SHOPIFY_ONLY
+    // rows (enum kept; column unused for inventory) never become leaves.
+    if (difference.kind !== "CONFLICT") continue;
     const locale = resolveLocaleCode(difference.locale, locales);
     const id = `${resourceType}:${difference.rootEntityId}:translation:${difference.locale}:${difference.fieldKey}`;
     if (seen.has(id)) continue;

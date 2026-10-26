@@ -18,8 +18,13 @@ describe("productConflictCompareSummary", () => {
     expect(productConflictBadgeCount(null)).toBe(0);
   });
 
-  it("matches icon badge count for shared commerce field diffs", () => {
-    const signal = { shared: true, sharedCount: 2, locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }> };
+  it("matches icon badge count from SyncResult leafCount for shared commerce", () => {
+    const signal = {
+      leafCount: 2,
+      shared: true,
+      sharedCount: 2,
+      locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }>,
+    };
     const summary = productConflictCompareSummary(signal, {
       localeTabs: LOCALE_TABS,
     });
@@ -44,6 +49,7 @@ describe("productConflictCompareSummary", () => {
 
   it("adds CONFLICT translation locale labels without inventing one-sided rows", () => {
     const signal = {
+      leafCount: 3,
       shared: false,
       sharedCount: 0,
       locales: [
@@ -61,6 +67,7 @@ describe("productConflictCompareSummary", () => {
 
   it("combines commerce + translation CONFLICT counts like the icon", () => {
     const signal = {
+      leafCount: 5,
       shared: true,
       sharedCount: 2,
       locales: [

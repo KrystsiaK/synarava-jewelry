@@ -24,7 +24,6 @@ export function productConflictCompareSummary(
   if (count <= 0) return { count: 0, localeLabels: [] };
 
   const commerce = Math.max(0, signal?.sharedCount ?? 0);
-  const legacyShared = commerce === 0 && signal?.shared && !signal.presence;
   const labels: string[] = [];
   const seen = new Set<string>();
 
@@ -37,7 +36,7 @@ export function productConflictCompareSummary(
 
   if (signal?.presence) pushLabel("Presence");
 
-  if (commerce > 0 || legacyShared) {
+  if (commerce > 0) {
     for (const tab of options?.localeTabs ?? []) pushLabel(tab.label);
     if ((options?.localeTabs?.length ?? 0) === 0) pushLabel("Shared commerce");
   }
