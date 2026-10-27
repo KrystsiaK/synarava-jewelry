@@ -417,7 +417,7 @@ export function EditProductForm({
       return;
     }
     startTransition(async () => {
-      const result = await pushSingleProductToShopifyAction(currentProduct.id, false);
+      const result = await pushSingleProductToShopifyAction(currentProduct.id);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "info" });

@@ -24,7 +24,12 @@ import {
 import {
   assertShopifyStoreBinding,
 } from "@/lib/shopify/store-binding";
-import { applyShopifyProductToSynarava, inspectProductSyncState, pushProductToShopify } from "@/lib/shopify/product-sync";
+import {
+  applyShopifyProductToSynarava,
+  inspectProductSyncState,
+  pushProductToShopify,
+  type PushProductToShopifyOptions,
+} from "@/lib/shopify/product-sync";
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
@@ -146,9 +151,11 @@ export async function markProductIncomingUpdateViewedAction(productId: string) {
 
 export async function pushSingleProductToShopifyAction(
   productId: string,
-  force = false,
+  options: PushProductToShopifyOptions = {},
   expectedFingerprints?: WholeRecordFingerprintExpectation[],
 ) {
+  const authorizeCommerceConflictOverwrite = options.authorizeCommerceConflictOverwrite === true;
+  const pushRegisteredTranslations = options.pushRegisteredTranslations !== false;
   const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
@@ -162,13 +169,16 @@ export async function pushSingleProductToShopifyAction(
       if (!fresh.ok) return { error: fresh.error };
     }
     const before = await inspectProductSyncState(productId);
-    if (!force && before.state === "CONFLICT") {
+    if (!authorizeCommerceConflictOverwrite && before.state === "CONFLICT") {
       return { error: "Shopify has newer changes. Review the conflict before pushing.", inspection: before };
     }
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
-    const result = await pushProductToShopify(productId, force);
+    const result = await pushProductToShopify(productId, {
+      authorizeCommerceConflictOverwrite,
+      pushRegisteredTranslations,
+    });
     if (!result.ok) return { error: result.error, inspection: before };
     await runAfterSaveCatalogConflictCheck(session.username);
     revalidateStorefront();
@@ -177,7 +187,9 @@ export async function pushSingleProductToShopifyAction(
     return {
       success: result.translationError
         ? "Commerce changes pushed to Shopify; one or more translations need attention."
-        : "Commerce and registered translations pushed to Shopify.",
+        : pushRegisteredTranslations
+          ? "Commerce and registered translations pushed to Shopify."
+          : "Commerce changes pushed to Shopify.",
       translationWarning: result.translationError,
       product,
       inspection: await inspectProductSyncState(productId),

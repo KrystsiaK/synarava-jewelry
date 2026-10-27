@@ -79,7 +79,10 @@ describe("applyCatalogPresenceDifference", () => {
     expect(mocks.updateProduct).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "local-7" }, data: expect.objectContaining({ shopifyProductId: null, syncStatus: "UNLINKED" }),
     }));
-    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("local-7", true);
+    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("local-7", {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: true,
+    });
     expect(mocks.ensureTranslationBinding).toHaveBeenCalledWith({
       resourceType: "PRODUCT", entityId: "local-7", shopifyResourceId: "gid://shopify/Product/70",
     });
