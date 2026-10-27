@@ -308,6 +308,71 @@ describe("generated round-trip invariant (PR-7)", () => {
     }));
   });
 
+  it("same photo re-hosted (new id/CDN/size) → ZERO media commerce leaves", () => {
+    const our = remoteProduct({
+      media: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{
+          id: "gid://shopify/MediaImage/old",
+          alt: "Ring",
+          mediaContentType: "IMAGE",
+          status: "READY",
+          preview: {
+            image: {
+              url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=1",
+              width: 400,
+              height: 400,
+            },
+          },
+        }],
+      },
+    });
+    const shopify = remoteProduct({
+      media: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{
+          id: "gid://shopify/MediaImage/new",
+          alt: "Ring",
+          mediaContentType: "IMAGE",
+          status: "READY",
+          originalSource: { url: "https://storage.googleapis.com/staged/ring-uuid.jpg?sig=1" },
+          image: {
+            url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=99",
+            width: 2048,
+            height: 2048,
+          },
+          preview: {
+            image: {
+              url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=99&width=100",
+              width: 100,
+              height: 100,
+            },
+          },
+        }],
+      },
+    });
+    const ourSnap = snapshotForShopifyProduct(our);
+    const shopifySnap = snapshotForShopifyProduct(shopify);
+    expect(diffShopifyProjections(ourSnap, shopifySnap)).toEqual([]);
+    const result = compareSyncState({
+      commerceWindows: [{
+        resourceType: "PRODUCT",
+        resourceId: "p1",
+        ourWindow: ourSnap,
+        shopifySnapshot: shopifySnap,
+      }],
+      translationDifferences: [],
+      productPresence: [],
+      collectionPresence: [],
+      locales: [...LOCALES],
+      connected: true,
+      checkedAt: "2026-10-27T12:00:00.000Z",
+      runStatus: "SUCCEEDED",
+      now: new Date("2026-10-27T12:01:00.000Z"),
+    });
+    expect(result.leaves.filter((leaf) => leaf.kind === "commerce")).toEqual([]);
+  });
+
   it("collection commerce window round-trips through deriveCollectionWindow", () => {
     const shopify = {
       id: "gid://shopify/Collection/1",

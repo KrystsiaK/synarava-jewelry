@@ -1,8 +1,10 @@
 import { sanitizeRichTextHtml } from "@/lib/content/rich-text";
+import { resolveGalleryMediaAlt } from "@/lib/shopify/product-media-alt-form";
 import {
   coerceMetafieldRows,
   metafieldIdentityKey,
 } from "@/lib/shopify/product-metafields-shared";
+import { shopifyMediaFilename } from "@/lib/shopify/staged-product-media";
 import { labelForWindowPath } from "@/lib/sync/field-registry";
 
 /**
@@ -99,6 +101,58 @@ function metafieldsToIdentityMap(items: unknown[]): Record<string, unknown> {
   );
 }
 
+function isMediaListPath(path: string): boolean {
+  return path === "media" || path.endsWith(".media");
+}
+
+/**
+ * Gallery compare identity: filename (push correlation) + alt + position.
+ * url/width/height/id/status/preview/mediaContentType are NOT compared
+ * (Shopify re-hosts every image). id + one preview url are kept as SoT
+ * carry for Media tab + productSet GID retention — sameCanonicalMediaItem
+ * ignores them.
+ */
+function canonicalizeMediaItem(item: unknown, position: number): Record<string, unknown> {
+  if (!isPlainObject(item)) {
+    return { filename: null, alt: "", position };
+  }
+
+  const originalSource = isPlainObject(item.originalSource) ? item.originalSource : null;
+  const image = isPlainObject(item.image) ? item.image : null;
+  const preview = isPlainObject(item.preview) ? item.preview : null;
+  const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
+  const imageUrl =
+    (image && typeof image.url === "string" ? image.url : null)
+    ?? (previewImage && typeof previewImage.url === "string" ? previewImage.url : null)
+    ?? (typeof item.url === "string" ? item.url : null);
+  const fromUrls = shopifyMediaFilename({
+    originalSourceUrl: originalSource && typeof originalSource.url === "string"
+      ? originalSource.url
+      : null,
+    imageUrl,
+  });
+  const filename = fromUrls
+    ?? (typeof item.filename === "string" && item.filename.trim() ? item.filename.trim() : null);
+  const id = typeof item.id === "string" && item.id.trim() ? item.id.trim() : null;
+  const previewUrl = imageUrl ? normalizeShopifyCdnUrl(imageUrl) : null;
+
+  return {
+    filename,
+    alt: resolveGalleryMediaAlt({
+      localAlt: typeof item.alt === "string" ? item.alt : null,
+    }),
+    position,
+    ...(id ? { id } : {}),
+    ...(previewUrl ? { preview: { image: { url: previewUrl } } } : {}),
+  };
+}
+
+/** Compare contract only — id/preview are SoT carry, not conflict signals. */
+function sameCanonicalMediaItem(a: unknown, b: unknown): boolean {
+  if (!isPlainObject(a) || !isPlainObject(b)) return Object.is(a, b);
+  return a.filename === b.filename && a.alt === b.alt && a.position === b.position;
+}
+
 /**
  * Strip technical noise and normalize volatile values so equality is commerce-meaningful.
  */
@@ -138,6 +192,10 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     }
     value = { ...value, value: parsed };
   }
+  // GraphQL `{ nodes }` at media → same ordered gallery contract as a flat array.
+  if (isPlainObject(value) && isMediaListPath(path) && Array.isArray(value.nodes)) {
+    return canonicalizeShopifyProjection(value.nodes, path);
+  }
   if (Array.isArray(value)) {
     if (isMetafieldListPath(path)) {
       const rows = coerceMetafieldRows(value)
@@ -151,6 +209,10 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
         );
       return metafieldsToIdentityMap(rows);
     }
+    // Ordered gallery identity — never sort by Shopify media id / deep-compare CDN fields.
+    if (isMediaListPath(path)) {
+      return value.map((item, index) => canonicalizeMediaItem(item, index));
+    }
     const mapped = value.map((item, index) =>
       canonicalizeShopifyProjection(item, `${path}[${index}]`),
     );
@@ -161,7 +223,6 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     if (
       path.endsWith("variants")
       || path.endsWith("collections")
-      || path.endsWith("media")
       || path.endsWith("publications")
     ) {
       return [...mapped].toSorted((a, b) => sortKeyForArrayItem(a).localeCompare(sortKeyForArrayItem(b)));
@@ -222,6 +283,11 @@ function mediaItemSummary(value: unknown): string {
     return trimmed || "—";
   }
   if (!isPlainObject(value)) return displayValue(value);
+
+  if (typeof value.filename === "string" && value.filename.trim()) {
+    const alt = typeof value.alt === "string" && value.alt.trim() ? value.alt.trim() : "";
+    return alt ? `${value.filename.trim()} (${alt})` : value.filename.trim();
+  }
 
   const preview = isPlainObject(value.preview) ? value.preview : null;
   const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
@@ -326,8 +392,22 @@ function walkDiff(
 
   if (localIsArr && shopifyIsArr) {
     const max = Math.max(local.length, shopify.length);
+    const mediaList = isMediaListPath(path);
     for (let i = 0; i < max; i += 1) {
-      walkDiff(local[i], shopify[i], `${path}[${i}]`, out);
+      const childPath = `${path}[${i}]`;
+      // One part per image position — never filename/alt/position subfield lines.
+      if (mediaList) {
+        if (sameCanonicalMediaItem(local[i], shopify[i])) continue;
+        out.push({
+          path: childPath,
+          field: mediaConflictFieldLabel(childPath, local[i], shopify[i])
+            ?? labelForShopifyProjectionPath(childPath),
+          local: displayValueForPath(childPath, local[i]),
+          shopify: displayValueForPath(childPath, shopify[i]),
+        });
+        continue;
+      }
+      walkDiff(local[i], shopify[i], childPath, out);
     }
     return;
   }
