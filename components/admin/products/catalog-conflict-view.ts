@@ -68,6 +68,11 @@ export function fieldMatchesViewSection(
   section: ProductEditorSection,
   locale: string,
 ): boolean {
+  // Whole-item card: show when ANY constituent part owns this section.
+  if (field.parts && field.parts.length > 0) {
+    if (!field.parts.some((part) => part.section === section)) return false;
+    return fieldMatchesViewLocale(field, locale);
+  }
   if (productEditorSectionForConflictField(field) !== section) return false;
   return fieldMatchesViewLocale(field, locale);
 }
@@ -103,6 +108,37 @@ export function filterSignalsForView(
   const shared = isBase && Boolean(signal.shared);
   const presence = isBase ? signal.presence : undefined;
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
+  if (viewScope.kind === "productSection") {
+    const ownsSection = (signal.sections ?? []).includes(viewScope.section)
+      || (viewScope.section === "shopify" && Boolean(presence));
+    if (!ownsSection) {
+      return { ...signals, products: {}, totalCount: 0 };
+    }
+    // Whole-item / shared leaf is ONE conflict — section chip shows 1 when this
+    // section owns any part (plus locale rows on the base/locale node).
+    const sectionLeafCount = localeTabLeafCountFromSignal({
+      ...signal,
+      shared,
+      sharedCount: shared ? Math.min(1, Math.max(0, signal.sharedCount ?? 0)) : 0,
+      presence: viewScope.section === "shopify" ? presence : undefined,
+      locales,
+    }, viewScope.locale);
+    return {
+      ...signals,
+      products: {
+        [productId]: {
+          ...signal,
+          shared,
+          sharedCount: shared ? Math.min(1, Math.max(0, signal.sharedCount ?? 0)) : 0,
+          presence: viewScope.section === "shopify" ? presence : undefined,
+          locales,
+          sections: [viewScope.section],
+          leafCount: sectionLeafCount,
+        },
+      },
+      totalCount: sectionLeafCount,
+    };
+  }
   if (!hasLocaleConflict && !shared && !presence) {
     return { ...signals, products: {}, totalCount: 0 };
   }

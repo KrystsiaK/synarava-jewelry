@@ -4,15 +4,26 @@ import {
   productEditorSectionForCommerceDiff,
   productEditorSectionForConflictField,
 } from "@/components/admin/products/commerce-conflict-section";
+import { sectionForWindowPath } from "@/lib/sync/field-registry";
 
-describe("commerce conflict → editor section", () => {
+describe("commerce conflict → editor section (contract metadata)", () => {
   it("maps price facts to the Price tab only", () => {
-    expect(productEditorSectionForCommerceDiff({ path: "variants[0].price", field: "Price" })).toBe("price");
-    expect(productEditorSectionForCommerceDiff({ path: "variants[0].taxable", field: "Charge tax" })).toBe("price");
-    expect(productEditorSectionForCommerceDiff({ field: "Compare-at price" })).toBe("price");
+    expect(productEditorSectionForCommerceDiff({
+      path: "variants[0].price",
+      field: "Price",
+      section: sectionForWindowPath("variants[0].price"),
+    })).toBe("price");
+    expect(productEditorSectionForCommerceDiff({
+      path: "variants[0].taxable",
+      field: "Charge tax",
+    })).toBe("price");
+    expect(productEditorSectionForCommerceDiff({
+      path: "variants[0].compareAtPrice",
+      field: "Compare-at price",
+    })).toBe("price");
   });
 
-  it("maps identity/tags to Product tab and SKU to Sync (until Inventory)", () => {
+  it("maps identity/tags to Product tab and SKU to Inventory", () => {
     expect(productEditorSectionForCommerceDiff({ path: "title", field: "Name" })).toBe("essentials");
     expect(productEditorSectionForCommerceDiff({ path: "vendor", field: "Vendor" })).toBe("essentials");
     expect(productEditorSectionForCommerceDiff({ path: "tags", field: "Tags" })).toBe("essentials");
@@ -40,22 +51,21 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_adopt", field: "Adopt Shopify" })).toBe("shopify");
   });
 
-  it("maps media diffs to the Media tab (path and unlabeled path-as-label)", () => {
+  it("maps media diffs to the Media tab via contract path lookup", () => {
     expect(productEditorSectionForCommerceDiff({ path: "media[0].id", field: "Media gallery (image 1)" })).toBe("media");
-    expect(productEditorSectionForCommerceDiff({ field: "media[0].preview.image.url" })).toBe("media");
     expect(productEditorSectionForConflictField({
       origin: "COMMERCE",
       label: "Media gallery (image 1)",
       fieldKey: "commerce:media-0-id",
       path: "media[0].id",
+      section: "media",
     })).toBe("media");
-    // Regression: without path, path-shaped labels must still land on Media — otherwise
-    // the Media tab badge opens an empty Field Decisions dialog.
+    // Without path/section metadata, unknown labels land on Sync (no regex fallback).
     expect(productEditorSectionForConflictField({
       origin: "COMMERCE",
       label: "media[0].preview.image.url",
       fieldKey: "commerce:media-0-preview-image-url",
-    })).toBe("media");
+    })).toBe("shopify");
   });
 
   it("maps conflict-modal field rows to the owning section", () => {
@@ -63,11 +73,13 @@ describe("commerce conflict → editor section", () => {
       origin: "COMMERCE",
       label: "Price",
       fieldKey: "commerce:price",
+      section: "price",
     })).toBe("price");
     expect(productEditorSectionForConflictField({
       origin: "COMMERCE",
       label: "Vendor",
       fieldKey: "commerce:vendor",
+      section: "essentials",
     })).toBe("essentials");
     expect(productEditorSectionForConflictField({
       origin: "TRANSLATION",
@@ -96,7 +108,6 @@ describe("commerce conflict → editor section", () => {
     expect([...sections].toSorted()).toEqual(["essentials", "price"]);
     expect(sections.has("shopify")).toBe(false);
     expect(sections.has("essentials")).toBe(true);
-    expect(sections.has("content" as never)).toBe(false);
   });
 
   it("marks only the base (EN) shell for a shared price conflict", () => {
