@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 
 import { getCurrentAdminSession } from "@/lib/auth/admin-session";
+import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import {
   getLatestEntityReconcileState,
   getLatestReconcileRun,
@@ -10,6 +11,7 @@ import {
   runTranslationReconciliation,
 } from "@/lib/shopify/reconciliation-run";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { selectAdminNavSyncCounts } from "@/lib/sync";
 
 export const runtime = "nodejs";
 
@@ -34,16 +36,23 @@ const queryScopeSchema = z.object({
 });
 
 /**
- * Callers of this route (and of `runProductConflictCheck`) know only the
- * registry locale code shown in admin tabs (e.g. "pt", "ru") — the same
- * code every N-locale admin editor already uses. This resolves that to the
- * Shopify-side code (e.g. "pt-PT") the reconcile engine stores against,
- * so the client never needs its own copy of that mapping.
+ * Callers of this route know only the registry locale code shown in admin
+ * tabs (e.g. "pt", "ru"). This resolves that to the Shopify-side code the
+ * reconcile engine stores against.
  */
 async function resolveShopifyLocale(registryCode: string): Promise<string | null> {
   if (registryCode === "en") return "en";
   const locales = await getPublishedStorefrontLocales();
   return locales.find((locale) => !locale.isDefault && locale.code === registryCode)?.shopifyLocale ?? null;
+}
+
+function isFullCatalogTrigger(
+  trigger: "AUTO" | "MANUAL" | "ENTITY" | "LOCALE",
+  scope: z.infer<typeof requestSchema>["scope"],
+): trigger is "AUTO" | "MANUAL" {
+  if (trigger !== "AUTO" && trigger !== "MANUAL") return false;
+  // Top-bar sends AUTO/MANUAL with no entity scope — full owner-model waterfall.
+  return !scope?.entityType && !scope?.entityId;
 }
 
 export async function GET(request: NextRequest) {
@@ -82,8 +91,34 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    if (parsed.data.trigger === "AUTO" && await hasSessionReconciled(session.sessionId)) {
-      return NextResponse.json({ run: await getLatestReconcileRun(), reused: true });
+    if (isFullCatalogTrigger(parsed.data.trigger, scope)) {
+      if (parsed.data.trigger === "AUTO" && await hasSessionReconciled(session.sessionId)) {
+        return NextResponse.json({ run: await getLatestReconcileRun(), reused: true });
+      }
+
+      // Single entry: full catalog waterfall (same path as the top-bar Shopify button).
+      const checked = await runCatalogConflictCheck(session.username, {
+        trigger: parsed.data.trigger,
+      });
+      if (parsed.data.trigger === "AUTO") await markSessionReconciled(session.sessionId);
+
+      const run = await getLatestReconcileRun();
+      if (checked.alreadyRunning) {
+        return NextResponse.json({
+          run,
+          reused: true,
+          alreadyRunning: true,
+          warning: "already running",
+        });
+      }
+      const navCounts = selectAdminNavSyncCounts(checked.result);
+      return NextResponse.json({
+        run,
+        warning: checked.warning,
+        navCounts,
+        productConflictCount: navCounts.products,
+        collectionConflictCount: navCounts.collections,
+      });
     }
 
     const result = await runTranslationReconciliation({
@@ -91,7 +126,6 @@ export async function POST(request: NextRequest) {
       scope: shopifyLocale ? { ...scope, locale: shopifyLocale } : scope,
       requestedBy: session.username,
     });
-    if (parsed.data.trigger === "AUTO") await markSessionReconciled(session.sessionId);
     return NextResponse.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

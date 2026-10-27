@@ -63,6 +63,10 @@ Translation rollout and recovery are documented in `docs/runbooks/translation-op
 - [ ] Установить `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`
 - [ ] Проверить что `/admin` редиректит на `/admin/login`, а после входа доступны все разделы
 
+## ADR-0009 derive cutover (workingSnapshot → extras)
+
+Production release for `20261026160000_derive_synarava_extras_drop_working_snapshot`: stop app/workers/webhooks, take a verified backup, deploy migration, run `scripts/db/verify-derived-window.mjs` (exit 0 required; missing archive = failure). Full pre/post commands and rollback policy: [`derive-synarava-state-release.md`](derive-synarava-state-release.md).
+
 ## Railway
 
 Конфигурация **synarava-web** хранится в [`deploy/railway.synarava-web.json`](../../deploy/railway.synarava-web.json) (legacy Config as Code). В Settings сервиса Config File должен быть `/deploy/railway.synarava-web.json` — не корень репозитория, иначе новый `sku-api` подхватывал Next `pnpm build`/`start`.
@@ -136,7 +140,7 @@ pnpm install
   - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`, `orders/paid`
 - [ ] Для отзывов получить approval Shopify Product Review Syndication и выдать scopes: `write_product_reviews`, `read_metaobjects`, `read_customers`, `read_orders`, `read_products`
 - [ ] Для wishlist выдать Admin API scopes `read_customers` и `write_customers`; без них профиль работает, но сохранение товаров недоступно
-- [ ] `orders/paid` требует `read_orders` (уже в review scopes); endpoint: `/api/shopify/webhooks/orders/paid` — confirmation/ops only, без локального Order store
+- [ ] `orders/paid` требует `read_orders` (уже в review scopes); endpoint: `/api/shopify/webhooks/orders/paid` — idempotent receipt + decrement Synarava `stockOnHand` (no local Order store; cancel/refund do not restock)
 - [ ] Запустить **Test Shopify connection**: он включает стандартный `product_review` metaobject и регистрирует отфильтрованные `metaobjects/create`, `metaobjects/update`, `metaobjects/delete` webhooks
 - [ ] Скопировать секрет подписи вебхука в `SHOPIFY_WEBHOOK_SECRET`
 - [ ] Прогнать **Reconcile** в `/admin` и убедиться, что каталог совпал по Shopify product ID/SKU/handle без конфликтов

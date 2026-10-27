@@ -5,6 +5,10 @@ import "server-only";
 // only commerce backend — this isn't a seam for a hypothetical alternate
 // one, just a naming boundary between storefront code and Shopify-specific
 // code.
+import {
+  isVariantStockAvailable,
+  withShopifyInventoryAvailability,
+} from "@/lib/commerce/variant-availability";
 import { db } from "@/lib/db";
 import {
   addShopifyMerchandiseLinesToCart,
@@ -62,20 +66,45 @@ export async function addStorefrontProductToCart(
     },
     select: {
       shopifyHandle: true,
+      shopifySnapshot: true,
       variants: {
-        where: { shopifyVariantId: { not: null }, status: { in: ["ACTIVE", "UNLISTED"] } },
+        where: {
+          shopifyVariantId: { not: null },
+          status: { in: ["ACTIVE", "UNLISTED"] },
+          ...(merchandiseId ? { shopifyVariantId: merchandiseId } : {}),
+        },
         orderBy: [{ stockOnHand: "desc" }, { createdAt: "asc" }],
-        take: 1,
-        select: { shopifyVariantId: true },
+        select: {
+          shopifyVariantId: true,
+          status: true,
+          stockOnHand: true,
+          inventoryPolicy: true,
+          tracked: true,
+        },
       },
     },
   });
   if (!product) throw new Error("Product not available.");
 
+  const stockOk = (variant: (typeof product.variants)[number]) =>
+    isVariantStockAvailable(
+      withShopifyInventoryAvailability(variant, product.shopifySnapshot),
+    );
+
+  // Visibility already limited to ACTIVE/UNLISTED; pick first with dual stock.
+  const target = merchandiseId
+    ? product.variants.find((variant) => variant.shopifyVariantId === merchandiseId)
+    : product.variants.find(stockOk) ?? product.variants[0];
+  if (!target?.shopifyVariantId) throw new Error("Product not available.");
+
+  if (!stockOk(target)) {
+    throw new Error("Product is out of stock.");
+  }
+
   return addShopifyProductToCart(
     product.shopifyHandle || productSlug,
     quantity,
-    merchandiseId ?? product.variants[0]?.shopifyVariantId ?? undefined,
+    merchandiseId ?? target.shopifyVariantId,
   );
 }
 

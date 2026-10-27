@@ -19,6 +19,7 @@ vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: vi.fn(),
   revalidateStorefrontTemplate: vi.fn(),
+  revalidateStorefront: vi.fn(),
 }));
 vi.mock("@/lib/media/local-upload", () => ({ saveProductImageUpload: vi.fn() }));
 vi.mock("@/lib/shopify/config", () => ({ isShopifyConfigured: vi.fn(() => false) }));
@@ -60,25 +61,25 @@ describe("saveProductAction — N-locale translation save (real DB)", () => {
     createdId = null;
   });
 
-  it("creates EN/PT/RU ProductTranslation rows in one save, with correct registry locale codes", async () => {
+  it("writes EN on Product base columns and PT/RU ProductTranslation rows only", async () => {
     const result = await saveProductAction(buildFormData());
 
     expect(result.error).toBeUndefined();
     expect(result.product).toBeTruthy();
     createdId = result.product!.id;
 
+    const product = await db.product.findUniqueOrThrow({ where: { id: createdId! } });
+    expect(product.name).toBe("U4 Integration Test Product");
+
     const rows = await db.productTranslation.findMany({
       where: { productId: createdId! },
       orderBy: { locale: "asc" },
     });
-    expect(rows.map((r) => r.locale)).toEqual(["en", "pt", "ru"]);
+    expect(rows.map((r) => r.locale)).toEqual(["pt", "ru"]);
+    expect(rows.some((r) => r.locale === "en")).toBe(false);
 
-    const en = rows.find((r) => r.locale === "en")!;
     const pt = rows.find((r) => r.locale === "pt")!;
     const ru = rows.find((r) => r.locale === "ru")!;
-
-    expect(en.title).toBe("U4 Integration Test Product");
-    expect(en.reviewStatus).toBe("REVIEWED");
 
     expect(pt.title).toBe("Produto de Teste U4");
     expect(pt.reviewStatus).toBe("REVIEWED");

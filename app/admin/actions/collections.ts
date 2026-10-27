@@ -2,7 +2,6 @@
 
 import { createHash } from "node:crypto";
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 
@@ -20,8 +19,7 @@ import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { saveCollectionImageUpload } from "@/lib/media/local-upload";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { runCollectionConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
-import { writeThroughLocalCollectionToProjection } from "@/lib/shopify/collection-commerce-projection";
+import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import { validateCollectionInput, type CollectionFieldName } from "@/lib/admin/collection-form-validation";
 import {
   createDraftToken,
@@ -36,6 +34,8 @@ export type { CollectionFieldName };
 export type CollectionActionState = {
   error?: string;
   success?: string;
+  warning?: string;
+  syncWarning?: string;
   resetKey?: number;
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
   collection?: SavedCollectionPayload;
@@ -407,46 +407,29 @@ export async function saveCollectionAction(
     return { locale, copy, reviewed, syncStatus, contentHash };
   });
 
-  await db.$transaction([
-    db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale: "en" } },
-      update: {
-        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
-        storyTitle: storyTitle || null, storyBody: storyBody || null,
-        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
-        searchSummary: searchSummary || null, ctaLabel: ctaLabel || null, heroImageAlt: heroImageAlt || null,
-        reviewStatus: "REVIEWED", reviewedAt: new Date(),
-      },
-      create: {
-        collectionId: savedCollection.id, locale: "en",
-        name, subtitle: subtitle || null, description: description || null, manifesto: manifesto || null,
-        storyTitle: storyTitle || null, storyBody: storyBody || null,
-        symbolismLabel: symbolismLabel || null, symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null, symbolismBody2: symbolismBody2 || null,
-        searchSummary: searchSummary || null, ctaLabel: ctaLabel || null, heroImageAlt: heroImageAlt || null,
-        reviewStatus: "REVIEWED", reviewedAt: new Date(),
-      },
-    }),
-    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.collectionTranslation.upsert({
-      where: { collectionId_locale: { collectionId: savedCollection.id, locale } },
-      update: {
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-      create: {
-        collectionId: savedCollection.id, locale,
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-    })),
-  ]);
+  // Default locale (EN) lives only on Collection base columns — never CollectionTranslation.
+  if (translationUpserts.length > 0) {
+    await db.$transaction([
+      ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.collectionTranslation.upsert({
+        where: { collectionId_locale: { collectionId: savedCollection.id, locale } },
+        update: {
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+        create: {
+          collectionId: savedCollection.id, locale,
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+      })),
+    ]);
+  }
   await Promise.all(translationUpserts.map(({ locale, copy }) => recordLocalizedHandleRedirect({
     entityType: "COLLECTION",
     entityId: savedCollection.id,
@@ -463,50 +446,15 @@ export async function saveCollectionAction(
     after: savedCollection,
   });
 
-  // Dual window: Save write-through into workingSnapshot + patch OUR store slice.
+  // ADR-0009: columns are OUR SoT; Save only marks PENDING push intent for linked rows.
   if (savedCollection.shopifyCollectionId) {
-    const linked = await db.collection.findUnique({
+    await db.collection.update({
       where: { id: savedCollection.id },
-      select: {
-        shopifyCollectionId: true,
-        workingSnapshot: true,
-        shopifySnapshot: true,
-        name: true,
-        slug: true,
-        description: true,
-        seoTitle: true,
-        seoDescription: true,
-        syncStatus: true,
+      data: {
+        syncStatus: "PENDING",
+        syncError: null,
       },
     });
-    if (linked?.shopifyCollectionId) {
-      const nextWorking = writeThroughLocalCollectionToProjection(
-        linked.workingSnapshot ?? linked.shopifySnapshot ?? {},
-        {
-          id: linked.shopifyCollectionId,
-          title: linked.name,
-          handle: linked.slug,
-          description: linked.description,
-          seoTitle: linked.seoTitle,
-          seoDescription: linked.seoDescription,
-        },
-      );
-      const nextSyncStatus = linked.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING";
-      await db.collection.update({
-        where: { id: savedCollection.id },
-        data: {
-          workingSnapshot: nextWorking as Prisma.InputJsonValue,
-          syncStatus: nextSyncStatus,
-          syncError: null,
-        },
-      });
-      const { patchOurCollectionWindow } = await import("@/lib/commerce-store/refresh");
-      await patchOurCollectionWindow({
-        shopifyCollectionId: linked.shopifyCollectionId,
-        localCollectionId: savedCollection.id,
-        window: nextWorking,
-      });
-    }
   } else {
     await db.collection.updateMany({
       where: { id: savedCollection.id, shopifyCollectionId: null },
@@ -535,19 +483,15 @@ export async function saveCollectionAction(
   revalidateStorefront();
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
 
-  if (finalCollection.shopifyCollectionId && hasShopifyAdminConfig()) {
-    after(() => {
-      void runCollectionConflictCheck({
-        collectionId: finalCollection.id,
-        requestedBy: currentUser.username,
-      }).catch((error) => {
-        console.error("[saveCollection] scoped conflict check failed", error);
-      });
-    });
+  let syncWarning: string | undefined;
+  if (hasShopifyAdminConfig()) {
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    syncWarning = check.warning;
   }
 
   return {
     success: `${collectionId ? "Collection updated." : "Collection created."}${cascadeNotice}`,
+    syncWarning,
     resetKey: collectionId ? undefined : Date.now(),
     collection: finalCollection,
   };

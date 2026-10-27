@@ -9,16 +9,7 @@ const mocks = vi.hoisted(() => ({
   saveProductAction: vi.fn(),
   deleteProductAction: vi.fn(),
   getSavedProductPayload: vi.fn(),
-  inspectProductSyncAction: vi.fn(),
-  pullSingleProductFromShopifyAction: vi.fn(),
-  pushSingleProductToShopifyAction: vi.fn(),
-  checkProductConflictsAction: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
-  buildOurCommerceStoreAction: vi.fn(),
-  fetchShopifyCommerceStoreAction: vi.fn(),
-  compareAndPersistCommerceStoresAction: vi.fn(),
-  listCustomProductMetafieldDefinitionsAction: vi.fn(),
-  createProductMetafieldDefinitionAction: vi.fn(),
   updateProductMediaAltAction: vi.fn(),
   updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
@@ -44,17 +35,10 @@ vi.mock("@/lib/admin/preserve-scroll", () => ({
   refreshPreservingScroll: (...args: unknown[]) => mocks.refreshPreservingScroll(...args),
 }));
 
-vi.mock("@/app/admin/actions/sync", () => ({
-  inspectProductSyncAction: mocks.inspectProductSyncAction,
-  pullSingleProductFromShopifyAction: mocks.pullSingleProductFromShopifyAction,
-  pushSingleProductToShopifyAction: mocks.pushSingleProductToShopifyAction,
-  checkProductConflictsAction: mocks.checkProductConflictsAction,
-  buildOurCommerceStoreAction: mocks.buildOurCommerceStoreAction,
-  fetchShopifyCommerceStoreAction: mocks.fetchShopifyCommerceStoreAction,
-  compareAndPersistCommerceStoresAction: mocks.compareAndPersistCommerceStoresAction,
-  listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
-  createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 vi.mock("@/app/admin/actions/taxonomy", () => ({
   searchShopifyTaxonomyCategoriesAction: vi.fn().mockResolvedValue({ categories: [] }),
@@ -66,6 +50,7 @@ vi.mock("@/app/admin/actions/product-organization", () => ({
 }));
 
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
+import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
   return {
@@ -99,7 +84,7 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
     syncStatus: "UNLINKED",
     syncError: null,
     shopifySnapshot: null,
-    workingSnapshot: null,
+    extras: null,
     media: [],
     characteristics: [],
     variants: [],
@@ -109,21 +94,53 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
   } as ProductRecord;
 }
 
+function primaryVariant(sku: string, shopifyVariantId: string | null = null) {
+  return {
+    id: "variant-1",
+    shopifyVariantId,
+    title: "Default Title",
+    sku,
+    barcode: null,
+    priceCents: 4500,
+    compareAtCents: null,
+    costCents: null,
+    stockOnHand: 1,
+    weightGrams: null,
+    taxable: true,
+    requiresShipping: true,
+    tracked: true,
+    selectedOptions: [],
+    shopifyInventoryItemId: null,
+    imageUrl: null,
+  } as ProductRecord["variants"][number];
+}
+
+function productSignals(productId: string, presence: "SYNARAVA_ONLY" | "SHOPIFY_ONLY") {
+  return {
+    state: "ready" as const,
+    totalCount: 1,
+    checkedAt: "2026-10-27T10:00:00.000Z",
+    products: {
+      [productId]: {
+        shared: true,
+        sharedCount: 0,
+        leafCount: 1,
+        locales: [],
+        presence,
+      },
+    },
+    recentlyUpdatedProducts: {},
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
-  mocks.checkProductConflictsAction.mockResolvedValue({
+  adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
-    success: "Conflict check complete. No conflicts found.",
   });
-  mocks.buildOurCommerceStoreAction.mockResolvedValue({ our: { version: 1, products: {} } });
-  mocks.fetchShopifyCommerceStoreAction.mockResolvedValue({ shopify: { version: 1, products: {} } });
-  mocks.compareAndPersistCommerceStoresAction.mockResolvedValue({
-    conflicts: [],
-    debug: { ourProductCount: 0, shopifyProductCount: 0, conflictCount: 0 },
-  });
-  mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
-  mocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });
+  adminSyncActionMocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({ definitions: [] });
+  adminSyncActionMocks.createProductMetafieldDefinitionAction.mockResolvedValue({ success: "Created." });
   // The active-locale tab is remembered in sessionStorage per product sku, so
   // tests sharing a sku (they all use "LAVA-1") would otherwise leak their
   // tab state across `it()` blocks.
@@ -139,11 +156,92 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("heading", { name: "Choose an area to edit" })).toBeInTheDocument();
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveValue("Lava Ring");
     expect(screen.getByLabelText(/SKU/)).not.toBeVisible();
-    expect(mocks.inspectProductSyncAction).not.toHaveBeenCalled();
+    expect(adminSyncActionMocks.inspectProductSyncAction).not.toHaveBeenCalled();
+  });
+
+  it("shows Only in Synarava and blocks Create inline when the SKU is missing on every tab", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({ sku: "", variants: [primaryVariant("")] });
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SYNARAVA_ONLY")}
+      />,
+    );
+
+    expect(screen.getByText("Only in Synarava")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create in Shopify" })).toBeDisabled();
+    expect(screen.getByText("SKU required")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Price/ }));
+    expect(screen.getByRole("button", { name: "Create in Shopify" })).toBeDisabled();
+    expect(screen.getByText("SKU required")).toBeInTheDocument();
+  });
+
+  it("keeps Create in Shopify visible for a pending reservation and becomes In sync after push", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      sku: "BA-CH-002",
+      details: {
+        skuAssignmentPendings: {
+          "variant-1": {
+            reservationId: "res-1",
+            sku: "BA-CH-002",
+            familyKey: "jewelry.bracelet",
+            correlationId: "corr-1",
+            idempotencyKey: "idem-1",
+            localVariantId: "variant-1",
+          },
+        },
+      },
+      variants: [primaryVariant("BA-CH-002")],
+    });
+    const linked = makeProduct({
+      ...product,
+      shopifyProductId: "gid://shopify/Product/1",
+      syncStatus: "SYNCED",
+      variants: [primaryVariant("BA-CH-002", "gid://shopify/ProductVariant/1")],
+    });
+    adminSyncActionMocks.pushSingleProductToShopifyAction.mockResolvedValue({
+      success: "Commerce changes pushed to Shopify.",
+      product: linked,
+      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
+    });
+
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SYNARAVA_ONLY")}
+      />,
+    );
+
+    const create = screen.getByRole("button", { name: "Create in Shopify" });
+    expect(create).toBeEnabled();
+    await user.click(create);
+
+    expect(await screen.findByText("In sync")).toBeInTheDocument();
+    expect(adminSyncActionMocks.pushSingleProductToShopifyAction).toHaveBeenCalledWith(product.id);
+    expect(adminSyncActionMocks.loadCatalogConflictSignalsAction).toHaveBeenCalled();
+  });
+
+  it("shows Pull for a Shopify-only product matched to this local row", () => {
+    const product = makeProduct({ variants: [primaryVariant("BA-CH-002")] });
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SHOPIFY_ONLY")}
+      />,
+    );
+
+    expect(screen.getByText("Only in Shopify")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pull" })).toBeEnabled();
   });
 
   it("shows SKU and inventory location table on the Inventory tab", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     const user = userEvent.setup();
@@ -166,19 +264,16 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
   });
 
-  it("checks Shopify sync state on mount when linked", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
-      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
-    });
+  it("does not inspect Shopify on mount when linked (signals only)", async () => {
     const product = makeProduct({ shopifyProductId: "gid://shopify/Product/1" });
     render(<EditProductForm product={product} collections={[]} />);
 
     await act(async () => {});
-    expect(mocks.inspectProductSyncAction).toHaveBeenCalledWith("product-1");
+    expect(adminSyncActionMocks.inspectProductSyncAction).not.toHaveBeenCalled();
   });
 
   it("shows editable Shopify fields and the pulled metafields", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     render(<EditProductForm product={makeProduct({
@@ -321,7 +416,7 @@ describe("EditProductForm", () => {
   });
 
   it("marks a section dirty when edited while linked", async () => {
-    mocks.inspectProductSyncAction.mockResolvedValue({
+    adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
     const user = userEvent.setup();

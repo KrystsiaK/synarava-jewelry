@@ -6,6 +6,7 @@ import { requireAdminSession } from "@/lib/auth/admin-session";
 import { writeAuditLog } from "@/app/admin/actions/shared";
 import {
   importLanguageBundle,
+  previewLanguageBundleImport,
   type LanguageBundle,
   verifyLanguageBundle,
 } from "@/lib/i18n/language-bundle";
@@ -17,20 +18,20 @@ import {
   restoreStorefrontLanguage,
 } from "@/lib/i18n/language-lifecycle";
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
-import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
+import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 
-async function revalidateLanguagesAdmin() {
-  revalidatePath("/admin/translations");
-  invalidateStorefrontLocaleCache();
+async function afterLanguageSettingSave(requestedBy: string): Promise<string | undefined> {
+  if (!hasShopifyAdminConfig()) return undefined;
+  const check = await runAfterSaveCatalogConflictCheck(requestedBy);
+  return check.warning;
 }
 
-export async function getWriteLocalesScopeAction() {
-  await requireAdminSession();
-  try {
-    return { hasWriteLocales: await hasWriteLocalesScope() };
-  } catch {
-    return { hasWriteLocales: false };
-  }
+async function revalidateLanguagesAdmin() {
+  // Locale tabs live under every admin section — refresh the whole tree.
+  revalidatePath("/admin", "layout");
+  revalidatePath("/admin/translations");
+  invalidateStorefrontLocaleCache();
 }
 
 export async function addLanguageAction(input: {
@@ -41,7 +42,7 @@ export async function addLanguageAction(input: {
   name: string;
   nativeName: string;
 }) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
   const result = await addStorefrontLanguage(input);
   if (result.success) {
     await writeAuditLog({
@@ -52,12 +53,14 @@ export async function addLanguageAction(input: {
       metadata: { requiresWriteLocales: result.requiresWriteLocales ?? false },
     });
     await revalidateLanguagesAdmin();
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
 
 export async function hideLanguageAction(code: string) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
   const result = await hideStorefrontLanguage(code);
   if (result.success) {
     await writeAuditLog({
@@ -67,12 +70,14 @@ export async function hideLanguageAction(code: string) {
       after: { status: "RETIRED" },
     });
     await revalidateLanguagesAdmin();
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
 
 export async function restoreLanguageAction(code: string) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
   const result = await restoreStorefrontLanguage(code);
   if (result.success) {
     await writeAuditLog({
@@ -82,6 +87,8 @@ export async function restoreLanguageAction(code: string) {
       after: { status: "PUBLISHED" },
     });
     await revalidateLanguagesAdmin();
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }
@@ -98,8 +105,21 @@ export async function exportLanguageAction(code: string) {
   return { bundle };
 }
 
-export async function importLanguageAction(bundle: LanguageBundle, expectedLocale?: string) {
+/** Dry-run import — counts + sample field changes. Does not write. */
+export async function previewImportLanguageAction(bundle: LanguageBundle, expectedLocale?: string) {
   await requireAdminSession();
+  const verified = verifyLanguageBundle(bundle);
+  if (!verified.ok) return { error: verified.error };
+  try {
+    const preview = await previewLanguageBundleImport(bundle, expectedLocale);
+    return { preview };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+}
+
+export async function importLanguageAction(bundle: LanguageBundle, expectedLocale?: string) {
+  const session = await requireAdminSession();
   const verified = verifyLanguageBundle(bundle);
   if (!verified.ok) return { error: verified.error };
   try {
@@ -112,7 +132,12 @@ export async function importLanguageAction(bundle: LanguageBundle, expectedLocal
       metadata: { checksum: bundle.checksum },
     });
     await revalidateLanguagesAdmin();
-    return { success: `Imported ${result.locale}: ${result.products} products, ${result.collections} collections, ${result.pages} pages.`, result };
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return {
+      success: `Imported ${result.locale}: ${result.products} products, ${result.collections} collections, ${result.pages} pages.`,
+      result,
+      syncWarning,
+    };
   } catch (error) {
     return { error: error instanceof Error ? error.message : String(error) };
   }
@@ -123,7 +148,7 @@ export async function deleteLanguageDataAction(input: {
   typedCode: string;
   exportChecksum: string;
 }) {
-  await requireAdminSession();
+  const session = await requireAdminSession();
   const result = await deleteStorefrontLanguageData(input);
   if (result.success) {
     await writeAuditLog({
@@ -133,6 +158,8 @@ export async function deleteLanguageDataAction(input: {
       metadata: { exportChecksum: input.exportChecksum },
     });
     await revalidateLanguagesAdmin();
+    const syncWarning = await afterLanguageSettingSave(session.username);
+    return { ...result, syncWarning };
   }
   return result;
 }

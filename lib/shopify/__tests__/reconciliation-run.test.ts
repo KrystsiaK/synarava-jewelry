@@ -53,6 +53,7 @@ import {
 } from "@/lib/shopify/reconciliation-run";
 
 function runRow(overrides: Partial<Record<string, unknown>> = {}) {
+  const now = new Date();
   return {
     id: "run-1",
     trigger: "MANUAL",
@@ -60,9 +61,10 @@ function runRow(overrides: Partial<Record<string, unknown>> = {}) {
     checkedCount: 0,
     differenceCount: 0,
     error: null,
-    startedAt: new Date(),
+    startedAt: now,
     completedAt: null,
-    createdAt: new Date(),
+    createdAt: now,
+    updatedAt: now,
     ...overrides,
   };
 }
@@ -102,7 +104,6 @@ describe("runTranslationReconciliation", () => {
       id: "binding-1",
       shopifyResourceId: "gid://shopify/Product/1",
       entityId: "product-1",
-      lastSyncedSnapshot: null,
       createdAt: new Date(),
     }]);
     mocks.loadReconcileSubject.mockResolvedValue({
@@ -115,11 +116,8 @@ describe("runTranslationReconciliation", () => {
     mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
     mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
     mocks.planReconcile.mockReturnValue({ differences: [] });
-    // lastSnapshot: one $queryRaw per locale, none found.
+    // Two-way: no ShopifyTranslationSnapshot read between locales.
     mocks.queryRaw
-      .mockResolvedValueOnce([]) // lastSnapshot(en)
-      .mockResolvedValueOnce([]) // lastSnapshot(pt-PT)
-      .mockResolvedValueOnce([]) // lastSnapshot(ru)
       .mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 3, differenceCount: 0 })]); // runById after finishRun
 
     const result = await runTranslationReconciliation({ trigger: "MANUAL" });
@@ -131,6 +129,16 @@ describe("runTranslationReconciliation", () => {
     expect(mocks.loadReconcileSubject).toHaveBeenCalledTimes(3);
     const checkedLocales = mocks.loadReconcileSubject.mock.calls.map((call) => call[1]);
     expect(checkedLocales).toEqual(["en", "pt-PT", "ru"]);
+    expect(mocks.planReconcile).toHaveBeenCalledTimes(3);
+    // planReconcile(registry, local, remote, metadata) — no base/snapshot arg.
+    for (const call of mocks.planReconcile.mock.calls) {
+      expect(call).toHaveLength(4);
+    }
+    const snapshotQueries = mocks.queryRaw.mock.calls.filter(
+      ([query]) => typeof query === "object" && query !== null && "sql" in query
+        && String((query as { sql: string }).sql).includes("ShopifyTranslationSnapshot"),
+    );
+    expect(snapshotQueries).toHaveLength(0);
   });
 
   function setUpSingleBindingSingleLocaleCheck(differences: Array<Record<string, unknown>>) {
@@ -138,7 +146,6 @@ describe("runTranslationReconciliation", () => {
       id: "binding-1",
       shopifyResourceId: "gid://shopify/Product/1",
       entityId: "product-1",
-      lastSyncedSnapshot: null,
       createdAt: new Date(),
     }]);
     mocks.loadReconcileSubject.mockResolvedValue({
@@ -151,13 +158,12 @@ describe("runTranslationReconciliation", () => {
     mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
     mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
     mocks.planReconcile.mockReturnValue({ differences });
-    mocks.queryRaw.mockResolvedValueOnce([]); // lastSnapshot(en)
   }
 
   it("retires every unresolved row for the (binding, locale) and inserts the fresh ones in the same transaction — including a field still found different, so resolving the new row can never uncover a stale duplicate", async () => {
     setUpSingleBindingSingleLocaleCheck([{
       fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
-      baseValue: null, localValue: "A", shopifyValue: "B",
+      localValue: "A", shopifyValue: "B",
       localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
     }]);
     mocks.queryRaw.mockResolvedValueOnce([runRow({ status: "SUCCEEDED", checkedCount: 1, differenceCount: 1 })]); // runById after finishRun
@@ -199,7 +205,7 @@ describe("runTranslationReconciliation", () => {
   it("does not lose existing conflicts when the insert half of persistDifferences fails — retire and insert roll back together", async () => {
     setUpSingleBindingSingleLocaleCheck([{
       fieldKey: "title", fieldLabel: "Title", targetKind: "native", kind: "conflict",
-      baseValue: null, localValue: "A", shopifyValue: "B",
+      localValue: "A", shopifyValue: "B",
       localFingerprint: "fp-a", shopifyFingerprint: "fp-b", shopifyUpdatedAt: null, shopifyOutdated: false,
     }]);
     mocks.queryRaw.mockResolvedValueOnce([runRow({

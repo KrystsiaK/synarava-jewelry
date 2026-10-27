@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { createHash } from "node:crypto";
@@ -32,6 +31,7 @@ import {
 } from "@/lib/products/shopify-product-specs";
 import {
   formDataHasMetafieldTranslationFields,
+  mergeCustomMetafieldsIntoList,
   mergeMetafieldTranslations,
   metafieldTranslationsFromSnapshot,
   metafieldTranslationTouchesFromForm,
@@ -43,12 +43,11 @@ import {
   mediaAltUpdatesFromForm,
   mediaNodePreviewUrl,
   mergeLocalMediaRowsIntoWorkingMedia,
-  removeWorkingSnapshotMediaAtIndex,
+  removeOurMediaAtIndex,
 } from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
-import { writeThroughLocalCommerceToProjection } from "@/lib/shopify/shopify-projection-diff";
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
@@ -60,7 +59,7 @@ import {
 } from "@/lib/admin/collection-membership-sync";
 import { liveProductRequiresPublishedCollectionMessage } from "@/lib/admin/collection-select-options";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
-import { runProductConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
 import {
   asRecord,
   createDraftToken,
@@ -95,7 +94,7 @@ export type SavedProductPayload = {
   vendor: string | null;
   productType: string | null;
   shopifySnapshot: unknown;
-  workingSnapshot: unknown;
+  extras: unknown;
   seriesLabel: string | null;
   shortDescription: string | null;
   description: string | null;
@@ -223,7 +222,7 @@ export async function getSavedProductPayload(productId: string): Promise<SavedPr
       vendor: true,
       productType: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
       seriesLabel: true,
       shortDescription: true,
       description: true,
@@ -324,7 +323,7 @@ async function finishProductMediaMutation(productId: string, success: string): P
     where: { id: productId },
     select: {
       shopifyProductId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       media: {
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
@@ -338,11 +337,17 @@ async function finishProductMediaMutation(productId: string, success: string): P
   });
 
   if (linked?.shopifyProductId) {
-    const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot ?? {};
-    const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
-      ? baseWindow as Record<string, unknown>
+    const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
+      ? { ...(linked.extras as Record<string, unknown>) }
+      : {};
+    const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
+      ? linked.shopifySnapshot as Record<string, unknown>
       : null;
-    const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+    const baseMedia = Array.isArray(extrasRecord.media)
+      ? [...extrasRecord.media]
+      : Array.isArray(shopifyRecord?.media)
+        ? [...shopifyRecord.media]
+        : [];
     const media = mergeLocalMediaRowsIntoWorkingMedia({
       baseMedia,
       localRows: linked.media.map((item) => ({
@@ -353,20 +358,13 @@ async function finishProductMediaMutation(productId: string, success: string): P
         height: item.asset.height,
       })),
     });
-    const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, { media });
     await db.product.update({
       where: { id: productId },
       data: {
         syncStatus: "PENDING",
         syncError: null,
-        workingSnapshot: nextWorking as Prisma.InputJsonValue,
+        extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
       },
-    });
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: linked.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
     });
   } else {
     await db.product.updateMany({
@@ -495,7 +493,7 @@ export async function updateProductMediaAltAction(
 }
 
 /**
- * Update alt on OUR workingSnapshot.media when local ProductMedia rows are empty
+ * Update alt on OUR extras.media when local ProductMedia rows are empty
  * (typical after Pull). Index matches Media tab order.
  */
 export async function updateWorkingSnapshotMediaAltAction(
@@ -506,17 +504,21 @@ export async function updateWorkingSnapshotMediaAltAction(
   await requireAdminSession("/admin/products");
   const product = await db.product.findUnique({
     where: { id: productId },
-    select: { id: true, shopifyProductId: true, workingSnapshot: true, shopifySnapshot: true },
+    select: { id: true, shopifyProductId: true, extras: true, shopifySnapshot: true },
   });
   if (!product) return { error: "Product not found." };
 
-  const base =
-    product.workingSnapshot && typeof product.workingSnapshot === "object"
-      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
-      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
-        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
-        : {};
-  const media = Array.isArray(base.media) ? [...base.media] : [];
+  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
+    ? structuredClone(product.extras) as Record<string, unknown>
+    : {};
+  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
+    ? product.shopifySnapshot as Record<string, unknown>
+    : null;
+  const media = Array.isArray(extrasRecord.media)
+    ? [...extrasRecord.media]
+    : Array.isArray(shopifyRecord?.media)
+      ? [...shopifyRecord.media]
+      : [];
   if (mediaIndex < 0 || mediaIndex >= media.length) {
     return { error: "Gallery image not found in the commerce tree." };
   }
@@ -525,7 +527,6 @@ export async function updateWorkingSnapshotMediaAltAction(
     return { error: "Gallery image not found in the commerce tree." };
   }
   media[mediaIndex] = { ...node, alt: alt.trim() };
-  const nextWorking = writeThroughLocalCommerceToProjection(base, { media });
 
   await db.product.update({
     where: { id: productId },
@@ -533,17 +534,9 @@ export async function updateWorkingSnapshotMediaAltAction(
       ...(product.shopifyProductId
         ? { syncStatus: "PENDING" as const, syncError: null }
         : {}),
-      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
     },
   });
-  if (product.shopifyProductId) {
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: product.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
-    });
-  }
 
   revalidatePath("/admin/products");
   revalidateStorefront();
@@ -551,7 +544,7 @@ export async function updateWorkingSnapshotMediaAltAction(
 }
 
 /**
- * Remove a gallery frame from OUR workingSnapshot.media (Media tab after Pull).
+ * Remove a gallery frame from OUR extras.media (Media tab after Pull).
  * Marks sync PENDING; Push omits the Shopify media id so productSet deletes it remotely.
  */
 export async function removeWorkingSnapshotMediaAction(
@@ -564,7 +557,7 @@ export async function removeWorkingSnapshotMediaAction(
     select: {
       id: true,
       shopifyProductId: true,
-      workingSnapshot: true,
+      extras: true,
       shopifySnapshot: true,
       media: { select: { id: true }, take: 1 },
     },
@@ -574,18 +567,21 @@ export async function removeWorkingSnapshotMediaAction(
     return { error: "Use Remove on the staging gallery row for this product." };
   }
 
-  const base =
-    product.workingSnapshot && typeof product.workingSnapshot === "object"
-      ? structuredClone(product.workingSnapshot) as Record<string, unknown>
-      : product.shopifySnapshot && typeof product.shopifySnapshot === "object"
-        ? structuredClone(product.shopifySnapshot) as Record<string, unknown>
-        : {};
-  const currentMedia = Array.isArray(base.media) ? [...base.media] : [];
-  const nextMedia = removeWorkingSnapshotMediaAtIndex(currentMedia, mediaIndex);
+  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
+    ? structuredClone(product.extras) as Record<string, unknown>
+    : {};
+  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
+    ? product.shopifySnapshot as Record<string, unknown>
+    : null;
+  const currentMedia = Array.isArray(extrasRecord.media)
+    ? [...extrasRecord.media]
+    : Array.isArray(shopifyRecord?.media)
+      ? [...shopifyRecord.media]
+      : [];
+  const nextMedia = removeOurMediaAtIndex(currentMedia, mediaIndex);
   if (!nextMedia) {
     return { error: "Gallery image not found in the commerce tree." };
   }
-  const nextWorking = writeThroughLocalCommerceToProjection(base, { media: nextMedia });
   const coverUrl = nextMedia.length > 0 ? mediaNodePreviewUrl(nextMedia[0]) : null;
 
   await db.product.update({
@@ -594,18 +590,10 @@ export async function removeWorkingSnapshotMediaAction(
       ...(product.shopifyProductId
         ? { syncStatus: "PENDING" as const, syncError: null }
         : {}),
-      workingSnapshot: nextWorking as Prisma.InputJsonValue,
+      extras: { ...extrasRecord, media: nextMedia } as Prisma.InputJsonValue,
       imageUrl: coverUrl,
     },
   });
-  if (product.shopifyProductId) {
-    const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-    await patchOurProductWindow({
-      shopifyProductId: product.shopifyProductId,
-      localProductId: productId,
-      window: nextWorking,
-    });
-  }
 
   revalidatePath("/admin/products");
   revalidateStorefront();
@@ -849,7 +837,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   // touched identities (including empties) clear without wiping untouched keys.
   const metafieldTranslations = parsedMetafieldTranslations
     ? mergeMetafieldTranslations(
-      metafieldTranslationsFromSnapshot(before?.workingSnapshot ?? before?.shopifySnapshot),
+      metafieldTranslationsFromSnapshot(before?.extras ?? before?.shopifySnapshot),
       parsedMetafieldTranslations,
       metafieldTranslationTouchesFromForm(formData),
     )
@@ -1127,63 +1115,31 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
     return { locale, copy, reviewed, syncStatus, contentHash, previousHandle: previousTranslation?.localizedHandle };
   });
-  await db.$transaction([
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "en" } },
-      update: {
-        title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
-        materialLine: materialLine || null,
-        symbolismLabel: symbolismLabel || null,
-        symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null,
-        symbolismBody2: symbolismBody2 || null,
-        details: details as Prisma.InputJsonValue,
-        seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-      create: {
-        productId: product.id,
-        locale: "en",
-        title: name,
-        shortDescription: shortDescription || null,
-        description: description || null,
-        materialLine: materialLine || null,
-        symbolismLabel: symbolismLabel || null,
-        symbolismTitle: symbolismTitle || null,
-        symbolismBody: symbolismBody || null,
-        symbolismBody2: symbolismBody2 || null,
-        details: details as Prisma.InputJsonValue,
-        seoTitle: seoTitle || null,
-        seoDescription: seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-    }),
-    ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale } },
-      update: {
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-        syncError: null,
-      },
-      create: {
-        productId: product.id,
-        locale,
-        ...copy,
-        reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-        reviewedAt: reviewed ? new Date() : null,
-        contentHash,
-        syncStatus,
-      },
-    })),
-  ]);
+  // Default locale (EN) lives only on Product base columns — never ProductTranslation.
+  if (translationUpserts.length > 0) {
+    await db.$transaction([
+      ...translationUpserts.map(({ locale, copy, reviewed, syncStatus, contentHash }) => db.productTranslation.upsert({
+        where: { productId_locale: { productId: product.id, locale } },
+        update: {
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+          syncError: null,
+        },
+        create: {
+          productId: product.id,
+          locale,
+          ...copy,
+          reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
+          reviewedAt: reviewed ? new Date() : null,
+          contentHash,
+          syncStatus,
+        },
+      })),
+    ]);
+  }
   await Promise.all(translationUpserts.map(({ locale, copy, previousHandle }) => recordLocalizedHandleRedirect({
     entityType: "PRODUCT",
     entityId: product.id,
@@ -1257,13 +1213,13 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     ]);
   }
 
-  // Dual snapshot: Save updates working only; shopifySnapshot changes on refresh/pull.
+  // ADR-0009: Save updates columns + extras orphans; shopifySnapshot changes on refresh/pull.
   if (before?.shopifyProductId) {
     const linked = await db.product.findUnique({
       where: { id: product.id },
       select: {
         shopifyProductId: true,
-        workingSnapshot: true,
+        extras: true,
         shopifySnapshot: true,
         name: true,
         slug: true,
@@ -1285,16 +1241,20 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       },
     });
     if (linked?.shopifyProductId) {
-      const variant = linked.variants[0];
-      const baseWindow = linked.workingSnapshot ?? linked.shopifySnapshot;
-      let mediaPatch: unknown[] | undefined;
-      const windowRecord = baseWindow && typeof baseWindow === "object" && !Array.isArray(baseWindow)
-        ? baseWindow as Record<string, unknown>
+      // ADR-0009: columns already updated above; patch orphan keys into extras only.
+      const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
+        ? { ...(linked.extras as Record<string, unknown>) }
+        : {};
+      const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
+        ? linked.shopifySnapshot as Record<string, unknown>
         : null;
-      const baseMedia = Array.isArray(windowRecord?.media) ? [...windowRecord.media] : [];
+      const baseMedia = Array.isArray(extrasRecord.media)
+        ? [...extrasRecord.media]
+        : Array.isArray(shopifyRecord?.media)
+          ? [...shopifyRecord.media]
+          : [];
+      let mediaPatch: unknown[] | undefined;
       if (linked.media.length > 0) {
-        // Prefer local alts; keep prior OUR-tree alts when staging alt is still empty
-        // so Save cannot collapse distinct gallery copy into blanks / product title.
         mediaPatch = mergeLocalMediaRowsIntoWorkingMedia({
           baseMedia,
           localRows: linked.media.map((item) => ({
@@ -1308,41 +1268,20 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       } else if (mediaAltUpdates.tree.length > 0) {
         mediaPatch = applyTreeMediaAltUpdates(baseMedia, mediaAltUpdates.tree);
       }
-      const nextWorking = writeThroughLocalCommerceToProjection(baseWindow, {
-        title: linked.name,
-        descriptionHtml: sanitizeRichTextHtml(normalizeRichTextForEditor(rich.description ?? "")),
-        seo: { title: seoTitle || "", description: rich.seoDescription || "" },
-        handle: linked.slug,
-        vendor: linked.vendor,
-        productType: linked.productType,
-        tags: tagSlugs.map((slug) => slug.replace(/-/g, " ")),
-        customMetafields: customMetafields.length > 0 ? customMetafields : undefined,
-        metafieldTranslations,
-        media: mediaPatch,
-        variant: variant
-          ? {
-              shopifyVariantId: variant.shopifyVariantId,
-              sku: variant.sku,
-              priceCents: variant.priceCents,
-              taxable: variant.taxable,
-              inventoryQuantity: variant.stockOnHand,
-            }
-          : {
-              sku,
-              priceCents,
-              taxable,
-              inventoryQuantity: stockOnHand,
-            },
-      });
+      const nextExtras: Record<string, unknown> = { ...extrasRecord };
+      if (mediaPatch !== undefined) nextExtras.media = mediaPatch;
+      if (customMetafields.length > 0) {
+        nextExtras.metafields = mergeCustomMetafieldsIntoList(
+          extrasRecord.metafields ?? shopifyRecord?.metafields ?? [],
+          customMetafields,
+        );
+      }
+      if (metafieldTranslations) {
+        nextExtras.metafieldTranslations = metafieldTranslations;
+      }
       await db.product.update({
         where: { id: product.id },
-        data: { workingSnapshot: nextWorking as Prisma.InputJsonValue },
-      });
-      const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-      await patchOurProductWindow({
-        shopifyProductId: linked.shopifyProductId,
-        localProductId: product.id,
-        window: nextWorking,
+        data: { extras: nextExtras as Prisma.InputJsonValue },
       });
     }
   }
@@ -1421,12 +1360,12 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   let savedProduct = await getSavedProductPayload(product.id);
   const commerceChanged = !before || productCommerceSignature(before) !== productCommerceSignature(savedProduct);
+  // Conflict inventory is SyncResult leaves — do not specially preserve CONFLICT.
+  // Commerce edit → PENDING (push intent). Identity CONFLICT stays until resolved.
   const nextSyncStatus = savedProduct.shopifyProductId
-    ? before?.syncStatus === "CONFLICT"
-      ? "CONFLICT"
-      : commerceChanged
-        ? "PENDING"
-        : savedProduct.syncStatus
+    ? commerceChanged
+      ? "PENDING"
+      : savedProduct.syncStatus
     : "UNLINKED";
 
   if (savedProduct.syncStatus !== nextSyncStatus || savedProduct.syncError) {
@@ -1445,15 +1384,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     after: savedProduct,
   });
 
-  if (savedProduct.shopifyProductId && hasShopifyAdminConfig()) {
-    after(() => {
-      void runProductConflictCheck({
-        productId: savedProduct.id,
-        requestedBy: currentUser.username,
-      }).catch((error) => {
-        console.error("[saveProduct] scoped conflict check failed", error);
-      });
-    });
+  let syncWarning: string | undefined;
+  if (hasShopifyAdminConfig()) {
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    syncWarning = check.warning;
   }
 
   return {
@@ -1461,6 +1395,7 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
       ? `${wasCreate ? "Product created" : "Product saved"} locally. Commerce changes are ready to push.`
       : `${wasCreate ? "Product created" : "Product saved"} locally. Shopify commerce data is unchanged.`,
     warning: publishWarning,
+    syncWarning,
     created: wasCreate,
     product: savedProduct,
   };
@@ -1591,69 +1526,45 @@ export async function autosaveProductDraftAction(formData: FormData): Promise<Dr
     throw error;
   }
 
-  await db.$transaction([
-    db.productTranslation.upsert({
-      where: { productId_locale: { productId: product.id, locale: "en" } },
-      update: {
-        title: name,
-        shortDescription: richDraft.shortDescription || null,
-        description: richDraft.description || null,
-        materialLine: materialLine || null,
-        details: draftDetails,
-        seoTitle: seoTitle || null,
-        seoDescription: richDraft.seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-      create: {
-        productId: product.id,
-        locale: "en",
-        title: name,
-        shortDescription: richDraft.shortDescription || null,
-        description: richDraft.description || null,
-        materialLine: materialLine || null,
-        details: draftDetails,
-        seoTitle: seoTitle || null,
-        seoDescription: richDraft.seoDescription || null,
-        reviewStatus: "REVIEWED",
-        reviewedAt: new Date(),
-      },
-    }),
-    ...translationFields.map(({ code: locale, fields }) => {
-      const richTranslation = normalizeRichTextFields(
-        {
-          shortDescription: fields.shortDescription,
-          description: fields.description,
-          seoDescription: fields.seoDescription,
-        },
-        ["shortDescription", "description", "seoDescription"],
-      );
-      return db.productTranslation.upsert({
-        where: { productId_locale: { productId: product.id, locale } },
-        update: {
-          title: fields.title,
-          shortDescription: richTranslation.shortDescription || null,
-          description: richTranslation.description || null,
-          materialLine: fields.materialLine || null,
-          seoTitle: fields.seoTitle || null,
-          seoDescription: richTranslation.seoDescription || null,
-          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-          syncStatus: "NOT_APPLICABLE",
-        },
-        create: {
-          productId: product.id,
-          locale,
-          title: fields.title,
-          shortDescription: richTranslation.shortDescription || null,
-          description: richTranslation.description || null,
-          materialLine: fields.materialLine || null,
-          seoTitle: fields.seoTitle || null,
-          seoDescription: richTranslation.seoDescription || null,
-          reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
-        },
-      });
-    }),
-  ]);
+  // Default locale (EN) lives only on Product base columns — never ProductTranslation.
+  if (translationFields.length > 0) {
+    await db.$transaction([
+      ...translationFields.map(({ code: locale, fields }) => {
+        const richTranslation = normalizeRichTextFields(
+          {
+            shortDescription: fields.shortDescription,
+            description: fields.description,
+            seoDescription: fields.seoDescription,
+          },
+          ["shortDescription", "description", "seoDescription"],
+        );
+        return db.productTranslation.upsert({
+          where: { productId_locale: { productId: product.id, locale } },
+          update: {
+            title: fields.title,
+            shortDescription: richTranslation.shortDescription || null,
+            description: richTranslation.description || null,
+            materialLine: fields.materialLine || null,
+            seoTitle: fields.seoTitle || null,
+            seoDescription: richTranslation.seoDescription || null,
+            reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+            syncStatus: "NOT_APPLICABLE",
+          },
+          create: {
+            productId: product.id,
+            locale,
+            title: fields.title,
+            shortDescription: richTranslation.shortDescription || null,
+            description: richTranslation.description || null,
+            materialLine: fields.materialLine || null,
+            seoTitle: fields.seoTitle || null,
+            seoDescription: richTranslation.seoDescription || null,
+            reviewStatus: fields.reviewedFlag === "on" ? "REVIEWED" : "DRAFT",
+          },
+        });
+      }),
+    ]);
+  }
 
   revalidatePath("/admin/products");
   revalidatePath("/admin");
@@ -1776,9 +1687,8 @@ export async function updateProductStatusAction(formData: FormData): Promise<Pro
     where: { id: productId },
     data: {
       ...state,
-      syncStatus: before?.shopifyProductId
-        ? before.syncStatus === "CONFLICT" ? "CONFLICT" : "PENDING"
-        : "UNLINKED",
+      // Status change is push intent — conflict inventory is SyncResult leaves.
+      syncStatus: before?.shopifyProductId ? "PENDING" : "UNLINKED",
       syncError: null,
     },
     select: { id: true, slug: true, status: true },

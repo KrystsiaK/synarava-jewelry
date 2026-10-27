@@ -1,0 +1,20 @@
+{
+  "note": "Redacted shop probe for ground-truth capture.",
+  "apiVersion": "2026-07",
+  "grantedScope": "read_products,read_inventory,read_locales,read_translations,read_publications,read_metaobjects,read_metaobject_definitions",
+  "plan": {
+    "displayName": "Title 9e0c98",
+    "partnerDevelopment": true,
+    "shopifyPlus": false
+  },
+  "cost": {
+    "requestedQueryCost": 2,
+    "actualQueryCost": 2,
+    "throttleStatus": {
+      "maximumAvailable": 2000,
+      "currentlyAvailable": 1998,
+      "restoreRate": 100
+    }
+  },
+  "errors": null
+}

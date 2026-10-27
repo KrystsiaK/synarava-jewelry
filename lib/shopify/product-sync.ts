@@ -2,7 +2,7 @@ import "server-only";
 
 import { fetchInventoryLevels, selectStockOnHand, type ShopifyInventoryLevel } from "@/lib/shopify/inventory-levels";
 
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { DeleteObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
@@ -51,9 +51,9 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import {
-  rawMediaAltsFromWorkingSnapshot,
+  rawMediaAltsFromOurWindow,
   resolveGalleryMediaAlt,
-  workingSnapshotMediaNodes,
+  ourMediaNodes,
 } from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
@@ -71,19 +71,39 @@ import {
 import {
   decideProductTranslationPull,
   fetchProductTranslation,
+  hasShopifySharedTranslationCopy,
   registerProductTranslation,
   type ShopifyProductTranslationSnapshot,
 } from "@/lib/shopify/translations";
-import { applyShopifyProductTypeLabel } from "@/lib/catalog/taxonomy-value-labels";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import {
+  mirrorInventoryItem,
+  mirrorProductCollections,
+  weightInGrams,
+} from "@/lib/shopify/commerce-mirror-shape";
 import {
   canonicalizeShopifyProjection,
   diffShopifyProjections,
   getProjectionPath,
   setProjectionPath,
   alignMetafieldResolvedValues,
-  writeThroughLocalCommerceToProjection,
 } from "@/lib/shopify/shopify-projection-diff";
+import {
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
+import {
+  extractProductExtrasFromWorkingSnapshot,
+  productExtrasFromShopifySnapshot,
+} from "@/lib/sync/extras";
+import { mapShopifyProductSnapshotToDeriveInput } from "@/lib/shopify/pull-product-mapping";
+import { ourProductWindowFromRow } from "@/lib/sync/our-window-from-row";
+
+export {
+  ADOPT_SHOPIFY_FIELD_KEY,
+  ADOPT_SHOPIFY_FIELD_LABEL,
+  ADOPT_SHOPIFY_FIELD_PATH,
+} from "@/lib/shopify/catalog-conflict-policy";
 
 type UserError = { field?: string[]; message: string };
 type ShopifyMetafield = {
@@ -318,17 +338,6 @@ function metafieldType(valueType: "TEXT" | "NUMBER" | "BOOLEAN") {
   return "single_line_text_field";
 }
 
-function weightInGrams(weight: NonNullable<NonNullable<ShopifyProduct["variants"]["nodes"][number]["inventoryItem"]>["measurement"]>["weight"]) {
-  if (!weight || weight.value <= 0) return null;
-  const multiplier = {
-    GRAMS: 1,
-    KILOGRAMS: 1000,
-    OUNCES: 28.349523125,
-    POUNDS: 453.59237,
-  }[weight.unit];
-  return Math.round(weight.value * multiplier * 10000) / 10000;
-}
-
 /** Shopify-shaped projection; noise stripped before persist and before compare. */
 export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return canonicalizeShopifyProjection({
@@ -345,7 +354,7 @@ export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJ
     media: remote.media.nodes,
     options: remote.options,
     metafields: remote.metafields.nodes,
-    collections: remote.collections.nodes,
+    collections: mirrorProductCollections(remote.collections.nodes),
     publications: remote.resourcePublicationsV2.nodes,
     totalInventory: remote.totalInventory,
     variants: remote.variants.nodes.map((variant) => ({
@@ -359,7 +368,7 @@ export function snapshotForShopifyProduct(remote: ShopifyProduct): Prisma.InputJ
       inventoryQuantity: variant.inventoryQuantity,
       taxable: variant.taxable,
       selectedOptions: variant.selectedOptions,
-      inventoryItem: variant.inventoryItem,
+      inventoryItem: mirrorInventoryItem(variant.inventoryItem),
     })),
     updatedAt: remote.updatedAt,
   }) as Prisma.InputJsonValue;
@@ -370,8 +379,8 @@ function snapshotForProduct(remote: ShopifyProduct): Prisma.InputJsonValue {
   return snapshotForShopifyProduct(remote);
 }
 
-/** L and B agree with live Shopify after successful pull/push. */
-async function agreedProjectionWrite(remote: ShopifyProduct) {
+/** Shopify-side window only (metafield locale overlays included). Never writes Synarava. */
+async function shopifySnapshotOnlyWrite(remote: ShopifyProduct) {
   const snap = snapshotForProduct(remote);
   const { fetchCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
     "@/lib/shopify/product-metafield-translations"
@@ -382,8 +391,19 @@ async function agreedProjectionWrite(remote: ShopifyProduct) {
     metafieldRefsFromNodes(remote.metafields.nodes),
     locales.map((locale) => ({ code: locale.code, shopifyLocale: locale.shopifyLocale })),
   );
-  const withTranslations = withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
-  return { shopifySnapshot: withTranslations, workingSnapshot: withTranslations };
+  return withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
+}
+
+/** Shopify observation + extras orphans agree after successful human pull/push (ADR-0009). */
+async function agreedProjectionWrite(remote: ShopifyProduct) {
+  const withTranslations = await shopifySnapshotOnlyWrite(remote);
+  const extras = productExtrasFromShopifySnapshot(withTranslations);
+  return {
+    shopifySnapshot: withTranslations,
+    extras: Object.keys(extras).length > 0
+      ? (extras as Prisma.InputJsonValue)
+      : Prisma.JsonNull,
+  };
 }
 
 async function syncOnlineStorePublication(productId: string, published: boolean) {
@@ -756,6 +776,8 @@ type SavePulledProductOptions = {
   force?: boolean;
   /** When false, skip locale translation pull (product webhooks). Default true. */
   pullTranslations?: boolean;
+  /** Precomputed snapshot→pull mapping (required when finishing a human pull). */
+  pulled?: ReturnType<typeof mapShopifyProductSnapshotToDeriveInput>;
 };
 
 async function savePulledProduct(
@@ -804,13 +826,7 @@ async function savePulledProduct(
     const remoteIsNewer = !existingById.shopifyUpdatedAt ||
       new Date(remote.updatedAt).getTime() > existingById.shopifyUpdatedAt.getTime();
     if (remoteIsNewer) {
-      await db.product.update({
-        where: { id: existingById.id },
-        data: {
-          syncStatus: "CONFLICT",
-          syncError: "Commerce fields changed in both Synarava and Shopify. Choose which version should win.",
-        },
-      });
+      // Skip auto-apply; conflict SoT is SyncResult leaves — do not flag syncStatus.
       if (eventId) await db.productSyncEvent.update({
         where: { id: eventId },
         data: {
@@ -831,24 +847,35 @@ async function savePulledProduct(
   }
 
   const projectionWrite = await agreedProjectionWrite(remote);
+  const stockByVariantId = Object.fromEntries(
+    remote.variants.nodes.map((variant) => [
+      variant.id,
+      selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID),
+    ]),
+  );
+  const pulled = mapShopifyProductSnapshotToDeriveInput(projectionWrite.shopifySnapshot, {
+    stockByVariantId,
+  });
   const product = await db.product.upsert({
     where: existing ? { id: existing.id } : { shopifyProductId: remote.id },
     update: {
       shopifyProductId: remote.id,
       shopifyHandle: remote.handle,
-      slug: remote.handle,
+      slug: pulled.slug,
       sku: remoteSku,
-      name: remote.title,
-      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
-      vendor: remote.vendor || null,
-      shopifyCategoryId: remote.category?.id ?? null,
-      shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
-      seoTitle: remote.seo.title || null,
-      seoDescription: remote.seo.description || null,
+      name: pulled.name,
+      description: pulled.description,
+      vendor: pulled.vendor || null,
+      shopifyCategoryId: pulled.shopifyCategoryId ?? null,
+      shopifyCategoryName: pulled.shopifyCategoryName ?? null,
+      seoTitle: pulled.seoTitle || null,
+      seoDescription: pulled.seoDescription || null,
       ...projectionWrite,
-      productType: remote.productType || null,
-      priceCents: shopifyAmountToCents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
+      productType: pulled.productType || null,
+      currency: pulled.currency,
+      priceCents: pulled.variants[0]?.priceCents ?? shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: pulled.variants[0]?.compareAtCents
+        ?? (firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null),
       imageUrl,
       status: remote.status,
       visibility,
@@ -864,20 +891,21 @@ async function savePulledProduct(
     create: {
       shopifyProductId: remote.id,
       shopifyHandle: remote.handle,
-      slug: remote.handle,
+      slug: pulled.slug,
       sku: remoteSku,
-      name: remote.title,
-      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
-      vendor: remote.vendor || null,
-      shopifyCategoryId: remote.category?.id ?? null,
-      shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
-      seoTitle: remote.seo.title || null,
-      seoDescription: remote.seo.description || null,
+      name: pulled.name,
+      description: pulled.description,
+      vendor: pulled.vendor || null,
+      shopifyCategoryId: pulled.shopifyCategoryId ?? null,
+      shopifyCategoryName: pulled.shopifyCategoryName ?? null,
+      seoTitle: pulled.seoTitle || null,
+      seoDescription: pulled.seoDescription || null,
       ...projectionWrite,
-      productType: remote.productType || null,
-      currency: "EUR",
-      priceCents: shopifyAmountToCents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
+      productType: pulled.productType || null,
+      currency: pulled.currency,
+      priceCents: pulled.variants[0]?.priceCents ?? shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: pulled.variants[0]?.compareAtCents
+        ?? (firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null),
       imageUrl,
       status: remote.status,
       visibility,
@@ -894,6 +922,7 @@ async function savePulledProduct(
     return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, {
       force,
       pullTranslations,
+      pulled,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Shopify pull failed after the product row was written.";
@@ -915,7 +944,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  { force = false, pullTranslations = true }: SavePulledProductOptions = {},
+  { pullTranslations = true, pulled }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -924,8 +953,9 @@ async function finishPulledProduct(
   const TRANSLATION_STATUS_RANK = { SYNCED: 0, LOCAL_CHANGES: 1, CONFLICT: 2, UNAVAILABLE: 3 } as const;
   let translationStatus: keyof typeof TRANSLATION_STATUS_RANK = "SYNCED";
 
-  // Product webhooks update commerce only — Shopify has no translation-update
-  // webhooks; translations reconcile via explicit conflict check / manual pull.
+  // Pull translations = fetch Shopify copy + flag divergences only.
+  // Never auto-apply / upsert ProductTranslation / TaxonomyValueLabel —
+  // human Apply (reconcile field apply) is the only Synarava content write path.
   const translationLocales = pullTranslations
     ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
     : [];
@@ -945,17 +975,6 @@ async function finishPulledProduct(
     }
     if (!translationAvailable) continue;
 
-    // Shared taxonomy overlay: PRODUCT.product_type translation → one EN value.
-    // Pull-only; never invent a parallel commerce type. Category SPT has no
-    // Translations API surface — Synarava overlays cover those gaps.
-    if (remoteTranslation?.productType && remote.productType?.trim()) {
-      await applyShopifyProductTypeLabel({
-        enProductType: remote.productType,
-        locale: translationLocale.code,
-        label: remoteTranslation.productType,
-      });
-    }
-
     const localShopifyCopy = localTranslation ? {
       handle: "",
       title: localTranslation.title,
@@ -963,141 +982,76 @@ async function finishPulledProduct(
       seoTitle: localTranslation.seoTitle ?? "",
       seoDescription: localTranslation.seoDescription ?? "",
     } : null;
+    // force:false — pull only flags divergence; never auto-writes Synarava copy.
     const decision = decideProductTranslationPull({
       local: localShopifyCopy,
-      localSyncStatus: localTranslation?.syncStatus ?? "NOT_APPLICABLE",
-      localLastSyncedAt: localTranslation?.lastSyncedAt ?? null,
       remote: remoteTranslation,
-      force,
+      force: false,
     });
+    if (decision === "UNCHANGED") continue;
 
-    if (decision === "CONFLICT" && localTranslation) {
-      if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "CONFLICT";
+    // Any Synarava ≠ Shopify difference is a divergence; human picks direction.
+    if (TRANSLATION_STATUS_RANK.CONFLICT > TRANSLATION_STATUS_RANK[translationStatus]) {
+      translationStatus = "CONFLICT";
+    }
+    if (localTranslation) {
       await db.productTranslation.update({
         where: { id: localTranslation.id },
         data: {
           syncStatus: "CONFLICT",
-          syncError: `${translationLocale.name} copy changed in both Synarava and Shopify. Choose Pull or Push to resolve it.`,
+          syncError: `${translationLocale.name} Synarava and Shopify translations differ. Choose which side to keep on Apply.`,
         },
       });
-    } else if (decision === "KEEP_LOCAL") {
-      if (TRANSLATION_STATUS_RANK.LOCAL_CHANGES > TRANSLATION_STATUS_RANK[translationStatus]) translationStatus = "LOCAL_CHANGES";
-    } else if (decision === "APPLY_REMOTE" || decision === "UNCHANGED") {
-      if (remoteTranslation || localTranslation) {
-        const mergedCopy = {
-          localizedHandle: null as string | null,
-          title: remoteTranslation?.title ?? "",
-          shortDescription: localTranslation?.shortDescription ?? null,
-          description: remoteTranslation ? sanitizeRichTextHtml(remoteTranslation.descriptionHtml) || null : null,
-          materialLine: localTranslation?.materialLine ?? null,
-          symbolismLabel: localTranslation?.symbolismLabel ?? null,
-          symbolismTitle: localTranslation?.symbolismTitle ?? null,
-          symbolismBody: localTranslation?.symbolismBody ?? null,
-          symbolismBody2: localTranslation?.symbolismBody2 ?? null,
-          details: localTranslation?.details ?? undefined,
-          seoTitle: remoteTranslation?.seoTitle || null,
-          seoDescription: remoteTranslation?.seoDescription || null,
-        };
-        const contentHash = createHash("sha256").update(JSON.stringify({
-          title: mergedCopy.title,
-          shortDescription: mergedCopy.shortDescription,
-          description: mergedCopy.description,
-          materialLine: mergedCopy.materialLine,
-          symbolismLabel: mergedCopy.symbolismLabel,
-          symbolismTitle: mergedCopy.symbolismTitle,
-          symbolismBody: mergedCopy.symbolismBody,
-          symbolismBody2: mergedCopy.symbolismBody2,
-          seoTitle: mergedCopy.seoTitle,
-          seoDescription: mergedCopy.seoDescription,
-        })).digest("hex");
-        const reviewed = Boolean(
-          remoteTranslation?.title
-          && mergedCopy.description
-          && mergedCopy.shortDescription
-          && localTranslation?.reviewStatus === "REVIEWED"
-          && !remoteTranslation.outdated,
-        );
-        await db.productTranslation.upsert({
-          where: { productId_locale: { productId: product.id, locale: translationLocale.code } },
-          update: {
-            ...mergedCopy,
-            reviewStatus: reviewed ? "REVIEWED" : "DRAFT",
-            reviewedAt: reviewed ? localTranslation?.reviewedAt ?? new Date() : null,
-            syncStatus: "SYNCED",
-            syncError: null,
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-          create: {
-            productId: product.id,
-            locale: translationLocale.code,
-            ...mergedCopy,
-            reviewStatus: "DRAFT",
-            syncStatus: "SYNCED",
-            contentHash,
-            lastSyncedAt: remoteTranslation?.updatedAt ? new Date(remoteTranslation.updatedAt) : new Date(),
-          },
-        });
-      }
     }
   }
 
+  const mappedVariants = pulled?.variants ?? mapShopifyProductSnapshotToDeriveInput(
+    snapshotForShopifyProduct(remote),
+    {
+      stockByVariantId: Object.fromEntries(
+        remote.variants.nodes.map((variant) => [
+          variant.id,
+          selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID),
+        ]),
+      ),
+    },
+  ).variants;
+
   const pulledVariantIds: string[] = [];
-  for (const variant of remote.variants.nodes) {
-    const sku = variant.sku?.trim()
+  for (const mapped of mappedVariants) {
+    const variantId = mapped.shopifyVariantId;
+    if (!variantId) continue;
+    const sku = mapped.sku.trim()
       || localSkuForEmptyShopifySku({
         shopifyProductId: remote.id,
-        shopifyVariantId: variant.id,
+        shopifyVariantId: variantId,
       });
-    // Same Shopify-compatible stock contract as the inventory_levels/update webhook
-    // (REV-05) — otherwise a multi-location product's stock flips depending on
-    // whether it was last touched by a full pull or the webhook.
-    const stockOnHand = selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID);
-    const byRemoteId = await db.productVariant.findUnique({ where: { shopifyVariantId: variant.id } });
+    const byRemoteId = await db.productVariant.findUnique({ where: { shopifyVariantId: variantId } });
+    const inventoryPolicy = (mapped.inventoryPolicy === "CONTINUE" ? "CONTINUE" : "DENY") as
+      "DENY" | "CONTINUE";
+    const variantFields = {
+      productId: product.id,
+      shopifyVariantId: variantId,
+      shopifyInventoryItemId: mapped.shopifyInventoryItemId ?? null,
+      sku,
+      title: mapped.title,
+      priceCents: mapped.priceCents,
+      compareAtCents: mapped.compareAtCents ?? null,
+      costCents: mapped.costCents ?? null,
+      stockOnHand: mapped.stockOnHand,
+      barcode: mapped.barcode ?? null,
+      inventoryPolicy,
+      taxable: mapped.taxable,
+      requiresShipping: mapped.requiresShipping ?? true,
+      tracked: mapped.tracked ?? true,
+      weightGrams: mapped.weightGrams ?? null,
+      selectedOptions: (mapped.selectedOptions ?? []) as Prisma.InputJsonValue,
+      status: remote.status,
+    };
     const pulledVariant = await db.productVariant.upsert({
       where: byRemoteId ? { id: byRemoteId.id } : { sku },
-      update: {
-        productId: product.id,
-        shopifyVariantId: variant.id,
-        shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
-        sku,
-        title: variant.title,
-        priceCents: shopifyAmountToCents(variant.price),
-        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        costCents: variant.inventoryItem?.unitCost?.amount
-          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
-          : null,
-        stockOnHand,
-        barcode: variant.barcode,
-        inventoryPolicy: variant.inventoryPolicy,
-        taxable: variant.taxable,
-        requiresShipping: variant.inventoryItem?.requiresShipping ?? true,
-        tracked: variant.inventoryItem?.tracked ?? true,
-        weightGrams: weightInGrams(variant.inventoryItem?.measurement?.weight) ?? null,
-        selectedOptions: variant.selectedOptions as Prisma.InputJsonValue,
-        status: remote.status,
-      },
-      create: {
-        productId: product.id,
-        shopifyVariantId: variant.id,
-        shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
-        sku,
-        title: variant.title,
-        priceCents: shopifyAmountToCents(variant.price),
-        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        costCents: variant.inventoryItem?.unitCost?.amount
-          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
-          : null,
-        stockOnHand,
-        barcode: variant.barcode,
-        inventoryPolicy: variant.inventoryPolicy,
-        taxable: variant.taxable,
-        requiresShipping: variant.inventoryItem?.requiresShipping ?? true,
-        tracked: variant.inventoryItem?.tracked ?? true,
-        weightGrams: weightInGrams(variant.inventoryItem?.measurement?.weight) ?? null,
-        selectedOptions: variant.selectedOptions as Prisma.InputJsonValue,
-        status: remote.status,
-      },
+      update: variantFields,
+      create: variantFields,
     });
     pulledVariantIds.push(pulledVariant.id);
   }
@@ -1262,7 +1216,11 @@ async function finishPulledProduct(
   return { productId: product.id, status: "SYNCED" as const, translationStatus };
 }
 
-export async function pullShopifyProduct(
+/**
+ * Human Apply / Pull: overwrite Synarava columns + extras from Shopify.
+ * Webhooks and other automatic paths must call {@link refreshShopifyProductState} instead.
+ */
+export async function applyShopifyProductToSynarava(
   id: string,
   eventId?: string,
   force = false,
@@ -1274,6 +1232,108 @@ export async function pullShopifyProduct(
     force,
     pullTranslations: options.pullTranslations,
   });
+}
+
+/**
+ * Automatic refresh (webhooks, silent re-fetch): persist Shopify-side copy only
+ * (`shopifySnapshot` / `shopifyUpdatedAt`). Never writes Synarava commerce columns,
+ * extras, translations, variants, TaxonomyValueLabel, or `syncStatus`
+ * from compare — conflict SoT is SyncResult leaves.
+ */
+export async function refreshShopifyProductState(id: string, eventId?: string) {
+  const remote = await fetchShopifyProduct(id);
+  if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
+
+  const existing = await db.product.findUnique({
+    where: { shopifyProductId: remote.id },
+    select: {
+      id: true,
+      name: true,
+      slug: true,
+      description: true,
+      vendor: true,
+      productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      shopifyProductId: true,
+      extras: true,
+      shopifySnapshot: true,
+      priceCents: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
+      variants: {
+        orderBy: { createdAt: "asc" },
+        select: {
+          shopifyVariantId: true,
+          sku: true,
+          title: true,
+          barcode: true,
+          priceCents: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
+          stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
+        },
+      },
+    },
+  });
+
+  if (!existing) {
+    // Shopify-only catalog row — presence scan owns Create-in-Synarava; do not upsert.
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { productId: null, status: "IGNORED" as const };
+  }
+
+  const shopifySnapshot = await shopifySnapshotOnlyWrite(remote);
+  // ADR-0009: OUR window is derived only — never seed/write-through from Shopify.
+  const synaravaWindow = ourProductWindowFromRow(existing);
+
+  // Compare is informational for the sync-event row / return value only.
+  const diverged = synaravaWindow == null
+    || diffShopifyProjections(synaravaWindow, shopifySnapshot).length > 0;
+  const status = diverged ? "CONFLICT" as const : "SYNCED" as const;
+
+  await db.product.update({
+    where: { id: existing.id },
+    data: {
+      shopifySnapshot,
+      shopifyUpdatedAt: new Date(remote.updatedAt),
+    },
+  });
+
+  if (eventId) {
+    await db.productSyncEvent.update({
+      where: { id: eventId },
+      data: {
+        productId: existing.id,
+        status: diverged ? "CONFLICT" : "SUCCEEDED",
+        error: diverged ? "Shopify state diverges from Synarava." : null,
+        completedAt: new Date(),
+      },
+    });
+  }
+
+  return { productId: existing.id, status };
 }
 
 export type ProductSyncDifference = {
@@ -1291,25 +1351,33 @@ export type ProductSyncInspectDebug = {
   shopifyResponse: unknown;
   /** 2 — window stored as shopifySnapshot (same shape, thin canonicalize). */
   shopifySnapshot: unknown;
-  /** 3 — workingSnapshot from our DB. */
+  /** 3 — derived OUR window (columns + extras). */
   workingSnapshot: unknown;
   /** 4 — path diffs working vs shopify. */
   differences: ProductSyncDifference[];
 };
 
 export type ProductSyncInspection = {
-  state: "UNLINKED" | "SYNCED" | "LOCAL_CHANGES" | "REMOTE_CHANGES" | "CONFLICT" | "REMOTE_MISSING";
+  state: "UNLINKED" | "SYNCED" | "CONFLICT" | "REMOTE_MISSING";
   remoteUpdatedAt: string | null;
   publications: string[];
   differences: ProductSyncDifference[];
+  /** True when Synarava has no commerce window yet — human must Adopt Shopify. */
+  workingSnapshotMissing?: boolean;
   debug?: ProductSyncInspectDebug;
 };
 
 /**
- * Dual-snapshot inspect:
- * 1) fetch Shopify → write shopifySnapshot
- * 2) ensure workingSnapshot (seed once from shopify if missing)
- * 3) diff(working, shopify) → state
+ * Dual-snapshot inspect (read path — never writes Synarava content or syncStatus):
+ * 1) fetch Shopify → write shopifySnapshot / shopifyUpdatedAt only
+ * 2) derive OUR window from columns + extras
+ * 3) diff in memory → return state; missing window → Adopt Shopify row
+ *
+ * Conflict apply/preview safety: this is the ONLY allowed live Shopify
+ * inspect immediately before a conflict write. Opening the ConflictResolver
+ * and editor chrome must use SyncResult leaves (waterfall skipRefresh) —
+ * never call this for display-only conflict loads. Conflict SoT is SyncResult;
+ * do not persist CONFLICT/SYNCED from the compare outcome.
  */
 export async function inspectProductSyncState(productId: string): Promise<ProductSyncInspection> {
   const local = await db.product.findUniqueOrThrow({
@@ -1317,21 +1385,44 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     select: {
       shopifyProductId: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
       name: true,
       slug: true,
+      description: true,
       vendor: true,
       productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
       priceCents: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        take: 1,
         select: {
           shopifyVariantId: true,
           sku: true,
+          title: true,
+          barcode: true,
           priceCents: true,
-          taxable: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
           stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
         },
       },
     },
@@ -1346,73 +1437,45 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
   }
 
   const shopifySnapshot = snapshotForProduct(remote);
+  const resolvedWorking = ourProductWindowFromRow(local);
+  // Adopt only when Synarava has no commerce counterpart (no columns).
+  const workingSnapshotMissing = resolvedWorking == null;
+  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
 
-  // working = Synarava window. Seed once; never overwrite on inspect/refresh.
-  let workingSnapshot = local.workingSnapshot;
-  if (workingSnapshot == null) {
-    const variant = local.variants[0];
-    const seeded = writeThroughLocalCommerceToProjection(shopifySnapshot, {
-      title: local.name,
-      handle: local.slug,
-      vendor: local.vendor,
-      productType: local.productType,
-      variant: variant
-        ? {
-            shopifyVariantId: variant.shopifyVariantId,
-            sku: variant.sku,
-            priceCents: variant.priceCents,
-            taxable: variant.taxable,
-            inventoryQuantity: variant.stockOnHand,
-          }
-        : { priceCents: local.priceCents },
-    });
-    workingSnapshot = seeded as Prisma.JsonValue;
+  let differences: ProductSyncDifference[];
+  let compareWorking: unknown = resolvedWorking;
+
+  if (workingSnapshotMissing) {
+    differences = [{
+      field: ADOPT_SHOPIFY_FIELD_LABEL,
+      local: "— No Synarava commerce window —",
+      shopify: [remote.title, remote.handle ? `handle ${remote.handle}` : ""].filter(Boolean).join(" · "),
+      path: ADOPT_SHOPIFY_FIELD_PATH,
+    }];
+  } else {
+    // Display enrichment only — never persisted on inspect (V14).
+    compareWorking = alignMetafieldResolvedValues(resolvedWorking, shopifySnapshot);
+    differences = diffShopifyProjections(compareWorking, shopifySnapshot).map((item) => ({
+      field: item.field,
+      local: item.local,
+      shopify: item.shopify,
+      path: item.path,
+    }));
   }
 
-  // Align category display enrichment so missing resolvedValues do not look like
-  // empty-OUR commerce conflicts against a live Shopify fetch.
-  workingSnapshot = alignMetafieldResolvedValues(
-    workingSnapshot,
-    shopifySnapshot,
-  ) as Prisma.JsonValue;
-
+  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
   await db.product.update({
     where: { id: productId },
     data: {
       shopifySnapshot,
-      workingSnapshot: workingSnapshot as Prisma.InputJsonValue,
       shopifyUpdatedAt: new Date(remote.updatedAt),
     },
   });
 
-  const differences: ProductSyncDifference[] = diffShopifyProjections(
-    workingSnapshot,
-    shopifySnapshot,
-  ).map((item) => ({
-    field: item.field,
-    local: item.local,
-    shopify: item.shopify,
-    path: item.path,
-  }));
-
-  const state = differences.length === 0 ? "SYNCED" : "CONFLICT";
-  if (state === "SYNCED") {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
-    });
-  } else {
-    await db.product.update({
-      where: { id: productId },
-      data: { syncStatus: "CONFLICT", syncError: "workingSnapshot and shopifySnapshot differ." },
-    });
-  }
-
-  const publishedPublications = publishedPublicationNames(remote.resourcePublicationsV2.nodes);
   const debug: ProductSyncInspectDebug = {
     shopifyResponse: remote,
     shopifySnapshot,
-    workingSnapshot,
+    workingSnapshot: compareWorking,
     differences,
   };
 
@@ -1421,11 +1484,12 @@ export async function inspectProductSyncState(productId: string): Promise<Produc
     remoteUpdatedAt: remote.updatedAt,
     publications: publishedPublications,
     differences,
+    workingSnapshotMissing,
     debug,
   };
 }
 
-/** Patch one path from live Shopify into working (+ refresh shopify window). */
+/** Patch one path from live Shopify into columns/extras (+ refresh shopify window). */
 export async function adoptShopifyProjectionField(
   productId: string,
   path: string | undefined,
@@ -1436,10 +1500,45 @@ export async function adoptShopifyProjectionField(
     select: {
       shopifyProductId: true,
       shopifySnapshot: true,
-      workingSnapshot: true,
+      extras: true,
+      name: true,
+      slug: true,
+      description: true,
+      vendor: true,
+      productType: true,
+      status: true,
+      seoTitle: true,
+      seoDescription: true,
+      shopifyCategoryId: true,
+      shopifyCategoryName: true,
+      tags: { select: { tag: { select: { name: true } } } },
+      collections: {
+        select: {
+          collection: {
+            select: { shopifyCollectionId: true, slug: true, name: true },
+          },
+        },
+      },
       variants: {
         orderBy: { createdAt: "asc" },
-        select: { id: true, shopifyVariantId: true },
+        select: {
+          id: true,
+          shopifyVariantId: true,
+          sku: true,
+          title: true,
+          barcode: true,
+          priceCents: true,
+          compareAtCents: true,
+          inventoryPolicy: true,
+          stockOnHand: true,
+          taxable: true,
+          selectedOptions: true,
+          shopifyInventoryItemId: true,
+          requiresShipping: true,
+          tracked: true,
+          costCents: true,
+          weightGrams: true,
+        },
       },
     },
   });
@@ -1448,16 +1547,16 @@ export async function adoptShopifyProjectionField(
   if (!remote) return;
   const live = snapshotForProduct(remote);
   const value = getProjectionPath(live, path);
-  const nextWorking = setProjectionPath(
-    product.workingSnapshot ?? product.shopifySnapshot ?? {},
-    path,
-    value,
-  );
+  const baseWindow = ourProductWindowFromRow(product) ?? product.shopifySnapshot ?? {};
+  const nextWorking = setProjectionPath(baseWindow, path, value);
   const { metafieldTranslationsFromSnapshot, withMetafieldTranslations } = await import(
     "@/lib/shopify/product-metafields-shared"
   );
   const preservedTranslations = metafieldTranslationsFromSnapshot(
-    product.workingSnapshot ?? product.shopifySnapshot,
+    product.extras ?? product.shopifySnapshot,
+  );
+  const nextExtras = extractProductExtrasFromWorkingSnapshot(
+    withMetafieldTranslations(canonicalizeShopifyProjection(nextWorking), preservedTranslations),
   );
 
   const columnData: Prisma.ProductUpdateInput = {
@@ -1465,10 +1564,9 @@ export async function adoptShopifyProjectionField(
       live,
       metafieldTranslationsFromSnapshot(product.shopifySnapshot),
     ) as Prisma.InputJsonValue,
-    workingSnapshot: withMetafieldTranslations(
-      canonicalizeShopifyProjection(nextWorking),
-      preservedTranslations,
-    ) as Prisma.InputJsonValue,
+    extras: nextExtras
+      ? (nextExtras as Prisma.InputJsonValue)
+      : Prisma.JsonNull,
   };
 
   if (path === "title" && typeof value === "string") {
@@ -1480,16 +1578,6 @@ export async function adoptShopifyProjectionField(
   if (path === "seo.title" || path === "seo.description") {
     if (path === "seo.title") columnData.seoTitle = typeof value === "string" ? value || null : null;
     else columnData.seoDescription = typeof value === "string" ? value || null : null;
-    const seo = getProjectionPath(nextWorking, "seo");
-    if (seo && typeof seo === "object" && !Array.isArray(seo)) {
-      const fields = seo as Record<string, unknown>;
-      columnData.workingSnapshot = withMetafieldTranslations(writeThroughLocalCommerceToProjection(nextWorking, {
-        seo: {
-          title: typeof fields.title === "string" ? fields.title : "",
-          description: typeof fields.description === "string" ? fields.description : "",
-        },
-      }), preservedTranslations) as Prisma.InputJsonValue;
-    }
   }
   if (path === "handle" && typeof value === "string" && value.trim()) {
     columnData.slug = value.trim();
@@ -1536,43 +1624,54 @@ export async function adoptShopifyProjectionField(
     where: { id: productId },
     data: columnData,
   });
-  const { patchOurProductWindow } = await import("@/lib/commerce-store/refresh");
-  await patchOurProductWindow({
-    shopifyProductId: product.shopifyProductId,
-    localProductId: productId,
-    window: columnData.workingSnapshot,
-  });
 }
 
+/**
+ * Inventory webhook refresh: update Shopify-side copy + divergence flags only.
+ * Never writes Synarava `ProductVariant.stockOnHand` — that is a human Apply.
+ */
 export async function pullShopifyInventory(inventoryItemId: string, eventId?: string) {
-  const data = await shopifyAdminRequest<{
-    inventoryItem: { inventoryLevels: { nodes: Array<{ location: { id: string }; quantities: Array<{ name: string; quantity: number }> }> } } | null;
-  }>(
-    `query SynaravaInventoryItem($id: ID!) {
-      inventoryItem(id: $id) { inventoryLevels(first: 100) { nodes { location { id } quantities(names: ["available"]) { name quantity } } } }
-    }`,
-    { id: inventoryItemId },
-  );
-  if (!data.inventoryItem) throw new ShopifyAdminError(`Inventory item ${inventoryItemId} was not found.`);
-  const stockOnHand = selectStockOnHand(data.inventoryItem.inventoryLevels.nodes, env.SHOPIFY_LOCATION_ID);
-  const variant = await db.productVariant.findUnique({ where: { shopifyInventoryItemId: inventoryItemId } });
+  const variant = await db.productVariant.findUnique({
+    where: { shopifyInventoryItemId: inventoryItemId },
+    select: { id: true, productId: true },
+  });
   if (!variant) {
-    if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { status: "IGNORED", completedAt: new Date() } });
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
     return { ignored: true as const };
   }
-  // Inventory-only: touches stockOnHand alone. It must not mark the product SYNCED —
-  // that would erase a still-pending commerce/editorial change or an unresolved
-  // CONFLICT that has nothing to do with this webhook (REV-04).
-  await db.productVariant.update({ where: { id: variant.id }, data: { stockOnHand } });
-  if (eventId) await db.productSyncEvent.update({ where: { id: eventId }, data: { productId: variant.productId, status: "SUCCEEDED", completedAt: new Date() } });
-  return { ignored: false as const, productId: variant.productId, stockOnHand };
+
+  const product = await db.product.findUnique({
+    where: { id: variant.productId },
+    select: { shopifyProductId: true },
+  });
+  if (!product?.shopifyProductId) {
+    if (eventId) {
+      await db.productSyncEvent.update({
+        where: { id: eventId },
+        data: { status: "IGNORED", completedAt: new Date() },
+      });
+    }
+    return { ignored: true as const };
+  }
+
+  const refreshed = await refreshShopifyProductState(product.shopifyProductId, eventId);
+  return {
+    ignored: refreshed.status === "IGNORED",
+    productId: refreshed.productId ?? variant.productId,
+    status: refreshed.status,
+  };
 }
 
 /**
  * Pushes a local product's title, description, price, SKU, inventory,
  * tags, collection membership, product type, vendor, SEO title/description,
  * and `synarava.*` characteristic metafields plus merchant custom metafields
- * from `workingSnapshot` to Shopify via the Admin GraphQL API, creating the
+ * from derived OUR window / extras to Shopify via the Admin GraphQL API, creating the
  * remote product on first push. Product type,
  * and vendor are omitted when we have no local value. Linked products send
  * empty SEO overrides explicitly so clearing a saved value reaches Shopify.
@@ -1591,7 +1690,18 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * pushed or rejected outright, since a missing image is recoverable and
  * failing the whole sync over it is not worth the disruption.
  */
-export async function pushProductToShopify(productId: string, forceTranslation = false) {
+/** Keep-ours overwrite vs translation writes — do not overload one boolean. */
+export type PushProductToShopifyOptions = {
+  authorizeCommerceConflictOverwrite?: boolean;
+  pushRegisteredTranslations?: boolean;
+};
+
+export async function pushProductToShopify(
+  productId: string,
+  options: PushProductToShopifyOptions = {},
+) {
+  const authorizeCommerceConflictOverwrite = options.authorizeCommerceConflictOverwrite === true;
+  const pushRegisteredTranslations = options.pushRegisteredTranslations !== false;
   const event = await db.productSyncEvent.create({
     data: { productId, direction: "PUSH", status: "PROCESSING", attemptCount: 1 },
   });
@@ -1636,8 +1746,9 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         ...(item.certificateUrl ? [{ namespace: "synarava", key: `${item.key}_certificate`, type: "url", value: item.certificateUrl }] : []),
       ];
     });
-    const { customMetafieldsFromWorkingSnapshot } = await import("@/lib/shopify/product-metafields-shared");
-    for (const item of customMetafieldsFromWorkingSnapshot(product.workingSnapshot)) {
+    const ourWindow = ourProductWindowFromRow(product);
+    const { customMetafieldsFromOurWindow } = await import("@/lib/shopify/product-metafields-shared");
+    for (const item of customMetafieldsFromOurWindow(ourWindow ?? product.extras)) {
       if (!item.value.trim()) continue;
       metafields.push({
         namespace: item.namespace,
@@ -1676,7 +1787,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     // OUR tree alts (Media tab after Pull / after local media released on Push).
     // Must ride productSet — falling back to product.name for every image made
     // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
-    const treeAlts = rawMediaAltsFromWorkingSnapshot(product.workingSnapshot);
+    const treeAlts = rawMediaAltsFromOurWindow(ourWindow ?? product.extras);
     const localAssetsById = new Map<string, LocalProductAsset & { sortIndex: number }>();
     product.media.forEach((item, index) => {
       localAssetsById.set(item.assetId, {
@@ -1755,13 +1866,13 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       }
     }
     // Remaining gallery frames after local ProductMedia is released (typical post-Push /
-    // post-Pull Media tab): OUR `workingSnapshot.media` is SoT. Include those Shopify
+    // post-Pull Media tab): OUR derived window / extras.media is SoT. Include those Shopify
     // GIDs (with tree alts) and omit remote media removed from the tree so productSet
     // list-field semantics delete them on Shopify
     // (https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet).
     const remoteNodes = currentRemote?.media.nodes ?? [];
     const remoteById = new Map(remoteNodes.map((item) => [item.id, item] as const));
-    const treeMedia = workingSnapshotMediaNodes(product.workingSnapshot);
+    const treeMedia = ourMediaNodes(ourWindow ?? product.extras);
     if (treeMedia) {
       for (const [treeIndex, node] of treeMedia.entries()) {
         if (!node || typeof node !== "object" || Array.isArray(node)) continue;
@@ -1883,12 +1994,12 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       ownerId: remote.id,
       desired: metafields,
       remote: currentRemote?.metafields.nodes ?? remote.metafields.nodes,
-      hasCustomWindow: getProjectionPath(product.workingSnapshot, "metafields") != null,
+      hasCustomWindow: getProjectionPath(ourWindow ?? product.extras, "metafields") != null,
       managedPassportKeys: new Set<string>(PASSPORT_CHARACTERISTICS.flatMap((item) =>
         "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
       )),
     });
-    {
+    if (pushRegisteredTranslations) {
       const { pushCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
         "@/lib/shopify/product-metafield-translations"
       );
@@ -1902,7 +2013,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
       ].filter((item) => desiredIdentities.has(`${item.namespace}:${item.key}`));
       await pushCustomMetafieldTranslations({
         metafieldRefs: refs,
-        workingSnapshot: product.workingSnapshot,
+        workingSnapshot: ourWindow ?? product.extras,
         locales: pushLocales.map((locale) => ({
           code: locale.code,
           shopifyLocale: locale.shopifyLocale,
@@ -2082,7 +2193,9 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     await deleteUnreferencedArchivedProductAssets();
 
     const translationErrors: string[] = [];
-    const pushTranslationLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+    const pushTranslationLocales = pushRegisteredTranslations
+      ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
+      : [];
     for (const translationLocale of pushTranslationLocales) {
       const translation = product.translations.find((item) => item.locale === translationLocale.code);
       if (
@@ -2100,12 +2213,11 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             seoDescription: translation.seoDescription ?? "",
           };
           const remoteTranslation = await fetchProductTranslation(remote.id, translationLocale.shopifyLocale);
+          // Human Push → Shopify. APPLY when overwrite authorized, or remote has no copy.
           const decision = decideProductTranslationPull({
             local: localCopy,
-            localSyncStatus: translation.syncStatus,
-            localLastSyncedAt: translation.lastSyncedAt,
             remote: remoteTranslation,
-            force: forceTranslation,
+            force: authorizeCommerceConflictOverwrite || !hasShopifySharedTranslationCopy(remoteTranslation),
           });
           if (decision === "CONFLICT") {
             const message = `${translationLocale.name} copy also changed in Shopify. Pull or explicitly force Push to choose a winner.`;

@@ -7,10 +7,22 @@ const mocks = vi.hoisted(() => ({
   markOrdersPaidDeliveryFailed: vi.fn(),
   logOrdersPaidSignal: vi.fn(),
   summarizeOrdersPaidPayload: vi.fn(),
+  paidOrderStockLinesFromPayload: vi.fn(),
+  decrementStockForPaidOrderLines: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/env", () => ({ env: { SHOPIFY_WEBHOOK_SECRET: "secret" } }));
 vi.mock("@/lib/shopify/webhooks", () => ({ verifyShopifyWebhook: mocks.verifyShopifyWebhook }));
+vi.mock("@/lib/db", () => ({
+  db: {
+    $transaction: mocks.transaction,
+  },
+}));
+vi.mock("@/lib/commerce/order-stock-decrement", () => ({
+  paidOrderStockLinesFromPayload: mocks.paidOrderStockLinesFromPayload,
+  decrementStockForPaidOrderLines: mocks.decrementStockForPaidOrderLines,
+}));
 vi.mock("@/lib/shopify/orders-paid-webhook", () => ({
   claimOrdersPaidDelivery: mocks.claimOrdersPaidDelivery,
   markOrdersPaidDeliverySucceeded: mocks.markOrdersPaidDeliverySucceeded,
@@ -41,6 +53,10 @@ const signal = {
   totalPrice: "42.00",
 };
 
+const stockLines = [
+  { shopifyVariantId: "gid://shopify/ProductVariant/10", quantity: 2 },
+];
+
 describe("ORDERS_PAID webhook route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -48,6 +64,9 @@ describe("ORDERS_PAID webhook route", () => {
     mocks.summarizeOrdersPaidPayload.mockReturnValue(signal);
     mocks.claimOrdersPaidDelivery.mockResolvedValue({ id: "delivery-1" });
     mocks.markOrdersPaidDeliverySucceeded.mockResolvedValue(undefined);
+    mocks.paidOrderStockLinesFromPayload.mockReturnValue(stockLines);
+    mocks.decrementStockForPaidOrderLines.mockResolvedValue({ decremented: 1, ignored: 0 });
+    mocks.transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn({}));
   });
 
   it("rejects invalid HMAC before claiming a delivery", async () => {
@@ -57,18 +76,21 @@ describe("ORDERS_PAID webhook route", () => {
     expect(mocks.claimOrdersPaidDelivery).not.toHaveBeenCalled();
   });
 
-  it("logs and succeeds on first paid delivery", async () => {
-    const response = await POST(request({ id: 1, name: "#1001", financial_status: "paid" }));
+  it("decrements stock and succeeds on first paid delivery", async () => {
+    const payload = { id: 1, name: "#1001", financial_status: "paid", line_items: [] };
+    const response = await POST(request(payload));
     expect(response.status).toBe(200);
+    expect(mocks.paidOrderStockLinesFromPayload).toHaveBeenCalledWith(payload);
+    expect(mocks.decrementStockForPaidOrderLines).toHaveBeenCalledWith(stockLines, expect.anything());
+    expect(mocks.markOrdersPaidDeliverySucceeded).toHaveBeenCalledWith("delivery-1", expect.anything());
     expect(mocks.logOrdersPaidSignal).toHaveBeenCalledWith({
       webhookId: "webhook-paid-1",
       topic: "orders/paid",
       signal,
     });
-    expect(mocks.markOrdersPaidDeliverySucceeded).toHaveBeenCalledWith("delivery-1");
   });
 
-  it("returns duplicate without re-logging success when claim fails", async () => {
+  it("returns duplicate without decrementing when claim fails", async () => {
     mocks.claimOrdersPaidDelivery.mockResolvedValue(null);
     const response = await POST(request({ id: 1 }));
     expect(response.status).toBe(200);
@@ -76,6 +98,7 @@ describe("ORDERS_PAID webhook route", () => {
     expect(mocks.logOrdersPaidSignal).toHaveBeenCalledWith(
       expect.objectContaining({ duplicate: true }),
     );
+    expect(mocks.decrementStockForPaidOrderLines).not.toHaveBeenCalled();
     expect(mocks.markOrdersPaidDeliverySucceeded).not.toHaveBeenCalled();
   });
 });

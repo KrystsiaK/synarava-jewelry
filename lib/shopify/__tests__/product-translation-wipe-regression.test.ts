@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
  */
 
 const mocks = vi.hoisted(() => ({
-  pullShopifyProduct: vi.fn(),
+  refreshShopifyProductState: vi.fn(),
   claimWebhookEvent: vi.fn(),
   verifyShopifyWebhook: vi.fn(),
 }));
@@ -21,8 +21,9 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 vi.mock("@/lib/shopify/product-sync", () => ({
-  pullShopifyProduct: mocks.pullShopifyProduct,
+  refreshShopifyProductState: mocks.refreshShopifyProductState,
   pullShopifyInventory: vi.fn(),
+  applyShopifyProductToSynarava: vi.fn(),
 }));
 vi.mock("@/lib/shopify/webhook-event", () => ({
   claimWebhookEvent: mocks.claimWebhookEvent,
@@ -42,7 +43,7 @@ describe("product translation wipe regression", () => {
     vi.clearAllMocks();
     mocks.verifyShopifyWebhook.mockReturnValue(true);
     mocks.claimWebhookEvent.mockResolvedValue({ id: "event-1" });
-    mocks.pullShopifyProduct.mockResolvedValue({ productId: "p1", status: "SYNCED" });
+    mocks.refreshShopifyProductState.mockResolvedValue({ productId: "p1", status: "SYNCED" });
   });
 
   it("Save marks an unreviewed RU draft with Shopify-shared copy as PENDING", () => {
@@ -61,7 +62,7 @@ describe("product translation wipe regression", () => {
     expect(syncStatus).toBe("PENDING");
   });
 
-  it("Pull keeps the RU draft when Shopify has no translation after Push", () => {
+  it("Pull flags RU draft vs empty Shopify as CONFLICT (never auto-applies empty wipe)", () => {
     expect(decideProductTranslationPull({
       local: {
         handle: "",
@@ -70,13 +71,11 @@ describe("product translation wipe regression", () => {
         seoTitle: "",
         seoDescription: "",
       },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: null,
       remote: null,
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
   });
 
-  it("products/update webhook pulls commerce only (no translation pull)", async () => {
+  it("products/update webhook refreshes Shopify state only (no Synarava apply / translation pull)", async () => {
     const request = new Request("http://localhost/api/shopify/webhooks/products", {
       method: "POST",
       headers: {
@@ -89,11 +88,9 @@ describe("product translation wipe regression", () => {
 
     const response = await POST(request);
     expect(response.status).toBe(200);
-    expect(mocks.pullShopifyProduct).toHaveBeenCalledWith(
+    expect(mocks.refreshShopifyProductState).toHaveBeenCalledWith(
       expect.anything(),
       "event-1",
-      false,
-      { pullTranslations: false },
     );
   });
 });

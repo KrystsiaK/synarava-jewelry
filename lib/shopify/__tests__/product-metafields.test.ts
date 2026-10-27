@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   customMetafieldValueFieldName,
-  customMetafieldsFromWorkingSnapshot,
+  customMetafieldsFromOurWindow,
   isManagedProductMetafieldNamespace,
   isTranslatableMetafieldType,
   listCustomProductMetafieldDefinitions,
@@ -79,7 +79,7 @@ describe("product-metafields-shared", () => {
   });
 
   it("extracts custom metafields from workingSnapshot for Push", () => {
-    expect(customMetafieldsFromWorkingSnapshot({
+    expect(customMetafieldsFromOurWindow({
       metafields: [
         { namespace: "custom", key: "warranty", type: "single_line_text_field", value: "2 years" },
         { namespace: "synarava", key: "material", type: "single_line_text_field", value: "Gold" },
@@ -90,7 +90,7 @@ describe("product-metafields-shared", () => {
   });
 
   it("reads custom metafields from identity-map workingSnapshot shape", () => {
-    expect(customMetafieldsFromWorkingSnapshot({
+    expect(customMetafieldsFromOurWindow({
       metafields: {
         "custom::warranty": {
           namespace: "custom",

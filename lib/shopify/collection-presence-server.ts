@@ -10,18 +10,37 @@ import {
   type LocalCollectionIdentity,
   type RemoteCollectionIdentity,
 } from "@/lib/shopify/collection-presence";
-import { findManagedCollectionSourceId, type ShopifyCollectionSource } from "@/lib/shopify/collection-membership";
 import {
-  buildCollectionWindowFromColumns,
+  findManagedCollectionSourceId,
+  isMissingShopifyCollectionError,
+  type ShopifyCollectionSource,
+} from "@/lib/shopify/collection-membership";
+import {
   collectionCommerceInputFromWindow,
   collectionWindowFromShopifyRemote,
+  diffCollectionCommerceWindows,
   plainDescriptionToHtml,
 } from "@/lib/shopify/collection-commerce-projection";
+import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 
 const SNAPSHOT_ID = "collections";
 
-async function persistCollectionCommerceWindows(
+type ShopifyPresenceCollection = {
+  id: string;
+  title: string;
+  handle: string;
+  updatedAt: string;
+  descriptionHtml?: string | null;
+  seo?: { title: string | null; description: string | null } | null;
+  sources?: ShopifyCollectionSource[];
+};
+
+/**
+ * Human Apply / Pull finish: write Synarava columns + both commerce windows.
+ * Never call from refresh, webhooks, or read/inspect paths.
+ */
+async function applyCollectionCommerceWindows(
   collectionId: string,
   remote: ShopifyPresenceCollection,
   extra: {
@@ -52,7 +71,6 @@ async function persistCollectionCommerceWindows(
       shopifyHandle: remote.handle,
       shopifyManualSourceId: extra.shopifyManualSourceId ?? undefined,
       shopifySnapshot: window as Prisma.InputJsonValue,
-      workingSnapshot: window as Prisma.InputJsonValue,
       shopifyUpdatedAt: remote.updatedAt ? new Date(remote.updatedAt) : new Date(),
       lastSyncedAt: new Date(),
       syncStatus: "SYNCED",
@@ -64,21 +82,70 @@ async function persistCollectionCommerceWindows(
       ...(extra.slug != null ? { slug: extra.slug } : {}),
     },
   });
-  await db.collectionTranslation.updateMany({
-    where: { collectionId, locale: "en" },
-    data: {
-      ...(extra.name != null ? { name: extra.name } : {}),
-      ...(extra.description !== undefined ? { description: extra.description } : {}),
-      ...(extra.seoTitle !== undefined ? { seoTitle: extra.seoTitle } : {}),
-      ...(extra.seoDescription !== undefined ? { seoDescription: extra.seoDescription } : {}),
+  // EN copy lives on Collection base columns only — no CollectionTranslation locale=en row.
+}
+
+export type RefreshShopifyCollectionResult = {
+  collectionId: string | null;
+  status: "SYNCED" | "CONFLICT" | "IGNORED";
+};
+
+/**
+ * Automatic refresh (post-Push finish, future webhooks): persist Shopify-side
+ * copy only (`shopifySnapshot` / handle / updatedAt). Never writes extras / Synarava columns,
+ * Synarava columns, collectionTranslation rows, or `syncStatus` from compare —
+ * conflict SoT is SyncResult leaves.
+ */
+export async function refreshShopifyCollectionState(
+  shopifyCollectionId: string,
+): Promise<RefreshShopifyCollectionResult> {
+  const remote = await fetchShopifyCollection(shopifyCollectionId);
+  const existing = await db.collection.findUnique({
+    where: { shopifyCollectionId: remote.id },
+    select: {
+      id: true,
+      extras: true,
+      shopifySnapshot: true,
+      shopifyCollectionId: true,
+      name: true,
+      slug: true,
+      description: true,
+      seoTitle: true,
+      seoDescription: true,
     },
   });
+  if (!existing) {
+    return { collectionId: null, status: "IGNORED" };
+  }
+
+  const shopifySnapshot = collectionWindowFromShopifyRemote(remote);
+  const compareWorking = ourCollectionWindowFromRow({
+    ...existing,
+    shopifyCollectionId: remote.id,
+  });
+  const differences = compareWorking == null
+    ? []
+    : diffCollectionCommerceWindows(compareWorking, shopifySnapshot);
+  const status = differences.length === 0 ? "SYNCED" as const : "CONFLICT" as const;
+  const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
+
+  await db.collection.update({
+    where: { id: existing.id },
+    data: {
+      shopifyCollectionId: remote.id,
+      shopifyHandle: remote.handle,
+      shopifyManualSourceId: shopifyManualSourceId ?? undefined,
+      shopifySnapshot: shopifySnapshot as Prisma.InputJsonValue,
+      shopifyUpdatedAt: remote.updatedAt ? new Date(remote.updatedAt) : new Date(),
+    },
+  });
+  return { collectionId: existing.id, status };
 }
 
 async function pushLinkedCollectionUpdate(collection: {
   id: string;
   shopifyCollectionId: string;
-  workingSnapshot: unknown;
+  extras: unknown;
   shopifySnapshot: unknown;
   name: string;
   slug: string;
@@ -86,16 +153,10 @@ async function pushLinkedCollectionUpdate(collection: {
   seoTitle: string | null;
   seoDescription: string | null;
 }) {
-  const window = collection.workingSnapshot
-    ?? buildCollectionWindowFromColumns({
-      shopifyCollectionId: collection.shopifyCollectionId,
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-      shopifySnapshot: collection.shopifySnapshot,
-    });
+  const window = ourCollectionWindowFromRow(collection);
+  if (window == null) {
+    throw new ShopifyAdminError("Synarava collection has no commerce window to push.");
+  }
   const input = collectionCommerceInputFromWindow(window);
   const result = await shopifyAdminRequest<{
     collectionUpdate: {
@@ -126,16 +187,7 @@ async function pushLinkedCollectionUpdate(collection: {
     throw new ShopifyAdminError("Shopify did not return the updated collection.");
   }
 
-  const remote = await fetchShopifyCollection(collection.shopifyCollectionId);
-  const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
-  await persistCollectionCommerceWindows(collection.id, remote, {
-    shopifyManualSourceId,
-    name: remote.title,
-    slug: remote.handle,
-    description: stripHtml(remote.descriptionHtml ?? "") || null,
-    seoTitle: remote.seo?.title ?? null,
-    seoDescription: remote.seo?.description ?? null,
-  });
+  await refreshShopifyCollectionState(collection.shopifyCollectionId);
   await ensureTranslationBinding({
     resourceType: "COLLECTION",
     entityId: collection.id,
@@ -143,16 +195,6 @@ async function pushLinkedCollectionUpdate(collection: {
   });
   return { ok: true as const, shopifyCollectionId: collection.shopifyCollectionId };
 }
-
-type ShopifyPresenceCollection = {
-  id: string;
-  title: string;
-  handle: string;
-  updatedAt: string;
-  descriptionHtml?: string | null;
-  seo?: { title: string | null; description: string | null } | null;
-  sources?: ShopifyCollectionSource[];
-};
 
 function isPresenceDifference(value: unknown): value is CollectionPresenceDifference {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -169,7 +211,19 @@ function isPresenceDifference(value: unknown): value is CollectionPresenceDiffer
 }
 
 function parsePresenceSnapshot(value: unknown): CollectionPresenceDifference[] {
-  return Array.isArray(value) ? value.filter(isPresenceDifference) : [];
+  if (!Array.isArray(value)) return [];
+  const kept: CollectionPresenceDifference[] = [];
+  let dropped = 0;
+  for (const item of value) {
+    if (isPresenceDifference(item)) kept.push(item);
+    else dropped += 1;
+  }
+  if (dropped > 0) {
+    console.error(
+      `[collection-presence] dropped ${dropped} malformed presence row(s) from snapshot`,
+    );
+  }
+  return kept;
 }
 
 function stripHtml(value: string) {
@@ -223,10 +277,13 @@ async function fetchShopifyCollection(collectionId: string): Promise<ShopifyPres
 }
 
 /**
- * Pulls or links a Shopify collection into Synarava.
- * Identity-first (`shopifyCollectionId`), then unique handle/slug — same rule as product membership upsert.
+ * Human Apply / Pull: overwrite Synarava columns from Shopify (OUR window derived).
+ * Automatic paths must call {@link refreshShopifyCollectionState} instead.
  */
-export async function pullShopifyCollection(shopifyCollectionId: string, localCollectionId?: string | null) {
+export async function applyShopifyCollectionToSynarava(
+  shopifyCollectionId: string,
+  localCollectionId?: string | null,
+) {
   const remote = await fetchShopifyCollection(shopifyCollectionId);
   const shopifyManualSourceId = findManagedCollectionSourceId(remote.sources ?? []);
   const description = stripHtml(remote.descriptionHtml ?? "") || null;
@@ -240,7 +297,7 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
   };
 
   async function finish(collectionId: string) {
-    await persistCollectionCommerceWindows(collectionId, remote, columnPatch);
+    await applyCollectionCommerceWindows(collectionId, remote, columnPatch);
     await ensureTranslationBinding({
       resourceType: "COLLECTION",
       entityId: collectionId,
@@ -287,9 +344,18 @@ export async function pullShopifyCollection(shopifyCollectionId: string, localCo
   return finish(created.id);
 }
 
+/** @deprecated Prefer {@link applyShopifyCollectionToSynarava} for human Apply/Pull. */
+export async function pullShopifyCollection(
+  shopifyCollectionId: string,
+  localCollectionId?: string | null,
+) {
+  return applyShopifyCollectionToSynarava(shopifyCollectionId, localCollectionId);
+}
+
 /**
  * Push local collection commerce to Shopify.
- * Linked → collectionUpdate from workingSnapshot; unlinked → collectionCreate.
+ * Linked → collectionUpdate from derived OUR window; unlinked → collectionCreate.
+ * After success, refreshes Shopify snapshot only (never overwrites Synarava window).
  */
 export async function pushCollectionToShopify(collectionId: string) {
   const collection = await db.collection.findUnique({ where: { id: collectionId } });
@@ -301,7 +367,7 @@ export async function pushCollectionToShopify(collectionId: string) {
       return pushLinkedCollectionUpdate({
         id: collection.id,
         shopifyCollectionId: collection.shopifyCollectionId,
-        workingSnapshot: collection.workingSnapshot,
+        extras: collection.extras,
         shopifySnapshot: collection.shopifySnapshot,
         name: collection.name,
         slug: collection.slug,
@@ -309,7 +375,13 @@ export async function pushCollectionToShopify(collectionId: string) {
         seoTitle: collection.seoTitle,
         seoDescription: collection.seoDescription,
       });
-    } catch {
+    } catch (error) {
+      // Audit ~387-406: unlink/wipe ONLY on confirmed Shopify missing —
+      // throttle/network/userErrors must leave the link and Synarava columns intact.
+      const message = error instanceof Error ? error.message : String(error);
+      if (!isMissingShopifyCollectionError(message)) {
+        throw error instanceof Error ? error : new ShopifyAdminError(message);
+      }
       await db.$transaction([
         db.shopifyTranslationBinding.deleteMany({
           where: { resourceType: "COLLECTION", entityId: collection.id },
@@ -322,7 +394,7 @@ export async function pushCollectionToShopify(collectionId: string) {
             shopifyManualSourceId: null,
             lastSyncedAt: null,
             shopifySnapshot: Prisma.JsonNull,
-            workingSnapshot: Prisma.JsonNull,
+            extras: Prisma.JsonNull,
             shopifyUpdatedAt: null,
             syncStatus: "UNLINKED",
             syncError: null,
@@ -332,15 +404,10 @@ export async function pushCollectionToShopify(collectionId: string) {
     }
   }
 
-  const window = collection.workingSnapshot
-    ?? buildCollectionWindowFromColumns({
-      name: collection.name,
-      slug: collection.slug,
-      description: collection.description,
-      seoTitle: collection.seoTitle,
-      seoDescription: collection.seoDescription,
-      shopifySnapshot: collection.shopifySnapshot,
-    });
+  const window = ourCollectionWindowFromRow(collection);
+  if (window == null) {
+    throw new ShopifyAdminError("Synarava collection has no commerce window to create in Shopify.");
+  }
   const input = collectionCommerceInputFromWindow(window);
   const descriptionHtml = input.descriptionHtml || plainDescriptionToHtml(collection.description);
   const result = await shopifyAdminRequest<{
@@ -374,15 +441,17 @@ export async function pushCollectionToShopify(collectionId: string) {
   const created = result.collectionCreate.collection;
   if (!created) throw new ShopifyAdminError("Shopify did not return the created collection.");
 
-  const remote = await fetchShopifyCollection(created.id);
-  await persistCollectionCommerceWindows(collection.id, remote, {
-    shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
-    name: remote.title,
-    slug: remote.handle,
-    description: stripHtml(remote.descriptionHtml ?? "") || null,
-    seoTitle: remote.seo?.title ?? null,
-    seoDescription: remote.seo?.description ?? null,
+  // Columns already hold OUR state; derive handles compare (ADR-0009).
+  await db.collection.update({
+    where: { id: collection.id },
+    data: {
+      shopifyCollectionId: created.id,
+      shopifyHandle: created.handle,
+      shopifyManualSourceId: findManagedCollectionSourceId(created.sources),
+      slug: created.handle || collection.slug,
+    },
   });
+  await refreshShopifyCollectionState(created.id);
   await ensureTranslationBinding({
     resourceType: "COLLECTION",
     entityId: collection.id,
@@ -494,7 +563,7 @@ export async function applyCollectionPresenceDifference({
       if (!difference.shopifyProductId) {
         return { ok: false, reason: "STALE", message: "The Shopify collection is no longer available." };
       }
-      const pulled = await pullShopifyCollection(difference.shopifyProductId, difference.localProductId);
+      const pulled = await applyShopifyCollectionToSynarava(difference.shopifyProductId, difference.localProductId);
       await removeCollectionPresenceDifference(difference.id);
       return { ok: true, localCollectionId: pulled.collectionId, message: "Collection pulled from Shopify." };
     }
@@ -514,7 +583,7 @@ export async function applyCollectionPresenceDifference({
       };
     }
 
-    const pushed = await pushCollectionToShopify(difference.localProductId);
+    await pushCollectionToShopify(difference.localProductId);
     await removeCollectionPresenceDifference(difference.id);
     return { ok: true, localCollectionId: difference.localProductId, message: "Collection pushed to Shopify." };
   } catch (error) {

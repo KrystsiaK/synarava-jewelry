@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { shopifyAdminRequest } from "@/lib/shopify/admin";
-import { pullShopifyProduct, pushProductToShopify } from "@/lib/shopify/product-sync";
+import { applyShopifyProductToSynarava, pushProductToShopify } from "@/lib/shopify/product-sync";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 import {
   classifyCatalogPresence,
@@ -50,7 +50,19 @@ function isPresenceDifference(value: unknown): value is CatalogPresenceDifferenc
 }
 
 function parsePresenceSnapshot(value: unknown): CatalogPresenceDifference[] {
-  return Array.isArray(value) ? value.filter(isPresenceDifference) : [];
+  if (!Array.isArray(value)) return [];
+  const kept: CatalogPresenceDifference[] = [];
+  let dropped = 0;
+  for (const item of value) {
+    if (isPresenceDifference(item)) kept.push(item);
+    else dropped += 1;
+  }
+  if (dropped > 0) {
+    console.error(
+      `[catalog-presence] dropped ${dropped} malformed presence row(s) from snapshot`,
+    );
+  }
+  return kept;
 }
 
 async function listRemoteCatalogIdentities(): Promise<RemoteCatalogIdentity[]> {
@@ -159,7 +171,7 @@ export async function applyCatalogPresenceDifference({
       if (!difference.shopifyProductId) {
         return { ok: false, reason: "STALE", message: "The Shopify product is no longer available." };
       }
-      const pulled = await pullShopifyProduct(difference.shopifyProductId, undefined, true);
+      const pulled = await applyShopifyProductToSynarava(difference.shopifyProductId, undefined, true);
       await ensureTranslationBinding({
         resourceType: "PRODUCT",
         entityId: pulled.productId,
@@ -198,7 +210,10 @@ export async function applyCatalogPresenceDifference({
       ]);
     }
 
-    const pushed = await pushProductToShopify(difference.localProductId, true);
+    const pushed = await pushProductToShopify(difference.localProductId, {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: true,
+    });
     if (!pushed.ok) return { ok: false, reason: "WRITE_FAILED", message: pushed.error };
     await ensureTranslationBinding({
       resourceType: "PRODUCT",

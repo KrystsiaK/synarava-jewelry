@@ -4,7 +4,6 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import {
-  ensureTaxonomySeedLabels,
   listCatalogTaxonomyEnValues,
   listTaxonomyValueLabels,
   saveSynaravaTaxonomyLabels,
@@ -31,7 +30,7 @@ function emptyKindMaps(): Record<TaxonomyKind, Record<string, string>> {
 
 export async function loadTaxonomyLabelsEditorPayload(): Promise<TaxonomyLabelsEditorPayload> {
   await requireAdminSession();
-  await ensureTaxonomySeedLabels();
+  // Read path: never seed TaxonomyValueLabel (sync-unification PR2).
 
   const [{ categoryLeaves, productTypes }, rows, locales] = await Promise.all([
     listCatalogTaxonomyEnValues(),

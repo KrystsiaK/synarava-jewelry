@@ -19,6 +19,7 @@
     "messages:generate": "node scripts/generate-messages-locale.mjs",
     "legal:export": "node scripts/export-legal-documents.mjs",
     "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
     "test": "vitest",
     "test:run": "vitest run && pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",
     "test:sku": "pnpm --filter @synarava/sku-core test && pnpm --filter @synarava/sku-contract test && pnpm --filter @synarava/sku-api test",
@@ -72,7 +73,7 @@
     "remark-gfm": "^4.0.1",
     "sharp": "^0.35.5",
     "tailwind-merge": "^3.6.0",
-    "zod": "^4.4.3"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

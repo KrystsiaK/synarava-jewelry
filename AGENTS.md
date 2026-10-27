@@ -56,6 +56,17 @@ Rules:
 - Sticky chrome uses shared rhythm (`.adm-band`, `--adm-inset-x` / Tailwind `px-adm-inset`, `.adm-band--sticky-radius`) — one horizontal gutter inside panels; no ad-hoc `px-*` / `py-*` on headers.
 - Contract: [`docs/wiki/synarava-cms.md`](docs/wiki/synarava-cms.md). Skill: `synarava-cms` (`.agents/skills/synarava-cms/`, `.claude/skills/synarava-cms/`).
 
+## Fixing a bug from an issue
+
+For bots (and humans) closing a `bug`-labeled issue:
+
+1. **Read the issue** end-to-end (where, steps, expected, actual, environment). Do not invent scope beyond it.
+2. **Write a failing test first** that reproduces the defect; then implement the **minimal fix** that makes it pass.
+3. Open a **PR into `staging`** (never `main`) whose body includes **`Closes #N`** for the issue number.
+4. **Never merge** the PR yourself; leave merge to a human or to the `automerge` label + required checks.
+5. **Never touch production data** (no prod DB writes, no prod Shopify mutations, no prod env secrets).
+6. Follow sync rules in [`docs/history/sync-unification.md`](docs/history/sync-unification.md) / [ADR-0008](docs/adr/0008-sync-two-state-owner-model.md): **no automatic writes to Synarava data** — fetch / compare / show only unless a human Apply path is explicitly in scope.
+
 ## Ship finished work (staging → main)
 
 See [`ship-to-main`](.agents/skills/ship-to-main/SKILL.md) (canonical). Before push: `pnpm test:run` (pre-push hook).

@@ -96,9 +96,12 @@ describe("ShopifyCategoryField", () => {
     );
 
     await waitFor(() => expect(mocks.attributes).toHaveBeenCalledWith("gid://shopify/TaxonomyCategory/aa-1-9"));
-    expect(await screen.findByText("Material")).toBeInTheDocument();
+    expect(screen.getByText("Material")).toBeInTheDocument();
     expect(screen.getByText("Gold")).toBeInTheDocument();
-    expect(screen.getByText(/Expected by this category but not set on the product: Pattern/)).toBeInTheDocument();
+    // Pattern checklist renders only after the attributes fetch settles into state.
+    expect(
+      await screen.findByText(/Expected by this category but not set on the product: Pattern/),
+    ).toBeInTheDocument();
     expect(screen.queryByText(/Gold, Silver/)).not.toBeInTheDocument();
   });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import {
   Archive,
@@ -19,15 +19,12 @@ import {
   updateCollectionStatusAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
-import {
-  checkCollectionConflictsAction,
-} from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { AdminRecordDates, AdminRecordMetaModal } from "@/components/admin/shared/admin-record-meta";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CatalogConflictStatus, CatalogConflictRowBadges } from "@/components/admin/products/catalog-conflict-signals";
-import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
-import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
+import type { CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-view";
+import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-adapter";
 import {
   collectionActionCopy,
   collectionStatusLabel,
@@ -41,6 +38,8 @@ import {
   AdminIconButton,
   AdminListWorkspace,
   AdminStatusBadge,
+  CatalogConflictStatus,
+  CatalogConflictRowBadges,
 } from "@/components/synarava-cms";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
@@ -55,59 +54,29 @@ export function CollectionsCms({
   collections: AdminCollection[];
   initialConflictSignals: CatalogConflictSignals;
 }) {
-  const [items, setItems] = useState(() => normalizeCollections(collections));
+  // Follow server data: after router.refresh() (check / Apply / Save) the list must show fresh values.
+  const serverItems = useMemo(() => normalizeCollections(collections), [collections]);
+  const [items, setItems] = useSyncedState(serverItems);
   const [rowAction, setRowAction] = useState<CollectionRowAction | null>(null);
   const [editingCollection, setEditingCollection] = useState<AdminCollection | null>(null);
   const [rowState, setRowState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
-  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CollectionConflictViewScope>({ kind: "catalog" });
   const [focusedConflictCollectionId, setFocusedConflictCollectionId] = useState<string | null>(null);
-  const [conflictSignalsOverride, setConflictSignalsOverride] = useState({
-    base: initialConflictSignals,
-    value: initialConflictSignals,
-  });
-  const conflictSignals = conflictSignalsOverride.base === initialConflictSignals
-    ? conflictSignalsOverride.value
-    : initialConflictSignals;
   const modalCopy = rowAction ? collectionActionCopy(rowAction) : null;
   const { pushToast } = useAdminToast();
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const closeConflictList = useCallback(() => {
     setConflictListOpen(false);
     setFocusedConflictCollectionId(null);
     setConflictViewScope({ kind: "catalog" });
   }, []);
 
-  // Dual full-store foundation: same console flow as products (includes collections slice).
-  useEffect(() => {
-    void runCommerceStoreConsoleFlow("collections-list").catch((error) => {
-      console.error("[commerce-store] FLOW EXCEPTION", error);
-    });
-  }, []);
-
-  function setConflictSignals(value: CatalogConflictSignals) {
-    setConflictSignalsOverride({ base: initialConflictSignals, value });
-  }
-
   function showConflicts(collectionId: string | null = null) {
     setFocusedConflictCollectionId(collectionId);
     setConflictViewScope(collectionId ? { kind: "collection", collectionId } : { kind: "catalog" });
     setConflictListOpen(true);
-  }
-
-  function handleConflictCheck() {
-    startConflictCheckTransition(async () => {
-      const result = await checkCollectionConflictsAction();
-      if (!("signals" in result)) {
-        pushToast({ message: result.error, tone: "error" });
-        return;
-      }
-      setConflictSignals(result.signals);
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if ((result.signals.totalCount ?? 0) > 0) showConflicts();
-    });
   }
 
   function handleUpdated(collection: AdminCollection) {
@@ -173,8 +142,6 @@ export function CollectionsCms({
       <CatalogConflictStatus
         signals={conflictSignals}
         onShow={() => showConflicts()}
-        onCheck={handleConflictCheck}
-        checking={isConflictCheckPending}
         entityNoun={ENTITY_NOUN}
       />
 
@@ -187,8 +154,6 @@ export function CollectionsCms({
               <CatalogConflictStatus
                 signals={conflictSignals}
                 onShow={() => showConflicts()}
-                onCheck={handleConflictCheck}
-                checking={isConflictCheckPending}
                 compact
                 entityNoun={ENTITY_NOUN}
               />
@@ -352,8 +317,8 @@ export function CollectionsCms({
         onClose={closeConflictList}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        collections={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
-        focusedCollectionId={focusedConflictCollectionId}
+        items={items.map((collection) => ({ id: collection.id, name: collection.name, slug: collection.slug }))}
+        focusedId={focusedConflictCollectionId}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />

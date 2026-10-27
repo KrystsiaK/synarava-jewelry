@@ -2,16 +2,12 @@ import { render, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
+import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
-const mocks = vi.hoisted(() => ({
-  listCustomProductMetafieldDefinitionsAction: vi.fn(),
-  createProductMetafieldDefinitionAction: vi.fn(),
-}));
-
-vi.mock("@/app/admin/actions/sync", () => ({
-  listCustomProductMetafieldDefinitionsAction: mocks.listCustomProductMetafieldDefinitionsAction,
-  createProductMetafieldDefinitionAction: mocks.createProductMetafieldDefinitionAction,
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 vi.mock("@/components/admin/shared/admin-toast", () => ({
   useAdminToast: () => ({ pushToast: vi.fn() }),
@@ -19,7 +15,7 @@ vi.mock("@/components/admin/shared/admin-toast", () => ({
 
 describe("ProductMetafieldsPanel locale overlays", () => {
   beforeEach(() => {
-    mocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({
+    adminSyncActionMocks.listCustomProductMetafieldDefinitionsAction.mockResolvedValue({
       definitions: [
         {
           id: "def-care",

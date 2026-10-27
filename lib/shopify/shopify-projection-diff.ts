@@ -1,17 +1,15 @@
 import {
   coerceMetafieldRows,
-  mergeCustomMetafieldsIntoList,
   metafieldIdentityKey,
-  metafieldTranslationsFromSnapshot,
-  withMetafieldTranslations,
-  type MetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
+import { labelForWindowPath } from "@/lib/sync/field-registry";
 
 /**
  * Object-level Shopify projection compare.
  *
  * Detection compares full Shopify-shaped JSON (denylist of technical noise only),
- * not a hand-maintained allowlist of commerce fields.
+ * not a hand-maintained allowlist of commerce fields. Human path labels come from
+ * `lib/sync/field-registry` (ADR-0009) — not a parallel PATH_LABELS table.
  */
 
 export type ShopifyProjectionDiff = {
@@ -29,32 +27,16 @@ const TECHNICAL_KEYS = new Set([
   "__typename",
   // Local locale overlays for merchant text metafields — not part of Shopify product JSON.
   "metafieldTranslations",
+  "inventoryLevels",
 ]);
 
-const SHOPIFY_CDN_HOST_RE = /(^|\.)cdn\.shopify\.com$/i;
+const MONEY_PATH_RE = /(?:^|\.)(?:price|compareAtPrice|amount)$/;
+const INSTANT_PATH_RE = /(?:^|\.)(?:publishDate|publishedAt)$/;
+const WEIGHT_G: Record<string, number> = {
+  GRAMS: 1, KILOGRAMS: 1000, OUNCES: 28.349523125, POUNDS: 453.59237,
+};
 
-/** Human labels for known projection paths (Catalog Conflicts UI + scoped apply). */
-const PATH_LABELS: Array<{ match: RegExp; label: string }> = [
-  { match: /^title$/, label: "Name" },
-  { match: /^handle$/, label: "Handle" },
-  { match: /^descriptionHtml$/, label: "Description" },
-  { match: /^category(\.id)?$/, label: "Product category" },
-  { match: /^productType$/, label: "Product type" },
-  { match: /^vendor$/, label: "Vendor" },
-  { match: /^seo\.title$/, label: "SEO title" },
-  { match: /^seo\.description$/, label: "SEO description" },
-  { match: /^status$/, label: "Status" },
-  { match: /^tags$/, label: "Tags" },
-  { match: /^variants\[\d+\]\.sku$/, label: "Variant SKU" },
-  { match: /^variants\[\d+\]\.price$/, label: "Price" },
-  { match: /^variants\[\d+\]\.compareAtPrice$/, label: "Compare-at price" },
-  { match: /^variants\[\d+\]\.taxable$/, label: "Charge tax" },
-  { match: /^variants\[\d+\]\.inventoryQuantity$/, label: "Available quantity" },
-  { match: /^totalInventory$/, label: "Total inventory" },
-  { match: /^variants\[\d+\]\.barcode$/, label: "Barcode" },
-  { match: /^variants\[\d+\]\.inventoryPolicy$/, label: "Inventory policy" },
-  { match: /^variants\[\d+\]\.inventoryItem\.unitCost/, label: "Cost" },
-];
+const SHOPIFY_CDN_HOST_RE = /(^|\.)cdn\.shopify\.com$/i;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -120,12 +102,36 @@ function metafieldsToIdentityMap(items: unknown[]): Record<string, unknown> {
  * Strip technical noise and normalize volatile values so equality is commerce-meaningful.
  */
 export function canonicalizeShopifyProjection(value: unknown, path = ""): unknown {
-  if (value == null) return /^seo\.(title|description)$/.test(path) ? "" : null;
+  if (value == null) return null;
   if (typeof value === "string") {
-    if (/^https?:\/\//i.test(value)) return normalizeShopifyCdnUrl(value);
-    return value;
+    const s = value.replace(/\r\n/g, "\n").normalize("NFC").trim();
+    if (!s) return null;
+    if (MONEY_PATH_RE.test(path)) { const n = Number(s); return Number.isFinite(n) ? n : s; }
+    if (INSTANT_PATH_RE.test(path)) {
+      const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
+    }
+    return /^https?:\/\//i.test(s) ? normalizeShopifyCdnUrl(s) : s;
   }
   if (typeof value === "number" || typeof value === "boolean") return value;
+  if (isPlainObject(value) && path.endsWith("measurement.weight") && typeof value.unit === "string") {
+    const m = WEIGHT_G[value.unit]; const v = Number(value.value);
+    if (m != null && Number.isFinite(v) && v > 0) return { unit: "GRAMS", value: Math.round(v * m * 1e4) / 1e4 };
+  }
+  if (
+    isPlainObject(value) && typeof value.type === "string" && typeof value.value === "string"
+    && /(^|\.)metafields(\.|$)/.test(path)
+  ) {
+    const t = value.type; const raw = value.value; let parsed: unknown = raw;
+    if (t === "boolean") parsed = raw === "true";
+    else if (t.startsWith("number_")) { const n = Number(raw); parsed = Number.isFinite(n) ? n : raw; }
+    else if (t === "json" || t.startsWith("list.")) {
+      try {
+        const p: unknown = JSON.parse(raw);
+        parsed = t.startsWith("list.") && !Array.isArray(p) ? raw : p;
+      } catch { /* keep raw */ }
+    }
+    value = { ...value, value: parsed };
+  }
   if (Array.isArray(value)) {
     if (isMetafieldListPath(path)) {
       const rows = coerceMetafieldRows(value)
@@ -244,24 +250,31 @@ function displayValueForPath(path: string, value: unknown): string {
   return displayValue(value);
 }
 
-export function labelForShopifyProjectionPath(path: string): string {
-  for (const entry of PATH_LABELS) {
-    if (entry.match.test(path)) return entry.label;
+/** Resolver copy for media leaves — states which side owns the image. */
+export function mediaConflictFieldLabel(
+  path: string,
+  local: unknown,
+  shopify: unknown,
+): string | null {
+  const mediaMatch = path.match(/^media\[(\d+)\]$/);
+  if (!mediaMatch) return null;
+  const n = Number(mediaMatch[1]) + 1;
+  const localMissing = local == null;
+  const shopifyMissing = shopify == null;
+  if (!localMissing && shopifyMissing) {
+    return `Image ${n} exists only in Synarava, not in Shopify`;
   }
+  if (localMissing && !shopifyMissing) {
+    return `Image ${n} exists only in Shopify, not in Synarava`;
+  }
+  return `Image ${n}`;
+}
+
+export function labelForShopifyProjectionPath(path: string): string {
   if (path === "media" || path.startsWith("media.")) return "Media gallery";
   const mediaMatch = path.match(/^media\[(\d+)\]/);
   if (mediaMatch) {
-    return `Media gallery (image ${Number(mediaMatch[1]) + 1})`;
-  }
-  // variants[0].sku → Variant SKU; generic fallback keeps path readable
-  const variantMatch = path.match(/^variants\[(\d+)\]\.(.+)$/);
-  if (variantMatch) {
-    const rest = variantMatch[2];
-    for (const entry of PATH_LABELS) {
-      if (entry.match.test(`variants[0].${rest}`)) {
-        return `${entry.label} (variant ${Number(variantMatch[1]) + 1})`;
-      }
-    }
+    return `Image ${Number(mediaMatch[1]) + 1}`;
   }
   const metafieldMatch = path.match(/^metafields\.([^.]+)(?:\.(.+))?$/);
   if (metafieldMatch) {
@@ -272,7 +285,8 @@ export function labelForShopifyProjectionPath(path: string): string {
     const label = metafieldLabel({ namespace: identity.slice(0, sep), key: identity.slice(sep + 2) });
     return !rest || rest === "value" ? label : `${label} · ${rest}`;
   }
-  return path;
+  // Registry owns commerce path → label (including variants[].*).
+  return labelForWindowPath(path);
 }
 
 function metafieldLabel(field: Record<string, unknown>): string {
@@ -288,7 +302,7 @@ function walkDiff(
   path: string,
   out: ShopifyProjectionDiff[],
 ): void {
-  if (Object.is(local, shopify)) return;
+  if (Object.is(local, shopify) || local == null && shopify == null) return;
 
   const localIsObj = isPlainObject(local);
   const shopifyIsObj = isPlainObject(shopify);
@@ -314,7 +328,7 @@ function walkDiff(
 
   out.push({
     path,
-    field: labelForShopifyProjectionPath(path),
+    field: mediaConflictFieldLabel(path, local, shopify) ?? labelForShopifyProjectionPath(path),
     local: displayValueForPath(path, local),
     shopify: displayValueForPath(path, shopify),
   });
@@ -426,126 +440,4 @@ export function setProjectionPath(root: unknown, path: string, value: unknown): 
   };
 
   return cloneLevel(root, 0);
-}
-
-export function centsToShopifyAmount(cents: number): string {
-  return (Math.round(cents) / 100).toFixed(2);
-}
-
-export type LocalCommerceProjectionPatch = {
-  title?: string;
-  descriptionHtml?: string;
-  seo?: { title: string; description: string };
-  handle?: string;
-  vendor?: string | null;
-  productType?: string | null;
-  /** Shopify tag strings (same shape as Admin GraphQL `tags`). */
-  tags?: string[];
-  /** Merchant-owned product metafield values (excludes synarava / shopify / global). */
-  customMetafields?: Array<{ namespace: string; key: string; type: string; value: string }>;
-  /**
-   * Per-locale text overlays for merchant metafields (`pt` / `ru` → `namespace::key`).
-   * Stored beside the Shopify-shaped window; stripped from commerce compare.
-   */
-  metafieldTranslations?: MetafieldTranslations;
-  /** Shopify-shaped media nodes (gallery write-through from ProductMedia). */
-  media?: unknown[];
-  variant?: {
-    shopifyVariantId?: string | null;
-    sku?: string;
-    priceCents?: number;
-    taxable?: boolean;
-    inventoryQuantity?: number;
-  };
-};
-
-/**
- * Write local editor commerce into the compare SoT (same Shopify-shaped paths).
- * Call on every local commerce save — detection is B/L/R on the projection, not Prisma columns.
- * Write-through updates L only; B stays until pull/push/resolve agrees.
- */
-export function writeThroughLocalCommerceToProjection(
-  snapshot: unknown,
-  patch: LocalCommerceProjectionPatch,
-): unknown {
-  let next: unknown = snapshot ?? {};
-
-  if (patch.descriptionHtml !== undefined) next = setProjectionPath(next, "descriptionHtml", patch.descriptionHtml);
-  if (patch.seo !== undefined) {
-    next = setProjectionPath(next, "seo", patch.seo);
-
-  }
-
-  if (patch.title != null) next = setProjectionPath(next, "title", patch.title);
-  if (patch.handle != null) next = setProjectionPath(next, "handle", patch.handle);
-  if (patch.vendor !== undefined) next = setProjectionPath(next, "vendor", patch.vendor ?? "");
-  if (patch.productType !== undefined) {
-    next = setProjectionPath(next, "productType", patch.productType ?? "");
-  }
-  if (patch.tags !== undefined) {
-    next = setProjectionPath(next, "tags", patch.tags);
-  }
-
-  if (patch.variant) {
-    const variants = getProjectionPath(next, "variants");
-    let index = 0;
-    if (Array.isArray(variants) && patch.variant.shopifyVariantId) {
-      const found = variants.findIndex(
-        (item) => isPlainObject(item) && item.id === patch.variant!.shopifyVariantId,
-      );
-      if (found >= 0) index = found;
-    }
-    if (patch.variant.sku != null) {
-      next = setProjectionPath(next, `variants[${index}].sku`, patch.variant.sku);
-    }
-    if (patch.variant.priceCents != null) {
-      next = setProjectionPath(
-        next,
-        `variants[${index}].price`,
-        centsToShopifyAmount(patch.variant.priceCents),
-      );
-    }
-    if (patch.variant.taxable != null) {
-      next = setProjectionPath(next, `variants[${index}].taxable`, patch.variant.taxable);
-    }
-    if (patch.variant.inventoryQuantity != null) {
-      next = setProjectionPath(
-        next,
-        `variants[${index}].inventoryQuantity`,
-        patch.variant.inventoryQuantity,
-      );
-      // Keep product-level totalInventory in the compare window. Inventory-only
-      // Save must not open a second totalInventory phantom against Shopify.
-      const variantsAfter = getProjectionPath(next, "variants");
-      if (Array.isArray(variantsAfter)) {
-        const total = variantsAfter.reduce((sum: number, item) => {
-          if (!isPlainObject(item) || typeof item.inventoryQuantity !== "number") return sum;
-          return sum + item.inventoryQuantity;
-        }, 0);
-        next = setProjectionPath(next, "totalInventory", total);
-      } else {
-        next = setProjectionPath(next, "totalInventory", patch.variant.inventoryQuantity);
-      }
-    }
-  }
-
-  if (patch.customMetafields) {
-    const existing = getProjectionPath(next, "metafields");
-    next = setProjectionPath(
-      next,
-      "metafields",
-      mergeCustomMetafieldsIntoList(existing, patch.customMetafields),
-    );
-  }
-
-  if (patch.media !== undefined) {
-    next = setProjectionPath(next, "media", patch.media);
-  }
-
-  // Form parse owns the full overlay map for locales present in FormData; replace, don't deep-merge.
-  const nextTranslations = patch.metafieldTranslations !== undefined
-    ? patch.metafieldTranslations
-    : metafieldTranslationsFromSnapshot(snapshot);
-
-  return withMetafieldTranslations(canonicalizeShopifyProjection(next), nextTranslations);
 }

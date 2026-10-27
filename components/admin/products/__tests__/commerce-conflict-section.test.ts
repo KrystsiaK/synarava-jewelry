@@ -36,6 +36,10 @@ describe("commerce conflict → editor section", () => {
     expect(productEditorSectionForCommerceDiff({ path: "_presence", field: "Presence" })).toBe("shopify");
   });
 
+  it("maps Adopt Shopify to Sync", () => {
+    expect(productEditorSectionForCommerceDiff({ path: "_adopt", field: "Adopt Shopify" })).toBe("shopify");
+  });
+
   it("maps media diffs to the Media tab (path and unlabeled path-as-label)", () => {
     expect(productEditorSectionForCommerceDiff({ path: "media[0].id", field: "Media gallery (image 1)" })).toBe("media");
     expect(productEditorSectionForCommerceDiff({ field: "media[0].preview.image.url" })).toBe("media");
@@ -95,7 +99,7 @@ describe("commerce conflict → editor section", () => {
     expect(sections.has("content" as never)).toBe(false);
   });
 
-  it("marks every language shell for a shared price conflict", () => {
+  it("marks only the base (EN) shell for a shared price conflict", () => {
     const sections = conflictSectionsFromDifferences([
       { path: "variants[0].price", field: "Price" },
     ]);
@@ -103,7 +107,7 @@ describe("commerce conflict → editor section", () => {
       localeCodes: ["en", "pt", "ru"],
       conflictSections: sections,
     });
-    expect([...locales].toSorted()).toEqual(["en", "pt", "ru"]);
+    expect([...locales]).toEqual(["en"]);
   });
 
   it("marks only PT for a PT-only locale signal without shared sections", () => {

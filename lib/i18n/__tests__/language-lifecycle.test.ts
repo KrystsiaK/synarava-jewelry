@@ -33,7 +33,6 @@ vi.mock("@/lib/db", () => ({
     collectionTranslation: { deleteMany: vi.fn() },
     pageTranslation: { deleteMany: vi.fn() },
     localizedHandleRedirect: { deleteMany: vi.fn() },
-    shopifyTranslationSnapshot: { deleteMany: vi.fn() },
     translationCache: { deleteMany: vi.fn() },
     siteSetting: {
       findUnique: mocks.siteSettingFindUnique,

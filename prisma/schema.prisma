@@ -76,8 +76,8 @@ model Collection {
   shopifyManualSourceId String?                 @unique
   shopifyHandle         String?
   shopifySnapshot       Json?
-  /// Synarava working commerce window (same Shopify-shaped JSON as shopifySnapshot).
-  workingSnapshot       Json?
+  /// Orphan Shopify-shaped keys with no column home (ADR-0009). OUR window is derived.
+  extras                Json?
   shopifyUpdatedAt      DateTime?
   lastSyncedAt          DateTime?
   syncStatus            ProductSyncStatus       @default(UNLINKED)
@@ -183,10 +183,8 @@ model Product {
   shopifyCategoryId   String?
   shopifyCategoryName String?
   shopifySnapshot     Json?
-  /// Synarava working commerce window (same Shopify-shaped JSON as shopifySnapshot).
-  workingSnapshot     Json?
-  /// @deprecated dual-snapshot model — unused; drop in a later migration.
-  shopifyBaseSnapshot Json?
+  /// Orphan Shopify-shaped keys with no column home (ADR-0009). OUR window is derived.
+  extras              Json?
   shopifyProductId    String?                 @unique
   shopifyHandle       String?
   shopifyUpdatedAt    DateTime?
@@ -234,14 +232,6 @@ model ProductIncomingUpdateView {
 }
 
 /// Dual full-catalog commerce snapshots (Redux-style store persistence).
-model CommerceSyncStore {
-  id              String   @id @default("default")
-  ourSnapshot     Json
-  shopifySnapshot Json
-  conflictReport  Json?
-  updatedAt       DateTime @updatedAt
-}
-
 model ProductTranslation {
   id               String                  @id @default(cuid())
   locale           String
@@ -765,37 +755,13 @@ model ShopifyTranslationBinding {
   resourceType       TranslationResourceType
   entityId           String
   shopifyResourceId  String
-  // Legacy, single-locale field values (registry key -> value) as of the
-  // last successful push/pull, from before per-locale ShopifyTranslationSnapshot
-  // rows existed — only ever populated for one locale and no longer written
-  // (Task U5), kept as a read-only fallback for bindings that predate it.
-  lastSyncedSnapshot Json?
   createdAt          DateTime                @default(now())
   updatedAt          DateTime                @updatedAt
   syncEvents         TranslationSyncEvent[]
-  snapshots          ShopifyTranslationSnapshot[]
   divergences        ShopifyFieldDivergence[]
 
   @@unique([resourceType, entityId])
   @@unique([resourceType, shopifyResourceId])
-}
-
-// Locale-specific common ancestors for three-way comparison, one row per
-// (binding, locale). The legacy lastSyncedSnapshot column on
-// ShopifyTranslationBinding remains only so bindings created before this
-// table existed still have a fallback base to diff against.
-model ShopifyTranslationSnapshot {
-  id        String                    @id @default(cuid())
-  bindingId String
-  binding   ShopifyTranslationBinding @relation(fields: [bindingId], references: [id], onDelete: Cascade)
-  locale    String
-  values    Json
-  syncedAt  DateTime                  @default(now())
-  createdAt DateTime                  @default(now())
-  updatedAt DateTime                  @updatedAt
-
-  @@unique([bindingId, locale])
-  @@index([locale, syncedAt])
 }
 
 // A read-only observation of Shopify/local state. Reconcile runs are kept
@@ -818,6 +784,8 @@ model ShopifyReconcileRun {
 
   @@index([status, createdAt])
   @@index([completedAt])
+  // Matches getLatestReconcileRun ORDER BY "createdAt" DESC
+  @@index([createdAt])
 }
 
 // Latest catalog-level identity comparison. Field divergences belong to
@@ -865,6 +833,10 @@ model ShopifyFieldDivergence {
   @@index([bindingId, locale])
   @@index([rootEntityType, rootEntityId, locale])
   @@index([kind, resolvedAt])
+  // Partial open-diff index lives in SQL migration only (Prisma has no WHERE on @@index):
+  // ShopifyFieldDivergence_open_partition_idx
+  //   (bindingId, locale, fieldKey, createdAt DESC) WHERE resolvedAt IS NULL
+  // Matches getLatestReconcileDifferences ROW_NUMBER partition/order.
 }
 
 model TranslationSyncEvent {

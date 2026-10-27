@@ -3,6 +3,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   storefrontLocaleFindUnique: vi.fn(),
   storefrontLocaleUpsert: vi.fn(),
+  productFindMany: vi.fn(),
+  productUpdate: vi.fn(),
+  collectionFindMany: vi.fn(),
+  collectionUpdate: vi.fn(),
+  pageFindMany: vi.fn(),
+  pageUpdate: vi.fn(),
   productTranslationFindMany: vi.fn(),
   productTranslationUpsert: vi.fn(),
   collectionTranslationFindMany: vi.fn(),
@@ -11,10 +17,9 @@ const mocks = vi.hoisted(() => ({
   pageTranslationUpsert: vi.fn(),
   localizedHandleRedirectFindMany: vi.fn(),
   localizedHandleRedirectUpsert: vi.fn(),
-  shopifyTranslationSnapshotFindMany: vi.fn(),
-  shopifyTranslationSnapshotUpsert: vi.fn(),
   translationCacheFindUnique: vi.fn(),
   translationCacheUpsert: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -22,6 +27,18 @@ vi.mock("@/lib/db", () => ({
     storefrontLocale: {
       findUnique: mocks.storefrontLocaleFindUnique,
       upsert: mocks.storefrontLocaleUpsert,
+    },
+    product: {
+      findMany: mocks.productFindMany,
+      update: mocks.productUpdate,
+    },
+    collection: {
+      findMany: mocks.collectionFindMany,
+      update: mocks.collectionUpdate,
+    },
+    page: {
+      findMany: mocks.pageFindMany,
+      update: mocks.pageUpdate,
     },
     productTranslation: {
       findMany: mocks.productTranslationFindMany,
@@ -39,14 +56,11 @@ vi.mock("@/lib/db", () => ({
       findMany: mocks.localizedHandleRedirectFindMany,
       upsert: mocks.localizedHandleRedirectUpsert,
     },
-    shopifyTranslationSnapshot: {
-      findMany: mocks.shopifyTranslationSnapshotFindMany,
-      upsert: mocks.shopifyTranslationSnapshotUpsert,
-    },
     translationCache: {
       findUnique: mocks.translationCacheFindUnique,
       upsert: mocks.translationCacheUpsert,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -55,12 +69,28 @@ import {
   exportLanguageBundle,
   importLanguageBundle,
   LANGUAGE_BUNDLE_SCHEMA_VERSION,
+  previewLanguageBundleImport,
   verifyLanguageBundle,
   type LanguageBundle,
 } from "@/lib/i18n/language-bundle";
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => {
+    const { db } = await import("@/lib/db");
+    const client = {
+      storefrontLocale: db.storefrontLocale,
+      product: db.product,
+      collection: db.collection,
+      page: db.page,
+      productTranslation: db.productTranslation,
+      collectionTranslation: db.collectionTranslation,
+      pageTranslation: db.pageTranslation,
+      localizedHandleRedirect: db.localizedHandleRedirect,
+      translationCache: db.translationCache,
+    };
+    return fn(client);
+  });
   mocks.storefrontLocaleFindUnique.mockResolvedValue({
     code: "pt",
     routeSegment: "pt",
@@ -86,23 +116,11 @@ beforeEach(() => {
   mocks.collectionTranslationFindMany.mockResolvedValue([]);
   mocks.pageTranslationFindMany.mockResolvedValue([]);
   mocks.localizedHandleRedirectFindMany.mockResolvedValue([]);
-  mocks.shopifyTranslationSnapshotFindMany.mockResolvedValue([
-    {
-      id: "s1",
-      bindingId: "b1",
-      locale: "pt",
-      values: { title: "Anel" },
-      syncedAt: new Date("2026-01-01T00:00:00.000Z"),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    },
-  ]);
   mocks.translationCacheFindUnique.mockResolvedValue(null);
   mocks.productTranslationUpsert.mockResolvedValue({});
   mocks.collectionTranslationUpsert.mockResolvedValue({});
   mocks.pageTranslationUpsert.mockResolvedValue({});
   mocks.localizedHandleRedirectUpsert.mockResolvedValue({});
-  mocks.shopifyTranslationSnapshotUpsert.mockResolvedValue({});
   mocks.translationCacheUpsert.mockResolvedValue({});
   mocks.storefrontLocaleUpsert.mockResolvedValue({});
 });
@@ -133,7 +151,8 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
     const bundle = await exportLanguageBundle("pt");
     expect(bundle.locale).toBe("pt");
     expect(bundle.productTranslations).toHaveLength(1);
-    expect(bundle.shopifyTranslations).toHaveLength(1);
+    expect(bundle.translationSnapshots).toEqual([]);
+    expect(bundle.shopifyTranslations).toEqual([]);
     expect(verifyLanguageBundle(bundle)).toEqual({ ok: true });
 
     const result = await importLanguageBundle(bundle, "pt");
@@ -143,10 +162,167 @@ describe("exportLanguageBundle / importLanguageBundle", () => {
       collections: 0,
       pages: 0,
       redirects: 0,
-      snapshots: 1,
+      skipped: 0,
     });
     expect(mocks.productTranslationUpsert).toHaveBeenCalled();
 
     await expect(importLanguageBundle(bundle, "ru")).rejects.toThrow(/does not match/);
+  });
+
+  it("previews import diffs without writing", async () => {
+    mocks.productTranslationFindMany.mockResolvedValueOnce([
+      {
+        productId: "p1",
+        locale: "pt",
+        title: "Old title",
+        localizedHandle: "anel",
+        shortDescription: null,
+        description: null,
+        seoTitle: null,
+        seoDescription: null,
+      },
+    ]);
+    const bundle = await exportLanguageBundle("pt");
+    const { checksum: _checksum, ...payload } = bundle;
+    void _checksum;
+    // Mutate title so preview reports a field change.
+    const next = attachLanguageBundleChecksum({
+      ...payload,
+      productTranslations: [{ ...(bundle.productTranslations[0] as object), title: "New title" }],
+    });
+    const preview = await previewLanguageBundleImport(next, "pt");
+    expect(preview.counts.products).toBe(1);
+    expect(preview.counts.fieldsChanged).toBeGreaterThan(0);
+    expect(preview.samples.some((sample) => sample.fieldKey === "title")).toBe(true);
+    expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("ignores legacy translationSnapshots on import without writing them", async () => {
+    const bundle = attachLanguageBundleChecksum({
+      schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
+      locale: "pt",
+      exportedAt: "2026-10-21T00:00:00.000Z",
+      registry: null,
+      productTranslations: [],
+      collectionTranslations: [],
+      pageTranslations: [],
+      handleRedirects: [],
+      translationSnapshots: [{ bindingId: "b1", values: { title: "Anel" } }],
+      translationCache: null,
+      shopifyTranslations: [],
+    });
+    await expect(importLanguageBundle(bundle, "pt")).resolves.toMatchObject({
+      locale: "pt",
+      products: 0,
+    });
+  });
+
+  it("exports and imports default locale from Product/Collection/Page base columns", async () => {
+    mocks.storefrontLocaleFindUnique.mockResolvedValue({
+      code: "en",
+      routeSegment: "en",
+      shopifyLocale: "en",
+      intlLocale: "en-IE",
+      name: "English",
+      nativeName: "English",
+      isDefault: true,
+      status: "PUBLISHED",
+      sortOrder: 0,
+    });
+    mocks.productFindMany.mockResolvedValue([
+      {
+        id: "p1",
+        name: "Ring",
+        slug: "ring",
+        shortDescription: "Short",
+        description: "Desc",
+        materialLine: null,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+        details: null,
+        seoTitle: "SEO",
+        seoDescription: null,
+      },
+    ]);
+    mocks.collectionFindMany.mockResolvedValue([]);
+    mocks.pageFindMany.mockResolvedValue([]);
+    mocks.productUpdate.mockResolvedValue({});
+
+    const bundle = await exportLanguageBundle("en");
+    expect(bundle.productTranslations).toEqual([
+      expect.objectContaining({ productId: "p1", locale: "en", title: "Ring", localizedHandle: "ring" }),
+    ]);
+    expect(mocks.productTranslationFindMany).not.toHaveBeenCalled();
+
+    await importLanguageBundle(bundle, "en");
+    expect(mocks.transaction).toHaveBeenCalled();
+    expect(mocks.productUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p1" },
+        data: expect.objectContaining({ name: "Ring", slug: "ring" }),
+      }),
+    );
+    expect(mocks.productTranslationUpsert).not.toHaveBeenCalled();
+  });
+
+  it("skips default-locale rows with empty title and never writes name: \"\"", async () => {
+    mocks.storefrontLocaleFindUnique.mockResolvedValue({
+      code: "en",
+      routeSegment: "en",
+      shopifyLocale: "en",
+      intlLocale: "en-IE",
+      name: "English",
+      nativeName: "English",
+      isDefault: true,
+      status: "PUBLISHED",
+      sortOrder: 0,
+    });
+    mocks.productUpdate.mockResolvedValue({});
+
+    const bundle = attachLanguageBundleChecksum({
+      schemaVersion: LANGUAGE_BUNDLE_SCHEMA_VERSION,
+      locale: "en",
+      exportedAt: "2026-10-25T00:00:00.000Z",
+      registry: {
+        code: "en",
+        routeSegment: "en",
+        shopifyLocale: "en",
+        intlLocale: "en-IE",
+        name: "English",
+        nativeName: "English",
+        isDefault: true,
+        status: "PUBLISHED",
+        sortOrder: 0,
+      },
+      productTranslations: [
+        { productId: "p-empty", title: "", locale: "en" },
+        { productId: "p-ok", title: "Kept", locale: "en" },
+        { productId: "p-blank", title: "   ", locale: "en" },
+      ],
+      collectionTranslations: [],
+      pageTranslations: [],
+      handleRedirects: [],
+      translationSnapshots: [],
+      translationCache: null,
+      shopifyTranslations: [],
+    });
+
+    await expect(importLanguageBundle(bundle, "en")).resolves.toMatchObject({
+      locale: "en",
+      products: 1,
+      skipped: 2,
+    });
+    expect(mocks.productUpdate).toHaveBeenCalledTimes(1);
+    expect(mocks.productUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: "p-ok" },
+        data: expect.objectContaining({ name: "Kept" }),
+      }),
+    );
+    expect(mocks.productUpdate.mock.calls.every(
+      (call) => (call[0] as { data: { name: string } }).data.name !== "",
+    )).toBe(true);
   });
 });

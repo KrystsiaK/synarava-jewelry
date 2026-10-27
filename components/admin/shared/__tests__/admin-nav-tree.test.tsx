@@ -89,7 +89,7 @@ describe("AdminNavTree", () => {
           pages: [],
           syncCounts: { products: 7, collections: 0, pages: 0, settings: 0, total: 7 },
         })}
-        syncNavHrefs={["/admin/products", "/admin/translations"]}
+        syncNavHrefs={["/admin/products"]}
       />,
     );
 
@@ -100,8 +100,7 @@ describe("AdminNavTree", () => {
     expect(
       screen.getByLabelText("7 Shopify conflicts in Catalog"),
     ).toBeInTheDocument();
-    expect(
-      screen.getByLabelText("7 Shopify conflicts to review"),
-    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("7 Shopify conflicts to review")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Translations/ }).querySelector("[data-signal]")).toBeNull();
   });
 });

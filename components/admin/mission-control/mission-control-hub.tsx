@@ -16,6 +16,7 @@ import type {
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 import type { MissionControlWiringConfig } from "@/lib/mission-control/wiring";
 import type { MissionControlEnvironment } from "@/lib/mission-control/wiring";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 /**
  * Shown while any catalog node still uses fixture/placeholder data.
@@ -45,13 +46,7 @@ const LEVEL_ORDER = { down: 0, warn: 1, unknown: 2, ok: 3 } as const;
 
 function checkedAtLabel(value: Date | null): string {
   if (!value) return "No check recorded";
-  return new Intl.DateTimeFormat("en", {
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    timeZone: "UTC",
-    timeZoneName: "short",
-  }).format(value);
+  return formatAdminDateTime(value);
 }
 
 /**

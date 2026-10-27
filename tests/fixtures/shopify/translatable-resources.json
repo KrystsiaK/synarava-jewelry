@@ -1,0 +1,246 @@
+{
+  "source": "live",
+  "locale": "en",
+  "resourceTypes": {
+    "PRODUCT": {
+      "http": 200,
+      "errors": null,
+      "extensions": {
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 4,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1996,
+            "restoreRate": 100.0
+          }
+        }
+      },
+      "data": {
+        "translatableResources": {
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "eyJsYXN0X2lkIjoxNjA3OTIxMTM5NzQ1MSwibGFzdF92YWx1ZSI6IjE2MDc5MjExMzk3NDUxIn0="
+          },
+          "nodes": [
+            {
+              "resourceId": "gid://shopify/Product/REDACTED",
+              "translatableContent": [
+                {
+                  "key": "title",
+                  "digest": "9204116129ceb161614c77d9afc14a273006d6be6e560700e6617db979eceafa",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "body_html",
+                  "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "value": "",
+                  "locale": "en"
+                },
+                {
+                  "key": "handle",
+                  "digest": "da7fc2ffdb753178e421e6529b9fbb2863e0968486d7cb05ef90a41dcc7c5b3c",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "product_type",
+                  "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "value": "",
+                  "locale": "en"
+                }
+              ],
+              "translations": []
+            },
+            {
+              "resourceId": "gid://shopify/Product/REDACTED",
+              "translatableContent": [
+                {
+                  "key": "title",
+                  "digest": "8c3d3afd773db6049f7228d3a1c9d4c4fc03d4760cbd2d475ddb7059cb11cba6",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "body_html",
+                  "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "value": "",
+                  "locale": "en"
+                },
+                {
+                  "key": "handle",
+                  "digest": "7df1b40e2f335376946da02a731ede071ebb3b3794e970dcce74a4da721556d5",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "product_type",
+                  "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+                  "value": "",
+                  "locale": "en"
+                }
+              ],
+              "translations": []
+            }
+          ]
+        }
+      }
+    },
+    "COLLECTION": {
+      "http": 200,
+      "errors": null,
+      "extensions": {
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        }
+      },
+      "data": {
+        "translatableResources": {
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "eyJsYXN0X2lkIjo3MDUyMDM1MzYyMDMsImxhc3RfdmFsdWUiOiI3MDUyMDM1MzYyMDMifQ=="
+          },
+          "nodes": [
+            {
+              "resourceId": "gid://shopify/Collection/REDACTED",
+              "translatableContent": [
+                {
+                  "key": "title",
+                  "digest": "11d58b08de98e05930a7f73b5f5d75367e4a58ac27335a420d55583cb16ad1ff",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "handle",
+                  "digest": "a80e4934a6f77731eb54b4a3030396bdfe91852466f412dbf7d8e63a2b9a7484",
+                  "value": "REDACTED",
+                  "locale": "en"
+                }
+              ],
+              "translations": []
+            }
+          ]
+        }
+      }
+    },
+    "PAGE": {
+      "http": 200,
+      "errors": null,
+      "extensions": {
+        "cost": {
+          "requestedQueryCost": 20,
+          "actualQueryCost": 3,
+          "throttleStatus": {
+            "maximumAvailable": 2000.0,
+            "currentlyAvailable": 1997,
+            "restoreRate": 100.0
+          }
+        }
+      },
+      "data": {
+        "translatableResources": {
+          "pageInfo": {
+            "hasNextPage": false,
+            "endCursor": "eyJsYXN0X2lkIjo3MjA1NTgyOTMzMjMsImxhc3RfdmFsdWUiOiI3MjA1NTgyOTMzMjMifQ=="
+          },
+          "nodes": [
+            {
+              "resourceId": "gid://shopify/Page/REDACTED",
+              "translatableContent": [
+                {
+                  "key": "title",
+                  "digest": "2b5c3d26721ae9c350cf3009318b626f0fc8a90b4a2ac0ca8099c05aa849282e",
+                  "value": "REDACTED",
+                  "locale": "en"
+                },
+                {
+                  "key": "handle",
+                  "digest": "093e7d5fdbaacfa92448861b11075b3fba532a07d945b49a44919252f5e830ad",
+                  "value": "REDACTED",
+                  "locale": "en"
+                }
+              ],
+              "translations": []
+            }
+          ]
+        }
+      }
+    }
+  },
+  "digest_field_probe": {
+    "note": "Probe whether Translation.digest exists on translations(locale:) in 2026-07",
+    "http": 200,
+    "errors": [
+      {
+        "message": "Field 'digest' doesn't exist on type 'Translation'",
+        "locations": [
+          {
+            "line": 4,
+            "column": 66
+          }
+        ],
+        "path": [
+          "query GroundTruthTranslationDigestProbe",
+          "translatableResource",
+          "translations",
+          "digest"
+        ],
+        "extensions": {
+          "code": "undefinedField",
+          "typeName": "Translation",
+          "fieldName": "digest"
+        }
+      }
+    ],
+    "data_keys": null,
+    "extensions": {
+      "cost": null
+    },
+    "sample": null
+  },
+  "costs": [
+    {
+      "resourceType": "PRODUCT",
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 4,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1996,
+          "restoreRate": 100.0
+        }
+      }
+    },
+    {
+      "resourceType": "COLLECTION",
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 3,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1997,
+          "restoreRate": 100.0
+        }
+      }
+    },
+    {
+      "resourceType": "PAGE",
+      "cost": {
+        "requestedQueryCost": 20,
+        "actualQueryCost": 3,
+        "throttleStatus": {
+          "maximumAvailable": 2000.0,
+          "currentlyAvailable": 1997,
+          "restoreRate": 100.0
+        }
+      }
+    }
+  ]
+}

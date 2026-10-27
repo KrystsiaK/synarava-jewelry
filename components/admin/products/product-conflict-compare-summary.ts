@@ -1,4 +1,4 @@
-import { productConflictBadgeCount } from "@/components/admin/products/product-conflict-badge-count";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflict-signals";
 
 export type ProductConflictCompareSummary = {
@@ -10,26 +10,15 @@ export type ProductConflictCompareSummary = {
 
 /**
  * One compare surface for product editor conflict chrome.
- * Banner, icon badge, and Sync commerce count must derive from this —
- * never from a parallel unfiltered translation-reconcile dump.
+ * Banner never lists languages for shared-only conflicts — only locales that
+ * actually have translation leaves (plus Presence when present).
  */
 export function productConflictCompareSummary(
   signal: CatalogConflictProductSignal | null | undefined,
-  options?: {
-    commerceFieldCount?: number;
-    /** Language shells (EN + published overlays) when shared commerce differs. */
-    localeTabs?: ReadonlyArray<{ code: string; label: string }>;
-  },
 ): ProductConflictCompareSummary {
-  const count = productConflictBadgeCount(signal, {
-    commerceFieldCount: options?.commerceFieldCount,
-  });
+  const count = productConflictBadgeCount(signal);
   if (count <= 0) return { count: 0, localeLabels: [] };
 
-  const commerce = options?.commerceFieldCount != null && options.commerceFieldCount > 0
-    ? options.commerceFieldCount
-    : Math.max(0, signal?.sharedCount ?? 0);
-  const legacyShared = commerce === 0 && signal?.shared && !signal.presence;
   const labels: string[] = [];
   const seen = new Set<string>();
 
@@ -42,10 +31,8 @@ export function productConflictCompareSummary(
 
   if (signal?.presence) pushLabel("Presence");
 
-  if (commerce > 0 || legacyShared) {
-    for (const tab of options?.localeTabs ?? []) pushLabel(tab.label);
-    if ((options?.localeTabs?.length ?? 0) === 0) pushLabel("Shared commerce");
-  }
+  // Shared commerce belongs on base — do not list EN/PT/RU for shared-only.
+  if ((signal?.sharedCount ?? 0) > 0) pushLabel("Shared");
 
   for (const locale of signal?.locales ?? []) {
     if (locale.count > 0) pushLabel(locale.name);

@@ -13,6 +13,7 @@ export function productEditorSectionForCommerceDiff(diff: {
   const field = diff.field;
 
   if (path === "_presence" || field === "Presence") return "shopify";
+  if (path === "_adopt" || field === "Adopt Shopify") return "shopify";
 
   if (
     /^variants\[\d+\]\.(price|compareAtPrice|taxable)(\.|$)/.test(path)
@@ -132,8 +133,9 @@ export function conflictSectionsFromDifferences(
 }
 
 /**
- * Language shells to mark for a conflict set.
- * Shared commerce (Price, Catalog, …) → every locale. Locale-only → those codes only.
+ * Language shells to mark for a conflict set (tree display).
+ * Shared commerce / presence → base (EN) only. Locale-only → those codes only.
+ * Shared never lights PT/RU tabs.
  * @see docs/wiki/commerce-sync.md
  */
 export function conflictLocalesFromCommerce(input: {
@@ -142,13 +144,17 @@ export function conflictLocalesFromCommerce(input: {
   sharedSignal?: boolean;
   presenceSignal?: boolean;
   localeSignals?: ReadonlyArray<{ code: string; count: number }>;
+  /** Default/base locale code (EN tab). */
+  baseLocale?: string;
 }): Set<string> {
   const out = new Set<string>();
+  const base = (input.baseLocale ?? "en").trim().toLowerCase() || "en";
   const sharedHit = [...input.conflictSections].some((section) => isSharedSection(section))
     || Boolean(input.sharedSignal)
     || Boolean(input.presenceSignal);
   if (sharedHit) {
-    for (const code of input.localeCodes) out.add(code);
+    const baseCode = input.localeCodes.find((code) => code.trim().toLowerCase() === base) ?? base;
+    out.add(baseCode);
   }
   for (const locale of input.localeSignals ?? []) {
     if (locale.count > 0) out.add(locale.code);

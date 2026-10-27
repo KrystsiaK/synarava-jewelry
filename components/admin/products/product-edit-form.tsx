@@ -14,32 +14,32 @@ import {
   type ProductActionState,
 } from "@/app/admin/actions/products";
 import {
-  checkProductConflictsAction,
-  inspectProductSyncAction,
-  pullSingleProductFromShopifyAction,
+  loadCatalogConflictSignalsAction,
   pushSingleProductToShopifyAction,
 } from "@/app/admin/actions/sync";
-import { runCommerceStoreConsoleFlow } from "@/components/admin/products/commerce-store-console-flow";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { useAdminFormValidation } from "@/components/admin/shared/admin-form-validation";
 import { AdminLocaleTabs, useAdminActiveLocale, type AdminLocaleStatus, type AdminLocaleTab } from "@/components/admin/shared/admin-locale-workspace";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { AdminAlert, AdminIconButton, AdminPanel } from "@/components/synarava-cms";
+import { AdminAlert, AdminIconButton, AdminPanel, SyncConflictIndicator } from "@/components/synarava-cms";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
 import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
-import { CatalogConflictWorkspace, type CatalogConflictViewScope } from "@/components/admin/products/catalog-conflict-workspace";
+import {
+  filterSignalsForView,
+  type CatalogConflictViewScope,
+} from "@/components/admin/products/catalog-conflict-view";
+import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
-  conflictSectionsFromDifferences,
-  productEditorSectionForCommerceDiff,
 } from "@/components/admin/products/commerce-conflict-section";
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
-import { ProductLocaleConflictControl } from "@/components/admin/products/product-locale-conflict-control";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import {
   requestProductSaveWithValidation,
@@ -55,7 +55,7 @@ import {
   type DirtyScopeKey,
 } from "@/components/admin/products/product-editor-scope";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
-import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
+import { ProductShopifyHeader, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import { useUnsavedLeaveGuard } from "@/components/admin/products/use-unsaved-leave-guard";
 import {
   getProductEditorDetails,
@@ -110,12 +110,9 @@ export function EditProductForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dirtyScopes, setDirtyScopes] = useState<Set<DirtyScopeKey>>(() => new Set());
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
-  const [conflictResolution, setConflictResolution] = useState<"shopify" | "synarava" | null>(null);
-  const [syncDetailOpen, setSyncDetailOpen] = useState(false);
-  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
-  const [conflictChecking, setConflictChecking] = useState(false);
   const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
   const [fieldsRevision, setFieldsRevision] = useState(0);
   const localeTabs = productLocaleTabs(translationLocales);
@@ -147,28 +144,41 @@ export function EditProductForm({
     }),
   );
   const productConflict = conflictSignals.products[currentProduct.id];
-  // Section tabs: only the owning sibling (Price for price, …) — per propagation graph.
-  const conflictSections = conflictSectionsFromDifferences(inspection?.differences ?? []);
+  // Section markers from loaded conflict signals (no mount/after-save inspect).
+  // Fine-grained commerce path→section marks need field diffs; signals carry
+  // shared/locale/presence counts — banner + locale chips use those.
+  const conflictSections = new Set<ProductEditorSection>();
   if (productConflict?.presence) conflictSections.add("shopify");
-  // Language shells: shared commerce → EN+PT+RU; locale-only → that locale.
+  // Tree: shared commerce → base (EN) only; locale-only → that locale.
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
     conflictSections,
     sharedSignal: productConflict?.shared,
     presenceSignal: Boolean(productConflict?.presence),
     localeSignals: productConflict?.locales,
+    baseLocale: SOURCE_LOCALE,
   });
-  const activeSectionHasConflict = conflictSections.has(activeSection);
-  const sectionConflictSignals = activeSectionHasConflict
-    ? conflictSignals
-    : { ...conflictSignals, products: {}, totalCount: 0 };
-  const commerceFieldCount = inspection?.differences.length ?? 0;
-  const sectionCommerceFieldCount = activeSectionHasConflict
-    ? (inspection?.differences ?? []).filter(
-      (difference) => productEditorSectionForCommerceDiff(difference) === activeSection,
-    ).length
-    : 0;
+  const activeSectionHasConflict = conflictSections.has(activeSection)
+    || (Boolean(productConflict?.shared) && isSharedSection(activeSection));
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
+  const entityConflictCount = productConflictBadgeCount(productConflict);
+  const localeConflictCount = productConflictBadgeCount(
+    filterSignalsForView(conflictSignals, {
+      kind: "productLocale",
+      productId: currentProduct.id,
+      locale: activeLocale,
+    }).products[currentProduct.id],
+  );
+  // Section chip: only light when this section owns a conflict (no zeroing blob).
+  const sectionConflictCount = activeSectionHasConflict
+    ? productConflictBadgeCount(
+      filterSignalsForView(conflictSignals, {
+        kind: "productLocale",
+        productId: currentProduct.id,
+        locale: syncLocale,
+      }).products[currentProduct.id],
+    )
+    : 0;
 
   useEffect(() => {
     if (!highlighted || !rowRef.current) return;
@@ -217,32 +227,6 @@ export function EditProductForm({
     if (sectionTabs) observer.observe(sectionTabs);
     return () => observer.disconnect();
   }, []);
-
-  useEffect(() => {
-    if (!product.shopifyProductId) return;
-    let cancelled = false;
-    void inspectProductSyncAction(product.id).then(async (result) => {
-      if (cancelled || !result.inspection) return;
-      setInspection(result.inspection);
-      // Inspect refreshes shopifySnapshot in DB — reload so Cost/compare-at match Shopify.
-      try {
-        const saved = await getSavedProductPayload(product.id);
-        if (cancelled) return;
-        setState((prev) => ({ ...prev, product: saved }));
-        setFieldsRevision((value) => value + 1);
-      } catch {
-        // Keep inspection even if reload fails.
-      }
-    });
-    return () => { cancelled = true; };
-  }, [product.id, product.shopifyProductId]);
-
-  // Full dual-store console walkthrough once per editor open (deduped globally).
-  useEffect(() => {
-    void runCommerceStoreConsoleFlow(`product-editor:${product.id}`).catch((error) => {
-      console.error("[commerce-store] FLOW EXCEPTION", error);
-    });
-  }, [product.id]);
 
   useEffect(() => {
     const form = formRef.current;
@@ -295,44 +279,34 @@ export function EditProductForm({
     });
   }
 
-  async function refreshConflicts(locale?: string, options?: { quiet?: boolean }) {
-    setConflictChecking(true);
-    try {
-      const result = await checkProductConflictsAction({ productId: currentProduct.id, locale });
-      if ("error" in result && result.error && !("signals" in result && result.signals)) {
-        pushToast({ message: result.error, tone: "error" });
-        return;
-      }
-      if ("warning" in result && result.warning) pushToast({ message: result.warning, tone: "info" });
-      if ("signals" in result && result.signals) setConflictSignals(result.signals);
-      if (!options?.quiet && "success" in result && result.success) {
-        pushToast({ message: result.success, tone: "success" });
-      } else if (options?.quiet && "signals" in result && result.signals?.products[currentProduct.id]) {
-        // Product-scoped quiet check still returns catalog-wide totals — don't toast "57 products".
+  /** Reload saved conflict signals (display only — no Shopify fetch). */
+  async function refreshConflictSignals(options?: { quiet?: boolean }) {
+    const result = await loadCatalogConflictSignalsAction();
+    if (result.error) {
+      if (!options?.quiet) pushToast({ message: result.error, tone: "error" });
+      return;
+    }
+    if (result.signals) {
+      setConflictSignals(result.signals);
+      if (options?.quiet && result.signals.products[currentProduct.id]) {
         pushToast({ message: "This product differs from Shopify after save.", tone: "info" });
       }
-    } finally {
-      setConflictChecking(false);
     }
   }
 
-  /** After conflict apply: close already done by workspace; reload values + markers. */
+  /** After conflict apply: reload values + conflict signals (full check already ran server-side). */
   async function handleConflictsApplied(info: { productIds: string[] }) {
     if (!info.productIds.includes(currentProduct.id)) return;
     try {
-      const [saved, inspectResult] = await Promise.all([
-        getSavedProductPayload(currentProduct.id),
-        inspectProductSyncAction(currentProduct.id),
-      ]);
+      const saved = await getSavedProductPayload(currentProduct.id);
       setState((prev) => ({ ...prev, product: saved }));
       onUpdated?.(saved);
       setFieldsRevision((value) => value + 1);
       window.setTimeout(() => {
         if (formRef.current) baselineRef.current = snapshotFormData(formRef.current);
       }, 0);
-      if (inspectResult.inspection) setInspection(inspectResult.inspection);
-      else setInspection({ state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
-      await refreshConflicts(undefined, { quiet: true });
+      setInspection(null);
+      await refreshConflictSignals({ quiet: true });
     } catch (error) {
       pushToast({
         message: error instanceof Error ? error.message : "Applied, but the editor could not reload.",
@@ -380,19 +354,8 @@ export function EditProductForm({
           }, 0);
           onUpdated?.(result.product);
           if (result.product.shopifyProductId) {
-            // Re-inspect so Price/etc. tab markers use fresh working vs shopify diffs —
-            // never keep the pre-save differences list.
-            const inspectResult = await inspectProductSyncAction(result.product.id);
-            if (inspectResult.inspection) {
-              setInspection(inspectResult.inspection);
-            } else if (inspectResult.error) {
-              setInspection({
-                state: "CONFLICT",
-                remoteUpdatedAt: result.product.shopifyUpdatedAt?.toISOString() ?? null,
-                publications: inspection?.publications ?? [],
-                differences: [],
-              });
-            }
+            // After-save full check (server) already refreshed SyncResult; reload
+            // signals for section/locale markers — no product inspect fetch.
             try {
               const saved = await getSavedProductPayload(result.product.id);
               setState((prev) => ({ ...prev, product: saved }));
@@ -400,9 +363,9 @@ export function EditProductForm({
             } catch {
               // Keep save result payload if reload fails.
             }
-            await refreshConflicts(undefined, { quiet: true });
+            await refreshConflictSignals({ quiet: true });
           } else {
-            setInspection({ state: "UNLINKED", remoteUpdatedAt: null, publications: [], differences: [] });
+            setInspection(null);
           }
         }
       } catch {
@@ -432,28 +395,6 @@ export function EditProductForm({
     );
   }
 
-  function handleCheckShopify() {
-    startTransition(async () => {
-      const result = await inspectProductSyncAction(currentProduct.id);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.inspection) {
-        setInspection(result.inspection);
-        pushToast({
-          message: result.inspection.state === "SYNCED"
-            ? "Shopify is up to date."
-            : result.inspection.state === "LOCAL_CHANGES"
-              ? "Local commerce is ahead of Shopify — Push when ready."
-              : result.inspection.state === "REMOTE_CHANGES"
-                ? "Shopify has commerce updates — Pull to apply them."
-                : result.inspection.state === "CONFLICT"
-                  ? "Commerce conflict — choose Shopify or Synarava for the differing fields."
-                  : "Shopify comparison refreshed.",
-          tone: result.inspection.state === "CONFLICT" ? "error" : "success",
-        });
-      }
-    });
-  }
-
   function applySyncedProduct(next: ProductRecord, success?: string) {
     setState({ success, product: next });
     if (isDirty) {
@@ -468,40 +409,21 @@ export function EditProductForm({
     onUpdated?.(next);
   }
 
-  function handlePushToShopify(force = false) {
+  /** Non-conflict whole-record create/push only (UNLINKED / PENDING). Conflict choice uses ConflictResolver. */
+  function handlePushToShopify() {
     if (isDirty) {
       pushToast({ message: "Save your product changes before Push.", tone: "info" });
       return;
     }
-    setConflictResolution(null);
     startTransition(async () => {
-      const result = await pushSingleProductToShopifyAction(currentProduct.id, force);
+      const result = await pushSingleProductToShopifyAction(currentProduct.id);
       if (result.error) pushToast({ message: result.error, tone: "error" });
       if (result.success) pushToast({ message: result.success, tone: "success" });
       if (result.translationWarning) pushToast({ message: result.translationWarning, tone: "info" });
       if (result.inspection) setInspection(result.inspection);
       if (result.product) {
         applySyncedProduct(result.product, result.success);
-        setSyncDetailOpen(false);
-        refreshPreservingScroll(router);
-      }
-    });
-  }
-
-  function handlePullFromShopify(force = false) {
-    if (isDirty) {
-      pushToast({ message: "Save your product changes before Pull.", tone: "info" });
-      return;
-    }
-    setConflictResolution(null);
-    startTransition(async () => {
-      const result = await pullSingleProductFromShopifyAction(currentProduct.id, force);
-      if (result.error) pushToast({ message: result.error, tone: "error" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if (result.inspection) setInspection(result.inspection);
-      if (result.product) {
-        applySyncedProduct(result.product, result.success);
-        setSyncDetailOpen(false);
+        await refreshConflictSignals({ quiet: true });
         refreshPreservingScroll(router);
       }
     });
@@ -561,20 +483,15 @@ export function EditProductForm({
               ) : null}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
-              {currentProduct.shopifyProductId ? (
-                <ProductLocaleConflictControl
-                  scope="product"
-                  checkIconOnly
-                  productId={currentProduct.id}
-                  locale={SOURCE_LOCALE}
-                  localeLabel="this product"
-                  signals={conflictSignals}
-                  commerceFieldCount={commerceFieldCount}
-                  checking={conflictChecking}
-                  onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
-                  onCheck={() => void refreshConflicts()}
-                />
-              ) : null}
+              <ProductShopifyHeader
+                product={currentProduct}
+                signal={productConflict}
+                conflictCount={entityConflictCount}
+                dirty={isDirty}
+                pending={isPending}
+                onPush={handlePushToShopify}
+                onResolve={() => openConflicts({ kind: "product", productId: currentProduct.id })}
+              />
               <AdminIconButton
                 label="Delete product"
                 tooltip="Delete this product permanently. Storefront pages for it will stop working."
@@ -594,8 +511,6 @@ export function EditProductForm({
           {currentProduct.shopifyProductId ? (
             <ProductConflictCompareBanner
               signal={productConflict}
-              commerceFieldCount={commerceFieldCount}
-              localeTabs={localeTabs.map((tab) => ({ code: tab.code, label: tab.label }))}
               onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
             />
           ) : null}
@@ -618,21 +533,16 @@ export function EditProductForm({
                 conflictLocales={conflictLocales}
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
-                  currentProduct.shopifyProductId ? (
-                    <ProductLocaleConflictControl
+                  entityConflictCount > 0 ? (
+                    <SyncConflictIndicator
                       checkIconOnly
-                      productId={currentProduct.id}
-                      locale={activeLocale}
-                      localeLabel={`${activeLocaleLabel} (all sections)`}
-                      signals={conflictSignals}
-                      commerceFieldCount={commerceFieldCount}
-                      checking={conflictChecking}
+                      label={`${activeLocaleLabel} (all sections)`}
+                      count={localeConflictCount}
                       onOpen={() => openConflicts({
                         kind: "productLocale",
                         productId: currentProduct.id,
                         locale: activeLocale,
                       })}
-                      onCheck={() => void refreshConflicts(activeLocale)}
                     />
                   ) : null
                 }
@@ -648,27 +558,20 @@ export function EditProductForm({
                 conflictSections={conflictSections}
                 aside={
                   currentProduct.shopifyProductId && activeSection !== "shopify" ? (
-                    <ProductLocaleConflictControl
+                    <SyncConflictIndicator
                       checkIconOnly
-                      productId={currentProduct.id}
-                      locale={syncLocale}
-                      localeLabel={
+                      label={
                         isSharedSection(activeSection)
                           ? `shared · ${activeSection}`
                           : `${activeLocaleLabel} · ${activeSection}`
                       }
-                      signals={sectionConflictSignals}
-                      commerceFieldCount={sectionCommerceFieldCount}
-                      checking={conflictChecking}
+                      count={sectionConflictCount}
                       onOpen={() => openConflicts({
                         kind: "productSection",
                         productId: currentProduct.id,
                         locale: syncLocale,
                         section: activeSection,
                       })}
-                      onCheck={() => void refreshConflicts(
-                        isSharedSection(activeSection) ? undefined : activeLocale,
-                      )}
                     />
                   ) : null
                 }
@@ -683,11 +586,7 @@ export function EditProductForm({
                     <div hidden={activeSection !== "shopify"}>
                       <ProductSyncStrip
                         product={currentProduct}
-                        dirty={isDirty}
                         inspection={inspection}
-                        pending={isPending}
-                        onCheck={handleCheckShopify}
-                        onOpenDetail={() => setSyncDetailOpen(true)}
                       />
                     </div>
 
@@ -718,15 +617,11 @@ export function EditProductForm({
                                 onUpdated?.(saved);
                                 setFieldsRevision((value) => value + 1);
                                 if (!saved.shopifyProductId) return;
-                                // Mirror Save: re-inspect windows + reload conflict chips
-                                // after SKU write-through (columns alone never flip syncStatus).
-                                const inspectResult = await inspectProductSyncAction(saved.id);
-                                if (inspectResult.inspection) {
-                                  setInspection(inspectResult.inspection);
-                                }
-                                await refreshConflicts(undefined, { quiet: true });
+                                // SKU write-through already ran after-save full check server-side;
+                                // reload conflict chips from signals — no product inspect fetch.
+                                await refreshConflictSignals({ quiet: true });
                               } catch {
-                                // Keep assign success; conflict chrome can be refreshed via Check.
+                                // Keep assign success; conflict chrome refreshes from the top-bar check.
                               }
                             })();
                           }}
@@ -742,7 +637,7 @@ export function EditProductForm({
                         activeLocale={activeLocale}
                         shopifyLinked={Boolean(currentProduct.shopifyProductId)}
                         shopifySnapshot={currentProduct.shopifySnapshot}
-                        workingSnapshot={currentProduct.workingSnapshot}
+                        workingSnapshot={currentProduct.extras}
                         shopifyCategoryName={currentProduct.shopifyCategoryName ?? draft.shopifyCategoryName}
                         vendor={currentProduct.vendor ?? draft.vendor}
                         productType={currentProduct.productType ?? draft.productType}
@@ -756,7 +651,7 @@ export function EditProductForm({
                         productId={currentProduct.id}
                         shopifyProductId={currentProduct.shopifyProductId}
                         shopifySnapshot={currentProduct.shopifySnapshot}
-                        workingSnapshot={currentProduct.workingSnapshot}
+                        workingSnapshot={currentProduct.extras}
                         activeLocale={activeLocale}
                         translationLocales={translationLocales}
                       />
@@ -794,18 +689,6 @@ export function EditProductForm({
 
       {leaveModal}
 
-      <ProductSyncDetailModal
-        open={syncDetailOpen}
-        onClose={() => setSyncDetailOpen(false)}
-        product={currentProduct}
-        dirty={isDirty}
-        inspection={inspection}
-        pending={isPending}
-        onPull={() => handlePullFromShopify(false)}
-        onPush={() => handlePushToShopify(false)}
-        onResolve={setConflictResolution}
-      />
-
       <AdminConfirmModal
         open={confirmOpen}
         title={`Save ${currentProduct.name}`}
@@ -815,26 +698,6 @@ export function EditProductForm({
         onConfirm={() => {
           submitFormAfterConfirmClose(formRef.current, () => setConfirmOpen(false));
         }}
-        pending={isPending}
-      />
-
-      <AdminConfirmModal
-        open={conflictResolution === "shopify"}
-        title="Use Shopify commerce version"
-        description="Shopify-backed fields saved in Synarava will be replaced by the current Shopify version. Synarava-only content and editorial media will be preserved. Unsaved tab edits stay in the form until you save or discard them."
-        confirmLabel="Use Shopify version"
-        onCancel={() => setConflictResolution(null)}
-        onConfirm={() => handlePullFromShopify(true)}
-        pending={isPending}
-      />
-
-      <AdminConfirmModal
-        open={conflictResolution === "synarava"}
-        title="Keep Synarava commerce version"
-        description="The saved Synarava commerce values will overwrite the corresponding Shopify fields. Synarava-only content will remain unchanged."
-        confirmLabel="Keep Synarava and push"
-        onCancel={() => setConflictResolution(null)}
-        onConfirm={() => handlePushToShopify(true)}
         pending={isPending}
       />
 
@@ -859,8 +722,8 @@ export function EditProductForm({
         onClose={() => setConflictOpen(false)}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        products={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
-        focusedProductId={currentProduct.id}
+        items={[{ id: currentProduct.id, name: currentProduct.name, sku: currentProduct.sku }]}
+        focusedId={currentProduct.id}
         viewScope={conflictViewScope}
         formBlocked={isDirty || isPending}
         onToast={(message, tone) => pushToast({ message, tone })}

@@ -1,0 +1,30 @@
+{
+  "note": "Harmless productUpdate attempted with read-only client_credentials scopes; expected denial.",
+  "apiVersion": "2026-07",
+  "mutation": "productUpdate",
+  "intent": "Set a probe tag that must never persist; documents missing write_products.",
+  "http_status": 200,
+  "errors": [
+    {
+      "message": "Access denied for productUpdate field. Required access: `write_products` access scope. Also: The user must have a permission to update products.",
+      "code": "ACCESS_DENIED",
+      "path": [
+        "productUpdate"
+      ]
+    }
+  ],
+  "data": {
+    "productUpdate": null
+  },
+  "extensions_cost": {
+    "requestedQueryCost": 10,
+    "actualQueryCost": 10,
+    "throttleStatus": {
+      "maximumAvailable": 2000,
+      "currentlyAvailable": 1990,
+      "restoreRate": 100
+    }
+  },
+  "interpreted_as_denied": true,
+  "product_mutated": false
+}

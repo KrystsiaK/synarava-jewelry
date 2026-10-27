@@ -5,7 +5,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   saveCollectionAction: vi.fn(),
   deleteCollectionAction: vi.fn(),
-  checkOneCollectionConflictsAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/collections", () => ({
@@ -13,12 +12,10 @@ vi.mock("@/app/admin/actions/collections", () => ({
   deleteCollectionAction: mocks.deleteCollectionAction,
 }));
 
-vi.mock("@/app/admin/actions/sync", () => ({
-  checkOneCollectionConflictsAction: mocks.checkOneCollectionConflictsAction,
-  loadCollectionCatalogConflictAction: vi.fn(),
-  previewCollectionConflictResolutionAction: vi.fn(),
-  applyCollectionConflictResolutionAction: vi.fn(),
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 import { EditCollectionForm } from "@/components/admin/collections/collection-edit-form";
 import type { AdminCollection } from "@/components/admin/collections/collection-types";

@@ -6,6 +6,7 @@ runbooks/admin-guide-ru.md            ← что админка должна д�
         └── admin-test-cases-playwright-en.md  ← как проверить кодом (слой + целевой spec)
 payment-checkout-test-matrix.md       ← checkout/оплата Shopify: матрица + журнал прогонов
 portable-sku-staging-matrix.md        ← portable SKU Этап 4: linked/idempotent/multi-variant matrix
+product-create-shopify-flow.tdd.md    ← RED/GREEN evidence for the local → Shopify product flow
 ```
 
 **Правило слоя:** если кейс проверяется без браузера — он не e2e. Playwright берёт только то, что нельзя проверить без реального HTTP-цикла и браузера (guards маршрутов, cookie, загрузка файлов, автосохранение, порядок галереи, сквозные lifecycle). Валидация полей, парсинг тегов, генерация slug, конфликты SKU — Vitest.

@@ -102,11 +102,10 @@ legal/service page sections are add/remove/reorder with editable names.
 - Фильтры: статус (`Published` / `Draft` / `Archived`), категория Shopify,
   коллекция.
 - На каждой строке — быстрые действия: **Draft / Publish / Archive / Delete**.
-- **Run conflict check** одновременно проверяет подключение и права Shopify, обновляет сохранённые расхождения и открывает список найденных конфликтов (см. §4.5).
-- После **Run conflict check** список конфликтов открывается сам, если товары найдены. Кнопка **Show conflicts** в заголовке каталога открывает тот же список позже. Toast «N products need review» без списка — ошибка: проверка должна и сохранить commerce-флаг, и показать диалог.
+- Полная сверка с Shopify — только кнопка в **верхней панели** админки (раз в сессию при входе и вручную по клику). Баннер каталога только показывает сохранённый результат: **N conflicts** / **No conflicts**, **Last full check**, и **Show conflicts** при N>0 (N — число SyncResult leaves, не число товаров). Список конфликтов сам не открывается.
 - В списке доступны массовые направления, три действия на товар и ручной выбор полей. Запись начинается только после обязательного preview. Поддерживаются переводы и commerce-поля **Name, Handle, Vendor, Product type, Variant SKU, Price, Compare-at price, Charge tax**. Остальные commerce-поля (Status, media, tags, …) попадают в **Not included** с причиной — их резолвят через редактор товара → Sync → Push/Pull.
 - После успешного **Use Shopify** у товара появляется ссылка **Updated from Shopify · review**. Она снимается только после открытия страницы редактора `/admin/products/[id]`, не после просмотра списка. **Use Synarava** этот маркер не ставит.
-- Сигналы отражают сохранённые расхождения, а не гарантированное состояние Shopify прямо сейчас. `Checking`, `stale`, `failed` и `disconnected` отмечаются отдельно; при ошибке чтения данных ноль конфликтов не показывается.
+- Баннер отражает сохранённые расхождения после последней полной сверки верхней панели.
 
 ### 4.2. Создание / редактирование товара
 
@@ -117,10 +116,11 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
 Переход на другую страницу (создание → редактор, удаление → список) —
 отдельный случай.
 
-1. **Уровень товара** (липкая шапка): конфликты по всему продукту, Check,
-   Delete, **Save product** (всегда сохраняет весь товар локально).
-2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + sync
-   control справа — Check/conflicts для **всех секций** активного языка.
+1. **Уровень товара** (липкая шапка): индикатор конфликтов по всему продукту,
+   Delete, **Save product** (всегда сохраняет весь товар локально). Полная
+   сверка — только верхняя панель админки.
+2. **Уровень языка** (вкладки EN / PT / …): sticky под шапкой + индикатор
+   конфликтов справа для **всех секций** активного языка.
 3. **Уровень секции**: табы визуально разделены на две группы —
    **Shopify** (Product, Price, Inventory, Metafields, Media, Sync) и **Synarava**
    (Passport — jewelry specs / `synarava.*`; Product page — short description,
@@ -140,8 +140,8 @@ Synarava** (редакторский CMS-слой, которого нет в Sh
    текущую секцию × язык (shared-секции → EN/shared). Check → список
    конфликтов → Apply по полям. **Галерея (Media):** бейдж конфликта значит,
    что в Shopify и Synarava разные commerce-снимки `media`. Вкладка Media
-   читает **OUR** дерево (`workingSnapshot.media`); локальные `ProductMedia`
-   — staging для upload/reorder/remove (write-through в то же дерево). После
+   читает **OUR** дерево (`extras.media` → derive); локальные `ProductMedia`
+   — staging для upload/reorder/remove (Save патчит `extras.media`). После
    Pull кнопка **Remove** на кадре удаляет его из OUR дерева; **Push** не
    включает этот Shopify media id в `productSet.files`, и Shopify удаляет
    файл. У каждого кадра — поле **Alt text** (Shopify `MEDIA_IMAGE.alt`):
@@ -262,31 +262,27 @@ legacy cover, пока не загружены изображения галер
 
 ### 4.5. Синхронизация с Shopify
 
-Раздел товаров использует единый conflict workflow вместо отдельного старого сравнения каталогов:
+Раздел товаров использует единый conflict workflow. Fetch + compare — одно место:
 
-- **Run conflict check** — проверяет подключение и обязательные права Shopify Admin API, при первом
-  запуске привязывает каталог к магазину, настраивает доступные product/review webhooks, сверяет
-  каталог и сохраняет найденные расхождения. Отсутствующие дополнительные права на переводы,
-  отзывы и списки желаемого показываются отдельно; ошибка чтения не превращается в ложные
-  «0 conflicts».
-- Если токен указывает на другой магазин, проверка предлагает явный **Rebind**. Он очищает только
-  store-specific Shopify ID; новые идентичности устанавливаются последующими сохранениями,
-  webhook-событиями, refresh и conflict check.
+- **Кнопка Shopify в верхней панели** — единственный полный check (раз при открытии
+  админ-сессии и по клику). Обновляет Shopify-копии товаров и коллекций, переводы,
+  presence, сравнивает с Synarava и сохраняет счётчики для баннеров/меню.
 - **Show conflicts** открывает сохранённый список. Массовое или точечное разрешение всегда сначала
   показывает preview конкретных товаров, полей и языков, а запись начинается только после Confirm.
   Товар только в Shopify показывается с единственным действием Pull; товар только в Synarava — с
   единственным действием Push. В смешанном наборе каждый bulk применяет только своё направление,
   а несовместимые товары остаются в preview с объяснением.
-- Точечные действия на карточке товара: **Check Shopify**, **Pull** /
-  **Refresh from Shopify**, **Push to Shopify** / **Create in Shopify**.
+- Точечные Apply на карточке товара: **Pull Shopify update** (когда есть remote changes),
+  **Push to Shopify** / **Create in Shopify**, при CONFLICT — **Use Shopify version** /
+  **Keep Synarava and push**. Отдельной кнопки «Check Shopify» / «Refresh from Shopify» нет.
 - Состояния синхронизации: `UNLINKED`, `PENDING`, `SYNCED`, `CONFLICT`,
   `FAILED`, плюс отдельные состояния сравнения `LOCAL_CHANGES`,
   `REMOTE_CHANGES`, `REMOTE_MISSING`.
   - При конфликте (правки есть и локально, и в Shopify) push/pull без
     подтверждения блокируется; нужно явно выбрать «Use Shopify version» или
     «Keep Synarava and push».
-  - Если связанный товар пропал из Shopify, обычные pull/push редактора блокируются. После нового
-    conflict check карточка `Missing in Shopify` позволяет явно пересоздать его через Push с preview.
+  - Если связанный товар пропал из Shopify, обычные pull/push редактора блокируются. После новой
+    сверки верхней панели карточка `Missing in Shopify` позволяет явно пересоздать его через Push с preview.
   - Push при отсутствии ещё ни одного варианта товара недоступен (кнопка
     показывает «Save core fields first»).
 
@@ -296,13 +292,13 @@ legacy cover, пока не загружены изображения галер
   `sortOrder`; при создании новая коллекция всегда встаёт в начало списка, а
   остальные сдвигаются).
 - Конфликты с Shopify по editorial/translation полям и presence используют тот же UX, что
-  и каталог товаров: **Run conflict check**, **Show conflicts**, список → поля →
-  preview → Confirm. Surface — translation reconcile (`COLLECTION`) плюс
-  presence-снимок (`ShopifyCatalogPresenceSnapshot` id `collections`): коллекции
-  только в Shopify / только в Synarava появляются в том же списке.
+  и каталог товаров: полная сверка — **кнопка верхней панели**; баннер показывает
+  сохранённый результат и **Show conflicts** → список → поля → preview → Confirm.
+  Surface — translation reconcile (`COLLECTION`) плюс presence-снимок
+  (`ShopifyCatalogPresenceSnapshot` id `collections`): коллекции только в Shopify /
+  только в Synarava появляются в том же списке.
   Для «только в Synarava» можно **Push to Shopify** или выбрать сторону Shopify
   (**Remove from Synarava** — удаление локальной записи, как take theirs в git).
-  После успешного сохранения связанной коллекции запускается scoped check.
 - Обязательные поля при сохранении (каждое поле подсвечивается своей
   ошибкой, а не общей): название, слаг, код коллекции, краткое описание
   («Collection summary»), манифест, поисковое summary, **hero-изображение**

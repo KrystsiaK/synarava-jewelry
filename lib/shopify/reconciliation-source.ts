@@ -21,7 +21,6 @@ export type ReconcileBindingSource = {
   resourceType: TranslationResourceType;
   entityId: string;
   shopifyResourceId: string;
-  lastSyncedSnapshot: unknown;
 };
 
 export type ReconcileSubject = {
@@ -290,22 +289,11 @@ export async function writeLocalReconcileField({
       : value;
     if (english) {
       const sourceKey = fieldKey === "title" ? "name" : fieldKey === "localizedHandle" ? "slug" : fieldKey;
-      await db.$transaction([
-        db.product.update({
-          where: { id: subject.rootEntityId },
-          data: { [sourceKey]: stored } as Prisma.ProductUpdateInput,
-        }),
-        db.productTranslation.upsert({
-          where: { productId_locale: { productId: subject.rootEntityId, locale: "en" } },
-          update: { [fieldKey]: stored } as Prisma.ProductTranslationUpdateInput,
-          create: {
-            productId: subject.rootEntityId,
-            locale: "en",
-            title: fieldKey === "title" ? String(value ?? "") : String(subject.local.title ?? ""),
-            [fieldKey]: stored,
-          } as Prisma.ProductTranslationUncheckedCreateInput,
-        }),
-      ]);
+      // EN lives only on Product base columns — never ProductTranslation.
+      await db.product.update({
+        where: { id: subject.rootEntityId },
+        data: { [sourceKey]: stored } as Prisma.ProductUpdateInput,
+      });
     } else {
       await db.productTranslation.update({
         where: { productId_locale: { productId: subject.rootEntityId, locale: contentLocale } },
@@ -319,22 +307,11 @@ export async function writeLocalReconcileField({
     if (!COLLECTION_TRANSLATION_FIELDS.has(fieldKey)) throw new Error("This Collection field does not have a local translation editor yet.");
     if (english) {
       const sourceKey = fieldKey === "name" ? "name" : fieldKey === "localizedHandle" ? "slug" : fieldKey;
-      await db.$transaction([
-        db.collection.update({
-          where: { id: subject.rootEntityId },
-          data: { [sourceKey]: value } as Prisma.CollectionUpdateInput,
-        }),
-        db.collectionTranslation.upsert({
-          where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: "en" } },
-          update: { [fieldKey]: value } as Prisma.CollectionTranslationUpdateInput,
-          create: {
-            collectionId: subject.rootEntityId,
-            locale: "en",
-            name: fieldKey === "name" ? String(value ?? "") : String(subject.local.name ?? ""),
-            [fieldKey]: value,
-          } as Prisma.CollectionTranslationUncheckedCreateInput,
-        }),
-      ]);
+      // EN lives only on Collection base columns — never CollectionTranslation.
+      await db.collection.update({
+        where: { id: subject.rootEntityId },
+        data: { [sourceKey]: value } as Prisma.CollectionUpdateInput,
+      });
     } else {
       await db.collectionTranslation.update({
         where: { collectionId_locale: { collectionId: subject.rootEntityId, locale: contentLocale } },
@@ -348,22 +325,11 @@ export async function writeLocalReconcileField({
     if (PAGE_SCALAR_FIELDS.has(fieldKey)) {
       if (english) {
         const sourceKey = fieldKey === "localizedHandle" ? "slug" : fieldKey;
-        await db.$transaction([
-          db.page.update({
-            where: { id: subject.rootEntityId },
-            data: { [sourceKey]: value } as Prisma.PageUpdateInput,
-          }),
-          db.pageTranslation.upsert({
-            where: { pageId_locale: { pageId: subject.rootEntityId, locale: "en" } },
-            update: { [fieldKey]: value } as Prisma.PageTranslationUpdateInput,
-            create: {
-              pageId: subject.rootEntityId,
-              locale: "en",
-              title: fieldKey === "title" ? String(value ?? "") : String(subject.local.title ?? ""),
-              [fieldKey]: value,
-            } as Prisma.PageTranslationUncheckedCreateInput,
-          }),
-        ]);
+        // EN lives only on Page base columns — never PageTranslation.
+        await db.page.update({
+          where: { id: subject.rootEntityId },
+          data: { [sourceKey]: value } as Prisma.PageUpdateInput,
+        });
       } else {
         await db.pageTranslation.update({
           where: { pageId_locale: { pageId: subject.rootEntityId, locale: contentLocale } },
@@ -385,19 +351,7 @@ export async function writeLocalReconcileField({
     else content[fieldKey] = value;
     const storedContent = Object.keys(content).length > 0 ? content as Prisma.InputJsonValue : Prisma.DbNull;
     if (english) {
-      await db.$transaction([
-        db.page.update({ where: { id: subject.rootEntityId }, data: { content: storedContent } }),
-        db.pageTranslation.upsert({
-          where: { pageId_locale: { pageId: subject.rootEntityId, locale: "en" } },
-          update: { content: storedContent },
-          create: {
-            pageId: subject.rootEntityId,
-            locale: "en",
-            title: String(subject.local.title ?? ""),
-            content: storedContent,
-          },
-        }),
-      ]);
+      await db.page.update({ where: { id: subject.rootEntityId }, data: { content: storedContent } });
     } else {
       await db.pageTranslation.update({
         where: { pageId_locale: { pageId: subject.rootEntityId, locale: contentLocale } },

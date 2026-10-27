@@ -158,7 +158,7 @@ export type AdminLocaleTabsProps = {
   dirtyLocales?: ReadonlySet<string> | readonly string[];
   /**
    * Locale shells that should show a commerce conflict mark.
-   * Shared fields (price, …) mark every language; locale-only copy marks one.
+   * Base/shared conflicts mark EN only; locale-only copy marks that code.
    */
   conflictLocales?: ReadonlySet<string> | readonly string[];
   /**

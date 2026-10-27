@@ -1,0 +1,59 @@
+# Enable GitHub native auto-merge for PRs into staging that carry the
+# `automerge` label. Merge happens only after required checks are green.
+# Does not target main. Requires repo setting: Allow auto-merge.
+name: Automerge to staging
+
+on:
+  pull_request:
+    types:
+      - labeled
+      - unlabeled
+      - synchronize
+      - opened
+      - reopened
+      - ready_for_review
+    branches:
+      - staging
+
+concurrency:
+  group: automerge-staging-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  enable:
+    name: Enable auto-merge
+    if: >
+      github.event.pull_request.base.ref == 'staging' &&
+      !github.event.pull_request.draft &&
+      contains(join(github.event.pull_request.labels.*.name, ','), 'automerge')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Enable GitHub auto-merge into staging
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR" --repo "${{ github.repository }}" --auto --merge
+
+  disable:
+    name: Disable auto-merge
+    if: >
+      github.event.action == 'unlabeled' &&
+      github.event.label.name == 'automerge' &&
+      github.event.pull_request.base.ref == 'staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Disable GitHub auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          gh pr merge "$PR" --repo "${{ github.repository }}" --disable-auto || true

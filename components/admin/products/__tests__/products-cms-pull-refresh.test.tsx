@@ -4,9 +4,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { AdminProductListItem, AdminProductListPage } from "@/lib/admin/list-products-shared";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
 const mocks = vi.hoisted(() => ({
-  loadSignals: vi.fn(),
   fetch: vi.fn(),
   pushToast: vi.fn(),
   refresh: vi.fn(),
@@ -26,11 +26,10 @@ vi.mock("@/components/admin/shared/admin-toast", () => ({
   useAdminToast: () => ({ pushToast: mocks.pushToast }),
 }));
 
-vi.mock("@/app/admin/actions/sync", () => ({
-  checkCatalogConflictsAction: vi.fn(),
-  loadCatalogConflictSignalsAction: mocks.loadSignals,
-  rebindShopifyStoreAction: vi.fn(),
-}));
+vi.mock("@/app/admin/actions/sync", async () => {
+  const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
+  return { ...adminSyncActionMocks };
+});
 
 vi.mock("@/app/admin/actions/products", () => ({
   deleteProductAction: vi.fn(),
@@ -41,11 +40,7 @@ vi.mock("@/app/admin/actions/catalog-order", () => ({
   reorderCollectionProductAction: vi.fn(),
 }));
 
-vi.mock("@/components/admin/products/commerce-store-console-flow", () => ({
-  runCommerceStoreConsoleFlow: vi.fn().mockResolvedValue(undefined),
-}));
-
-vi.mock("@/components/admin/products/catalog-conflict-workspace", () => ({
+vi.mock("@/components/admin/products/product-conflict-adapter", () => ({
   CatalogConflictWorkspace: ({
     open,
     onApplied,
@@ -108,7 +103,7 @@ const initialPage: AdminProductListPage = {
 describe("ProductsCms pull refresh", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.loadSignals.mockResolvedValue({ signals: emptySignals });
+    adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({ signals: emptySignals });
     mocks.fetch.mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -163,7 +158,7 @@ describe("ProductsCms pull refresh", () => {
     await user.click(screen.getByRole("button", { name: "Show conflicts" }));
     await user.click(screen.getByRole("button", { name: "Simulate pull applied" }));
 
-    await waitFor(() => expect(mocks.loadSignals).toHaveBeenCalled());
+    await waitFor(() => expect(adminSyncActionMocks.loadCatalogConflictSignalsAction).toHaveBeenCalled());
     await waitFor(() => expect(mocks.fetch).toHaveBeenCalledWith(
       expect.stringContaining("/admin/api/products?"),
       expect.objectContaining({ cache: "no-store" }),

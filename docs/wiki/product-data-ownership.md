@@ -35,7 +35,7 @@ Localized Shopify product title, description, and SEO copy are shared fields. Va
 registered Shopify locale, including Portuguese and Russian when that product's translation exists,
 can be edited in either Synarava or Shopify Translate & Adapt and are reconciled explicitly. Shopify
 has no translation-update webhook, so translation-only changes are discovered by a product refresh
-or the catalog conflict check. Concurrent edits require an explicit winner for the affected locale and field;
+or the top-bar Shopify sync button. Concurrent edits require an explicit winner for the affected locale and field;
 Synarava-only localized fields and other locales are not cleared by that decision.
 
 ## Ownership rules
@@ -52,7 +52,7 @@ Synarava-only localized fields and other locales are not cleared by that decisio
   Do not maintain hand allowlists of commerce fields for detection — see
   [`.agents/skills/shopify-commerce-compare/SKILL.md`](../../.agents/skills/shopify-commerce-compare/SKILL.md).
   Admin view columns are projections for the editor, not a second compare axis.
-  Catalog-level compare uses dual full stores (`CommerceSyncStore` our vs shopify);
+  Catalog-level compare uses per-entity windows via `lib/sync` (our vs shopify);
   see [`./commerce-sync.md`](./commerce-sync.md).
 - Shopify IDs are scoped to one canonical `*.myshopify.com` store. Switching to a duplicated store requires an explicit rebind before SKU/handle matching can establish the new IDs.
 
@@ -60,7 +60,7 @@ Synarava-only localized fields and other locales are not cleared by that decisio
 
 - **Product category** means a Shopify Standard Product Taxonomy category. Synarava stores its GID and full name; there is no editable local category lifecycle.
 - **Category attributes** are Shopify-owned. Pull resolves selected `shopify.*` category metafields (taxonomy-value or metaobject references) to display names and surfaces them under Product category (Pull display) and Last Pull verification. Push does not write TaxonomyValue GIDs yet — edit selections in Shopify Admin, then Pull.
-- **Shopify product specs** (`custom.material`, `care_instructions`, `finish`, `wrist_fit`, `color`, `metal`, `stone`, `plating`, `size`) are edited on **Product → Shopify product specs**. Save write-throughs `workingSnapshot.metafields` and projects matching `ProductCharacteristic` rows for PDP/filters. Push sends `custom.*` (not duplicate `synarava.*` for those keys). PT/RU use Shopify metafield translations when present; Synarava overlays only fill gaps. The Metafields tab must not emit FormData for these keys (including hidden locale mirrors) — duplicate empty values previously wiped Product-tab PT/RU overlays on Save.
+- **Shopify product specs** (`custom.material`, `care_instructions`, `finish`, `wrist_fit`, `color`, `metal`, `stone`, `plating`, `size`) are edited on **Product → Shopify product specs**. Save patches `extras.metafields` (and projects matching `ProductCharacteristic` rows for PDP/filters). Derive merges them into the OUR window for compare/Push. Push sends `custom.*` (not duplicate `synarava.*` for those keys). PT/RU use Shopify metafield translations when present; Synarava overlays only fill gaps. The Metafields tab must not emit FormData for these keys (including hidden locale mirrors) — duplicate empty values previously wiped Product-tab PT/RU overlays on Save.
 - **Collection** is the only product-grouping model. The local record projects Shopify identity and membership while retaining Synarava-owned editorial presentation (including per-collection hero CTA label `ctaLabel`, localized in admin Synarava locale tabs; empty → Collections page chrome → dictionary).
 - **Tags** are Shopify product tags edited on the product. Local tag rows are a synchronized read projection, not standalone admin-managed records.
 - Tags power search and filters; they are not printed as a keyword list in the product purchase area.
@@ -99,7 +99,7 @@ product specs (and Inventory Pull projections for weight / origin).
 | Layer | Where |
 | --- | --- |
 | Group titles, field labels, units (`cm`/`g`) | Code dictionaries in `lib/products/characteristics.ts` (EN/PT/RU) |
-| Shopify-owned TEXT specs | Prefer `workingSnapshot.metafieldTranslations` (Save) then last-Pull `shopifySnapshot`; Passport overlays fill gaps; then jewelry dictionary (`localizeShopFacetValue`); blank → EN |
+| Shopify-owned TEXT specs | Prefer `extras.metafieldTranslations` (Save) then last-Pull `shopifySnapshot`; Passport overlays fill gaps; then jewelry dictionary (`localizeShopFacetValue`); blank → EN |
 | Passport TEXT (Synarava-only) | Per-locale overlay on `ProductTranslation.details.characteristics`; blank → EN |
 | NUMBER / BOOLEAN | Shared `ProductCharacteristic` (EN); Yes/No display localized in code |
 | Category leaf + product type | Shared → Taxonomy / code map when Shopify has no translation |
@@ -116,10 +116,10 @@ live on **Product** (Shopify organization).
   (`synarava`, `shopify`, `global`).
 - **Add definition** → `metafieldDefinitionCreate` (shop-wide schema in Shopify;
   not a product Save).
-- **EN values** → edit in the form → **Save** writes OUR `workingSnapshot.metafields` →
-  **Push** / conflict resolve sends them via `metafieldsSet` (same dual-window
-  sync as other commerce fields).
-- **PT/RU text** → per-locale overlays in `workingSnapshot.metafieldTranslations`
+- **EN values** → edit in the form → **Save** patches `extras.metafields` →
+  derive → **Push** / conflict resolve sends them via `metafieldsSet` (same
+  dual-window sync as other commerce fields).
+- **PT/RU text** → per-locale overlays in `extras.metafieldTranslations`
   (not part of commerce conflict compare) → **Push** via Shopify
   `translationsRegister` on the Metafield GID (`key: value`). Blank falls back
   to English on the site. Non-text types stay shared.

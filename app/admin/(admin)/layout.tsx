@@ -9,14 +9,20 @@ import {
   AdminThemeToggle,
 } from "@/components/admin/shared/admin-primitives";
 import {
-  countAdminNavSyncBySection,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
 import { AdminToastProvider } from "@/components/admin/shared/admin-toast";
+import { AdminShopifyCheckProvider } from "@/components/admin/translations/admin-shopify-check-context";
 import { AdminShopifySyncSignal } from "@/components/admin/translations/admin-shopify-sync-signal";
 import { BrandMark } from "@/components/ui/brand-mark";
 import { RETIRED_PAGE_SLUGS } from "@/lib/content/built-in-pages";
-import { getLatestReconcileDifferences, getLatestReconcileRun } from "@/lib/shopify/reconciliation-run";
+import { emptySyncResult, selectAdminNavSyncCounts, runSyncWaterfall } from "@/lib/sync";
+import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
+import {
+  getLatestReconcileDifferences,
+  getLatestReconcileRun,
+  isReconcileRunActivelyChecking,
+} from "@/lib/shopify/reconciliation-run";
 
 export default async function AdminLayout({
   children,
@@ -26,8 +32,8 @@ export default async function AdminLayout({
   // Path comes from proxy-injected `x-pathname` / return-to cookie — never
   // hardcode `/admin` or a deep link is lost when a signed-but-expired session
   // cookie slips past the edge guard and this layout re-checks the DB.
-  await requireAdminSession();
-  const [latestReconcileRun, syncDifferences, syncPages] = await Promise.all([
+  const session = await requireAdminSession();
+  const [latestReconcileRun, syncDifferences, syncPages, waterfall] = await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
@@ -35,18 +41,35 @@ export default async function AdminLayout({
       select: { id: true, slug: true, title: true },
       orderBy: { slug: "asc" },
     }),
+    // Waterfall skipRefresh: layout badge from persisted Shopify/Synarava state.
+    runSyncWaterfall({
+      scope: { kind: "catalog" },
+      requestedBy: session.username,
+      skipRefresh: true,
+    }).catch((error) => {
+      // Audit: never swallow into "0 conflicts / all good".
+      console.error("[admin-layout] sync waterfall failed", error);
+      return null;
+    }),
   ]);
   const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
 
-  const syncCounts = countAdminNavSyncBySection(syncDifferences);
+  const syncCounts = waterfall
+    ? selectAdminNavSyncCounts(waterfall.result)
+    : selectAdminNavSyncCounts(emptySyncResult({ state: "unknown", checkedAt: null }));
   const syncPageSlugs = new Map(syncPages.map((page) => [page.id, page.slug]));
   const syncNavHrefs = Array.from(
     new Set(syncDifferences.map((difference) => syncDifferenceToNavHref(difference, syncPageSlugs))),
   );
-  if (syncCounts.total > 0) syncNavHrefs.push("/admin/translations");
+  const shopifyConnected = hasShopifyAdminConfig();
+  // Lease-aware: a RUNNING row older than 10 minutes reads as not checking.
+  const initialCheckRunning = Boolean(
+    shopifyConnected && isReconcileRunActivelyChecking(latestReconcileRun),
+  );
 
   return (
     <AdminToastProvider>
+      <AdminShopifyCheckProvider initialRunning={initialCheckRunning}>
       <div className="admin-terminal">
         <AdminThemeShell />
 
@@ -74,7 +97,7 @@ export default async function AdminLayout({
           <div className="hidden sm:block">
             <AdminThemeToggle />
           </div>
-          <AdminShopifySyncSignal initialRun={latestReconcileRun} />
+          <AdminShopifySyncSignal initialRun={latestReconcileRun} connected={shopifyConnected} />
           <span className="adm-online-dot" />
           <span className="adm-brand-kicker hidden sm:inline">
             Live CMS
@@ -128,6 +151,7 @@ export default async function AdminLayout({
           </main>
         </div>
       </div>
+      </AdminShopifyCheckProvider>
     </AdminToastProvider>
   );
 }

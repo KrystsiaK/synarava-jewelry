@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  pullShopifyProduct: vi.fn(),
+  applyShopifyProductToSynarava: vi.fn(),
   pushProductToShopify: vi.fn(),
   ensureTranslationBinding: vi.fn(),
   findSnapshot: vi.fn(),
@@ -23,7 +23,7 @@ vi.mock("@/lib/db", () => ({
 }));
 vi.mock("@/lib/shopify/admin", () => ({ shopifyAdminRequest: vi.fn() }));
 vi.mock("@/lib/shopify/product-sync", () => ({
-  pullShopifyProduct: mocks.pullShopifyProduct,
+  applyShopifyProductToSynarava: mocks.applyShopifyProductToSynarava,
   pushProductToShopify: mocks.pushProductToShopify,
 }));
 vi.mock("@/lib/shopify/translation-sync", () => ({ ensureTranslationBinding: mocks.ensureTranslationBinding }));
@@ -57,7 +57,7 @@ describe("applyCatalogPresenceDifference", () => {
   });
 
   it("pulls a Shopify-only product, creates its binding, and removes the saved difference", async () => {
-    mocks.pullShopifyProduct.mockResolvedValue({ productId: "local-new", status: "SYNCED" });
+    mocks.applyShopifyProductToSynarava.mockResolvedValue({ productId: "local-new", status: "SYNCED" });
 
     const result = await applyCatalogPresenceDifference({ difference: shopifyOnly, direction: "SHOPIFY_TO_SYNARAVA" });
 
@@ -79,7 +79,10 @@ describe("applyCatalogPresenceDifference", () => {
     expect(mocks.updateProduct).toHaveBeenCalledWith(expect.objectContaining({
       where: { id: "local-7" }, data: expect.objectContaining({ shopifyProductId: null, syncStatus: "UNLINKED" }),
     }));
-    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("local-7", true);
+    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("local-7", {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: true,
+    });
     expect(mocks.ensureTranslationBinding).toHaveBeenCalledWith({
       resourceType: "PRODUCT", entityId: "local-7", shopifyResourceId: "gid://shopify/Product/70",
     });
@@ -90,12 +93,12 @@ describe("applyCatalogPresenceDifference", () => {
     const result = await applyCatalogPresenceDifference({ difference: shopifyOnly, direction: "SYNARAVA_TO_SHOPIFY" });
 
     expect(result).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
-    expect(mocks.pullShopifyProduct).not.toHaveBeenCalled();
+    expect(mocks.applyShopifyProductToSynarava).not.toHaveBeenCalled();
     expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
   });
 
   it("surfaces pull TypeErrors with the Shopify product id for diagnosis", async () => {
-    mocks.pullShopifyProduct.mockRejectedValue(new Error("Cannot read properties of null (reading 'name')"));
+    mocks.applyShopifyProductToSynarava.mockRejectedValue(new Error("Cannot read properties of null (reading 'name')"));
 
     const result = await applyCatalogPresenceDifference({ difference: shopifyOnly, direction: "SHOPIFY_TO_SYNARAVA" });
 

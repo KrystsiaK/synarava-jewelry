@@ -41,7 +41,7 @@
 | AUTH-17 | Флаги cookie | Есть сессия | Посмотреть флаги cookie | `httpOnly` выставлен; в production-конфигурации также `Secure` | P3 (security) |
 | AUTH-18 🤖 | Креды не сконфигурированы | `ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` не заданы | Попытаться войти | «Admin auth is not configured…», вход невозможен с любыми данными | P3 |
 | AUTH-19 | Истёкшая сессия (>8 часов) | Правкой `expiresAt` в БД состарить сессию | Открыть любую страницу админки | Ведёт себя как гость — редирект на логин | P2 |
-| AUTH-20 🆕 | Сессия истекла в давно открытой вкладке | Открыть товар, удалить admin cookie, не перезагружая страницу | Нажать `Refresh from Shopify` | Server Action не отправляется POST-запросом на страницу логина: action-redirect переводит на `/admin/login` с корректным `redirectTo`, без React error screen | P1 |
+| AUTH-20 🆕 | Сессия истекла в давно открытой вкладке | Открыть товар, удалить admin cookie, не перезагружая страницу | Нажать `Pull Shopify update` (или Save) | Server Action не отправляется POST-запросом на страницу логина: action-redirect переводит на `/admin/login` с корректным `redirectTo`, без React error screen | P1 |
 
 ## 2. Общий UI студии
 
@@ -176,21 +176,20 @@
 
 | ID | Название | Предусловия | Шаги | Ожидаемый результат | Приоритет |
 |----|----------|-------------|------|----------------------|-----------|
-| SYNC-01 | Conflict check и первичная привязка — успех | Shopify настроен, binding отсутствует | «Run conflict check» | Подключение и scope проверены, магазин привязан, webhooks настроены, сохранён актуальный результат сверки | P1 |
-| SYNC-02 | Conflict check — Shopify не настроен | Переменные не заданы | «Run conflict check» | Ошибка перечисляет отсутствующие переменные; сохранённое состояние не заменяется ложным нулём | P2 |
-| SYNC-03 | Недостаточно прав токена | Токен без обязательных scope | «Run conflict check» | Перечислены недостающие обязательные scope; сверка не запускается | P2 |
-| SYNC-04 | Токен другого магазина | Каталог уже привязан, токен заменён | «Run conflict check» | Показано несовпадение магазинов и явное действие Rebind; автоматического перепривязывания нет | P1 |
+| SYNC-01 | Полная сверка верхней панели — успех | Shopify настроен | Клик по кнопке Shopify в верхней панели | Полный waterfall (products + collections + translations + presence); баннеры товаров и коллекций обновляют счётчики; список сам не открывается | P1 |
+| SYNC-02 | Сверка — Shopify не настроен | Переменные не заданы | Клик по кнопке верхней панели | Ошибка; сохранённое состояние не заменяется ложным нулём | P2 |
+| SYNC-03 | Недостаточно прав токена | Токен без обязательных scope | Клик по кнопке верхней панели | Ошибка прав; сверка не подменяет баннер нулём | P2 |
+| SYNC-04 | AUTO при входе в сессию | Новая admin-сессия | Открыть `/admin` | Один AUTO full check; повторная навигация не запускает второй AUTO | P1 |
 | SYNC-05 | Push нового товара | Товар не привязан | «Create in Shopify» | Появляется в Shopify, локально сохраняются id и handle, статус `SYNCED` | P1 |
-| SYNC-06 | Pull изменений | В Shopify изменена цена/остаток | «Refresh from Shopify» | Shopify-поля обновились, редакторский слой Synarava (материалы, символизм) не тронут | P1 |
-| SYNC-07 | Конфликт | Правки и локально, и в Shopify | «Check Shopify» | Статус `CONFLICT`, push/pull без подтверждения заблокированы | P2 |
+| SYNC-06 | Pull изменений | В Shopify изменена цена/остаток; после верхней сверки статус REMOTE_CHANGES | «Pull Shopify update» | Shopify-поля обновились, редакторский слой Synarava (материалы, символизм) не тронут | P1 |
+| SYNC-07 | Конфликт | Правки и локально, и в Shopify; после верхней сверки CONFLICT | Открыть Sync detail | Статус `CONFLICT`, push/pull без подтверждения заблокированы | P2 |
 | SYNC-08 | Разрешение — принять Shopify | Состояние CONFLICT | «Use Shopify version» | Shopify-поля перезаписывают локальные, редакторский слой цел | P2 |
 | SYNC-09 | Разрешение — оставить локальное | Состояние CONFLICT | «Keep Synarava and push» | Локальные значения уходят в Shopify | P2 |
-| SYNC-10 | Товар удалён в Shopify извне | Привязанный товар удалён в Shopify | «Check Shopify» | `REMOTE_MISSING`, push/pull без force заблокированы | P2 |
-| SYNC-11 | Rebind дублированного магазина | Проверка вернула mismatch | Подтвердить Rebind | Старые store-specific ID очищены; редакторские данные сохранены; новые ID появляются только после последующих sync-событий | P1 |
-| SYNC-12 | Дополнительные scope недоступны | Нет translation/review/wishlist scope | «Run conflict check» | Обязательная сверка выполняется, дополнительные возможности перечислены как предупреждения | P2 |
-| SYNC-13 | Повторная проверка без конфликтов | Предыдущий результат stale | «Run conflict check» | Статус становится актуальным, показывается однозначное «No conflicts» | P2 |
-| SYNC-14 | Ошибка Shopify во время проверки | Есть ранее сохранённые конфликты | «Run conflict check» | Показана ошибка/failed; ранее сохранённые конфликты не маскируются нулём | P1 |
-| SYNC-15 | Удалённые legacy-controls отсутствуют | Открыт каталог | Проверить toolbar | Нет «Check Shopify link», «Compare catalogs» и старой bulk import/push/archive модалки | P2 |
+| SYNC-10 | Товар удалён в Shopify извне | Привязанный товар удалён в Shopify; после верхней сверки | Открыть Sync detail | `REMOTE_MISSING`, push/pull без force заблокированы | P2 |
+| SYNC-12 | Дополнительные scope недоступны | Нет translation/review/wishlist scope | Клик по кнопке верхней панели | Обязательная сверка выполняется или явное предупреждение; ложного «0 conflicts» нет | P2 |
+| SYNC-13 | Повторная проверка без конфликтов | Предыдущий результат устарел | Клик по кнопке верхней панели | Баннер показывает «No conflicts» и обновлённый Last full check | P2 |
+| SYNC-14 | Ошибка Shopify во время проверки | Есть ранее сохранённые конфликты | Клик по кнопке верхней панели | Показана ошибка; ранее сохранённые конфликты не маскируются нулём | P1 |
+| SYNC-15 | Удалённые legacy-controls отсутствуют | Открыт каталог | Проверить toolbar / редактор | Нет «Run conflict check», «Check Shopify», «Refresh from Shopify», «Check Shopify link», старой bulk import/push/archive модалки | P2 |
 | SYNC-15A 🤖 | Push без вариантов | Товар создан автосохранением, варианта нет | Открыть карточку | Кнопка показывает «Save core fields first» и недоступна | P3 |
 | SYNC-16 | Каталог без настроенного Shopify | Shopify не настроен | Открыть `/admin/products`, создать/отредактировать товар | Панель синхронизации показывает «не привязано», обычный CRUD работает без ошибок | P1 |
 | CATCONF-01 🤖 | Оба входа Show conflicts открывают один список | Есть сохранённые конфликты | Нажать полный статус и компактный `N conflicts` | Один и тот же список товаров | P1 |
@@ -199,8 +198,8 @@
 | CATCONF-04 🤖 | Unsupported commerce не пишется | Конфликт Status + Title | Детали | Status Unavailable / Not included; Title можно выбрать | P1 |
 | CATCONF-05 🤖 | Watermark только Shopify → Synarava | Успешный apply | Confirm Use Shopify | Появляется `Updated from Shopify · review`; Use Synarava маркер не ставит | P1 |
 | CATCONF-06 | Live round trip на тестовом товаре | Sandbox Shopify, заполненные EN/PT | Оба направления + ручной merge | Значения совпадают после записи; stale не перезаписывает | P1 |
-| CATCONF-07 🤖 | Товар только в Shopify | В Shopify есть товар без локальной пары | Run conflict check → Show conflicts | Видны имя/SKU и `Only in Shopify`; в строке только Pull; preview создаёт/связывает локальный товар после Confirm | P1 |
-| CATCONF-08 🤖 | Товар только в Synarava | Есть непривязанный локальный товар | Run conflict check → Show conflicts | Видны `Only in Synarava` и только Push; после Confirm товар создаётся в Shopify | P1 |
+| CATCONF-07 🤖 | Товар только в Shopify | В Shopify есть товар без локальной пары | Кнопка верхней панели → Show conflicts | Видны имя/SKU и `Only in Shopify`; в строке только Pull; preview создаёт/связывает локальный товар после Confirm | P1 |
+| CATCONF-08 🤖 | Товар только в Synarava | Есть непривязанный локальный товар | Кнопка верхней панели → Show conflicts | Видны `Only in Synarava` и только Push; после Confirm товар создаётся в Shopify | P1 |
 | CATCONF-09 🤖 | Смешанный presence bulk | Один Shopify-only и один Synarava-only товар | Открыть оба bulk preview | Pull-bulk включает первый, Push-bulk — второй; противоположная карточка показана как Not included с причиной | P1 |
 
 ## 10. Коллекции

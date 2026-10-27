@@ -44,6 +44,8 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
 | `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
 | `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
+| `ConflictResolver` / `ConflictRow` | ONE Shopify-vs-Synarava conflict UI (cell select → Apply → confirm preview → write). Confirm rows use plain-language headlines, source→target flow, and before/after on the written side (`conflict-resolver-confirm`). Adapters only supply data/apply. |
+| `SyncConflictIndicator` | ONE conflict chip for entity / locale / section chrome (`N conflict(s) for <label>`). Counts from `lib/sync` `slice` / `selectSyncCounts`. Lists keep `CatalogConflictStatus`. |
 | `OwnershipLabel` / `FieldLabel` / `AdminHelp` | Label chrome |
 | `fieldClass` / `useAdminFieldIds` | Shared helpers |
 
@@ -328,7 +330,7 @@ import { AdminNavTree, buildAdminNavItems } from "@/components/synarava-cms";
 
 - **Expand in place:** Pages (DB titles), Shared (header/footer link editors + storefront copy groups, including the contact CTA, cookie copy, and the leave-a-review form), Cart & account (cart, checkout handoff, login), and Customer account (the signed-in `/profile` page, including the reviews table). Catalog stays a leaf.
 - **Router sync:** pathname + hash open the matching branch; deep links past “Show more” auto-reveal.
-- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared) plus Localization as the review hub; muted child count when Pages is collapsed and has no conflicts.
+- **Signals:** left marker shows sync-conflict (amber); amber count badges on the section that owns the divergence (Catalog, Collections, Pages, Shared). Translations has no hub badge — languages + export/import only; the topbar shows the total from `lib/sync`. Muted child count when Pages is collapsed and has no conflicts.
 - **Meaning:** amber = unresolved Shopify field conflicts / divergences.
 - **Truncation:** long labels ellipsize; tooltip on long titles.
 - **Focus:** no outline ring on nav items — soft background only.

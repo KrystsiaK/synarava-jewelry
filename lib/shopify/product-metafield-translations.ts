@@ -1,7 +1,7 @@
 import "server-only";
 
 import {
-  customMetafieldsFromWorkingSnapshot,
+  customMetafieldsFromOurWindow,
   isManagedProductMetafieldNamespace,
   isTranslatableMetafieldType,
   metafieldIdentityKey,
@@ -31,7 +31,7 @@ export async function pushCustomMetafieldTranslations({
   workingSnapshot: unknown;
   locales: ReadonlyArray<{ code: string; shopifyLocale: string }>;
 }): Promise<void> {
-  const custom = customMetafieldsFromWorkingSnapshot(workingSnapshot);
+  const custom = customMetafieldsFromOurWindow(workingSnapshot);
   const byIdentity = new Map(
     custom.map((item) => [metafieldIdentityKey(item.namespace, item.key), item] as const),
   );

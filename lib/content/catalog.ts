@@ -38,9 +38,12 @@ import { getRequestLocale } from "@/lib/i18n/server";
 import type { Locale } from "@/lib/i18n/locales";
 import { getS3PublicUrl } from "@/lib/s3";
 import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
-import { mediaFramesFromWorkingSnapshot } from "@/lib/shopify/shopify-snapshot-media";
+import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
 import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
-import { isVariantPurchasable } from "@/lib/commerce/variant-availability";
+import {
+  isVariantPurchasable,
+  withShopifyInventoryAvailability,
+} from "@/lib/commerce/variant-availability";
 import {
   resolveProductCopy,
   type ProductTranslationRecord,
@@ -275,7 +278,7 @@ function shopifyProjection(
   const options = Array.isArray(snapshot.options) ? snapshot.options : [];
   return {
     // Prefer shared frame parser (id + preview/image URL) so gallery dedupe can key by MediaImage GID.
-    media: mediaFramesFromWorkingSnapshot(value).map((frame) => ({
+    media: mediaFramesFromOurWindow(value).map((frame) => ({
       id: frame.id,
       src: frame.url,
       alt: frame.alt,
@@ -319,7 +322,7 @@ function toSummary(product: {
   shopifyCategoryId: string | null;
   shopifyCategoryName: string | null;
   shopifySnapshot: unknown;
-  workingSnapshot?: unknown;
+  extras?: unknown;
   imageUrl: string | null;
   materialLine: string | null;
   symbolismLabel: string | null;
@@ -395,10 +398,10 @@ function toSummary(product: {
   const activeSlug = product.slug;
   const details = parseProductDetails(localized.details);
   const passportTextOverlay = parseCharacteristicTextOverlay(localized.details);
-  // OUR workingSnapshot owns Save-time PT/RU metafield overlays; shopifySnapshot
+  // OUR extras owns Save-time PT/RU metafield overlays; shopifySnapshot
   // fills gaps from the last Pull (admin already prefers working ?? shopify).
   const mergedMetafieldTranslations = storefrontMetafieldTranslations(
-    product.workingSnapshot,
+    product.extras,
     product.shopifySnapshot,
   );
   const shopifyMetafieldOverlay = characteristicOverlayFromMetafieldTranslations(
@@ -409,7 +412,7 @@ function toSummary(product: {
     shopifyMetafieldOverlay,
     passportTextOverlay,
   );
-  const commerceSnapshot = product.workingSnapshot ?? product.shopifySnapshot;
+  const commerceSnapshot = product.extras ?? product.shopifySnapshot;
   const process = {
     eyebrow: details.process?.eyebrow ?? "",
     title: details.process?.title ?? "",
@@ -422,9 +425,13 @@ function toSummary(product: {
   // price must match what the PDP opens on, so this prefers the first
   // purchasable variant over the literal first-created one (REV-07);
   // ProductPurchasePanel's own initialVariant selection mirrors this.
-  const primaryVariant = product.variants.find((variant) => isVariantPurchasable(variant)) ?? product.variants[0];
+  const availabilityFor = (variant: (typeof product.variants)[number]) =>
+    withShopifyInventoryAvailability(variant, product.shopifySnapshot);
+  const primaryVariant =
+    product.variants.find((variant) => isVariantPurchasable(availabilityFor(variant))) ??
+    product.variants[0];
   const stockOnHand = product.variants.reduce((total, variant) => total + variant.stockOnHand, 0);
-  const inStock = product.variants.some((variant) => isVariantPurchasable(variant));
+  const inStock = product.variants.some((variant) => isVariantPurchasable(availabilityFor(variant)));
   const priceCents = primaryVariant?.priceCents ?? product.priceCents;
   const compareAtCents = primaryVariant?.compareAtCents ?? null;
   // Options/metafields + gallery prefer OUR working tree (admin SoT), else last Pull.
@@ -440,8 +447,8 @@ function toSummary(product: {
     width: item.asset.width,
     height: item.asset.height,
   }));
-  const workingMedia = mediaFramesFromWorkingSnapshot(
-    product.workingSnapshot ?? product.shopifySnapshot,
+  const workingMedia = mediaFramesFromOurWindow(
+    product.extras ?? product.shopifySnapshot,
   ).map((frame) => ({
     id: frame.id,
     src: frame.url,
@@ -517,7 +524,7 @@ function toSummary(product: {
         compareAtPrice: variant.compareAtCents == null ? "" : priceFromCents(variant.compareAtCents, product.currency, locale),
         compareAtAmount: variant.compareAtCents == null ? null : variant.compareAtCents / 100,
         stockOnHand: variant.stockOnHand,
-        available: isVariantPurchasable(variant),
+        available: isVariantPurchasable(availabilityFor(variant)),
         weightGrams: variant.weightGrams == null ? null : Number(variant.weightGrams),
         selectedOptions,
       };

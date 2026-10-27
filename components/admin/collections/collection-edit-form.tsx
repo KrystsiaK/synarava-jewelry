@@ -8,23 +8,32 @@ import {
   saveCollectionAction,
   type CollectionActionState,
 } from "@/app/admin/actions/collections";
-import {
-  checkOneCollectionConflictsAction,
-} from "@/app/admin/actions/sync";
 import { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
 import { scrollAdminFieldIntoView } from "@/components/admin/shared/scroll-admin-field";
 import { submitFormAfterConfirmClose } from "@/components/admin/shared/submit-after-confirm";
 import { useCollectionFormValidation } from "@/components/admin/collections/use-collection-form-validation";
-import { AdminAlert, AdminIconButton, AdminListWorkspace } from "@/components/synarava-cms";
+import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
+import { AdminAlert, AdminIconButton, AdminListWorkspace, SyncConflictIndicator } from "@/components/synarava-cms";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
-import { CatalogConflictStatus } from "@/components/admin/products/catalog-conflict-signals";
-import { CollectionConflictWorkspace, type CollectionConflictViewScope } from "@/components/admin/collections/collection-conflict-workspace";
-import { CollectionFields, CollectionLocaleProvider, CollectionLocaleTabs } from "@/components/admin/collections/collection-fields";
+import { useSyncedState } from "@/components/admin/shared/use-synced-state";
+import {
+  filterCollectionSignalsForView,
+  type CollectionConflictViewScope,
+} from "@/components/admin/collections/collection-conflict-view";
+import { CollectionConflictWorkspace } from "@/components/admin/collections/collection-conflict-adapter";
+import {
+  CollectionFields,
+  CollectionLocaleProvider,
+  CollectionLocaleTabs,
+  useCollectionLocaleConflictChrome,
+} from "@/components/admin/collections/collection-fields";
 import {
   collectionToDraft,
   generateCollectionCode,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
+import { conflictLocalesFromCommerce } from "@/components/admin/products/commerce-conflict-section";
+import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
@@ -36,7 +45,34 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
   products: {},
   recentlyUpdatedProducts: {},
 };
-const ENTITY_NOUN = { singular: "collection", plural: "collections" } as const;
+const SOURCE_LOCALE = "en";
+
+function CollectionLocaleConflictTrailing({
+  collectionId,
+  signals,
+  onOpen,
+}: {
+  collectionId: string;
+  signals: CatalogConflictSignals;
+  onOpen: (locale: string) => void;
+}) {
+  const { locale, activeLabel } = useCollectionLocaleConflictChrome();
+  const count = productConflictBadgeCount(
+    filterCollectionSignalsForView(signals, {
+      kind: "collectionLocale",
+      collectionId,
+      locale,
+    }).products[collectionId],
+  );
+  return (
+    <SyncConflictIndicator
+      checkIconOnly
+      label={`${activeLabel} (all sections)`}
+      count={count}
+      onOpen={() => onOpen(locale)}
+    />
+  );
+}
 
 function DeleteCollectionForm({
   collectionId,
@@ -110,28 +146,32 @@ export function EditCollectionForm({
 }) {
   const [state, setState] = useState<CollectionActionState>(initialState);
   const [isPending, startTransition] = useTransition();
-  const [isConflictCheckPending, startConflictCheckTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [conflictListOpen, setConflictListOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CollectionConflictViewScope>({
     kind: "collection",
     collectionId: collection.id,
   });
-  const [conflictSignals, setConflictSignals] = useState(initialConflictSignals);
   const [draft, setDraft] = useState<CollectionDraft>(() => collectionToDraft(collection, translationLocales.map((l) => l.code)));
   const formRef = useRef<HTMLFormElement>(null);
   const validation = useCollectionFormValidation(formRef);
   const fileInputKey = collection.heroImageUrl ?? collection.id;
   const { pushToast } = useAdminToast();
+  const checkRunning = useAdminShopifyCheckRunning();
+  const saveBlocked = isPending || checkRunning;
   const [codeLocked, setCodeLocked] = useState(Boolean(collection.code?.trim()));
+  const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const collectionConflict = conflictSignals.products[collection.id];
-
-  // Props → local state: adjust during render when the server payload / id changes.
-  const [signalsSource, setSignalsSource] = useState(initialConflictSignals);
-  if (initialConflictSignals !== signalsSource) {
-    setSignalsSource(initialConflictSignals);
-    setConflictSignals(initialConflictSignals);
-  }
+  const entityConflictCount = productConflictBadgeCount(collectionConflict);
+  const localeTabs = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const conflictLocales = conflictLocalesFromCommerce({
+    localeCodes: localeTabs.map((tab) => tab.code),
+    conflictSections: new Set(),
+    sharedSignal: collectionConflict?.shared,
+    presenceSignal: Boolean(collectionConflict?.presence),
+    localeSignals: collectionConflict?.locales,
+    baseLocale: SOURCE_LOCALE,
+  });
 
   const [scopedCollectionId, setScopedCollectionId] = useState(collection.id);
   if (collection.id !== scopedCollectionId) {
@@ -150,23 +190,6 @@ export function EditCollectionForm({
     window.addEventListener("hashchange", openFieldForHash);
     return () => window.removeEventListener("hashchange", openFieldForHash);
   }, []);
-
-  function handleConflictCheck() {
-    startConflictCheckTransition(async () => {
-      const result = await checkOneCollectionConflictsAction({ collectionId: collection.id });
-      if (!("signals" in result)) {
-        pushToast({ message: result.error, tone: "error" });
-        return;
-      }
-      setConflictSignals(result.signals);
-      if (result.warning) pushToast({ message: result.warning, tone: "info" });
-      if (result.success) pushToast({ message: result.success, tone: "success" });
-      if ((result.signals.products[collection.id])) {
-        setConflictViewScope({ kind: "collection", collectionId: collection.id });
-        setConflictListOpen(true);
-      }
-    });
-  }
 
   async function formAction(formData: FormData) {
     startTransition(async () => {
@@ -211,6 +234,7 @@ export function EditCollectionForm({
         draft={draft}
         translationLocales={translationLocales}
         fieldErrors={validation.fieldErrors}
+        conflictLocales={conflictLocales}
       >
         <form ref={formRef} action={formAction} noValidate>
           <AdminListWorkspace.Root>
@@ -220,16 +244,14 @@ export function EditCollectionForm({
               meta={`/${collection.slug}`}
               actions={
                 <div className="flex items-center gap-1.5">
-                  <CatalogConflictStatus
-                    signals={conflictSignals}
-                    onShow={() => {
+                  <SyncConflictIndicator
+                    checkIconOnly
+                    label="this collection"
+                    count={entityConflictCount}
+                    onOpen={() => {
                       setConflictViewScope({ kind: "collection", collectionId: collection.id });
                       setConflictListOpen(true);
                     }}
-                    onCheck={handleConflictCheck}
-                    checking={isConflictCheckPending}
-                    compact={Boolean(collectionConflict)}
-                    entityNoun={ENTITY_NOUN}
                   />
                   <DeleteCollectionForm
                     collectionId={collection.id}
@@ -237,13 +259,15 @@ export function EditCollectionForm({
                     onDeleted={onDeleted}
                   />
                   <AdminIconButton
-                    label={isPending ? "Saving collection" : "Save collection"}
+                    label={isPending ? "Saving collection" : checkRunning ? "Save paused" : "Save collection"}
                     tooltip={
                       isPending
                         ? "Saving collection…"
-                        : "Save collection locally. Shopify does not change until you push."
+                        : checkRunning
+                          ? "Shopify check in progress. Save is paused until it finishes."
+                          : "Save collection locally. Shopify does not change until you push."
                     }
-                    disabled={isPending}
+                    disabled={saveBlocked}
                     onClick={() => validation.requestConfirm(() => setConfirmOpen(true))}
                   >
                     {isPending ? (
@@ -255,7 +279,23 @@ export function EditCollectionForm({
                 </div>
               }
             >
-              <CollectionLocaleTabs embedded />
+              <CollectionLocaleTabs
+                embedded
+                trailing={
+                  <CollectionLocaleConflictTrailing
+                    collectionId={collection.id}
+                    signals={conflictSignals}
+                    onOpen={(locale) => {
+                      setConflictViewScope({
+                        kind: "collectionLocale",
+                        collectionId: collection.id,
+                        locale,
+                      });
+                      setConflictListOpen(true);
+                    }}
+                  />
+                }
+              />
             </AdminListWorkspace.Header>
 
             <AdminListWorkspace.Body className="grid gap-4">
@@ -304,8 +344,8 @@ export function EditCollectionForm({
         onClose={() => setConflictListOpen(false)}
         signals={conflictSignals}
         onSignalsChange={setConflictSignals}
-        collections={[{ id: collection.id, name: collection.name, slug: collection.slug }]}
-        focusedCollectionId={collection.id}
+        items={[{ id: collection.id, name: collection.name, slug: collection.slug }]}
+        focusedId={collection.id}
         viewScope={conflictViewScope}
         onToast={(message, tone) => pushToast({ message, tone })}
       />

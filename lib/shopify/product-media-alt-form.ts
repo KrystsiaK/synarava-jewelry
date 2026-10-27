@@ -4,7 +4,7 @@
  * OUR tree frames (no local rows): `media-alt-tree-{index}`
  *
  * Distinct per-image alts are SoT in ProductMedia (staging) and/or
- * workingSnapshot.media (OUR commerce tree). Never broadcast the product title
+ * extras.media / derived OUR window. Never broadcast the product title
  * onto every image on Push/Save — that collapses unique alts (Soleil Lemon bug).
  */
 
@@ -75,9 +75,9 @@ export function applyTreeMediaAltUpdates(
 }
 
 /** Raw per-index alts from OUR window — empty string when missing (no `Image N` placeholder). */
-export function rawMediaAltsFromWorkingSnapshot(workingSnapshot: unknown): string[] {
-  if (!isPlainObject(workingSnapshot)) return [];
-  const media = workingSnapshot.media;
+export function rawMediaAltsFromOurWindow(windowOrExtras: unknown): string[] {
+  if (!isPlainObject(windowOrExtras)) return [];
+  const media = windowOrExtras.media;
   if (!Array.isArray(media)) return [];
   return media.map((node) => (isPlainObject(node) ? trimAlt(node.alt) : ""));
 }
@@ -127,7 +127,7 @@ export function mediaNodePreviewUrl(node: unknown): string | null {
  * Remove one OUR-tree media frame by index (immutable).
  * Returns null when the index is out of range.
  */
-export function removeWorkingSnapshotMediaAtIndex(
+export function removeOurMediaAtIndex(
   media: unknown[],
   mediaIndex: number,
 ): unknown[] | null {
@@ -138,29 +138,70 @@ export function removeWorkingSnapshotMediaAtIndex(
 }
 
 /**
- * OUR-tree media nodes when the window has a `media` key.
+ * OUR-tree media nodes when the window/extras has a `media` key.
  * - `null` — no `media` key (legacy: do not treat tree as SoT).
  * - `unknown[]` — tree is SoT (may be empty after intentional clear).
  */
-export function workingSnapshotMediaNodes(workingSnapshot: unknown): unknown[] | null {
-  if (!isPlainObject(workingSnapshot) || !("media" in workingSnapshot)) return null;
-  return Array.isArray(workingSnapshot.media) ? workingSnapshot.media : [];
+export function ourMediaNodes(windowOrExtras: unknown): unknown[] | null {
+  if (!isPlainObject(windowOrExtras) || !("media" in windowOrExtras)) return null;
+  return Array.isArray(windowOrExtras.media) ? windowOrExtras.media : [];
 }
 
 /**
- * Shopify media GIDs retained on Push from OUR `workingSnapshot.media`.
- * - `null` — no `media` key on the window (legacy: do not treat tree as SoT).
+ * Shopify media GIDs retained on Push from OUR media tree.
+ * - `null` — no `media` key (legacy: do not treat tree as SoT).
  * - `string[]` — tree is SoT; remote media not listed must be omitted from
  *   `productSet.files` so Shopify deletes them (list-field semantics).
  */
-export function retainedShopifyMediaIdsFromWorkingSnapshot(
-  workingSnapshot: unknown,
-): string[] | null {
-  const media = workingSnapshotMediaNodes(workingSnapshot);
+export function retainedShopifyMediaIds(windowOrExtras: unknown): string[] | null {
+  const media = ourMediaNodes(windowOrExtras);
   if (media == null) return null;
   return media.flatMap((node) => {
     if (!isPlainObject(node) || typeof node.id !== "string") return [];
     return node.id.startsWith("gid://shopify/") ? [node.id] : [];
+  });
+}
+
+export type OurMediaFrame = {
+  id: string | null;
+  url: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+};
+
+function frameFromMediaNode(node: unknown, index: number): OurMediaFrame | null {
+  if (!isPlainObject(node)) return null;
+  const preview = isPlainObject(node.preview) ? node.preview : null;
+  const previewImage = preview && isPlainObject(preview.image) ? preview.image : null;
+  const image = isPlainObject(node.image) ? node.image : null;
+  const url =
+    (previewImage && typeof previewImage.url === "string" ? previewImage.url : null)
+    || (image && typeof image.url === "string" ? image.url : null);
+  if (!url) return null;
+  const width =
+    (previewImage && typeof previewImage.width === "number" ? previewImage.width : null)
+    ?? (image && typeof image.width === "number" ? image.width : null);
+  const height =
+    (previewImage && typeof previewImage.height === "number" ? previewImage.height : null)
+    ?? (image && typeof image.height === "number" ? image.height : null);
+  return {
+    id: typeof node.id === "string" ? node.id : null,
+    url,
+    alt: typeof node.alt === "string" && node.alt.trim() ? node.alt.trim() : `Image ${index + 1}`,
+    width,
+    height,
+  };
+}
+
+/** Frames from OUR window/extras.media only — never fall back to shopifySnapshot. */
+export function mediaFramesFromOurWindow(windowOrExtras: unknown): OurMediaFrame[] {
+  if (!isPlainObject(windowOrExtras)) return [];
+  const media = windowOrExtras.media;
+  if (!Array.isArray(media) || media.length === 0) return [];
+  return media.flatMap((node, index) => {
+    const frame = frameFromMediaNode(node, index);
+    return frame ? [frame] : [];
   });
 }
 

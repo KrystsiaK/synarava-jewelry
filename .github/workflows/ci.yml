@@ -3,14 +3,18 @@ name: CI
 on:
   pull_request:
   push:
+    # Feature/bot branches are covered by pull_request only — avoid double runs.
     branches:
-      - "**"
+      - main
+      - staging
     tags:
       - "v*"
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  # PRs: one in-flight run per PR (cancel superseded).
+  # Pushes/tags: per-commit group so a newer push cannot cancel an older queued run.
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -46,6 +50,8 @@ jobs:
               - 'next.config.*'
               - 'vitest.config.*'
               - 'vitest.setup.ts'
+              # Workflow-only PRs still need smoke (Playwright cache/install).
+              - '.github/workflows/ci.yml'
             sku:
               - 'services/sku-api/**'
               - 'packages/sku-core/**'
@@ -117,7 +123,6 @@ jobs:
       - name: Check release version
         run: pnpm check:version
 
-
       - name: Typecheck
         run: pnpm exec tsc --noEmit
 
@@ -143,6 +148,11 @@ jobs:
     if: ${{ needs.changes.outputs.shop == 'true' || startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
     timeout-minutes: 25
+    # Pin to @playwright/test in package.json/lockfile. Browsers + OS deps are
+    # preinstalled — no apt / --with-deps (avoids intermittent dpkg lock / exit 137).
+    container:
+      image: mcr.microsoft.com/playwright:v1.60.0-jammy
+      options: --ipc=host
     services:
       postgres:
         image: postgres:16
@@ -150,8 +160,7 @@ jobs:
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
           POSTGRES_DB: synarava_ci
-        ports:
-          - 5432:5432
+        # Job container ↔ service network alias; ports map is for host jobs only.
         options: >-
           --health-cmd "pg_isready -U postgres -d synarava_ci"
           --health-interval 5s
@@ -160,8 +169,12 @@ jobs:
     env:
       CI: true
       NEXT_TELEMETRY_DISABLED: 1
-      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/synarava_ci
+      # db-guard requires localhost/127.0.0.1; job containers reach services via
+      # hostname only, so we TCP-forward 127.0.0.1:5432 → postgres:5432 below.
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/synarava_ci
       APP_URL: http://localhost:3000
+      # Image ships browsers under /ms-playwright (HOME is /github/home in-container).
+      PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
       NODE_AUTH_TOKEN: ${{ secrets.NODE_AUTH_TOKEN }}
     steps:
       - uses: actions/checkout@v6
@@ -172,10 +185,45 @@ jobs:
           cache: pnpm
       - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
-      - run: pnpm prisma:push
 
-      # Build before smoke so Playwright starts `next start` (fast, deterministic)
-      # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
-      - run: pnpm build
-      - run: pnpm exec playwright install --with-deps chromium webkit
-      - run: pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
+      # Job containers default to `sh` (no pipefail). Keep the TCP forward in the
+      # same bash step as prisma/build/smoke so it is not killed between steps.
+      # db-guard requires 127.0.0.1; services are only reachable as hostname `postgres`.
+      - name: Schema, build, and storefront smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/pg-fwd.mjs <<'EOF'
+          import net from "node:net";
+          const server = net.createServer((client) => {
+            const upstream = net.connect(5432, "postgres");
+            client.pipe(upstream);
+            upstream.pipe(client);
+            const close = () => {
+              client.destroy();
+              upstream.destroy();
+            };
+            client.on("error", close);
+            upstream.on("error", close);
+          });
+          server.listen(5432, "127.0.0.1");
+          EOF
+          node /tmp/pg-fwd.mjs &
+          fwd_pid=$!
+          trap 'kill "$fwd_pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if node -e 'const n=require("node:net");const s=n.connect({host:"127.0.0.1",port:5432},()=>{s.end();process.exit(0)});s.on("error",()=>process.exit(1))'; then
+              echo "Postgres forward ready on 127.0.0.1:5432 (pid ${fwd_pid})"
+              break
+            fi
+            if [ "$i" -eq 40 ]; then
+              echo "Timed out waiting for 127.0.0.1:5432 forward" >&2
+              exit 1
+            fi
+            sleep 0.25
+          done
+          pnpm prisma:push
+          # Build before smoke so Playwright starts `next start` (fast, deterministic)
+          # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
+          pnpm build
+          pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke

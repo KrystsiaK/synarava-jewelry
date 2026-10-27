@@ -1,0 +1,63 @@
+name: Bug report
+description: Report a defect in the admin or storefront (one clear problem).
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the bug in one sentence in the title. Fill the fields below so a bot or human can reproduce and fix it.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where
+      description: Where in the product does this happen?
+      options:
+        - Admin
+        - Site (storefront)
+        - Both / unclear
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps from a known starting point.
+      placeholder: |
+        1. Open …
+        2. Click …
+        3. …
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected
+      description: What should happen?
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual
+      description: What happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: screenshot
+    attributes:
+      label: Screenshot
+      description: Paste or drag an image, or link to one. Optional but helpful.
+      placeholder: (attach image or paste URL)
+    validations:
+      required: false
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      description: Where did you see this?
+      options:
+        - Production
+        - Staging
+    validations:
+      required: true

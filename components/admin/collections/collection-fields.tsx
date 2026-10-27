@@ -50,6 +50,7 @@ type CollectionLocaleContextValue = {
   active: CollectionLocaleDraft | null;
   activeLabel: string;
   ptStatus?: AdminLocaleStatus;
+  conflictLocales?: ReadonlySet<string>;
 };
 
 const CollectionLocaleContext = createContext<CollectionLocaleContextValue | null>(null);
@@ -64,11 +65,13 @@ export function CollectionLocaleProvider({
   draft,
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   fieldErrors,
+  conflictLocales,
   children,
 }: {
   draft: CollectionDraft;
   translationLocales?: AdminTranslationLocale[];
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
+  conflictLocales?: ReadonlySet<string>;
   children: ReactNode;
 }) {
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
@@ -96,6 +99,7 @@ export function CollectionLocaleProvider({
         active,
         activeLabel,
         ptStatus: active?.syncStatus as AdminLocaleStatus | undefined,
+        conflictLocales,
       }}
     >
       {children}
@@ -103,8 +107,14 @@ export function CollectionLocaleProvider({
   );
 }
 
-export function CollectionLocaleTabs({ embedded = false }: { embedded?: boolean }) {
-  const { locale, selectLocale, tabs, ptStatus } = useCollectionLocale();
+export function CollectionLocaleTabs({
+  embedded = false,
+  trailing,
+}: {
+  embedded?: boolean;
+  trailing?: ReactNode;
+}) {
+  const { locale, selectLocale, tabs, ptStatus, conflictLocales } = useCollectionLocale();
   return (
     <AdminLocaleTabs
       embedded={embedded}
@@ -112,8 +122,16 @@ export function CollectionLocaleTabs({ embedded = false }: { embedded?: boolean 
       onSelect={selectLocale}
       locales={tabs}
       ptStatus={ptStatus}
+      conflictLocales={conflictLocales}
+      trailing={trailing}
     />
   );
+}
+
+/** Active locale context for conflict indicator counts (same slice rules as products). */
+export function useCollectionLocaleConflictChrome() {
+  const { locale, activeLabel, tabs } = useCollectionLocale();
+  return { locale, activeLabel, tabs };
 }
 
 export function FieldError({ message }: { message?: string }) {

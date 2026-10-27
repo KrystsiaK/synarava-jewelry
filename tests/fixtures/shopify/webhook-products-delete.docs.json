@@ -1,0 +1,13 @@
+{
+  "_meta": {
+    "source": "docs-derived",
+    "not_live": true,
+    "reason": "RO credentials cannot trigger webhooks; payload copied from official Admin REST webhook docs",
+    "docs_url": "https://shopify.dev/docs/api/admin-rest/2026-07/resources/webhook",
+    "api_docs_version_in_url": "2026-07",
+    "topic": "products/delete"
+  },
+  "payload": {
+    "id": 788032119674292922
+  }
+}

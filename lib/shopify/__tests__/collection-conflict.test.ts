@@ -1,171 +1,177 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
-  getLatestReconcileDifferences: vi.fn(),
+  runSyncWaterfall: vi.fn(),
   getPublishedStorefrontLocales: vi.fn(),
   getLatestCollectionPresenceDifferences: vi.fn(),
 }));
 
-vi.mock("@/lib/shopify/reconciliation-run", () => ({
-  getLatestReconcileDifferences: mocks.getLatestReconcileDifferences,
-}));
-
+vi.mock("@/lib/sync", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/sync")>("@/lib/sync");
+  return {
+    ...actual,
+    runSyncWaterfall: mocks.runSyncWaterfall,
+  };
+});
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
 }));
-
 vi.mock("@/lib/shopify/collection-presence-server", () => ({
   getLatestCollectionPresenceDifferences: mocks.getLatestCollectionPresenceDifferences,
 }));
 
 import {
-  getCollectionCatalogConflict,
   listConflictedCollectionIds,
+  loadCollectionConflictFromSyncResult,
 } from "@/lib/shopify/collection-conflict";
+import { emptySyncResult, type SyncLeaf } from "@/lib/sync/types";
 
 const locales = [
   { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
   { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
 ];
 
-function difference(overrides: Record<string, unknown> = {}) {
+function leaf(overrides: Partial<SyncLeaf> & Pick<SyncLeaf, "kind" | "fieldKey" | "label">): SyncLeaf {
   return {
-    id: "diff-1",
-    rootEntityType: "COLLECTION",
-    rootEntityId: "collection-1",
-    locale: "pt-PT",
-    fieldKey: "title",
-    fieldLabel: "Title",
-    kind: "CONFLICT",
+    id: "leaf",
+    resourceType: "COLLECTION",
+    resourceId: "collection-1",
+    locale: null,
+    synaravaValue: "local",
+    shopifyValue: "remote",
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    blockedReason: null,
+    sourceId: null,
+    path: null,
+    presenceSide: null,
     targetKind: "NATIVE",
-    localValue: "Local title",
-    shopifyValue: "Shopify title",
-    baseValue: null,
-    localFingerprint: "local-fp",
-    shopifyFingerprint: "shopify-fp",
+    localFingerprint: "fp-local",
+    shopifyFingerprint: "fp-shopify",
     ...overrides,
   };
 }
 
-function presenceDiff(overrides: Record<string, unknown> = {}) {
-  return {
-    id: "shopify-collection:42",
-    kind: "SHOPIFY_ONLY",
-    localProductId: null,
-    shopifyProductId: "gid://shopify/Collection/42",
-    name: "Remote kits",
-    handle: "remote-kits",
-    sku: "",
-    localFingerprint: "missing",
-    shopifyFingerprint: "remote",
-    remoteMissing: false,
-    matchReason: null,
-    localIdentity: null,
-    shopifyIdentity: { name: "Remote kits", handle: "remote-kits", sku: "" },
-    ...overrides,
-  };
-}
-
-describe("getCollectionCatalogConflict", () => {
-  beforeEach(() => {
-    mocks.getPublishedStorefrontLocales.mockResolvedValue(locales);
-    mocks.getLatestReconcileDifferences.mockResolvedValue([]);
-    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getPublishedStorefrontLocales.mockResolvedValue(locales);
+  mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
+  mocks.runSyncWaterfall.mockResolvedValue({
+    result: emptySyncResult({ state: "ready", checkedAt: "2026-10-25T00:00:00.000Z", leaves: [] }),
   });
+});
 
-  it("returns every unresolved COLLECTION translation field, including one-sided changes", async () => {
-    mocks.getLatestReconcileDifferences.mockResolvedValue([
-      difference(),
-      difference({ id: "diff-2", rootEntityType: "PRODUCT", rootEntityId: "collection-1" }),
-      difference({ id: "diff-3", kind: "LOCAL_ONLY", fieldKey: "seoTitle", fieldLabel: "SEO title" }),
-      difference({ id: "diff-4", rootEntityId: "other" }),
-      difference({ id: "diff-5", locale: "en", fieldKey: "description", fieldLabel: "Description" }),
-    ]);
-
-    const result = await getCollectionCatalogConflict("collection-1");
-    expect(result.collectionId).toBe("collection-1");
-    expect(result.fields).toHaveLength(3);
-    expect(result.fields.map((field) => field.fieldKey)).toEqual([
-      "translation:pt-PT:title",
-      "translation:pt-PT:seoTitle",
-      "translation:en:description",
-    ]);
-    expect(result.fields[0]).toMatchObject({
-      fieldKey: "translation:pt-PT:title",
-      label: "Title",
-      origin: "TRANSLATION",
-      scope: { kind: "LOCALE", code: "pt" },
-      sourceId: "diff-1",
-    });
-    expect(result.fields[1]).toMatchObject({
-      fieldKey: "translation:pt-PT:seoTitle",
-      label: "SEO title",
-      sourceId: "diff-3",
-    });
-    expect(result.fields[2]).toMatchObject({
-      fieldKey: "translation:en:description",
-      scope: { kind: "LOCALE", code: "en" },
-    });
-  });
-
-  it("returns a one-direction presence field without inspecting translation diffs", async () => {
-    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
-      presenceDiff({ id: "collection-1" }),
-    ]);
-    mocks.getLatestReconcileDifferences.mockResolvedValue([difference()]);
-
-    const result = await getCollectionCatalogConflict("collection-1");
-    expect(result.fields).toEqual([
-      expect.objectContaining({
-        fieldKey: "presence:collection",
-        origin: "PRESENCE",
-        allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+describe("loadCollectionConflictFromSyncResult", () => {
+  it("maps SyncResult leaves with skipRefresh", async () => {
+    mocks.runSyncWaterfall.mockResolvedValue({
+      result: emptySyncResult({
+        state: "ready",
+        checkedAt: "2026-10-25T00:00:00.000Z",
+        leaves: [
+          leaf({
+            kind: "commerce",
+            fieldKey: "commerce:name",
+            label: "Name",
+            path: "title",
+            synaravaValue: "Pets",
+            shopifyValue: "Pets & Animals",
+          }),
+        ],
       }),
-    ]);
-    expect(mocks.getLatestReconcileDifferences).not.toHaveBeenCalled();
+    });
+
+    const result = await loadCollectionConflictFromSyncResult("collection-1", {
+      requestedBy: "admin",
+      skipRefresh: true,
+    });
+
+    expect(mocks.runSyncWaterfall).toHaveBeenCalledWith({
+      scope: { kind: "collection", collectionId: "collection-1" },
+      requestedBy: "admin",
+      skipRefresh: true,
+    });
+    expect(result.fields[0]).toMatchObject({
+      origin: "COMMERCE",
+      label: "Name",
+      synaravaValue: "Pets",
+      shopifyValue: "Pets & Animals",
+    });
   });
 
-  it("allows both push and delete for a Synarava-only presence field", async () => {
-    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
-      presenceDiff({
-        id: "collection-1",
-        kind: "SYNARAVA_ONLY",
-        localProductId: "collection-1",
-        shopifyProductId: null,
-        localIdentity: { name: "Jewelry Making", handle: "jewelry-making", sku: "" },
-        shopifyIdentity: null,
+  it("attaches collection presenceDifference when present", async () => {
+    const presence = {
+      id: "collection-1",
+      kind: "SYNARAVA_ONLY" as const,
+      localProductId: "collection-1",
+      shopifyProductId: null,
+      name: "Local only",
+      handle: "local",
+      sku: "",
+      localFingerprint: "local",
+      shopifyFingerprint: "missing",
+      remoteMissing: false,
+      matchReason: null,
+      localIdentity: { name: "Local only", handle: "local", sku: "" },
+      shopifyIdentity: null,
+    };
+    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([presence]);
+    mocks.runSyncWaterfall.mockResolvedValue({
+      result: emptySyncResult({
+        state: "ready",
+        checkedAt: "2026-10-25T00:00:00.000Z",
+        leaves: [
+          leaf({
+            kind: "presence",
+            fieldKey: "presence:collection",
+            label: "Collection exists only in Synarava",
+            presenceSide: "SYNARAVA_ONLY",
+            allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+          }),
+        ],
       }),
-    ]);
+    });
 
-    const result = await getCollectionCatalogConflict("collection-1");
+    const result = await loadCollectionConflictFromSyncResult("collection-1", {
+      requestedBy: "admin",
+      skipRefresh: true,
+    });
+
     expect(result.fields[0]).toMatchObject({
-      fieldKey: "presence:collection",
+      origin: "PRESENCE",
+      presenceDifference: presence,
       allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     });
   });
 });
 
 describe("listConflictedCollectionIds", () => {
-  beforeEach(() => {
-    mocks.getLatestReconcileDifferences.mockResolvedValue([]);
-    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([]);
-  });
+  it("derives unique COLLECTION resourceIds from SyncResult leaves", async () => {
+    mocks.runSyncWaterfall.mockResolvedValue({
+      result: emptySyncResult({
+        state: "ready",
+        checkedAt: "2026-10-25T00:00:00.000Z",
+        leaves: [
+          leaf({ kind: "commerce", fieldKey: "commerce:name", label: "Name", resourceId: "c1" }),
+          leaf({ kind: "presence", fieldKey: "presence:collection", label: "x", resourceId: "shopify-collection:42", id: "pr", presenceSide: "SHOPIFY_ONLY" }),
+          leaf({
+            kind: "commerce",
+            fieldKey: "commerce:name",
+            label: "Name",
+            resourceId: "p1",
+            resourceType: "PRODUCT",
+            id: "p",
+          }),
+        ],
+      }),
+    });
 
-  it("deduplicates collection ids for every unresolved kind and presence", async () => {
-    mocks.getLatestReconcileDifferences.mockResolvedValue([
-      difference(),
-      difference({ id: "diff-2", fieldKey: "description" }),
-      difference({ id: "diff-3", rootEntityId: "collection-2", kind: "SHOPIFY_ONLY" }),
-      difference({ id: "diff-4", rootEntityType: "PRODUCT", rootEntityId: "product-1" }),
-    ]);
-    mocks.getLatestCollectionPresenceDifferences.mockResolvedValue([
-      presenceDiff(),
-      presenceDiff({ id: "collection-1", kind: "SYNARAVA_ONLY" }),
-    ]);
     await expect(listConflictedCollectionIds()).resolves.toEqual([
-      "collection-1",
-      "collection-2",
+      "c1",
       "shopify-collection:42",
     ]);
+    expect(mocks.runSyncWaterfall).toHaveBeenCalledWith({
+      scope: { kind: "collections" },
+      requestedBy: "system",
+      skipRefresh: true,
+    });
   });
 });

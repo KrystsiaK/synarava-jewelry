@@ -11,6 +11,7 @@ import {
 } from "@/components/admin/infrastructure/infrastructure-charts";
 import { formatBytes } from "@/lib/admin/format-bytes";
 import type { InfrastructureStatus } from "@/lib/admin/infrastructure-status";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 
 function formatLatency(ms: number | null): string {
   if (ms == null) return "—";
@@ -88,7 +89,7 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
       </div>
 
       <p className="text-xs" style={{ color: "var(--adm-muted)" }}>
-        Snapshot {new Date(status.checkedAt).toLocaleString()} · cache {status.cacheTtlSeconds}s ·
+        Snapshot {formatAdminDateTime(status.checkedAt)} · cache {status.cacheTtlSeconds}s ·
         read-only probes
       </p>
 
@@ -120,7 +121,7 @@ export function InfrastructureDashboard({ status }: { status: InfrastructureStat
                 label="Last successful read"
                 value={
                   postgres.lastSuccessfulReadAt
-                    ? new Date(postgres.lastSuccessfulReadAt).toLocaleString()
+                    ? formatAdminDateTime(postgres.lastSuccessfulReadAt)
                     : "—"
                 }
               />

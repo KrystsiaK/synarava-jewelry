@@ -1,0 +1,127 @@
+{
+  "query": "metaobjects",
+  "why": "Sample metaobjects when read_metaobjects is granted.",
+  "apiVersion": "2026-07",
+  "typeQueried": "shopify--knowledge-base-fact",
+  "response": {
+    "data": {
+      "metaobjects": {
+        "pageInfo": {
+          "hasNextPage": false,
+          "endCursor": "cursor_redacted_16f6cfb10c89"
+        },
+        "nodes": [
+          {
+            "id": "gid://shopify/Metaobject/1000001",
+            "handle": "handle-7f7304e0",
+            "type": "shopify--knowledge-base-fact",
+            "updatedAt": "2026-10-22T05:40:37Z",
+            "fields": [
+              {
+                "key": "external_id",
+                "type": "id",
+                "value": "delivery_countries"
+              },
+              {
+                "key": "published",
+                "type": "boolean",
+                "value": "true"
+              },
+              {
+                "key": "category",
+                "type": "single_line_text_field",
+                "value": "shipping_info"
+              },
+              {
+                "key": "source",
+                "type": "single_line_text_field",
+                "value": "admin"
+              },
+              {
+                "key": "title",
+                "type": "single_line_text_field",
+                "value": "Delivery countries"
+              },
+              {
+                "key": "value_string",
+                "type": "multi_line_text_field",
+                "value": null
+              },
+              {
+                "key": "value_string_list",
+                "type": "list.single_line_text_field",
+                "value": null
+              },
+              {
+                "key": "value_boolean",
+                "type": "boolean",
+                "value": null
+              },
+              {
+                "key": "value_number",
+                "type": "number_decimal",
+                "value": null
+              },
+              {
+                "key": "value_reference",
+                "type": "single_line_text_field",
+                "value": "shopify://shop/shipping-countries"
+              },
+              {
+                "key": "references",
+                "type": "list.single_line_text_field",
+                "value": null
+              },
+              {
+                "key": "suggested_value_string",
+                "type": "multi_line_text_field",
+                "value": null
+              },
+              {
+                "key": "suggested_value_string_list",
+                "type": "list.single_line_text_field",
+                "value": null
+              },
+              {
+                "key": "suggested_value_boolean",
+                "type": "boolean",
+                "value": null
+              },
+              {
+                "key": "suggested_value_number",
+                "type": "number_decimal",
+                "value": null
+              },
+              {
+                "key": "suggested_value_reference",
+                "type": "single_line_text_field",
+                "value": null
+              },
+              {
+                "key": "suggested_references",
+                "type": "list.single_line_text_field",
+                "value": null
+              },
+              {
+                "key": "suggestion_state",
+                "type": "single_line_text_field",
+                "value": null
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "extensions": {
+      "cost": {
+        "requestedQueryCost": 10,
+        "actualQueryCost": 4,
+        "throttleStatus": {
+          "maximumAvailable": 2000,
+          "currentlyAvailable": 1996,
+          "restoreRate": 100
+        }
+      }
+    }
+  }
+}

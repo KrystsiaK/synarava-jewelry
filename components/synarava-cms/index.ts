@@ -112,7 +112,6 @@ export {
 
 export {
   buildAdminNavItems,
-  countAdminNavSyncBySection,
   syncDifferenceToNavHref,
   type AdminNavChildConfig,
   type AdminNavItemConfig,
@@ -188,6 +187,45 @@ export { FieldLabel } from "@/components/admin/shared/field-label";
 export { AdminModal, type AdminModalProps } from "@/components/admin/shared/admin-modal";
 
 export { AdminConfirmModal } from "@/components/admin/shared/admin-confirm-modal";
+
+export {
+  CatalogConflictStatus,
+  CatalogConflictRowBadges,
+} from "@/components/admin/shared/catalog-conflict-signals";
+
+export {
+  SyncConflictIndicator,
+  formatSyncConflictLabel,
+} from "@/components/admin/shared/sync-conflict-indicator";
+
+export {
+  ConflictResolver,
+  ConflictRow,
+  ConflictValueCell,
+  ConflictLocaleMark,
+  CONFLICT_DIRECTIONS,
+  CONFLICT_DIRECTION_COPY,
+  isWholeRecordField,
+  type ConflictEntitySummary,
+  type ConflictRowModel,
+  type ConflictPreviewEntry,
+  type ConflictPreviewModel,
+  type ConflictApplyEntry,
+  type ConflictApplyOutcome,
+  type ConflictResolverAdapter,
+} from "@/components/synarava-cms/conflict-resolver";
+
+export {
+  conflictEntityDetailFromIdentity,
+  describeConflictConfirmChange,
+  formatConfirmDirectionSummary,
+  humanConflictEntityTitle,
+  isTechnicalEntityId,
+  resolveConflictEntitySummary,
+  summarizeConfirmDirections,
+  type ConflictConfirmChangeView,
+  type ConflictConfirmConsequence,
+} from "@/components/synarava-cms/conflict-resolver-confirm";
 
 export {
   AdminSerpPreview,

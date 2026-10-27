@@ -23,49 +23,6 @@ export async function ensureTranslationBinding({
   });
 }
 
-export async function findTranslationBinding(resourceType: TranslationResourceType, entityId: string) {
-  return db.shopifyTranslationBinding.findUnique({ where: { resourceType_entityId: { resourceType, entityId } } });
-}
-
-/**
- * Writes the locale-aware common ancestor snapshot. `ShopifyTranslationBinding.lastSyncedSnapshot`
- * (a single JSON column, one binding wide) used to get a parallel write here
- * for Portuguese specifically, as a rollout-era fallback for readers before
- * every (binding, locale) pair had its own `ShopifyTranslationSnapshot` row.
- * That column can only ever hold one locale's data, so it can't be
- * generalized to N locales — it's left unwritten (but still read as a
- * last-resort fallback by older bindings) rather than kept accurate for
- * only one arbitrary locale.
- */
-export async function saveTranslationSnapshot({
-  bindingId,
-  locale,
-  values,
-}: {
-  bindingId: string;
-  locale: string;
-  values: Record<string, unknown>;
-}) {
-  const serialized = JSON.stringify(values);
-  await db.$executeRaw(Prisma.sql`
-    INSERT INTO "ShopifyTranslationSnapshot" (
-      "id", "bindingId", "locale", "values", "syncedAt", "createdAt", "updatedAt"
-    ) VALUES (
-      ${`${bindingId}:${locale}`},
-      ${bindingId},
-      ${locale},
-      CAST(${serialized} AS JSONB),
-      CURRENT_TIMESTAMP,
-      CURRENT_TIMESTAMP,
-      CURRENT_TIMESTAMP
-    )
-    ON CONFLICT ("bindingId", "locale") DO UPDATE SET
-      "values" = EXCLUDED."values",
-      "syncedAt" = CURRENT_TIMESTAMP,
-      "updatedAt" = CURRENT_TIMESTAMP
-  `);
-}
-
 /** Every push/pull/reconcile attempt gets its own event row — the audit trail docs/history/2026-09-en-pt-translation-plan.md's sync model requires, independent of ProductSyncEvent's commerce sync history. */
 export async function recordSyncEvent({
   bindingId,
@@ -127,30 +84,4 @@ export async function recordReconcileAuditDetails({
       "updatedAt" = CURRENT_TIMESTAMP
     WHERE "id" = ${eventId}
   `);
-}
-
-/**
- * Re-runs `perform` for an existing event and updates its status in place —
- * idempotent because it never touches the locally persisted translation
- * content, only this bookkeeping row, so a failed retry cannot lose local
- * copy (docs/history/2026-09-en-pt-translation-plan.md Task 6 acceptance).
- */
-export async function retrySyncEvent(eventId: string, perform: () => Promise<void>) {
-  await db.translationSyncEvent.update({
-    where: { id: eventId },
-    data: { status: "PROCESSING", attemptCount: { increment: 1 } },
-  });
-
-  try {
-    await perform();
-    return db.translationSyncEvent.update({
-      where: { id: eventId },
-      data: { status: "SUCCEEDED", error: null, completedAt: new Date() },
-    });
-  } catch (error) {
-    return db.translationSyncEvent.update({
-      where: { id: eventId },
-      data: { status: "FAILED", error: error instanceof Error ? error.message : String(error), completedAt: new Date() },
-    });
-  }
 }

@@ -2707,11 +2707,8 @@ html[data-theme="dark"] .ephemeral-toast {
   --adm-sync-color: var(--adm-success);
 }
 
-.adm-sync-signal[data-state="differences"],
-.adm-sync-signal[data-state="partial"] {
-  --adm-sync-color: var(--adm-warning);
-}
-
+.adm-sync-signal[data-state="failed"],
+.adm-sync-signal[data-state="disconnected"],
 .adm-sync-signal[data-state="unavailable"] {
   --adm-sync-color: var(--adm-danger);
 }
@@ -7808,4 +7805,150 @@ html[data-theme="dark"] {
   .adm-help-index__article-action > svg,
   .adm-help-toc a,
   .adm-help-glossary > span { transition: none; }
+}
+
+/* ConflictResolver confirm preview — source → target flow + before/after */
+.adm-conflict-confirm__row {
+  border-color: var(--adm-border);
+  background: var(--adm-panel);
+}
+
+.adm-conflict-confirm__row--create {
+  border-color: color-mix(in srgb, var(--adm-accent) 55%, var(--adm-border));
+  background: color-mix(in srgb, var(--adm-accent-soft) 70%, var(--adm-panel));
+}
+
+.adm-conflict-confirm__row--remove {
+  border-color: color-mix(in srgb, var(--adm-warning) 55%, var(--adm-border));
+  background: color-mix(in srgb, var(--adm-warning-soft) 70%, var(--adm-panel));
+}
+
+.adm-conflict-confirm__row--update {
+  border-color: var(--adm-border);
+}
+
+.adm-conflict-confirm__flow {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 0.75rem;
+  align-items: stretch;
+}
+
+@media (max-width: 767px) {
+  .adm-conflict-confirm__flow {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .adm-conflict-flow {
+    justify-self: center;
+    transform: rotate(90deg);
+  }
+}
+
+.adm-conflict-confirm__cell {
+  min-width: 0;
+  border-radius: 0.75rem;
+  border: 1px solid var(--adm-border);
+  background: var(--adm-bg);
+  padding: 0.75rem;
+}
+
+.adm-conflict-confirm__cell--target-create {
+  border-color: color-mix(in srgb, var(--adm-accent) 62%, var(--adm-border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--adm-accent) 18%, transparent);
+}
+
+.adm-conflict-confirm__cell--target-remove {
+  border-color: color-mix(in srgb, var(--adm-warning) 62%, var(--adm-border));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--adm-warning) 18%, transparent);
+}
+
+.adm-conflict-confirm__cell--target-update {
+  border-color: color-mix(in srgb, var(--adm-border-strong) 70%, var(--adm-border));
+}
+
+.adm-conflict-confirm__before {
+  color: var(--adm-muted);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  opacity: 0.78;
+}
+
+.adm-conflict-confirm__after {
+  color: var(--adm-ink);
+  font-weight: 600;
+}
+
+.adm-conflict-confirm__cell--target-create .adm-conflict-confirm__after {
+  color: color-mix(in srgb, var(--adm-accent) 72%, var(--adm-ink));
+}
+
+.adm-conflict-confirm__cell--target-remove .adm-conflict-confirm__after {
+  color: color-mix(in srgb, var(--adm-warning) 78%, var(--adm-ink));
+}
+
+.adm-conflict-flow {
+  --adm-conflict-flow-dur: 1.35s;
+  --adm-conflict-flow-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  min-height: 1.5rem;
+  color: var(--adm-muted);
+}
+
+.adm-conflict-flow__line {
+  position: absolute;
+  inset-inline: 0.15rem;
+  top: 50%;
+  height: 1px;
+  background: color-mix(in srgb, var(--adm-border-strong) 70%, transparent);
+  transform: translateY(-50%);
+}
+
+.adm-conflict-flow__icon {
+  position: relative;
+  z-index: 1;
+  color: var(--adm-ink);
+}
+
+.adm-conflict-flow__pulse {
+  position: absolute;
+  top: 50%;
+  left: 0.2rem;
+  z-index: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 999px;
+  background: var(--adm-accent);
+  opacity: 0;
+  transform: translateY(-50%);
+  animation: adm-conflict-flow-pulse var(--adm-conflict-flow-dur) var(--adm-conflict-flow-ease) infinite;
+}
+
+@keyframes adm-conflict-flow-pulse {
+  0% {
+    opacity: 0;
+    transform: translate(0, -50%) scale(0.7);
+  }
+  25% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(1.85rem, -50%) scale(1);
+  }
+}
+
+.adm-conflict-confirm--reduced-motion .adm-conflict-flow__pulse {
+  animation: none !important;
+  opacity: 0 !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .adm-conflict-flow__pulse {
+    animation: none !important;
+    opacity: 0 !important;
+  }
 }

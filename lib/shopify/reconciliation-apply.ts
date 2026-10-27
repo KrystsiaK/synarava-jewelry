@@ -18,7 +18,6 @@ import { projectRemoteTranslationWithMetadata } from "@/lib/shopify/translation-
 import {
   recordReconcileAuditDetails,
   recordSyncEvent,
-  saveTranslationSnapshot,
 } from "@/lib/shopify/translation-sync";
 import {
   fetchResourceTranslation,
@@ -38,10 +37,7 @@ type ApplyRow = {
   bindingResourceType: TranslationResourceType;
   bindingEntityId: string;
   shopifyResourceId: string;
-  lastSyncedSnapshot: unknown;
 };
-
-type SnapshotRow = { values: Record<string, unknown> };
 
 export type ReconcileApplyResult = {
   divergenceId: string;
@@ -74,8 +70,7 @@ async function claimDifference(divergenceId: string, token: string) {
       difference."shopifyFingerprint",
       binding."resourceType" AS "bindingResourceType",
       binding."entityId" AS "bindingEntityId",
-      binding."shopifyResourceId",
-      binding."lastSyncedSnapshot"
+      binding."shopifyResourceId"
   `);
   return rows[0] ?? null;
 }
@@ -92,26 +87,12 @@ async function releaseClaim(divergenceId: string, token: string, resolved: boole
   `);
 }
 
-async function snapshotFor(bindingId: string, locale: string, legacy: unknown) {
-  const rows = await db.$queryRaw<SnapshotRow[]>(Prisma.sql`
-    SELECT "values"
-    FROM "ShopifyTranslationSnapshot"
-    WHERE "bindingId" = ${bindingId} AND "locale" = ${locale}
-    LIMIT 1
-  `);
-  const fallback = legacy && typeof legacy === "object" && !Array.isArray(legacy)
-    ? legacy as Record<string, unknown>
-    : {};
-  return rows[0]?.values ?? fallback;
-}
-
 function bindingFrom(row: ApplyRow): ReconcileBindingSource {
   return {
     id: row.bindingId,
     resourceType: row.bindingResourceType,
     entityId: row.bindingEntityId,
     shopifyResourceId: row.shopifyResourceId,
-    lastSyncedSnapshot: row.lastSyncedSnapshot,
   };
 }
 
@@ -244,12 +225,8 @@ export async function applyReconcileChoice({
       }
     }
 
-    const snapshot = await snapshotFor(row.bindingId, row.locale, row.lastSyncedSnapshot);
-    await saveTranslationSnapshot({
-      bindingId: row.bindingId,
-      locale: row.locale,
-      values: { ...snapshot, [row.fieldKey]: appliedValue },
-    });
+    // No common-ancestor snapshot write — two-way compare uses live Shopify vs
+    // Synarava only (legacy snapshot table/column stay until PR6).
     const event = await recordSyncEvent({
       bindingId: row.bindingId,
       locale: contentLocale,

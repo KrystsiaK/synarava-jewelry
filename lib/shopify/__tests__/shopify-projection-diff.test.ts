@@ -83,12 +83,77 @@ describe("canonicalizeShopifyProjection", () => {
     });
     expect(canonical).toEqual({
       status: "ACTIVE",
-      variants: [{ id: "v1", price: "12.00", taxable: false }],
+      variants: [{ id: "v1", price: 12, taxable: false }],
+    });
+  });
+
+  it("equates money decimals, blank strings, and weight units", () => {
+    expect(diffShopifyProjections(
+      { variants: [{ id: "v1", price: "5.0", compareAtPrice: "10.00", inventoryItem: {
+        unitCost: { amount: "5.00", currencyCode: "EUR" },
+        measurement: { weight: { value: 1, unit: "KILOGRAMS" } },
+      } }] },
+      { variants: [{ id: "v1", price: "5.00", compareAtPrice: "10.0", inventoryItem: {
+        unitCost: { amount: "5.0", currencyCode: "EUR" },
+        measurement: { weight: { value: 1000, unit: "GRAMS" } },
+      } }] },
+    )).toEqual([]);
+  });
+
+  it("equates null / undefined / whitespace", () => {
+    expect(diffShopifyProjections(
+      { vendor: "", productType: "  ", seo: { title: null }, barcode: undefined },
+      { vendor: null, productType: null, seo: { title: "" }, barcode: null },
+    )).toEqual([]);
+  });
+
+  it("keeps UNLISTED distinct from ACTIVE", () => {
+    expect(canonicalizeShopifyProjection({ status: "UNLISTED" })).toEqual({
+      status: "UNLISTED",
+    });
+    expect(canonicalizeShopifyProjection({ status: "ACTIVE" })).toEqual({
+      status: "ACTIVE",
     });
   });
 });
 
 describe("diffShopifyProjections", () => {
+  it("emits one leaf when canonical values differ but display strings match (number vs string)", () => {
+    const diffs = diffShopifyProjections(
+      { position: 1 },
+      { position: "1" },
+    );
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.path).toBe("position");
+    expect(diffs[0]?.local).toBe(diffs[0]?.shopify);
+  });
+
+  it("emits one leaf when boolean false differs from string No", () => {
+    const diffs = diffShopifyProjections(
+      { taxable: false },
+      { taxable: "No" },
+    );
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.path).toBe("taxable");
+    expect(diffs[0]?.local).toBe("No");
+    expect(diffs[0]?.shopify).toBe("No");
+  });
+
+  it("flags UNLISTED vs ACTIVE as one Status conflict", () => {
+    const diffs = diffShopifyProjections(
+      { status: "UNLISTED" },
+      { status: "ACTIVE" },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "status",
+        field: "Status",
+        local: "UNLISTED",
+        shopify: "ACTIVE",
+      },
+    ]);
+  });
+
   it("flags taxable mismatches", () => {
     const diffs = diffShopifyProjections(
       { variants: [{ id: "v1", taxable: true, price: "10.00" }] },
@@ -127,8 +192,8 @@ describe("diffShopifyProjections", () => {
       {
         path: "variants[0].price",
         field: "Price",
-        local: "10.00",
-        shopify: "12.00",
+        local: "10",
+        shopify: "12",
       },
     ]);
   });
@@ -147,7 +212,7 @@ describe("diffShopifyProjections", () => {
     expect(diffs).toEqual([
       {
         path: "media[0]",
-        field: "Media gallery (image 1)",
+        field: "Image 1 exists only in Shopify, not in Synarava",
         local: "—",
         shopify: "ChatGPTImage.png",
       },
@@ -294,8 +359,26 @@ describe("projection path helpers", () => {
   it("labels known paths", () => {
     expect(labelForShopifyProjectionPath("vendor")).toBe("Vendor");
     expect(labelForShopifyProjectionPath("variants[0].taxable")).toBe("Charge tax");
-    expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Media gallery (image 1)");
+    expect(labelForShopifyProjectionPath("media[0].preview.image.url")).toBe("Image 1");
     expect(labelForShopifyProjectionPath("media")).toBe("Media gallery");
+  });
+
+  it("states Synarava-only media clearly for the resolver", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [{
+          id: "local-1",
+          preview: { image: { url: "https://cdn.example/ring.jpg" } },
+        }],
+      },
+      { media: [] },
+    );
+    expect(diffs).toContainEqual({
+      path: "media[0]",
+      field: "Image 1 exists only in Synarava, not in Shopify",
+      local: "ring.jpg",
+      shopify: "—",
+    });
   });
 });
 

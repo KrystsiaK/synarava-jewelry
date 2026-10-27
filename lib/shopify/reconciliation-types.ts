@@ -18,6 +18,8 @@ export type ReconcileRunSummary = {
   startedAt: string | null;
   completedAt: string | null;
   createdAt: string;
+  /** Lease heartbeat — progress bumps this while QUEUED/RUNNING. */
+  updatedAt: string;
 };
 
 export type ReconcileDifferenceView = {
@@ -31,8 +33,8 @@ export type ReconcileDifferenceView = {
   fieldKey: string;
   fieldLabel: string;
   targetKind: "NATIVE" | "METAFIELD" | "METAOBJECT";
+  /** Persisted rows may still hold legacy LOCAL_ONLY/SHOPIFY_ONLY; compare ignores those. */
   kind: "LOCAL_ONLY" | "SHOPIFY_ONLY" | "CONFLICT";
-  baseValue: unknown;
   localValue: unknown;
   shopifyValue: unknown;
   localFingerprint: string;

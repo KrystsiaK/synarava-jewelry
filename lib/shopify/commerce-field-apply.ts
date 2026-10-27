@@ -1,20 +1,23 @@
 import "server-only";
 
 import { db } from "@/lib/db";
+import {
+  findConflictLeaf,
+  leafMatchesExpectedFingerprints,
+  recheckEntityConflictLeaves,
+  type SyncLeaf,
+} from "@/lib/sync";
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 
-import { commerceFingerprint } from "./catalog-conflict";
 import {
   adoptShopifyProjectionField,
   fetchShopifyProduct,
-  inspectProductSyncState,
   pushProductToShopify,
 } from "./product-sync";
 import {
   isMediaGalleryFieldLabel,
   isScopedCommerceFieldLabel,
-  SCOPED_COMMERCE_FIELD_LABELS,
 } from "./catalog-conflict-policy";
 
 export { SCOPED_COMMERCE_FIELD_LABELS, isMediaGalleryFieldLabel, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
@@ -43,7 +46,7 @@ export type CommerceFieldApplyResult =
   | { ok: true; message: string }
   | { ok: false; reason: "STALE" | "UNSUPPORTED" | "WRITE_FAILED"; message: string };
 
-/** `inspectProductSyncState`/`compare()` renders an empty value as "—"; this reverses that back to the real value to write. */
+/** SyncResult leaves render an empty value as "—"; reverse that for writes. */
 function rawValue(displayValue: string): string {
   return displayValue === "—" ? "" : displayValue;
 }
@@ -243,147 +246,119 @@ async function writeToShopify(productId: string, label: string, value: string, v
   throw new Error(`${label} is not a supported commerce field.`);
 }
 
-export type RefreshAfterWriteResult =
-  | { status: "resolved" }
-  | { status: "still-conflicting" }
-  | { status: "unverifiable"; message: string };
-
-/**
- * Re-inspects the product right after a successful field write to decide
- * whether the write can actually be reported as resolved, and — only when
- * it can — persists the product's true sync state.
- *
- * The write's own internal read-back check (in writeLocally/writeToShopify)
- * only confirms the mutation/update accepted and echoed the value we sent
- * — it does not confirm that the authoritative comparison this whole
- * system is built on (inspectProductSyncState/compare()) now agrees the
- * field is resolved. Those can disagree: something could change again
- * immediately after our write (a race with another process/webhook), or
- * the echoed value could satisfy our own equality check while compare()'s
- * normalization still sees a difference. Without this re-check,
- * applyCommerceField would report `ok: true` while the field is still
- * visibly conflicting — success shown to the admin, conflict still there.
- *
- * `state === "UNLINKED" | "REMOTE_MISSING"` is checked *first* and always
- * returns "unverifiable": inspectProductSyncState returns an unconditional
- * empty `differences` array for both — the comparison never even ran (no
- * Shopify link, or the remote product is gone) — so an empty list there
- * carries no information about whether the applied field is actually
- * resolved. Treating that empty list the same as "nothing left to
- * reconcile" (as a naive `differences.length === 0` check would) is
- * indistinguishable from a genuine resolution and would silently report
- * success for a write we have no evidence actually landed. `differences`
- * is only trustworthy as "nothing left to reconcile" once we know the
- * comparison actually ran.
- *
- * Once a real comparison ran (any other state), "resolved" is
- * `differences.length === 0` — deliberately not `inspection.state`, which
- * is derived partly from the *persisted* `syncStatus`/`shopifyUpdatedAt`
- * columns this function is responsible for fixing, and partly from a
- * timestamp check (`remote.updatedAt > local.shopifyUpdatedAt`) that
- * Shopify's own mutation just bumped. Right after this write resolves the
- * *only* remaining difference, both of those stale columns still read as
- * before — the persisted `syncStatus` is still "CONFLICT" and
- * `shopifyUpdatedAt` is still older than the just-mutated
- * `remote.updatedAt` — so `state` comes back "CONFLICT" even with an
- * empty `differences` list. Trusting `state` here would leave a
- * fully-resolved product stuck showing a conflict badge forever.
- */
-async function refreshAfterWrite(productId: string, label: string): Promise<RefreshAfterWriteResult> {
-  const inspection = await inspectProductSyncState(productId);
-
-  if (inspection.state === "UNLINKED" || inspection.state === "REMOTE_MISSING") {
-    return {
-      status: "unverifiable",
-      message: inspection.state === "REMOTE_MISSING"
-        ? "The linked Shopify product no longer exists — this field's write could not be verified. Nothing is marked resolved."
-        : "This product is no longer linked to Shopify — this field's write could not be verified. Nothing is marked resolved.",
-    };
+function leafStillOpen(
+  leaves: readonly SyncLeaf[],
+  label: string,
+): boolean {
+  if (isMediaGalleryFieldLabel(label)) {
+    return leaves.some((leaf) => isMediaGalleryFieldLabel(leaf.label));
   }
-
-  const stillOpen = isMediaGalleryFieldLabel(label)
-    ? inspection.differences.some((item) => isMediaGalleryFieldLabel(item.field))
-    : inspection.differences.some((item) => item.field === label);
-  if (stillOpen) {
-    return { status: "still-conflicting" };
-  }
-
-  if (inspection.differences.length === 0) {
-    await db.product.update({
-      where: { id: productId },
-      data: {
-        syncStatus: "SYNCED",
-        syncError: null,
-        ...(inspection.remoteUpdatedAt ? { shopifyUpdatedAt: new Date(inspection.remoteUpdatedAt) } : {}),
-        lastSyncedAt: new Date(),
-      },
-    });
-  }
-
-  return { status: "resolved" };
+  return findConflictLeaf(leaves, { label }) != null;
 }
 
 /**
- * Applies one commerce field in one direction — re-validated against a
- * fresh live inspection immediately before writing, not just against
- * whatever the caller last saw in preview. This closes the window between
- * preview and this call: if Shopify or Synarava changed in between (or a
- * concurrent apply already resolved it), this reports STALE and writes
- * nothing, instead of trusting stale values passed in from an earlier
- * read. SKU/Price/Compare-at price additionally require an unambiguous
- * single local variant matched to a single Shopify variant — if that
- * can't be established, the field is reported UNSUPPORTED rather than
- * guessing which variant to touch.
- *
- * After a successful write, the mutation's own response (Shopify) or the
- * Prisma update's returned row (local) is checked against the intended
- * value — and then, independently, a fresh inspectProductSyncState
- * confirms the applied field itself no longer shows up as conflicting.
- * That second check is the one that counts: if it still does (a race with
- * another change, or a disagreement between the write's own echo check
- * and the authoritative comparison), this reports failure rather than a
- * false `ok: true` — an admin must never see success while the conflict
- * persists. The same fresh inspection also refreshes the product's
- * persisted sync state so a fully resolved product stops showing as
- * conflicted in the catalog list, while any other, still-differing field
- * keeps it visible.
+ * Re-check SyncResult leaves after a successful field write.
+ * Field leaf gone = resolved. Does **not** write `syncStatus: SYNCED`
+ * (conflict inventory is SyncResult leaves, not that column).
+ */
+async function verifyAfterWrite(
+  productId: string,
+  label: string,
+  requestedBy: string,
+): Promise<
+  | { status: "resolved" }
+  | { status: "still-conflicting" }
+  | { status: "unverifiable"; message: string }
+> {
+  try {
+    const { leaves } = await recheckEntityConflictLeaves({
+      resourceType: "PRODUCT",
+      resourceId: productId,
+      requestedBy,
+    });
+    if (leafStillOpen(leaves, label)) {
+      return { status: "still-conflicting" };
+    }
+    return { status: "resolved" };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Post-write recheck failed.";
+    if (/was not found|no longer exists|not linked/i.test(message)) {
+      return {
+        status: "unverifiable",
+        message: /was not found|no longer exists/i.test(message)
+          ? "The linked Shopify product no longer exists — this field's write could not be verified. Nothing is marked resolved."
+          : "This product is no longer linked to Shopify — this field's write could not be verified. Nothing is marked resolved.",
+      };
+    }
+    return { status: "unverifiable", message };
+  }
+}
+
+/**
+ * Applies one commerce field in one direction — re-validated against fresh
+ * SyncResult leaves (refresh + compareSyncState) immediately before writing.
+ * After a successful write, the same leaf compare confirms the field is gone.
+ * Does not treat `syncStatus` as conflict inventory.
  */
 export async function applyCommerceField({
   productId,
   label,
+  fieldKey,
   direction,
   expectedLocalFingerprint,
   expectedShopifyFingerprint,
+  requestedBy = "system",
 }: {
   productId: string;
   label: string;
+  fieldKey?: string;
   direction: "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
   expectedLocalFingerprint: string;
   expectedShopifyFingerprint: string;
+  requestedBy?: string;
 }): Promise<CommerceFieldApplyResult> {
   if (!isScopedCommerceFieldLabel(label)) {
     return { ok: false, reason: "UNSUPPORTED", message: `${label} is not a supported commerce field.` };
   }
 
-  const inspection = await inspectProductSyncState(productId);
-  const difference = inspection.differences.find((item) => item.field === label);
-  if (!difference) {
+  let leaves;
+  try {
+    ({ leaves } = await recheckEntityConflictLeaves({
+      resourceType: "PRODUCT",
+      resourceId: productId,
+      requestedBy,
+    }));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Could not recheck this product.";
+    return {
+      ok: false,
+      reason: "WRITE_FAILED",
+      message: /was not found|no longer exists/i.test(message)
+        ? "The linked Shopify product no longer exists — this field's write could not be verified. Nothing is marked resolved."
+        : message,
+    };
+  }
+
+  const leaf = findConflictLeaf(leaves, { fieldKey, label });
+  if (!leaf) {
     return { ok: false, reason: "STALE", message: "This field is no longer different — it may already have been resolved." };
   }
-  if (
-    commerceFingerprint(difference.local) !== expectedLocalFingerprint
-    || commerceFingerprint(difference.shopify) !== expectedShopifyFingerprint
-  ) {
+  if (!leafMatchesExpectedFingerprints(leaf, {
+    localFingerprint: expectedLocalFingerprint,
+    shopifyFingerprint: expectedShopifyFingerprint,
+  })) {
     return { ok: false, reason: "STALE", message: "Synarava or Shopify changed since this was reviewed. Refresh and try again." };
   }
 
   try {
     if (isMediaGalleryFieldLabel(label)) {
-      // Gallery is one array in the commerce tree — adopt / push the whole media path.
       if (direction === "SHOPIFY_TO_SYNARAVA") {
         await adoptShopifyProjectionField(productId, "media");
       } else {
-        const pushed = await pushProductToShopify(productId, true);
+        const pushed = await pushProductToShopify(productId, {
+          authorizeCommerceConflictOverwrite: true,
+          pushRegisteredTranslations: true,
+        });
         if (!pushed.ok) {
           return { ok: false, reason: "WRITE_FAILED", message: pushed.error ?? "Media could not be pushed to Shopify." };
         }
@@ -403,19 +378,18 @@ export async function applyCommerceField({
       }
 
       if (direction === "SHOPIFY_TO_SYNARAVA") {
-        await writeLocally(productId, label, rawValue(difference.shopify), variant);
-        await adoptShopifyProjectionField(productId, difference.path);
+        await writeLocally(productId, label, rawValue(leaf.shopifyValue), variant);
+        await adoptShopifyProjectionField(productId, leaf.path ?? undefined);
       } else {
-        await writeToShopify(productId, label, rawValue(difference.local), variant);
-        // Accept Shopify's normalized echo into L and advance B for this path.
-        await adoptShopifyProjectionField(productId, difference.path);
+        await writeToShopify(productId, label, rawValue(leaf.synaravaValue), variant);
+        await adoptShopifyProjectionField(productId, leaf.path ?? undefined);
       }
     }
   } catch (error) {
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };
   }
 
-  const refreshResult = await refreshAfterWrite(productId, label);
+  const refreshResult = await verifyAfterWrite(productId, label, requestedBy);
   if (refreshResult.status === "unverifiable") {
     return { ok: false, reason: "WRITE_FAILED", message: refreshResult.message };
   }

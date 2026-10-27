@@ -18,6 +18,7 @@ vi.mock("@/lib/auth/admin-session", () => ({
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: mocks.revalidateStorefrontPath,
   revalidateStorefrontTemplate: vi.fn(),
+  revalidateStorefront: vi.fn(),
 }));
 vi.mock("@/lib/db", () => ({
   db: {
@@ -244,10 +245,8 @@ describe("savePageAction", () => {
     const byLocale = Object.fromEntries(
       translationCalls.map((call) => [call.create.locale, call.create]),
     );
-    expect(byLocale.en).toMatchObject({
-      seoTitle: HOME_SEO_TITLE_BY_LOCALE.en,
-      seoDescription: "EN meta description.",
-    });
+    // EN SEO lives on Page base columns only — no PageTranslation locale=en row.
+    expect(byLocale.en).toBeUndefined();
     expect(byLocale.pt).toMatchObject({
       seoTitle: HOME_SEO_TITLE_BY_LOCALE.pt,
       seoDescription: "Descrição PT.",

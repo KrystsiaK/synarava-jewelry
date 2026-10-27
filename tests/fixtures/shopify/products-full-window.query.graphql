@@ -1,0 +1,44 @@
+query SynaravaCommerceStoreProducts($after: String) {
+  products(first: 25, after: $after, sortKey: ID) {
+    pageInfo { hasNextPage endCursor }
+    nodes { 
+  id title handle descriptionHtml vendor productType tags status updatedAt totalInventory
+  category { id name fullName }
+  seo { title description }
+  
+  media(first: 250) {
+    nodes {
+      id alt mediaContentType status preview { image { url width height } }
+      ... on MediaImage { originalSource { url } image { url width height } }
+    }
+  }
+
+  options { id name position values }
+  collections(first: 100) {
+    pageInfo { hasNextPage endCursor }
+    nodes { 
+  id handle title
+  sources {
+    __typename id title
+    ... on CollectionConditionsSource { targetType }
+  }
+ }
+  }
+  resourcePublicationsV2(first: 100) { pageInfo { hasNextPage endCursor } nodes { isPublished publishDate publication { id name } } }
+  featuredMedia { id preview { image { url } } }
+  variants(first: 100) {
+    pageInfo { hasNextPage endCursor }
+    nodes { 
+  id title sku barcode price compareAtPrice inventoryPolicy taxable inventoryQuantity
+  selectedOptions { name value }
+  inventoryItem {
+    id requiresShipping tracked countryCodeOfOrigin harmonizedSystemCode
+    unitCost { amount currencyCode }
+    measurement { weight { value unit } }
+  }
+ }
+  }
+  metafields(first: 100) { pageInfo { hasNextPage endCursor } nodes { id namespace key type value definition { name access { storefront } } } }
+ }
+  }
+}

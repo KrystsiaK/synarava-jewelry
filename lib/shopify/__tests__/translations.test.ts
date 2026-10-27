@@ -133,23 +133,19 @@ describe("Shopify translations", () => {
     expect(mocks.shopifyAdminRequest.mock.calls[0]?.[0]).toContain("updatedAt outdated");
   });
 
-  it("applies a remote edit when the local translation is clean", () => {
+  it("flags divergence when Shopify copy differs (human Apply chooses the side)", () => {
     expect(decideProductTranslationPull({
       local: { title: "Anel antigo", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "SYNCED",
-      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
       remote: {
         title: "Anel novo", descriptionHtml: "", seoTitle: "", seoDescription: "",
         updatedAt: "2026-09-10T10:00:00Z", outdated: false,
       },
-    })).toBe("APPLY_REMOTE");
+    })).toBe("CONFLICT");
   });
 
   it("ignores leftover Shopify handle translations when comparing product copy", () => {
     expect(decideProductTranslationPull({
       local: { handle: "", title: "Anel", descriptionHtml: "Corpo", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "SYNCED",
-      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
       remote: {
         handle: "anel-lava",
         title: "Anel",
@@ -165,8 +161,6 @@ describe("Shopify translations", () => {
   it("reports a conflict when both Shopify and Synarava changed the translation", () => {
     expect(decideProductTranslationPull({
       local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
       remote: {
         title: "Edição Shopify", descriptionHtml: "", seoTitle: "", seoDescription: "",
         updatedAt: "2026-09-10T10:00:00Z", outdated: false,
@@ -174,60 +168,53 @@ describe("Shopify translations", () => {
     })).toBe("CONFLICT");
   });
 
-  it("keeps a newer local edit when Shopify has not changed since the last sync", () => {
+  it("flags local-only edits as divergence (no auto KEEP_LOCAL)", () => {
     expect(decideProductTranslationPull({
       local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
       remote: {
         title: "Versão sincronizada", descriptionHtml: "", seoTitle: "", seoDescription: "",
         updatedAt: "2026-09-10T09:59:00Z", outdated: false,
       },
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
   });
 
-  it("lets an explicit force pull make Shopify win", () => {
+  it("lets an explicit force Apply choose Shopify", () => {
     expect(decideProductTranslationPull({
       local: { title: "Edição local", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
       remote: null,
       force: true,
-    })).toBe("APPLY_REMOTE");
+    })).toBe("APPLY");
   });
 
-  it("pushes a first local translation when Shopify has no Portuguese copy yet", () => {
+  it("flags first local translation vs empty Shopify as divergence (Push authorizes APPLY)", () => {
     expect(decideProductTranslationPull({
       local: { title: "Primeira tradução", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "PENDING",
-      localLastSyncedAt: null,
       remote: null,
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
+    expect(decideProductTranslationPull({
+      local: { title: "Primeira tradução", descriptionHtml: "", seoTitle: "", seoDescription: "" },
+      remote: null,
+      force: true,
+    })).toBe("APPLY");
   });
 
-  it("keeps non-empty local copy when Shopify translation is empty (never APPLY_REMOTE wipe)", () => {
+  it("never auto-applies an empty Shopify wipe — differs = CONFLICT unless force", () => {
     expect(decideProductTranslationPull({
       local: { title: "Кольцо лава", descriptionHtml: "Описание", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "NOT_APPLICABLE",
-      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
       remote: null,
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
     expect(decideProductTranslationPull({
       local: { title: "Кольцо лава", descriptionHtml: "Описание", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "SYNCED",
-      localLastSyncedAt: new Date("2026-09-10T10:00:00Z"),
       remote: {
         title: "", descriptionHtml: "", seoTitle: "", seoDescription: "",
         updatedAt: "2026-09-10T11:00:00Z", outdated: false,
       },
-    })).toBe("KEEP_LOCAL");
+    })).toBe("CONFLICT");
   });
 
-  it("reports CONFLICT when both sides have divergent non-empty copy and local is dirty", () => {
+  it("reports CONFLICT when both sides have divergent non-empty copy", () => {
     expect(decideProductTranslationPull({
       local: { title: "Локальный черновик", descriptionHtml: "", seoTitle: "", seoDescription: "" },
-      localSyncStatus: "NOT_APPLICABLE",
-      localLastSyncedAt: new Date("2026-09-10T09:00:00Z"),
       remote: {
         title: "Shopify RU", descriptionHtml: "", seoTitle: "", seoDescription: "",
         updatedAt: "2026-09-10T10:00:00Z", outdated: false,
