@@ -280,6 +280,12 @@ export function EditProductForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // SKU assign controls are independent — ignore so native `input` cannot reset Family before `change`.
+  function onFormDirtyEvent(event: { target: EventTarget | null }) {
+    if ((event.target as Element | null)?.closest?.("[data-sku-assign-controls]")) return;
+    recomputeDirtyFromForm();
+  }
+
   /** Reload saved conflict signals (display only — no Shopify fetch). */
   async function refreshConflictSignals(options?: { quiet?: boolean }) {
     const result = await loadCatalogConflictSignalsAction();
@@ -456,8 +462,8 @@ export function EditProductForm({
           action={formAction}
           noValidate
           className="grid gap-4"
-          onChange={recomputeDirtyFromForm}
-          onInput={recomputeDirtyFromForm}
+          onChange={onFormDirtyEvent}
+          onInput={onFormDirtyEvent}
         >
           <input type="hidden" name="productId" value={currentProduct.id} />
 

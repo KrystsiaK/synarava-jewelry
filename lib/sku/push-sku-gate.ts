@@ -3,7 +3,7 @@ import type { PendingSkuReservation } from "@/lib/sku/pending-reservation";
 import { isPendingCommerceSku } from "@/lib/sku/pending-sku";
 
 export const PUSH_SKU_UNASSIGNED_ERROR =
-  "SKU is not assigned. Use Inventory → Preview / Confirm assign before Push (sku-api).";
+  "SKU is not assigned. Use Stock tab → Family → Preview → Confirm assign before Push (sku-api).";
 
 export const PUSH_SKU_CLIENT_MISSING_ERROR =
   "SKU reservation is pending but sku-api is not configured — cannot confirm assignment. Check SKU_API_URL / SKU_API_TOKEN.";

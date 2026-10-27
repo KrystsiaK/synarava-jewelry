@@ -27,6 +27,12 @@ describe("push SKU gate (matrix M8 / M12)", () => {
     ).toThrow(PUSH_SKU_UNASSIGNED_ERROR);
   });
 
+  it("M8: push-unassigned copy points at Stock tab → Family → Preview → Confirm", () => {
+    expect(PUSH_SKU_UNASSIGNED_ERROR).toBe(
+      "SKU is not assigned. Use Stock tab → Family → Preview → Confirm assign before Push (sku-api).",
+    );
+  });
+
   it("M8: allows Push when pending reservation exists for PENDING commerce SKU", () => {
     expect(() =>
       assertSkuAssignableBeforePush({

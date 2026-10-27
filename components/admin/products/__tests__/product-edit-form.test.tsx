@@ -310,6 +310,31 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
   });
 
+  it("keeps SKU Family after native input (mouse/keyboard) without form dirty recompute resetting the select", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      sku: "PENDING-abc",
+      variants: [primaryVariant("PENDING-abc")],
+    });
+    mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext());
+
+    render(<EditProductForm product={product} collections={[]} />);
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+
+    const family = await screen.findByLabelText(/^Family/);
+    expect(family).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
+
+    // Browser order: `input` bubbles to <form onInput> before `change`.
+    // Without the closest-guard, dirty recompute re-renders and resets the controlled select to "".
+    fireEvent.input(family, { target: { value: "jewelry.necklace" } });
+    expect(family).toHaveValue("jewelry.necklace");
+    fireEvent.change(family, { target: { value: "jewelry.necklace" } });
+    expect(family).toHaveValue("jewelry.necklace");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
+  });
+
   it("keeps SKU Family across select, context resolve, Save remount, and signal refresh", async () => {
     const user = userEvent.setup();
     const product = makeProduct({
@@ -344,7 +369,7 @@ describe("EditProductForm", () => {
     expect(family).toHaveValue("jewelry.necklace");
     expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
-    // Family has no named FormData field — must not mark the product dirty.
+    // Family is under [data-sku-assign-controls] and has no named FormData field.
     expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
 
     // Save remounts ProductFormFields (fieldsRevision); inventory/SKU panel stays mounted.
