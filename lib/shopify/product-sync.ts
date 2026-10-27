@@ -1683,7 +1683,18 @@ export async function pullShopifyInventory(inventoryItemId: string, eventId?: st
  * pushed or rejected outright, since a missing image is recoverable and
  * failing the whole sync over it is not worth the disruption.
  */
-export async function pushProductToShopify(productId: string, forceTranslation = false) {
+/** Keep-ours overwrite vs translation writes — do not overload one boolean. */
+export type PushProductToShopifyOptions = {
+  authorizeCommerceConflictOverwrite?: boolean;
+  pushRegisteredTranslations?: boolean;
+};
+
+export async function pushProductToShopify(
+  productId: string,
+  options: PushProductToShopifyOptions = {},
+) {
+  const authorizeCommerceConflictOverwrite = options.authorizeCommerceConflictOverwrite === true;
+  const pushRegisteredTranslations = options.pushRegisteredTranslations !== false;
   const event = await db.productSyncEvent.create({
     data: { productId, direction: "PUSH", status: "PROCESSING", attemptCount: 1 },
   });
@@ -1981,7 +1992,7 @@ export async function pushProductToShopify(productId: string, forceTranslation =
         "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
       )),
     });
-    {
+    if (pushRegisteredTranslations) {
       const { pushCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
         "@/lib/shopify/product-metafield-translations"
       );
@@ -2175,7 +2186,9 @@ export async function pushProductToShopify(productId: string, forceTranslation =
     await deleteUnreferencedArchivedProductAssets();
 
     const translationErrors: string[] = [];
-    const pushTranslationLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
+    const pushTranslationLocales = pushRegisteredTranslations
+      ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
+      : [];
     for (const translationLocale of pushTranslationLocales) {
       const translation = product.translations.find((item) => item.locale === translationLocale.code);
       if (
@@ -2193,13 +2206,11 @@ export async function pushProductToShopify(productId: string, forceTranslation =
             seoDescription: translation.seoDescription ?? "",
           };
           const remoteTranslation = await fetchProductTranslation(remote.id, translationLocale.shopifyLocale);
-          // Human Push chose Synarava → Shopify. Authorize APPLY when the operator
-          // forced, or when Shopify has no competing non-empty copy (first push /
-          // empty remote). Divergent non-empty Shopify copy still needs force.
+          // Human Push → Shopify. APPLY when overwrite authorized, or remote has no copy.
           const decision = decideProductTranslationPull({
             local: localCopy,
             remote: remoteTranslation,
-            force: forceTranslation || !hasShopifySharedTranslationCopy(remoteTranslation),
+            force: authorizeCommerceConflictOverwrite || !hasShopifySharedTranslationCopy(remoteTranslation),
           });
           if (decision === "CONFLICT") {
             const message = `${translationLocale.name} copy also changed in Shopify. Pull or explicitly force Push to choose a winner.`;
@@ -2214,7 +2225,6 @@ export async function pushProductToShopify(productId: string, forceTranslation =
               data: { syncStatus: "SYNCED", syncError: null, lastSyncedAt: new Date() },
             });
           } else {
-            // APPLY — human Push (or force) writing Synarava → Shopify.
             await registerProductTranslation(remote.id, localCopy, translationLocale.shopifyLocale);
             await db.productTranslation.update({
               where: { id: translation.id },

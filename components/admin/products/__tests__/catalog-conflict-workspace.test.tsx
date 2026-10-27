@@ -172,4 +172,41 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
       );
     });
   });
+
+  it("Keep ours whole-record push authorizes commerce overwrite without translation writes", async () => {
+    adminSyncActionMocks.loadProductCatalogConflictAction.mockResolvedValue({
+      conflict: {
+        productId: "p1",
+        fields: [{
+          ...field,
+          fieldKey: "commerce:status",
+          label: "Status",
+          scope: { kind: "SHARED" as const },
+          origin: "COMMERCE" as const,
+          allowedDirections: [] as const,
+          blockedReason: "No safe field-by-field write yet",
+          sourceId: null,
+        }],
+      },
+    });
+    adminSyncActionMocks.pushSingleProductToShopifyAction.mockResolvedValue({ success: "Pushed." });
+
+    renderWorkspace();
+    const statusSection = (await screen.findByText("Status")).closest("section") as HTMLElement;
+    fireEvent.click(within(statusSection).getByRole("button", { name: /Synarava|Keep ours|Ours/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    await act(async () => {
+      fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
+    });
+    await waitFor(() => {
+      expect(adminSyncActionMocks.pushSingleProductToShopifyAction).toHaveBeenCalledWith(
+        "p1",
+        { authorizeCommerceConflictOverwrite: true, pushRegisteredTranslations: false },
+        expect.arrayContaining([
+          expect.objectContaining({ fieldKey: "commerce:status" }),
+        ]),
+      );
+    });
+  });
 });

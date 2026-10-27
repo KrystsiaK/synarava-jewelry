@@ -59,7 +59,11 @@ export const CatalogConflictWorkspace = createEntityConflictWorkspace<
     async applyWholeRecord(entityId, direction, expectedFingerprints) {
       const result = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
         ? await pullSingleProductFromShopifyAction(entityId, true, expectedFingerprints)
-        : await pushSingleProductToShopifyAction(entityId, true, expectedFingerprints);
+        : await pushSingleProductToShopifyAction(
+          entityId,
+          { authorizeCommerceConflictOverwrite: true, pushRegisteredTranslations: false },
+          expectedFingerprints,
+        );
       if (result.error) return { ok: false, error: result.error };
       return { ok: true, success: result.success };
     },

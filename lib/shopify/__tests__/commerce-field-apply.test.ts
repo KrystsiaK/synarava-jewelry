@@ -448,7 +448,10 @@ describe("applyCommerceField — Media gallery", () => {
     });
 
     expect(result).toMatchObject({ ok: true });
-    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("product-1", true);
+    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("product-1", {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: true,
+    });
     expect(mocks.adoptShopifyProjectionField).toHaveBeenCalledWith("product-1", "media");
   });
 });

@@ -210,7 +210,10 @@ export async function applyCatalogPresenceDifference({
       ]);
     }
 
-    const pushed = await pushProductToShopify(difference.localProductId, true);
+    const pushed = await pushProductToShopify(difference.localProductId, {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: true,
+    });
     if (!pushed.ok) return { ok: false, reason: "WRITE_FAILED", message: pushed.error };
     await ensureTranslationBinding({
       resourceType: "PRODUCT",

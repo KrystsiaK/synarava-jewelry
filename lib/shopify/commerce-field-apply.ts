@@ -355,7 +355,10 @@ export async function applyCommerceField({
       if (direction === "SHOPIFY_TO_SYNARAVA") {
         await adoptShopifyProjectionField(productId, "media");
       } else {
-        const pushed = await pushProductToShopify(productId, true);
+        const pushed = await pushProductToShopify(productId, {
+          authorizeCommerceConflictOverwrite: true,
+          pushRegisteredTranslations: true,
+        });
         if (!pushed.ok) {
           return { ok: false, reason: "WRITE_FAILED", message: pushed.error ?? "Media could not be pushed to Shopify." };
         }
