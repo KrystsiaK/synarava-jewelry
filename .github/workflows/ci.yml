@@ -123,11 +123,34 @@ jobs:
       - name: Check release version
         run: pnpm check:version
 
-      - name: Typecheck
-        run: pnpm exec tsc --noEmit
+      # Persist Next compile cache + ESLint file cache across runs.
+      # Next: https://nextjs.org/docs/app/guides/ci-build-caching
+      - name: Cache Next.js and ESLint
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+            ${{ github.workspace }}/.eslintcache
+          key: ${{ runner.os }}-qg-cache-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**/*.{js,jsx,ts,tsx,mjs}', 'components/**/*.{js,jsx,ts,tsx}', 'lib/**/*.{js,jsx,ts,tsx}', 'eslint.config.*', 'next.config.*') }}
+          restore-keys: |
+            ${{ runner.os }}-qg-cache-${{ hashFiles('pnpm-lock.yaml') }}-
 
-      - name: Lint
-        run: pnpm lint
+      # Typecheck and lint are independent — overlap to cut serial wall time.
+      - name: Typecheck and lint
+        run: |
+          set -euo pipefail
+          pnpm exec tsc --noEmit &
+          tsc_pid=$!
+          pnpm exec eslint . --cache --cache-location .eslintcache &
+          lint_pid=$!
+          tsc_ec=0
+          lint_ec=0
+          wait "$tsc_pid" || tsc_ec=$?
+          wait "$lint_pid" || lint_ec=$?
+          if [ "$tsc_ec" -ne 0 ] || [ "$lint_ec" -ne 0 ]; then
+            echo "typecheck exit=${tsc_ec} lint exit=${lint_ec}" >&2
+            exit 1
+          fi
 
       - name: Dependency security audit
         run: pnpm audit --audit-level high --prod
@@ -185,6 +208,18 @@ jobs:
           cache: pnpm
       - run: node scripts/ensure-github-packages-auth.mjs
       - run: pnpm install --frozen-lockfile
+
+      # Share Next compile cache with Quality Gates (same key family).
+      # https://nextjs.org/docs/app/guides/ci-build-caching
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/.next/cache
+            ${{ github.workspace }}/.eslintcache
+          key: ${{ runner.os }}-qg-cache-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('app/**/*.{js,jsx,ts,tsx,mjs}', 'components/**/*.{js,jsx,ts,tsx}', 'lib/**/*.{js,jsx,ts,tsx}', 'eslint.config.*', 'next.config.*') }}
+          restore-keys: |
+            ${{ runner.os }}-qg-cache-${{ hashFiles('pnpm-lock.yaml') }}-
 
       # Job containers default to `sh` (no pipefail). Keep the TCP forward in the
       # same bash step as prisma/build/smoke so it is not killed between steps.
