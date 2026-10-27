@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 
 import {
   createProductMetafieldDefinition,
@@ -33,6 +32,7 @@ import {
 import { revalidateStorefront } from "./shared";
 import { getSavedProductPayload } from "./products";
 import { runAfterSaveCatalogConflictCheck } from "@/lib/shopify/after-save-catalog-check";
+import { removeCatalogPresenceDifference } from "@/lib/shopify/catalog-presence-server";
 import {
   type CollectionConflictApplyEntryInput,
   type CollectionConflictApplyScope,
@@ -175,14 +175,23 @@ export async function pushSingleProductToShopifyAction(
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
+    const wasUnlinked = before.state === "UNLINKED";
     const result = await pushProductToShopify(productId, {
       authorizeCommerceConflictOverwrite,
       pushRegisteredTranslations,
     });
     if (!result.ok) return { error: result.error, inspection: before };
-    await runAfterSaveCatalogConflictCheck(session.username);
+    // After Create in Shopify: clear that product's presence row without a catalog scan.
+    if (wasUnlinked) {
+      await removeCatalogPresenceDifference(productId);
+    }
+    // Invalidate at the write — before scoped recheck (recheck must not gate caches).
     revalidateStorefront();
     revalidatePath("/admin/products");
+    await runAfterSaveCatalogConflictCheck(session.username, {
+      kind: "product",
+      productId,
+    });
     const product = await getSavedProductPayload(productId);
     return {
       success: result.translationError
@@ -226,11 +235,15 @@ export async function pullSingleProductFromShopifyAction(
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
     const pullResult = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, force);
-    if (pullResult.status === "SYNCED") {
-      await runAfterSaveCatalogConflictCheck(session.username);
-    }
+    // Invalidate at the write — before scoped recheck (recheck must not gate caches).
     revalidateStorefront();
     revalidatePath("/admin/products");
+    if (pullResult.status === "SYNCED") {
+      await runAfterSaveCatalogConflictCheck(session.username, {
+        kind: "product",
+        productId,
+      });
+    }
     const savedProduct = await getSavedProductPayload(productId);
     const inspection = await inspectProductSyncState(productId);
     if (pullResult.status !== "SYNCED") {

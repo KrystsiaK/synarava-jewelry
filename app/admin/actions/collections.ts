@@ -480,12 +480,17 @@ export async function saveCollectionAction(
     }
   }
 
+  // Invalidate at the write — before scoped recheck (recheck must not gate caches).
   revalidateStorefront();
+  revalidatePath("/admin/collections");
   const finalCollection = await getSavedCollectionPayload(savedCollection.id);
 
   let syncWarning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username, {
+      kind: "collection",
+      collectionId: finalCollection.id,
+    });
     syncWarning = check.warning;
   }
 

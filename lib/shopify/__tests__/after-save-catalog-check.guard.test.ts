@@ -3,9 +3,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Structural guard: every product / collection / language-setting / SKU-assign
- * save action must await the shared post-save full catalog check helper.
- * Mirrors auto-sync-no-synarava-writers.guard.test.ts style.
+ * Structural guard: every product / collection / SKU-assign / push-pull / Apply
+ * post-action path must await the shared scoped helper with an entity scope.
+ * Full catalog scope is forbidden on post-action paths (top-bar + login only).
  */
 
 const root = join(process.cwd());
@@ -15,17 +15,14 @@ function read(rel: string) {
   return readFileSync(join(root, rel), "utf8");
 }
 
-/** Closed set of save actions that must call runAfterSaveCatalogConflictCheck. */
-const REQUIRED_CALL_SITES: Array<{ file: string; fn: string }> = [
-  { file: "app/admin/actions/products.ts", fn: "saveProductAction" },
-  { file: "app/admin/actions/collections.ts", fn: "saveCollectionAction" },
-  { file: "app/admin/actions/sku-assign.ts", fn: "assignProductSkuAction" },
-  { file: "app/admin/actions/sku-assign.ts", fn: "resumePendingSkuAction" },
-  { file: "app/admin/actions/languages.ts", fn: "addLanguageAction" },
-  { file: "app/admin/actions/languages.ts", fn: "hideLanguageAction" },
-  { file: "app/admin/actions/languages.ts", fn: "restoreLanguageAction" },
-  { file: "app/admin/actions/languages.ts", fn: "importLanguageAction" },
-  { file: "app/admin/actions/languages.ts", fn: "deleteLanguageDataAction" },
+/** Closed set of entity actions that must call runAfterSaveCatalogConflictCheck with scope. */
+const REQUIRED_CALL_SITES: Array<{ file: string; fn: string; scopeKind: "product" | "collection" }> = [
+  { file: "app/admin/actions/products.ts", fn: "saveProductAction", scopeKind: "product" },
+  { file: "app/admin/actions/collections.ts", fn: "saveCollectionAction", scopeKind: "collection" },
+  { file: "app/admin/actions/sku-assign.ts", fn: "assignProductSkuAction", scopeKind: "product" },
+  { file: "app/admin/actions/sku-assign.ts", fn: "resumePendingSkuAction", scopeKind: "product" },
+  { file: "app/admin/actions/sync.ts", fn: "pushSingleProductToShopifyAction", scopeKind: "product" },
+  { file: "app/admin/actions/sync.ts", fn: "pullSingleProductFromShopifyAction", scopeKind: "product" },
 ];
 
 function extractFunction(source: string, name: string): string {
@@ -60,15 +57,18 @@ function extractFunction(source: string, name: string): string {
   throw new Error(`Unbalanced braces for ${name}`);
 }
 
-describe("after-save catalog check guard", () => {
-  it("helper exists and calls runCatalogConflictCheck (full store)", () => {
+describe("after-save scoped conflict check guard", () => {
+  it("helper runs scoped waterfall and never schedules after() follow-up", () => {
     const helper = read("lib/shopify/after-save-catalog-check.ts");
-    expect(helper).toMatch(/runCatalogConflictCheck/);
-    expect(helper).toMatch(/trigger:\s*"MANUAL"/);
+    expect(helper).toMatch(/runSyncWaterfall/);
+    expect(helper).toMatch(/RefreshShopifyStateScope/);
     expect(helper).toMatch(/alreadyRunning/);
+    expect(helper).not.toMatch(/runCatalogConflictCheck/);
+    expect(helper).not.toMatch(/\bafter\s*\(/);
+    expect(helper).not.toMatch(/from\s+"next\/server"/);
   });
 
-  it("every required save action awaits runAfterSaveCatalogConflictCheck", () => {
+  it("every required entity action awaits scoped runAfterSaveCatalogConflictCheck", () => {
     for (const site of REQUIRED_CALL_SITES) {
       const source = read(site.file);
       expect(
@@ -76,19 +76,16 @@ describe("after-save catalog check guard", () => {
         `${site.file} must import/use runAfterSaveCatalogConflictCheck`,
       ).toMatch(/runAfterSaveCatalogConflictCheck/);
       const body = extractFunction(source, site.fn);
-      const callsHelperDirectly = /runAfterSaveCatalogConflictCheck\s*\(/.test(body);
-      const callsLocalWrapper = /await\s+afterLanguageSettingSave\s*\(/.test(body);
       expect(
-        callsHelperDirectly || callsLocalWrapper,
-        `${site.fn} in ${site.file} must await the shared helper (or its local wrapper)`,
-      ).toBe(true);
-      if (callsLocalWrapper) {
-        const wrapper = extractFunction(source, "afterLanguageSettingSave");
-        expect(wrapper).toMatch(/runAfterSaveCatalogConflictCheck\s*\(/);
-        expect(wrapper).toMatch(/await\s+runAfterSaveCatalogConflictCheck\s*\(/);
-      }
+        body,
+        `${site.fn} in ${site.file} must await the shared helper`,
+      ).toMatch(/await\s+runAfterSaveCatalogConflictCheck\s*\(/);
+      expect(body, `${site.fn} must pass entity scope kind:${site.scopeKind}`).toMatch(
+        new RegExp(`kind:\\s*"${site.scopeKind}"`),
+      );
+      expect(body, `${site.fn} must not pass catalog scope`).not.toMatch(/kind:\s*"catalog"/);
       expect(body, `${site.fn} must not fire-and-forget via void`).not.toMatch(
-        /void\s+run(Product|Collection)ConflictCheck/,
+        /void\s+run(Product|Collection|Catalog)ConflictCheck/,
       );
       expect(body, `${site.fn} must not use next/server after() for the check`).not.toMatch(
         /after\s*\(\s*\(\s*\)\s*=>/,
@@ -96,17 +93,31 @@ describe("after-save catalog check guard", () => {
     }
   });
 
-  it("legacy scoped void after-save checks are gone from action files", () => {
-    for (const file of ["products.ts", "collections.ts", "sku-assign.ts"]) {
+  it("conflict Apply service rechecks each affected entity with scope", () => {
+    const service = read("lib/sync/conflicts/service.ts");
+    expect(service).toMatch(/runAfterSaveCatalogConflictCheck\s*\(/);
+    expect(service).toMatch(/kind:\s*"product"/);
+    expect(service).toMatch(/kind:\s*"collection"/);
+    expect(service).not.toMatch(/runAfterSaveCatalogConflictCheck\([^,]+\)\s*;/);
+  });
+
+  it("language settings do not invoke post-action catalog check", () => {
+    const languages = read("app/admin/actions/languages.ts");
+    expect(languages).not.toMatch(/runAfterSaveCatalogConflictCheck/);
+    expect(languages).not.toMatch(/runCatalogConflictCheck/);
+  });
+
+  it("no post-action path schedules a full catalog follow-up via after()", () => {
+    const helper = read("lib/shopify/after-save-catalog-check.ts");
+    expect(helper).not.toMatch(/after\s*\(\s*\(\s*\)\s*=>\s*[\s\S]*runCatalogConflictCheck/);
+    for (const file of ["products.ts", "collections.ts", "sku-assign.ts", "sync.ts"]) {
       const source = read(`app/admin/actions/${file}`);
-      expect(source).not.toMatch(/void\s+runProductConflictCheck/);
-      expect(source).not.toMatch(/runCollectionConflictCheck/);
-      expect(source).not.toMatch(/runCollectionsConflictCheck/);
+      expect(source).not.toMatch(/after\s*\(\s*\(\s*\)\s*=>\s*[\s\S]{0,200}runCatalogConflictCheck/);
     }
   });
 
   it("required call-site count stays explicit (inventory for PR description)", () => {
-    expect(REQUIRED_CALL_SITES).toHaveLength(9);
+    expect(REQUIRED_CALL_SITES).toHaveLength(6);
     const actionFiles = readdirSync(actionsDir).filter((name) => name.endsWith(".ts") && !name.includes("__tests__"));
     expect(actionFiles.length).toBeGreaterThan(5);
   });

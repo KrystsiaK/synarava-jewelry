@@ -55,9 +55,12 @@ export async function runSyncWaterfall(input: {
       };
     }
     warning = refreshed.warning;
-    // Audit: do not stamp "now" after every refresh — only a real SUCCEEDED run.
+    // Stamp checkedAt only after a fresh SUCCEEDED *catalog* run (top-bar /
+    // once-per-login). Scoped product/collection post-action refreshes must
+    // not overwrite the latest complete catalog checkedAt / status.
     if (
-      refreshed.ok
+      input.scope.kind === "catalog"
+      && refreshed.ok
       && !refreshed.reused
       && refreshed.runStatus === "SUCCEEDED"
     ) {

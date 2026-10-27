@@ -36,11 +36,13 @@ writes after preview. Synarava’s compare window is **derived** on the fly
 :::steps
 ### Find the top-bar Shopify sync button
 
-In admin, the top bar shows the Shopify sync control. Together with the
-after-Save full check, this is the fetch+compare path for the catalog.
-Opening **Show conflicts** / ConflictResolver does **not** fetch Shopify again
-— it reads the last SyncResult leaves. Separate “Check Shopify” or “Run
-conflict check” controls on catalog pages are not part of this model.
+In admin, the top bar shows the Shopify sync control. Full catalog
+fetch+compare runs only from this control (click) and once per login session.
+After Save / Apply / Push / Pull / SKU assign, Synarava rechecks **only the
+affected product or collection** — not the whole catalog. Opening **Show
+conflicts** / ConflictResolver does **not** fetch Shopify again — it reads the
+last SyncResult leaves. Separate “Check Shopify” or “Run conflict check”
+controls on catalog pages are not part of this model.
 
 ### Read the button state
 
@@ -53,17 +55,25 @@ conflict check” controls on catalog pages are not part of this model.
 
 ### Know when a check runs
 
-A full check (products, collections, and translations) runs when you:
+A **full** check (products, collections, translations, and presence) runs when you:
 
 1. **Click** the top-bar button, or
 2. **Open admin for this login session** — once per session (`trigger: AUTO`).
    Navigating between admin pages does **not** start another full check; the
    session reuses the run already started for that login.
-3. **Save** — Synarava is saved first, then everything is fetched and compared.
+
+A **one-entity** recheck (that product or collection only — commerce window +
+scoped translations) runs after:
+
+3. **Save**, **Apply**, **Push** / **Pull**, or **Assign / Resume SKU** for that
+   entity. Synarava is written first; then only the affected entity is refreshed
+   and compared. Global top-bar **Last full check** time is not overwritten by
+   these scoped runs. If a full check is already running, the action returns
+   honestly that a check is in progress — it does not queue a second full run.
 
 Shopify-side edits still refresh the Shopify copy through product webhooks;
 that updates the Shopify-side window without writing Synarava content. Conflict
-lists and banners still come from SyncResult leaves after the next full check
+lists and banners still come from SyncResult leaves after the next check
 (or Apply safety inspect), not from a `syncStatus: CONFLICT` flag.
 
 ### Work while a check runs
@@ -117,11 +127,13 @@ expires and unlocks the UI — then retry the button if needed.
 
 ### I saved and the numbers changed
 
-**Cause:** After Save, Synarava is written first, then a full check fetches
-Shopify and compares again.
+**Cause:** After Save, Synarava is written first, then a one-entity recheck
+fetches that product/collection from Shopify and compares again.
 
-**What happens:** Banner counts and **Last full check** update from that check.
-New differences can appear even though you only saved locally.
+**What happens:** That entity’s banner/editor counts refresh from the scoped
+check. **Last full check** (top-bar) stays on the last complete catalog run.
+New differences can appear for the entity you saved even though you only saved
+locally.
 
 **What to do:** Open **Show conflicts** if the count is greater than zero, or
 continue editing if there is nothing to resolve.
@@ -139,12 +151,12 @@ disconnected**, fix credentials / app install first.
 
 ### Do I need to press the button after saving?
 
-**Cause:** None — after Save, Synarava is written first, then a full check runs.
+**Cause:** None — after Save, Synarava is written first, then a one-entity
+recheck runs for that product or collection.
 
-**What happens:** Counts refresh without an extra click.
-
-**What to do:** Press the button for an on-demand check without saving, to
-retry after a failure, or if you want a fresh compare before the next Save.
+**What happens:** That entity’s counts refresh without an extra click. Press
+the top-bar button when you want a fresh **full catalog** compare (or to retry
+after a failed full check).
 :::
 
 ## Known limits
@@ -168,7 +180,7 @@ Draft. Grounded in the derived two-state sync model (ADR-0009, `lib/sync` →
 SyncResult leaves), the top-bar control
 (`components/admin/translations/admin-shopify-sync-signal.tsx`), the reconcile
 route full-catalog path (`app/admin/api/shopify/reconcile/route.ts` →
-`runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), after-Save full
-check (`runAfterSaveCatalogConflictCheck`), catalog conflict banners,
-ConflictResolver open via `skipRefresh` loaders, and product webhooks
-(`app/api/shopify/webhooks/products/route.ts`).
+`runCatalogConflictCheck` for session `AUTO` / click `MANUAL`), after-action
+scoped recheck (`runAfterSaveCatalogConflictCheck` + `RefreshShopifyStateScope`),
+catalog conflict banners, ConflictResolver open via `skipRefresh` loaders, and
+product webhooks (`app/api/shopify/webhooks/products/route.ts`).

@@ -1,8 +1,9 @@
 import "server-only";
 
-import { after } from "next/server";
-
-import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
+import {
+  runSyncWaterfall,
+  type RefreshShopifyStateScope,
+} from "@/lib/sync";
 
 export type AfterSaveCatalogCheckResult = {
   alreadyRunning: boolean;
@@ -11,45 +12,38 @@ export type AfterSaveCatalogCheckResult = {
 };
 
 /**
- * Shared post-save helper: after Synarava DB save succeeds, run the SAME
- * full catalog check the top-bar button runs (`runCatalogConflictCheck`).
+ * Shared post-action helper: after Synarava DB write / Apply / Push / Pull /
+ * SKU assign succeeds, refresh+compare ONLY the given entity scope.
  *
- * - Never throws — a failed check must not fail the save.
- * - If another check is already running, return immediately with
- *   `alreadyRunning: true` (UI shows top-bar status). Optionally schedule a
- *   single non-blocking follow-up via `after()` so the edit is picked up
- *   without holding the server action for up to 11 minutes.
+ * Full-store refresh stays on the top-bar Manual click and once-per-login Auto.
+ * Callers must pass product or collection entity scope — never the store-wide
+ * refresh kind.
+ *
+ * - Never throws — a failed check must not fail the save/apply.
+ * - If another check holds the single-flight lease, return `{ alreadyRunning: true }`
+ *   honestly. Never schedule a second full or scoped follow-up run.
  */
 export async function runAfterSaveCatalogConflictCheck(
   requestedBy: string,
+  scope: RefreshShopifyStateScope,
 ): Promise<AfterSaveCatalogCheckResult> {
   try {
-    const checked = await runCatalogConflictCheck(requestedBy, { trigger: "MANUAL" });
-    if (!checked.alreadyRunning) {
+    const checked = await runSyncWaterfall({ scope, requestedBy });
+    if (checked.alreadyRunning) {
       return {
-        alreadyRunning: false,
+        alreadyRunning: true,
         ok: true,
-        warning: checked.warning,
+        warning: checked.warning ?? "already running",
       };
     }
-
-    // Audit #6: do not poll for up to 11 minutes inside the save action.
-    // Non-blocking follow-up only — never awaits the active run.
-    after(() => {
-      void runCatalogConflictCheck(requestedBy, { trigger: "MANUAL" }).catch((error) => {
-        const message = error instanceof Error ? error.message : String(error);
-        console.error("[after-save-catalog-check] non-blocking follow-up failed", message);
-      });
-    });
-
     return {
-      alreadyRunning: true,
+      alreadyRunning: false,
       ok: true,
-      warning: checked.warning ?? "already running",
+      warning: checked.warning,
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error("[after-save-catalog-check] full catalog check failed", message);
+    console.error("[after-save-catalog-check] scoped conflict check failed", message);
     return { alreadyRunning: false, ok: false, warning: message };
   }
 }

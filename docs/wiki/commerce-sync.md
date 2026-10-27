@@ -28,8 +28,8 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 | Per-collection windows | OUR = `deriveCollectionWindow(columns + Collection.extras)` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
 | Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner. Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
 | One-sided presence | A product or collection missing from either side produces exactly one `presence` leaf on `node: base` with `locale: null`. Commerce and translation leaves for that entity are suppressed until both copies exist. |
-| Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save full catalog check** (`runAfterSaveCatalogConflictCheck`) — same full fetch+compare as the top-bar |
-| SKU assign (Family → Confirm / resume) | Column write + after-save full check (`lib/sku/persist-local-sku.ts`). SKU is column-backed; derive reads `ProductVariant.sku` |
+| Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save one-entity recheck** (`runAfterSaveCatalogConflictCheck` + `{ kind:"product"|"collection", …Id }`) — refresh+compare that entity only; does not stamp top-bar `checkedAt` |
+| SKU assign (Family → Confirm / resume) | Column write + after-save one-entity product recheck. SKU is column-backed; derive reads `ProductVariant.sku` |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
 | Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
 | Translations | Two-way only: Synarava row ↔ Shopify translation. Differs = divergence; human Apply / force Push chooses. No `KEEP_LOCAL` / `APPLY_REMOTE` / `localIsDirty` auto paths |
@@ -39,11 +39,18 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 ```text
 ONE fetch place (Shopify network):
   • Top-bar Shopify control — click (MANUAL) + once per login session (AUTO)
-  • After Save (product / collection / language settings / SKU assign) — full catalog check
-  • Apply safety only — single-entity refresh (`refreshShopifyProductState` /
-    `refreshShopifyCollectionState` via waterfall) then the same compare → leaves
+    → full catalog: products + collections + translations + presence; stamps checkedAt
+  • After Save / Apply / Push / Pull / SKU assign — one-entity recheck only
+    (`runAfterSaveCatalogConflictCheck` + RefreshShopifyStateScope product|collection)
+    → does NOT overwrite latest complete catalog checkedAt/status; no second full run
+  • Cache invalidation (admin revalidatePath + revalidateStorefront) runs at the
+    write, BEFORE the recheck — recheck must not gate caches (Take-Shopify delete)
+  • Apply preview safety — single-entity refresh then the same compare → leaves
+  • After Create in Shopify (unlinked → linked) — narrow presence row clear for
+    that product (`removeCatalogPresenceDifference`); no catalog presence scan
 NOT a fetch:
   • Opening ConflictResolver / list / banner / layout badge → waterfall skipRefresh (persisted windows + SyncResult leaves)
+  • Language settings save — no post-action catalog check (next top-bar / login Auto)
 On push / pull / apply → refresh Shopify windows as needed; Synarava content writes are human Apply only
 ```
 
@@ -100,7 +107,8 @@ Translation axis: two-way diverge rows only. Default-locale EN translation leave
 | Apply-only live refresh | `recheckEntityConflictLeaves` / waterfall `skipRefresh: false` (refresh Shopify window + SyncResult leaves; not `inspect.differences`) |
 | Resolver loaders (skipRefresh) | `loadProductConflictFromSyncResult`, `loadCollectionConflictFromSyncResult` |
 | Field conflict UI | `components/synarava-cms/conflict-resolver*` (+ product/collection adapters) |
-| After-save full check | `lib/shopify/after-save-catalog-check.ts` → `runCatalogConflictCheck` |
+| After-action one-entity recheck | `lib/shopify/after-save-catalog-check.ts` → `runSyncWaterfall(scope)` (`product` / `collection`) |
+| Full catalog check (top-bar / login) | `lib/shopify/catalog-conflict-signals-server.ts` → `runCatalogConflictCheck` |
 
 Migrations: `product_working_snapshot` (archived then dropped), `collection_commerce_windows`, `extras` backfill.  
 Dropped: `Product.workingSnapshot` / `Collection.workingSnapshot` (ADR-0009), `Product.shopifyBaseSnapshot`, `ShopifyTranslationSnapshot`, `ShopifyTranslationBinding.lastSyncedSnapshot`, `CommerceSyncStore` / `lib/commerce-store` (destructive — backup prod before deploy).
