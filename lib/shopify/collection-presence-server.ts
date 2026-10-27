@@ -517,23 +517,11 @@ export type CollectionPresenceApplyResult =
   | { ok: false; reason: "STALE" | "UNSUPPORTED" | "WRITE_FAILED"; message: string };
 
 async function deleteLocalCollection(collectionId: string) {
-  await db.$transaction(async (tx) => {
-    await tx.shopifyTranslationBinding.deleteMany({
-      where: { resourceType: "COLLECTION", entityId: collectionId },
-    });
-    await tx.collection.delete({ where: { id: collectionId } });
-    const remaining = await tx.collection.findMany({
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }, { name: "asc" }],
-      select: { id: true },
-    });
-    await Promise.all(
-      remaining.map((collection, index) =>
-        tx.collection.update({
-          where: { id: collection.id },
-          data: { sortOrder: index + 1 },
-        }),
-      ),
-    );
+  // PR-8: archive before destructive delete (same transaction inside helper).
+  const { archiveAndDeleteCollection } = await import("@/lib/sync/entity-archive");
+  await archiveAndDeleteCollection({
+    collectionId,
+    reason: "Remove item: Shopify → Synarava (collection presence)",
   });
 }
 

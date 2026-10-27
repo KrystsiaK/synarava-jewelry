@@ -17,6 +17,15 @@ vi.mock("@/lib/shopify/admin", () => ({
   ShopifyAdminError: class ShopifyAdminError extends Error {},
   shopifyAdminRequest: mocks.request,
 }));
+vi.mock("@/lib/sync/recheck-entity-leaves", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/sync/recheck-entity-leaves")>(
+    "@/lib/sync/recheck-entity-leaves",
+  );
+  return {
+    ...actual,
+    recheckEntityConflictLeaves: mocks.recheckEntityConflictLeaves,
+  };
+});
 vi.mock("@/lib/sync", async () => {
   const actual = await vi.importActual<typeof import("@/lib/sync")>("@/lib/sync");
   return {
