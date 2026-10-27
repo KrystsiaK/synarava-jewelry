@@ -5,9 +5,10 @@ import {
 import { getOrdersStatus } from "@/lib/mission-control/providers/orders";
 import { getShopifySyncStatus } from "@/lib/mission-control/providers/shopify-sync";
 import { getSiteHealthStatus } from "@/lib/mission-control/providers/site-health";
-import type {
-  ServiceFlowStatusRecord,
-  ServiceNodeStatusRecord,
+import {
+  readLatestCollectorCheckedAt,
+  type ServiceFlowStatusRecord,
+  type ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
@@ -35,6 +36,11 @@ export type MissionControlSnapshot = {
   nodeStatuses: ServiceNodeStatusRecord[];
   flowStatuses: ServiceFlowStatusRecord[];
   nowMs: number;
+  /**
+   * Max `checkedAt` from ServiceNodeStatus for live keys (collector cron).
+   * Null when the collector has never written — hub must treat as stale.
+   */
+  collectorCheckedAt: Date | null;
   /** True while any catalog node still uses fixture/placeholder data. */
   showPlaceholderNotice: boolean;
   placeholderNodeKeys: string[];
@@ -53,10 +59,11 @@ export function placeholderNodeStatusesFromFixtures(
 export async function loadMissionControlSnapshot(
   now: Date = new Date(),
 ): Promise<MissionControlSnapshot> {
-  const [siteHealth, shopifySync, orders] = await Promise.all([
+  const [siteHealth, shopifySync, orders, collectorCheckedAt] = await Promise.all([
     getSiteHealthStatus({ now }),
     getShopifySyncStatus({ now }),
     getOrdersStatus({ now }),
+    readLatestCollectorCheckedAt(LIVE_NODE_KEYS),
   ]);
 
   const placeholders = placeholderNodeStatusesFromFixtures();
@@ -66,6 +73,7 @@ export async function loadMissionControlSnapshot(
     nodeStatuses: [siteHealth, shopifySync, orders, ...placeholders],
     flowStatuses: MISSION_CONTROL_FLOW_STATUS_FIXTURES,
     nowMs: now.getTime(),
+    collectorCheckedAt,
     showPlaceholderNotice: placeholderNodeKeys.length > 0,
     placeholderNodeKeys,
   };

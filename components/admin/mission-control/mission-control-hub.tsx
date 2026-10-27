@@ -34,6 +34,12 @@ export type MissionControlHubProps = {
   nodeStatuses: readonly ServiceNodeStatusRecord[];
   flowStatuses: readonly ServiceFlowStatusRecord[];
   nowMs: number;
+  /**
+   * Persisted collector heartbeat (`ServiceNodeStatus.checkedAt` max).
+   * Do not pass request-time probe times — that falsely looks like a fresh cron.
+   * Null / missing = never collected → stale.
+   */
+  collectorCheckedAt?: Date | null;
   /** When false, live-only snapshot — no demo notice. */
   showPlaceholderNotice?: boolean;
   placeholderNodeKeys?: readonly string[];
@@ -57,6 +63,7 @@ export function MissionControlHub({
   nodeStatuses,
   flowStatuses,
   nowMs,
+  collectorCheckedAt = null,
   showPlaceholderNotice = false,
   placeholderNodeKeys = [],
   config = getMissionControlWiringConfig(),
@@ -76,10 +83,7 @@ export function MissionControlHub({
     (result, status) => ({ ...result, [status.level]: result[status.level] + 1 }),
     { ok: 0, warn: 0, down: 0, unknown: 0 },
   );
-  const lastCheckedAt = liveStatuses.reduce<Date | null>(
-    (latest, status) => (!latest || status.checkedAt > latest ? status.checkedAt : latest),
-    null,
-  );
+  const lastCheckedAt = collectorCheckedAt;
   const collectorStale = !lastCheckedAt || nowMs - lastCheckedAt.getTime() > COLLECTOR_STALE_MS;
   const catalogLabels = new Map(catalog.map((node) => [node.widgetKey, node.label]));
   const attention = liveStatuses
@@ -91,7 +95,9 @@ export function MissionControlHub({
     .filter((entry) => Boolean(entry.fix?.fixHint))
     .sort((a, b) => LEVEL_ORDER[a.status.level] - LEVEL_ORDER[b.status.level]);
   const selectedNode = config.nodes.find((node) => node.widgetKey === selectedNodeKey) ?? null;
-  const allClear = attention.length === 0 && !collectorStale;
+  /** unknown/warn/down never count as all-clear; stale collector never looks ok. */
+  const hasUnhealthyLive = liveStatuses.some((status) => status.level !== "ok");
+  const allClear = !hasUnhealthyLive && !collectorStale;
   const [overviewOpen, setOverviewOpen] = useState(!allClear);
 
   useEffect(() => {
@@ -169,9 +175,13 @@ export function MissionControlHub({
         </AdminPanel.Header>
         <AdminPanel.Body className="mc-attention__body">
           {attention.length === 0 ? (
-            <div className="mc-attention__empty" data-testid="mc-attention-empty">
-              <MissionControlStatusMark level="ok" />
-              <p>Everything currently reporting is operational.</p>
+            <div className="mc-attention__empty" data-testid="mc-attention-empty" data-collector-stale={collectorStale ? "true" : "false"}>
+              <MissionControlStatusMark level={collectorStale ? "unknown" : "ok"} />
+              <p>
+                {collectorStale
+                  ? "Collector heartbeat is stale or missing — do not treat this map as an all-clear."
+                  : "Everything currently reporting is operational."}
+              </p>
             </div>
           ) : (
             <ol className="mc-attention__list" data-testid="mc-attention-list">
