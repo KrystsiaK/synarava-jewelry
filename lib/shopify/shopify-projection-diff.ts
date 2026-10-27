@@ -1,3 +1,4 @@
+import { sanitizeRichTextHtml } from "@/lib/content/rich-text";
 import {
   coerceMetafieldRows,
   metafieldIdentityKey,
@@ -109,6 +110,11 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     if (MONEY_PATH_RE.test(path)) { const n = Number(s); return Number.isFinite(n) ? n : s; }
     if (INSTANT_PATH_RE.test(path)) {
       const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
+    }
+    // Editor wrapper noise (bare <span>, dir=) — same sanitize as preferred-HTML reuse.
+    if (/(^|\.)descriptionHtml$/.test(path)) {
+      const html = sanitizeRichTextHtml(s).trim();
+      return html || null;
     }
     return /^https?:\/\//i.test(s) ? normalizeShopifyCdnUrl(s) : s;
   }
