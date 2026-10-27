@@ -897,6 +897,7 @@ export function ProductFormFields({
             compareAt: draft.compareAt,
             taxable: draft.taxable,
             cost: draft.cost,
+            shopifyCost: draft.shopifyCost,
           }}
           fieldErrors={fieldErrors}
           validation={validation}

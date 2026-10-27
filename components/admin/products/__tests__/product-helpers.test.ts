@@ -241,7 +241,7 @@ describe("productToDraft", () => {
     expect(draft.stockOnHand).toBe("7");
   });
 
-  it("prefers Cost / compare-at from shopifySnapshot over stale variant columns", () => {
+  it("shows OUR Cost and marks Shopify when unit cost differs", () => {
     const product = makeProduct({
       priceCents: 1000,
       compareAtCents: 2000,
@@ -250,7 +250,7 @@ describe("productToDraft", () => {
           {
             price: "10.00",
             compareAtPrice: "15.00",
-            inventoryItem: { unitCost: { amount: "3.00", currencyCode: "EUR" } },
+            inventoryItem: { unitCost: { amount: "24.56", currencyCode: "EUR" } },
           },
         ],
       },
@@ -261,6 +261,42 @@ describe("productToDraft", () => {
           title: "Default",
           priceCents: 1000,
           compareAtCents: 2000,
+          costCents: 1806,
+          stockOnHand: 1,
+          barcode: null,
+          taxable: true,
+          requiresShipping: true,
+          tracked: true,
+          weightGrams: null,
+          imageUrl: null,
+          selectedOptions: null,
+          shopifyVariantId: null,
+          shopifyInventoryItemId: null,
+        },
+      ],
+    });
+    const draft = productToDraft(product);
+    expect(draft.cost).toBe("18.06");
+    expect(draft.shopifyCost).toBe("24.56");
+    expect(draft.compareAt).toBe("15.00");
+  });
+
+  it("omits Shopify Cost marker when OUR matches the snapshot", () => {
+    const product = makeProduct({
+      shopifySnapshot: {
+        variants: [
+          {
+            inventoryItem: { unitCost: { amount: "4.00", currencyCode: "EUR" } },
+          },
+        ],
+      },
+      variants: [
+        {
+          id: "variant-1",
+          sku: "SKU-1",
+          title: "Default",
+          priceCents: 1000,
+          compareAtCents: null,
           costCents: 400,
           stockOnHand: 1,
           barcode: null,
@@ -276,8 +312,8 @@ describe("productToDraft", () => {
       ],
     });
     const draft = productToDraft(product);
-    expect(draft.cost).toBe("3.00");
-    expect(draft.compareAt).toBe("15.00");
+    expect(draft.cost).toBe("4.00");
+    expect(draft.shopifyCost).toBe("");
   });
 
   it("falls back to Product.compareAtCents when the variant has none (half-pull / mirror)", () => {
