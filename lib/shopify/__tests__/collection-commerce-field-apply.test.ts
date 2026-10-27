@@ -24,9 +24,13 @@ vi.mock("@/lib/shopify/admin", () => ({
   shopifyAdminRequest: mocks.shopifyAdminRequest,
   ShopifyAdminError: class ShopifyAdminError extends Error {},
 }));
-vi.mock("@/lib/shopify/collection-membership", () => ({
-  findManagedCollectionSourceId: mocks.findManagedCollectionSourceId,
-}));
+vi.mock("@/lib/shopify/collection-membership", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/shopify/collection-membership")>();
+  return {
+    ...actual,
+    findManagedCollectionSourceId: mocks.findManagedCollectionSourceId,
+  };
+});
 vi.mock("@/lib/shopify/translation-sync", () => ({
   ensureTranslationBinding: mocks.ensureTranslationBinding,
 }));
@@ -174,12 +178,57 @@ describe("applyCollectionCommerceField", () => {
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true }));
-    expect(mocks.shopifyAdminRequest).toHaveBeenCalled();
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
+      expect.stringContaining("collectionUpdate(collection: $collection)"),
+      expect.objectContaining({
+        collection: expect.objectContaining({
+          id: "gid://shopify/Collection/9",
+          handle: "local-handle",
+          title: "Local name",
+          descriptionHtml: expect.any(String),
+          seo: expect.objectContaining({
+            title: "Local SEO",
+            description: "Local SEO desc",
+          }),
+        }),
+      }),
+    );
     const refreshData = mocks.updateCollection.mock.calls
       .map((call) => call[0].data as Record<string, unknown>)
       .find((data) => data.shopifySnapshot != null);
     expect(refreshData).toBeDefined();
     expect(refreshData).not.toHaveProperty("workingSnapshot");
+  });
+
+  it("surfaces Shopify userErrors when pushing a commerce field", async () => {
+    const before = linkedCollection();
+    mocks.findUniqueCollection
+      .mockResolvedValueOnce(before)
+      .mockResolvedValueOnce(before);
+    mocks.shopifyAdminRequest.mockResolvedValueOnce({
+      collectionUpdate: {
+        collection: null,
+        job: null,
+        userErrors: [{ message: "Title is invalid" }],
+      },
+    });
+
+    const result = await applyCollectionCommerceField({
+      collectionId: "col-1",
+      label: "Name",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      expectedLocalFingerprint: fp("Local name"),
+      expectedShopifyFingerprint: fp("Shopify name"),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
+    expect(result.message).toMatch(/Title is invalid/);
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
+      expect.stringContaining("collectionUpdate(collection: $collection)"),
+      expect.objectContaining({
+        collection: expect.objectContaining({ id: "gid://shopify/Collection/9" }),
+      }),
+    );
   });
 
   it("rejects unsupported labels", async () => {

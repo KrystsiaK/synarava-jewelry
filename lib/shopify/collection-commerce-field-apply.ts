@@ -3,7 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
-import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
+import { ShopifyAdminError } from "@/lib/shopify/admin";
 
 import { commerceFingerprint } from "./catalog-conflict";
 import {
@@ -15,6 +15,7 @@ import {
   diffCollectionCommerceWindows,
 } from "./collection-commerce-projection";
 import { refreshShopifyCollectionState } from "./collection-presence-server";
+import { runShopifyCollectionUpdate } from "./collection-update";
 import {
   deriveCollectionWindow,
   preferredHtmlFromShopifySnapshot,
@@ -137,34 +138,16 @@ async function writeToShopify(collectionId: string, label: string, value: string
     ),
   });
   const input = collectionCommerceInputFromWindow(window);
-  const result = await shopifyAdminRequest<{
-    collectionUpdate: {
-      collection: { id: string; handle: string; updatedAt?: string } | null;
-      userErrors: Array<{ field?: string[]; message: string }>;
-    };
-  }>(
-    `mutation SynaravaCollectionCommerceFieldUpdate($input: CollectionInput!) {
-      collectionUpdate(input: $input) {
-        collection { id handle updatedAt }
-        userErrors { field message }
-      }
-    }`,
+  await runShopifyCollectionUpdate(
     {
-      input: {
-        id: collection.shopifyCollectionId,
-        title: input.title,
-        handle: input.handle || undefined,
-        descriptionHtml: input.descriptionHtml,
-        seo: input.seo,
-      },
+      id: collection.shopifyCollectionId,
+      title: input.title,
+      handle: input.handle || undefined,
+      descriptionHtml: input.descriptionHtml,
+      seo: input.seo,
     },
+    { requireCollection: true },
   );
-  if (result.collectionUpdate.userErrors.length > 0) {
-    throw new ShopifyAdminError(result.collectionUpdate.userErrors.map((error) => error.message).join("; "));
-  }
-  if (!result.collectionUpdate.collection) {
-    throw new ShopifyAdminError("Shopify did not return the updated collection.");
-  }
 
   // Columns are OUR SoT; refresh Shopify copy after push (ADR-0009).
   await db.collection.update({

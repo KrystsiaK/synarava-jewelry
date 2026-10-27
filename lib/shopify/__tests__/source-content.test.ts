@@ -80,4 +80,64 @@ describe("Shopify source content", () => {
       metaobject: { fields: [{ key: "material_line", value: "Freshwater pearl" }] },
     });
   });
+
+  it("patches Collection source fields via collection: CollectionUpdateInput", async () => {
+    mocks.request.mockResolvedValue({
+      collectionUpdate: {
+        collection: { id: "gid://shopify/Collection/1" },
+        job: null,
+        userErrors: [],
+      },
+    });
+
+    const collectionTitle = {
+      ...titleField,
+      shopifyTarget: { kind: "native" as const, resource: "COLLECTION" as const, key: "title" },
+    };
+
+    await updateShopifySourceField({
+      resourceType: "COLLECTION",
+      resourceId: "gid://shopify/Collection/1",
+      field: collectionTitle,
+      value: "Rings",
+    });
+
+    expect(mocks.request).toHaveBeenCalledWith(
+      expect.stringContaining("collectionUpdate(collection: $collection)"),
+      { collection: { id: "gid://shopify/Collection/1", title: "Rings" } },
+    );
+  });
+
+  it("surfaces Collection collectionUpdate userErrors", async () => {
+    mocks.request.mockResolvedValue({
+      collectionUpdate: {
+        collection: null,
+        job: null,
+        userErrors: [{ message: "Handle already taken" }],
+      },
+    });
+
+    await expect(updateShopifySourceField({
+      resourceType: "COLLECTION",
+      resourceId: "gid://shopify/Collection/1",
+      field: {
+        ...titleField,
+        key: "handle",
+        label: "Handle",
+        shopifyTarget: { kind: "native", resource: "COLLECTION", key: "handle" },
+      },
+      value: "rings",
+    })).rejects.toThrow(/Handle already taken/);
+
+    expect(mocks.request).toHaveBeenCalledWith(
+      expect.stringContaining("collectionUpdate(collection: $collection)"),
+      {
+        collection: {
+          id: "gid://shopify/Collection/1",
+          handle: "rings",
+          redirectNewHandle: true,
+        },
+      },
+    );
+  });
 });
