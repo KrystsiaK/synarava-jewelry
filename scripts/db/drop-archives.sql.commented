@@ -1,0 +1,30 @@
+-- =============================================================================
+-- DROP _archive_* tables — FULLY COMMENTED; nothing executes by default.
+-- =============================================================================
+-- Companion runbook: docs/runbooks/post-cutover-cleanup.md
+--
+-- DO NOT paste this file into Railway until:
+--   1. Waiting period after cutover has elapsed (see runbook).
+--   2. Fresh verified backup / PITR restore point exists.
+--   3. scripts/db/prod-readiness-check.sql archive sections still look healthy.
+--   4. Owner explicitly authorizes the drop.
+--
+-- To use: copy only the uncommented DROP lines you need into a new paste,
+-- after rewriting this file locally with comments removed — never leave a
+-- live DROP script committed as executable SQL in this repo.
+--
+-- Restore notes (if you drop too early):
+--   - Working-snapshot archives: restore from the pre-drop backup, then use
+--     scripts/db/rollback-working-snapshot.sql only inside the safety window
+--     documented in docs/runbooks/derive-synarava-state-release.md.
+--   - EN translation archives: restore tables from backup, then optionally
+--     scripts/db/rollback-en-translation-rows.sql.
+--   - After traffic has mutated live rows, primary recovery is always the
+--     verified backup — not re-deriving from stale archives.
+-- =============================================================================
+
+-- DROP TABLE IF EXISTS "_archive_product_working_snapshot";
+-- DROP TABLE IF EXISTS "_archive_collection_working_snapshot";
+-- DROP TABLE IF EXISTS "_archive_product_translation_en";
+-- DROP TABLE IF EXISTS "_archive_collection_translation_en";
+-- DROP TABLE IF EXISTS "_archive_page_translation_en";
