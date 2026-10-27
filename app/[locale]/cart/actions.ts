@@ -27,6 +27,8 @@ const cartItemSchema = z.object({
 function refreshCommerce() {
   revalidateStorefrontPath("/cart");
   revalidateStorefrontPath("/shop");
+  // Root layout owns the header cart badge — bust locale + app root layouts.
+  revalidateStorefrontPath("/", "layout");
 }
 
 export async function addToCartAction(formData: FormData) {

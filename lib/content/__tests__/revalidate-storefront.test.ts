@@ -29,6 +29,15 @@ describe("revalidateStorefrontPath", () => {
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt");
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru");
   });
+
+  it("revalidates locale layouts and the app root layout when type is layout", () => {
+    revalidateStorefrontPath("/", "layout");
+
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/en", "layout");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/pt", "layout");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/ru", "layout");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/", "layout");
+  });
 });
 
 describe("hrefForPage + revalidateStorefrontPath (Home)", () => {

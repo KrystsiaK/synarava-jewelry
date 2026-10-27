@@ -6,6 +6,7 @@ import {
   addStorefrontProductToCart,
   getStorefrontCartViewModel,
 } from "@/lib/commerce/storefront-cart";
+import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 
 export async function POST(request: Request) {
   try {
@@ -38,6 +39,10 @@ export async function POST(request: Request) {
       body.merchandiseId?.trim() || undefined,
     );
     const cart = await getStorefrontCartViewModel();
+
+    revalidateStorefrontPath("/cart");
+    revalidateStorefrontPath("/shop");
+    revalidateStorefrontPath("/", "layout");
 
     return NextResponse.json({
       ok: true,

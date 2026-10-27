@@ -1,4 +1,4 @@
-import { render, screen, act, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { usePathname } from "next/navigation";
 import { ThemeProvider } from "@/components/theme/theme-provider";
@@ -11,7 +11,7 @@ function Wrapper({ children }: { children: React.ReactNode }) {
   return <ThemeProvider initialPreference="light">{children}</ThemeProvider>;
 }
 
-function renderHeader(count = 0) {
+function renderHeader(count: number | null = 0) {
   return render(
     <SiteHeader initialCartCount={count} headerNav={defaultHeaderNav} />,
     { wrapper: Wrapper },
@@ -65,13 +65,51 @@ describe("SiteHeader", () => {
     expect(screen.getAllByRole("link", { name: "Login" }).length).toBeGreaterThan(0);
   });
 
-  it("shows cart count badge when cart has items", () => {
-    renderHeader(3);
-    expect(screen.getByText("3")).toBeInTheDocument();
+  it("shows badge 1 after add (server count)", () => {
+    renderHeader(1);
+    expect(screen.getByText("1")).toBeInTheDocument();
   });
 
-  it("hides the badge and omits an item count from the label when the cart count is unknown", () => {
-    render(<SiteHeader initialCartCount={null} headerNav={defaultHeaderNav} />, { wrapper: Wrapper });
+  it("shows badge 2 after add twice (server count)", () => {
+    renderHeader(2);
+    expect(screen.getByText("2")).toBeInTheDocument();
+  });
+
+  it("increase/decrease follow the server count", async () => {
+    const { rerender } = renderHeader(1);
+    expect(screen.getByText("1")).toBeInTheDocument();
+
+    rerender(<SiteHeader initialCartCount={2} headerNav={defaultHeaderNav} />);
+    await waitFor(() => expect(screen.getByText("2")).toBeInTheDocument());
+
+    rerender(<SiteHeader initialCartCount={1} headerNav={defaultHeaderNav} />);
+    await waitFor(() => expect(screen.getByText("1")).toBeInTheDocument());
+  });
+
+  it("hides the badge after removing the last item (count 0)", async () => {
+    const { rerender } = renderHeader(1);
+    expect(screen.getByText("1")).toBeInTheDocument();
+
+    rerender(<SiteHeader initialCartCount={0} headerNav={defaultHeaderNav} />);
+    await waitFor(() => {
+      expect(screen.queryByText("1")).not.toBeInTheDocument();
+      expect(screen.queryByText("0")).not.toBeInTheDocument();
+    });
+  });
+
+  it("shows badge 1 after removing one of two items", async () => {
+    const { rerender } = renderHeader(2);
+    expect(screen.getByText("2")).toBeInTheDocument();
+
+    rerender(<SiteHeader initialCartCount={1} headerNav={defaultHeaderNav} />);
+    await waitFor(() => {
+      expect(screen.getByText("1")).toBeInTheDocument();
+      expect(screen.queryByText("2")).not.toBeInTheDocument();
+    });
+  });
+
+  it("hides the badge when Shopify is unavailable (null)", () => {
+    renderHeader(null);
     expect(screen.getByRole("link", { name: "Cart" })).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
@@ -89,29 +127,6 @@ describe("SiteHeader", () => {
     await user.click(screen.getByRole("button", { name: "Open navigation menu" }));
     await user.click(screen.getByRole("button", { name: "Close navigation menu" }));
     expect(screen.getByRole("button", { name: "Open navigation menu" })).toBeInTheDocument();
-  });
-
-  it("updates cart count on synarava:cart-updated event", async () => {
-    renderHeader(0);
-    act(() => {
-      window.dispatchEvent(new CustomEvent("synarava:cart-updated", { detail: { count: 5 } }));
-    });
-    expect(await screen.findByText("5")).toBeInTheDocument();
-  });
-
-  it("accepts the refreshed server count after a local cart update", async () => {
-    const { rerender } = render(
-      <SiteHeader initialCartCount={2} headerNav={defaultHeaderNav} />,
-      { wrapper: Wrapper },
-    );
-
-    act(() => {
-      window.dispatchEvent(new CustomEvent("synarava:cart-updated", { detail: { count: 5 } }));
-    });
-    expect(await screen.findByText("5")).toBeInTheDocument();
-
-    rerender(<SiteHeader initialCartCount={3} headerNav={defaultHeaderNav} />);
-    await waitFor(() => expect(screen.getByText("3")).toBeInTheDocument());
   });
 
   it("marks active Home nav link when on /", () => {
