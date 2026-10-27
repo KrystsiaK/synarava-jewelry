@@ -136,20 +136,28 @@ describe("product validation navigate", () => {
     render(<Harness />);
 
     // Fill every required control while its tab is open (same as a merchant).
+    // Wait for focus (not only section text) so type() lands after the tab paints —
+    // CI under load otherwise clicks Save with empty Title/Slug and stays on essentials.
     await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByTestId("section")).toHaveTextContent("essentials"));
-    await user.type(screen.getByLabelText("Title"), "Lava ring");
-    await user.type(screen.getByLabelText("Slug"), "lava-ring");
+    await waitFor(() => expect(screen.getByLabelText("Title")).toHaveFocus());
+    const title = screen.getByLabelText("Title");
+    const slug = screen.getByLabelText("Slug");
+    await user.type(title, "Lava ring");
+    await user.type(slug, "lava-ring");
+    expect(title).toHaveValue("Lava ring");
+    expect(slug).toHaveValue("lava-ring");
 
     await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByTestId("section")).toHaveTextContent("price"));
+    await waitFor(() => expect(screen.getByLabelText("Price")).toHaveFocus());
+    expect(screen.getByTestId("section")).toHaveTextContent("price");
     const price = screen.getByLabelText("Price");
     await user.clear(price);
     await user.type(price, "120");
     expect(price).toHaveValue("120");
 
     await user.click(screen.getByRole("button", { name: "Save" }));
-    await waitFor(() => expect(screen.getByTestId("section")).toHaveTextContent("inventory"));
+    await waitFor(() => expect(screen.getByLabelText("SKU")).toHaveFocus());
+    expect(screen.getByTestId("section")).toHaveTextContent("inventory");
     const sku = screen.getByLabelText("SKU");
     await user.clear(sku);
     await user.type(sku, "LR-1");
