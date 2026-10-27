@@ -158,6 +158,8 @@ describe("top-bar full catalog waterfall", () => {
 
   it("runCatalogConflictCheck drives product AND collection conflict counts", async () => {
     const checked = await runCatalogConflictCheck("admin", { trigger: "MANUAL" });
+    expect(mocks.fetchShopifyShopIdentity).toHaveBeenCalledOnce();
+    expect(mocks.ensureShopifyStoreBinding).toHaveBeenCalledWith("synarava.myshopify.com");
     const nav = selectAdminNavSyncCounts(checked.result);
     const productSignals = catalogConflictSignalsFromSyncResult(checked.result, "PRODUCT", [
       { code: "en", name: "English", nativeName: "English" },
