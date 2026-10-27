@@ -123,6 +123,17 @@ pnpm install
 
 Не коммитьте сам токен.
 
+### Dependabot {#dependabot}
+
+`.github/dependabot.yml` открывает npm-обновления **в `staging`**, не в `main`:
+
+- `target-branch: staging`
+- `ignore: @synarava/*` (private GitHub Packages; токен в `dependabot.yml` не кладём)
+- `open-pull-requests-limit: 3`
+- группы только для **patch + minor** (production / development); **majors** — отдельные PR
+
+Bot-PR Dependabot по-прежнему может не получить `NODE_AUTH_TOKEN` в CI. Предпочтительный путь: ручные батчи с staging (dev patch/minor → prod patch/minor → каждый major отдельно). Не мержить Dependabot-группы, которые смешивают major Prisma / Next с остальным.
+
 ### Версионирование релиза
 
 - [ ] Перед production deploy поднять `package.json` `version` по semver.
