@@ -56,6 +56,7 @@ function VariantAssignRow({
   previewMeta: string | null;
 }) {
   const notAssigned = rowNeedsAssignControls(row);
+  const familyChosen = familyKey.trim().length > 0;
   return (
     <div className="grid gap-3 rounded-md border border-[var(--adm-border)] p-3" data-variant-id={row.variantId}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -86,21 +87,44 @@ function VariantAssignRow({
             onChange={(event) => onFamilyChange(event.target.value)}
             disabled={isPending}
           >
-            {familyKeys.length === 0 ? (
-              <option value="">No families in published profile</option>
-            ) : (
-              familyKeys.map((key) => (
-                <option key={key} value={key}>{key}</option>
-              ))
-            )}
+            <option value="">
+              {familyKeys.length === 0 ? "No families in published profile" : "Choose family…"}
+            </option>
+            {familyKeys.map((key) => (
+              <option key={key} value={key}>{key}</option>
+            ))}
           </AdminSelectField>
-          <AdminButton variant="secondary" busy={isPending} disabled={!familyKey} onClick={onPreview}>
+          <AdminButton
+            variant="secondary"
+            busy={isPending}
+            disabled={!familyChosen || isPending}
+            onClick={onPreview}
+          >
             {isPending ? "Working…" : "Preview"}
           </AdminButton>
-          <AdminButton variant="primary" busy={isPending} disabled={!familyKey} onClick={onAssign}>
+          <AdminButton
+            variant="primary"
+            busy={isPending}
+            disabled={!familyChosen || isPending}
+            onClick={onAssign}
+          >
             {isPending ? "Working…" : "Confirm assign"}
           </AdminButton>
         </div>
+      ) : null}
+
+      {notAssigned && familyChosen ? (
+        <p className="text-sm text-[var(--adm-ink)]" data-sku-assign-choice="true">
+          Family <span className="font-medium">{familyKey}</span>
+          {previewSku ? (
+            <>
+              {" · "}Candidate <span className="font-medium">{previewSku}</span>
+              {previewMeta ? <span className="text-[var(--adm-muted)]"> — {previewMeta}</span> : null}
+            </>
+          ) : (
+            <span className="text-[var(--adm-muted)]"> — preview a candidate before confirm</span>
+          )}
+        </p>
       ) : null}
 
       {row.pendingReservationSku && row.shopifyLinked ? (
@@ -114,7 +138,8 @@ function VariantAssignRow({
         </AdminButton>
       ) : null}
 
-      {previewSku ? (
+      {/* Keep candidate visible after preview when family not yet shown above (assigned rows). */}
+      {!notAssigned && previewSku ? (
         <p className="text-sm text-[var(--adm-ink)]">
           Candidate <span className="font-medium">{previewSku}</span>
           {previewMeta ? <span className="text-[var(--adm-muted)]"> — {previewMeta}</span> : null}
@@ -150,10 +175,11 @@ export function ProductSkuAssignPanel({
       .then((payload) => {
         if (cancelled) return;
         setContext(payload);
+        // Never preselect a family — wrong family permanently reserves in the ledger (ADR-0004).
         setFamilyByVariant((current) => {
           const next = { ...current };
           for (const row of payload.variants) {
-            if (!next[row.variantId]) next[row.variantId] = payload.familyKeys[0] || "";
+            if (next[row.variantId] == null) next[row.variantId] = "";
           }
           return next;
         });
@@ -220,7 +246,11 @@ export function ProductSkuAssignPanel({
   }
 
   function runPreview(variantId: string) {
-    const familyKey = familyByVariant[variantId] || context!.familyKeys[0] || "";
+    const familyKey = (familyByVariant[variantId] ?? "").trim();
+    if (!familyKey) {
+      setError("Choose a family before preview.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await previewProductSkuAction({ productId, familyKey });
@@ -241,7 +271,11 @@ export function ProductSkuAssignPanel({
   }
 
   function runAssign(variantId: string) {
-    const familyKey = familyByVariant[variantId] || context!.familyKeys[0] || "";
+    const familyKey = (familyByVariant[variantId] ?? "").trim();
+    if (!familyKey) {
+      setError("Choose a family before confirm assign.");
+      return;
+    }
     setError(null);
     startTransition(async () => {
       const result = await assignProductSkuAction({ productId, familyKey, variantId });
@@ -301,11 +335,18 @@ export function ProductSkuAssignPanel({
         {rows.map((row) => (
           <VariantAssignRow
             key={row.variantId}
-            familyKey={familyByVariant[row.variantId] || context.familyKeys[0] || ""}
+            familyKey={familyByVariant[row.variantId] ?? ""}
             familyKeys={context.familyKeys}
             row={row}
             isPending={isPending}
-            onFamilyChange={(value) => setFamilyByVariant((prev) => ({ ...prev, [row.variantId]: value }))}
+            onFamilyChange={(value) => {
+              setFamilyByVariant((prev) => ({ ...prev, [row.variantId]: value }));
+              setPreviewByVariant((prev) => {
+                const next = { ...prev };
+                delete next[row.variantId];
+                return next;
+              });
+            }}
             onPreview={() => runPreview(row.variantId)}
             onAssign={() => runAssign(row.variantId)}
             onResume={() => runResume(row.variantId)}
