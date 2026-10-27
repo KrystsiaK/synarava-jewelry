@@ -283,20 +283,23 @@ export async function assignProductSkuAction(input: {
     },
   );
 
-  // Persist may have run on Shopify-write failure too — full catalog check after local write.
+  // Invalidate at the write — before scoped recheck (recheck must not gate caches).
+  revalidatePath(`/admin/products/${input.productId}`);
+  revalidatePath("/admin/products");
+
   let warning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username, {
+      kind: "product",
+      productId: input.productId,
+    });
     warning = check.warning;
   }
 
   if (!result.ok) {
-    revalidatePath(`/admin/products/${input.productId}`);
     return { ok: false, error: result.error, correlationId: result.correlationId, warning };
   }
 
-  revalidatePath(`/admin/products/${input.productId}`);
-  revalidatePath("/admin/products");
   return {
     ok: true,
     sku: result.sku,
@@ -319,7 +322,7 @@ export async function resumePendingSkuAction(input: {
     return { ok: false, error: "SKU API is not configured on this environment" };
   }
 
-  const product = await loadProductForSku(input.productId);
+  await loadProductForSku(input.productId);
   const result = await resumePendingSkuAssignment(
     { productId: input.productId, variantId: input.variantId },
     {
@@ -330,14 +333,19 @@ export async function resumePendingSkuAction(input: {
     },
   );
 
+  // Invalidate at the write — before scoped recheck (recheck must not gate caches).
+  revalidatePath(`/admin/products/${input.productId}`);
+  revalidatePath("/admin/products");
+
   let warning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username, {
+      kind: "product",
+      productId: input.productId,
+    });
     warning = check.warning;
   }
 
-  revalidatePath(`/admin/products/${input.productId}`);
-  revalidatePath("/admin/products");
   if (!result.ok) {
     return { ok: false, error: result.error, correlationId: result.correlationId, warning };
   }

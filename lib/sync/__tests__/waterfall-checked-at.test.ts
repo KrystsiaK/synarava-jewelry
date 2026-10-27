@@ -39,7 +39,7 @@ beforeEach(() => {
 });
 
 describe("runSyncWaterfall checkedAt stamp", () => {
-  it("stamps checkedAt only when refresh SUCCEEDED and was not reused", async () => {
+  it("stamps checkedAt only when catalog refresh SUCCEEDED and was not reused", async () => {
     mocks.refreshShopifyState.mockResolvedValue({
       ok: true,
       runId: "r1",
@@ -59,6 +59,43 @@ describe("runSyncWaterfall checkedAt stamp", () => {
         adminUsername: "admin",
         checkedAt: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
       }),
+    );
+  });
+
+  it("does not stamp checkedAt for scoped product refresh even if ok", async () => {
+    mocks.refreshShopifyState.mockResolvedValue({
+      ok: true,
+      runId: "locale-run",
+      // Scoped product refresh has no catalog runStatus — must not invent one.
+    });
+
+    await runSyncWaterfall({
+      scope: { kind: "product", productId: "p1" },
+      requestedBy: "admin",
+    });
+
+    expect(mocks.readSynaravaStateForCompare).toHaveBeenCalledWith(
+      { kind: "product", productId: "p1" },
+      expect.objectContaining({ checkedAt: undefined }),
+    );
+  });
+
+  it("does not stamp checkedAt when a SUCCEEDED status is returned for non-catalog scope", async () => {
+    mocks.refreshShopifyState.mockResolvedValue({
+      ok: true,
+      runId: "r1",
+      runStatus: "SUCCEEDED",
+      reused: false,
+    });
+
+    await runSyncWaterfall({
+      scope: { kind: "collection", collectionId: "c1" },
+      requestedBy: "admin",
+    });
+
+    expect(mocks.readSynaravaStateForCompare).toHaveBeenCalledWith(
+      { kind: "collection", collectionId: "c1" },
+      expect.objectContaining({ checkedAt: undefined }),
     );
   });
 
