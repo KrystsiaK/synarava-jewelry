@@ -35,7 +35,7 @@
 | TD-OPS-08 | Ротация секретов после инцидента Railway, остаток: Artur-проект (S3, пароль админки, `AUTH_SECRET`, БД), `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` на prod, Cursor cloud secrets (`NODE_AUTH_TOKEN`), prod-вебхуки (проверка 200) | Идёт вручную владельцем | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
 | TD-OPS-09 | Проверка следов: Railway Activity и участники, Shopify staff/приложения, GitHub security log, Sentry members; тикет в поддержку Railway (причина «Limited Access», компенсация) | Только вручную | [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) |
 | TD-OPS-10 | Решить, оставлять ли репозиторий публичным (аудиты и инфраструктурные заметки видны всем) | Решение владельца | [infrastructure audit](audits/2026-09-infrastructure.md) |
-| TD-OPS-11 | Dependabot красный: нужен Dependabot secret для GitHub Packages | Решение по способу доступа | [deploy](runbooks/deploy.md) |
+| TD-OPS-11 | Dependabot: PRs идут в `staging` (`target-branch`), `@synarava/*` ignore; bot PR всё ещё может не видеть Packages secret — при красном CI обновлять вручную батчами на staging | Частично закрыто конфигом; полный зелёный bot CI — только с Dependabot secret или ручными PR | [deploy](runbooks/deploy.md#dependabot) |
 
 ---
 

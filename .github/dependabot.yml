@@ -2,16 +2,28 @@ version: 2
 updates:
   - package-ecosystem: npm
     directory: "/"
+    # Open PRs against staging (integration), never main (prod).
+    # Staging CI can use repo secrets; Dependabot→main was failing installs
+    # for private @synarava/* when bot PRs could not read Packages auth.
+    target-branch: staging
     schedule:
       interval: weekly
-    open-pull-requests-limit: 5
+    # Keep the queue small so humans can review/batch safely.
+    open-pull-requests-limit: 3
     # Private GitHub Packages (@synarava/*) are not readable by Dependabot
     # without registry credentials; ignoring stops updater errors. Do not
     # put a token in this file.
     ignore:
       - dependency-name: "@synarava/*"
     groups:
+      # Patch + minor only — majors stay ungrouped (one PR each).
       production-dependencies:
         dependency-type: production
+        update-types:
+          - "minor"
+          - "patch"
       development-dependencies:
         dependency-type: development
+        update-types:
+          - "minor"
+          - "patch"
