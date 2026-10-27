@@ -16,6 +16,7 @@ import {
 } from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
 import { logProductPushTiming } from "@/lib/shopify/admin-telemetry";
+import { MULTI_VARIANT_PUSH_BLOCKED_REASON } from "@/lib/shopify/catalog-conflict-policy";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
   diffCollectionMembership,
@@ -1828,6 +1829,14 @@ export async function pushProductToShopify(
     beginStep();
     const currentRemote = product.shopifyProductId ? await fetchShopifyProduct(product.shopifyProductId) : null;
     endStep("currentFetchMs");
+    // Linked Keep ours / Push only writes remote.variants.nodes[0]. Block until
+    // multi-variant push exists (Create still seeds a single default variant).
+    if (
+      product.shopifyProductId
+      && (product.variants.length > 1 || (currentRemote?.variants.nodes.length ?? 0) > 1)
+    ) {
+      throw new ShopifyAdminError(MULTI_VARIANT_PUSH_BLOCKED_REASON);
+    }
     // OUR tree alts (Media tab after Pull / after local media released on Push).
     // Must ride productSet — falling back to product.name for every image made
     // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.

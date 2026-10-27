@@ -13,6 +13,7 @@ import {
   ADOPT_SHOPIFY_FIELD_LABEL,
   ADOPT_SHOPIFY_FIELD_PATH,
   COMMERCE_UNSUPPORTED_REASON,
+  MULTI_VARIANT_PUSH_BLOCKED_REASON,
   isScopedCommerceFieldLabel,
 } from "@/lib/shopify/catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
@@ -219,8 +220,23 @@ function commerceLeaf(
 /** Stable fieldKey for the one whole-record product commerce leaf. */
 export const WHOLE_ITEM_COMMERCE_FIELD_KEY = WHOLE_ITEM_CONTRACT_KEY;
 
+/** Variant rows on a Shopify-shaped commerce window (OUR or snapshot). */
+function projectionVariantCount(window: unknown): number {
+  if (!window || typeof window !== "object" || Array.isArray(window)) return 0;
+  const variants = (window as { variants?: unknown }).variants;
+  return Array.isArray(variants) ? variants.length : 0;
+}
+
+export function isMultiVariantCommerceWindow(ourWindow: unknown, shopifySnapshot: unknown): boolean {
+  return projectionVariantCount(ourWindow) > 1 || projectionVariantCount(shopifySnapshot) > 1;
+}
+
 /** Collapse ALL product commerce diffs into one whole-record leaf (when any need it). */
-function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjectionDiff[]): SyncLeaf {
+function wholeItemCommerceLeaf(
+  resourceId: string,
+  diffs: readonly ShopifyProjectionDiff[],
+  options?: { multiVariant?: boolean },
+): SyncLeaf {
   const sorted = [...diffs].toSorted((a, b) => a.field.localeCompare(b.field) || a.path.localeCompare(b.path));
   // Group by contractKey for field count, but keep EVERY path/value — dropping
   // later diffs under the same key made the stale-preview fingerprint miss
@@ -233,6 +249,7 @@ function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjec
   const fieldCount = new Set(parts.map((part) => part.contractKey)).size;
   const synaravaValue = parts.map((part) => `${part.label}: ${part.local}`).join("\n");
   const shopifyValue = parts.map((part) => `${part.label}: ${part.shopify}`).join("\n");
+  const multiVariant = options?.multiVariant === true;
   // Fingerprints hash all paths/values — not the visible summary, not first-only.
   return {
     id: `PRODUCT:${resourceId}:${WHOLE_ITEM_COMMERCE_FIELD_KEY}`,
@@ -244,8 +261,9 @@ function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjec
     label: `Product data (${fieldCount} fields)`,
     synaravaValue,
     shopifyValue,
-    allowedDirections: [],
-    blockedReason: COMMERCE_UNSUPPORTED_REASON,
+    // Multi-variant: Take Shopify only — Keep ours would push variants[0] alone.
+    allowedDirections: multiVariant ? ["SHOPIFY_TO_SYNARAVA"] : [],
+    blockedReason: multiVariant ? MULTI_VARIANT_PUSH_BLOCKED_REASON : COMMERCE_UNSUPPORTED_REASON,
     sourceId: null,
     path: null,
     contractKey: WHOLE_ITEM_CONTRACT_KEY,
@@ -311,7 +329,11 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
     if (window.ourWindow == null) continue;
     const diffs = diffShopifyProjections(window.ourWindow, window.shopifySnapshot);
     if (window.resourceType === "PRODUCT" && diffs.some((d) => !isScopedCommerceFieldLabel(d.field))) {
-      if (diffs.length > 0) leaves.push(wholeItemCommerceLeaf(window.resourceId, diffs));
+      if (diffs.length > 0) {
+        leaves.push(wholeItemCommerceLeaf(window.resourceId, diffs, {
+          multiVariant: isMultiVariantCommerceWindow(window.ourWindow, window.shopifySnapshot),
+        }));
+      }
       continue;
     }
     for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));

@@ -160,7 +160,15 @@ function effectiveDirections(
   supportsWholeRecord: boolean,
 ): CatalogConflictDirection[] {
   if (supportsWholeRecord && isWholeRecordField(field)) {
-    return [CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA, CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY];
+    const wholeRecordDirections = [
+      CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA,
+      CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY,
+    ] as const;
+    // Non-empty allowedDirections narrows whole-record (e.g. multi-variant: Take Shopify only).
+    if (field.allowedDirections.length > 0) {
+      return wholeRecordDirections.filter((direction) => field.allowedDirections.includes(direction));
+    }
+    return [...wholeRecordDirections];
   }
   if (field.blockedReason) return [];
   return field.allowedDirections;
@@ -347,9 +355,11 @@ export function ConflictRow({
       </div>
       {wholeRecord || field.blockedReason ? (
         <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
-          {wholeRecord
-            ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
-            : `Cannot choose here: ${field.blockedReason}`}
+          {wholeRecord && !canKeepOurs && field.blockedReason
+            ? field.blockedReason
+            : wholeRecord
+              ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
+              : `Cannot choose here: ${field.blockedReason}`}
         </p>
       ) : null}
     </section>
