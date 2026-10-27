@@ -104,15 +104,73 @@ describe("MissionControlHub placeholder notice", () => {
     expect(screen.queryByTestId("mc-attention-db")).not.toBeInTheDocument();
   });
 
-  it("makes a stale collector explicit", () => {
+  it("treats missing collectorCheckedAt as stale even when probes look fresh", () => {
     render(
       <MissionControlHub
-        nodeStatuses={[{ ...liveNode, checkedAt: new Date(NOW.getTime() - 60 * 60 * 1000) }]}
+        nodeStatuses={[liveNode]}
         flowStatuses={[]}
         nowMs={NOW.getTime()}
       />,
     );
 
     expect(screen.getByText("Collector looks stale")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-attention-empty")).toHaveAttribute(
+      "data-collector-stale",
+      "true",
+    );
+    expect(screen.getByTestId("mc-attention-empty")).toHaveTextContent(
+      "Collector heartbeat is stale or missing",
+    );
+  });
+
+  it("treats an old collectorCheckedAt as stale even when live probes are ok", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[liveNode]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        collectorCheckedAt={new Date(NOW.getTime() - 60 * 60 * 1000)}
+      />,
+    );
+
+    expect(screen.getByText("Collector looks stale")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-attention-empty")).toHaveAttribute(
+      "data-collector-stale",
+      "true",
+    );
+  });
+
+  it("shows a fresh collector heartbeat without all-clear when live is unhealthy", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[liveIssue("orders", "down")]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        collectorCheckedAt={NOW}
+      />,
+    );
+
+    expect(screen.getByText("Collector checked")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-attention-orders")).toBeInTheDocument();
+  });
+
+  it("shows healthy collector empty state when live is ok and heartbeat is fresh", () => {
+    render(
+      <MissionControlHub
+        nodeStatuses={[liveNode]}
+        flowStatuses={[]}
+        nowMs={NOW.getTime()}
+        collectorCheckedAt={NOW}
+      />,
+    );
+
+    expect(screen.getByText("Collector checked")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-attention-empty")).toHaveAttribute(
+      "data-collector-stale",
+      "false",
+    );
+    expect(screen.getByTestId("mc-attention-empty")).toHaveTextContent(
+      "Everything currently reporting is operational.",
+    );
   });
 });

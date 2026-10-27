@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   nodeFindUnique: vi.fn(),
+  nodeFindFirst: vi.fn(),
   nodeUpsert: vi.fn(),
   flowFindUnique: vi.fn(),
   flowUpsert: vi.fn(),
@@ -11,6 +12,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     serviceNodeStatus: {
       findUnique: mocks.nodeFindUnique,
+      findFirst: mocks.nodeFindFirst,
       upsert: mocks.nodeUpsert,
     },
     serviceFlowStatus: {
@@ -21,6 +23,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import {
+  readLatestCollectorCheckedAt,
   readServiceNodeStatus,
   writeServiceNodeStatus,
 } from "@/lib/mission-control/status";
@@ -28,6 +31,7 @@ import {
 describe("Mission Control Stage 2 status read/write", () => {
   beforeEach(() => {
     mocks.nodeFindUnique.mockReset();
+    mocks.nodeFindFirst.mockReset();
     mocks.nodeUpsert.mockReset();
     mocks.flowFindUnique.mockReset();
     mocks.flowUpsert.mockReset();
@@ -79,5 +83,30 @@ describe("Mission Control Stage 2 status read/write", () => {
       where: { nodeKey: "site-health" },
     });
     expect(read).toEqual(stored);
+  });
+
+  it("reads the latest collector checkedAt across live keys", async () => {
+    const checkedAt = new Date("2026-10-19T14:30:00.000Z");
+    mocks.nodeFindFirst.mockResolvedValueOnce({ checkedAt });
+
+    const latest = await readLatestCollectorCheckedAt([
+      "site-health",
+      "shopify-sync",
+      "orders",
+    ]);
+
+    expect(mocks.nodeFindFirst).toHaveBeenCalledWith({
+      where: { nodeKey: { in: ["site-health", "shopify-sync", "orders"] } },
+      orderBy: { checkedAt: "desc" },
+      select: { checkedAt: true },
+    });
+    expect(latest).toEqual(checkedAt);
+  });
+
+  it("returns null when the collector has never written", async () => {
+    mocks.nodeFindFirst.mockResolvedValueOnce(null);
+    await expect(readLatestCollectorCheckedAt(["site-health"])).resolves.toBeNull();
+    await expect(readLatestCollectorCheckedAt([])).resolves.toBeNull();
+    expect(mocks.nodeFindFirst).toHaveBeenCalledTimes(1);
   });
 });
