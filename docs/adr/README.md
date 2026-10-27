@@ -13,3 +13,4 @@
 | [0007](0007-languages-as-data.md) | Languages as data — registry-driven Draft/Published/Retired/Deleted | accepted | 2026-10-21 |
 | [0008](0008-sync-two-state-owner-model.md) | Sync: two states, nothing automatic, one compare module | superseded by 0009 | 2026-10-23 |
 | [0009](0009-derive-synarava-commerce-state.md) | Synarava commerce state derived (columns + extras); drop workingSnapshot | accepted | 2026-10-26 |
+| [0010](0010-field-contract-and-verified-convergence.md) | Field contract metadata + verified write convergence | proposed (Accepted after PR-6..8 merge) | 2026-10-27 |
