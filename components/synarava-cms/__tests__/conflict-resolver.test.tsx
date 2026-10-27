@@ -237,6 +237,43 @@ describe("ConflictResolver", () => {
     expect(screen.getByRole("button", { name: "Apply (1)" })).toBeEnabled();
   });
 
+  it("blocks Keep ours on multi-variant whole-item with inline reason", async () => {
+    const multiVariantReason =
+      "This product has more than one variant. Keep ours / Push to Shopify is blocked until multi-variant push exists — Take Shopify still works.";
+    const blocked: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:whole-item",
+      label: "Product data (2 fields)",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "Status: ACTIVE\nTags: a",
+      shopifyValue: "Status: DRAFT\nTags: b",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      blockedReason: multiVariantReason,
+      sourceId: null,
+    };
+    const adapter = createAdapter({
+      supportsWholeRecord: true,
+      applyWholeRecord: vi.fn(async () => ({ ok: true, success: "Pulled." })),
+      loadEntityFields: vi.fn(async () => ({ fields: [blocked] })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "Lava Ring" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+    const groupSection = (await screen.findByText("Product data (2 fields)")).closest("section") as HTMLElement;
+    expect(within(groupSection).getByText(multiVariantReason)).toBeInTheDocument();
+    expect(within(groupSection).queryByRole("button", { name: /Synarava|Keep ours|Ours/i })).toBeNull();
+    expect(within(groupSection).getByRole("button", { name: /Shopify/i })).toBeInTheDocument();
+  });
+
   it("makes whole-item aggregate selectable when whole-record is supported", async () => {
     const blocked: CatalogConflictField = {
       ...field,
