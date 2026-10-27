@@ -15,12 +15,7 @@ export type ProductConflictCompareSummary = {
  */
 export function productConflictCompareSummary(
   signal: CatalogConflictProductSignal | null | undefined,
-  options?: {
-    /** Unused for shared fan-out — kept for call-site compatibility. */
-    localeTabs?: ReadonlyArray<{ code: string; label: string }>;
-  },
 ): ProductConflictCompareSummary {
-  void options;
   const count = productConflictBadgeCount(signal);
   if (count <= 0) return { count: 0, localeLabels: [] };
 

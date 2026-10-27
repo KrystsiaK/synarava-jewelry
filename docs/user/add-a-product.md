@@ -85,10 +85,10 @@ item headers. Each change row leads with the field and direction
 the footer counts changes to Shopify vs Synarava. Nothing is written until you
 confirm. There is no second Take/Keep or quick-pull dialog in the Sync strip.
 
-Commerce fields that cannot be written field-by-field (for example Status or
-tags) still use the same cells. Choosing a side means a **whole-item** commerce
-sync for that product. The confirm dialog lists every blocked commerce field
-that will change before you confirm.
+When any commerce difference needs a whole-item sync (for example Status or
+tags), compare shows one **Product data (N fields)** card for that product —
+including otherwise scoped fields. Choosing a side runs one whole-item Pull or
+Push; the confirm dialog shows that single aggregate before you confirm.
 :::
 
 :::warning

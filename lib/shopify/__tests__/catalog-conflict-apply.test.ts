@@ -276,8 +276,13 @@ describe("previewCatalogConflictResolution", () => {
 });
 
 describe("assertWholeRecordFingerprintsFresh", () => {
-  it("refuses when a previewed blocked commerce fingerprint no longer matches", async () => {
-    const field = commerceField({ blockedReason: "No safe field-by-field write yet", allowedDirections: [] });
+  it("refuses when the aggregate whole-item fingerprint no longer matches", async () => {
+    const field = commerceField({
+      fieldKey: "commerce:whole-item",
+      label: "Product data (2 fields)",
+      blockedReason: "No safe field-by-field write yet",
+      allowedDirections: [],
+    });
     mocks.loadProductConflictFromSyncResult.mockResolvedValue(
       conflict([commerceField({ ...field, localFingerprint: "changed-local" })]),
     );
@@ -286,7 +291,7 @@ describe("assertWholeRecordFingerprintsFresh", () => {
       productId: "product-1",
       actorUsername: "admin",
       expected: [{
-        fieldKey: field.fieldKey,
+        fieldKey: "commerce:whole-item",
         expectedLocalFingerprint: field.localFingerprint,
         expectedShopifyFingerprint: field.shopifyFingerprint,
       }],
@@ -296,15 +301,20 @@ describe("assertWholeRecordFingerprintsFresh", () => {
     });
   });
 
-  it("allows whole-record when fingerprints still match the preview", async () => {
-    const field = commerceField({ blockedReason: "No safe field-by-field write yet", allowedDirections: [] });
+  it("allows whole-record when the one aggregate fingerprint still matches", async () => {
+    const field = commerceField({
+      fieldKey: "commerce:whole-item",
+      label: "Product data (2 fields)",
+      blockedReason: "No safe field-by-field write yet",
+      allowedDirections: [],
+    });
     mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
 
     await expect(assertWholeRecordFingerprintsFresh({
       productId: "product-1",
       actorUsername: "admin",
       expected: [{
-        fieldKey: field.fieldKey,
+        fieldKey: "commerce:whole-item",
         expectedLocalFingerprint: field.localFingerprint,
         expectedShopifyFingerprint: field.shopifyFingerprint,
       }],

@@ -135,14 +135,16 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     expect(adminSyncActionMocks.applyCatalogConflictResolutionAction).not.toHaveBeenCalled();
   });
 
-  it("selects blocked commerce via whole-record pull on confirm", async () => {
+  it("selects whole-item aggregate via whole-record pull on confirm", async () => {
     adminSyncActionMocks.loadProductCatalogConflictAction.mockResolvedValue({
       conflict: {
         productId: "p1",
         fields: [{
           ...field,
-          fieldKey: "commerce:status",
-          label: "Status",
+          fieldKey: "commerce:whole-item",
+          label: "Product data (2 fields)",
+          synaravaValue: "Status: ACTIVE\nTags: a",
+          shopifyValue: "Status: DRAFT\nTags: b",
           scope: { kind: "SHARED" as const },
           origin: "COMMERCE" as const,
           allowedDirections: [] as const,
@@ -154,8 +156,8 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
     adminSyncActionMocks.pullSingleProductFromShopifyAction.mockResolvedValue({ success: "Pulled." });
 
     renderWorkspace();
-    const statusSection = (await screen.findByText("Status")).closest("section") as HTMLElement;
-    fireEvent.click(within(statusSection).getByRole("button", { name: /Shopify/i }));
+    const groupSection = (await screen.findByText("Product data (2 fields)")).closest("section") as HTMLElement;
+    fireEvent.click(within(groupSection).getByRole("button", { name: /Shopify/i }));
     fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
     const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
     expect(within(preview).getByText(/Whole-item sync/)).toBeInTheDocument();
@@ -166,9 +168,11 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
       expect(adminSyncActionMocks.pullSingleProductFromShopifyAction).toHaveBeenCalledWith(
         "p1",
         true,
-        expect.arrayContaining([
-          expect.objectContaining({ fieldKey: "commerce:status" }),
-        ]),
+        [{
+          fieldKey: "commerce:whole-item",
+          expectedLocalFingerprint: field.localFingerprint,
+          expectedShopifyFingerprint: field.shopifyFingerprint,
+        }],
       );
     });
   });

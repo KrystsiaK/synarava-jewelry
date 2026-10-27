@@ -4,18 +4,11 @@ import userEvent from "@testing-library/user-event";
 
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
 
-const LOCALE_TABS = [
-  { code: "en", label: "English" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ru", label: "Russian" },
-];
-
 describe("ProductConflictCompareBanner", () => {
   it("renders nothing when icon would also show zero (one-sided-only case)", () => {
     const { container } = render(
       <ProductConflictCompareBanner
         signal={null}
-        localeTabs={LOCALE_TABS}
         onOpen={() => {}}
       />,
     );
@@ -35,7 +28,6 @@ describe("ProductConflictCompareBanner", () => {
             { code: "pt", name: "Portuguese", nativeName: "Português", count: 1 },
           ],
         }}
-        localeTabs={LOCALE_TABS}
         onOpen={onOpen}
       />,
     );
@@ -59,7 +51,6 @@ describe("ProductConflictCompareBanner", () => {
           sharedCount: 1,
           locales: [],
         }}
-        localeTabs={LOCALE_TABS}
         onOpen={() => {}}
       />,
     );
