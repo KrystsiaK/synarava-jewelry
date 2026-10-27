@@ -15,6 +15,7 @@ import {
   PRODUCT_CHARACTERISTICS,
 } from "@/lib/products/characteristics";
 import { shopifyAdminRequest, ShopifyAdminError, shopifyNumericId } from "@/lib/shopify/admin";
+import { logProductPushTiming } from "@/lib/shopify/admin-telemetry";
 import { shopifyAmountToCents } from "@/lib/shopify/money";
 import {
   diffCollectionMembership,
@@ -536,7 +537,13 @@ async function fetchCategoryMetafieldDisplayValues(productId: string, key: strin
   return [...new Set(names)];
 }
 
-export async function fetchShopifyProduct(id: string) {
+/** `snapshot` (default) skips inventoryLevels; `pull` enriches for stock. One gate. */
+export type FetchShopifyProductPurpose = "snapshot" | "pull";
+
+export async function fetchShopifyProduct(
+  id: string,
+  purpose: FetchShopifyProductPurpose = "snapshot",
+) {
   const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
     `query SynaravaProduct($id: ID!) { product(id: $id) { ${PRODUCT_FIELDS} } }`,
@@ -558,9 +565,11 @@ export async function fetchShopifyProduct(id: string) {
     if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
     metafield.resolvedValues = await fetchCategoryMetafieldDisplayValues(shopifyId, metafield.key);
   }
-  for (const variant of product.variants.nodes) {
-    if (!variant.inventoryItem?.tracked) continue;
-    variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
+  if (purpose === "pull") {
+    for (const variant of product.variants.nodes) {
+      if (!variant.inventoryItem?.tracked) continue;
+      variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
+    }
   }
   return product;
 }
@@ -1226,7 +1235,7 @@ export async function applyShopifyProductToSynarava(
   force = false,
   options: { pullTranslations?: boolean } = {},
 ) {
-  const remote = await fetchShopifyProduct(id);
+  const remote = await fetchShopifyProduct(id, "pull");
   if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
   return savePulledProduct(remote, eventId, {
     force,
@@ -1702,6 +1711,34 @@ export async function pushProductToShopify(
 ) {
   const authorizeCommerceConflictOverwrite = options.authorizeCommerceConflictOverwrite === true;
   const pushRegisteredTranslations = options.pushRegisteredTranslations !== false;
+  const pushStarted = performance.now();
+  const pushTiming = {
+    currentFetchMs: 0,
+    stagingUploadMs: 0,
+    productSetMs: 0,
+    publicationMs: 0,
+    collectionMembershipMs: 0,
+    metafieldsMs: 0,
+    metafieldTranslationsMs: 0,
+    variantInventoryMs: 0,
+    mediaSettlementMs: 0,
+    finalSnapshotMs: 0,
+    productTranslationsMs: 0,
+  };
+  const emitPushTiming = (success: boolean) => {
+    logProductPushTiming({
+      ...pushTiming,
+      totalMs: Math.round(performance.now() - pushStarted),
+      success,
+    });
+  };
+  let stepStarted = pushStarted;
+  const beginStep = () => {
+    stepStarted = performance.now();
+  };
+  const endStep = (key: keyof typeof pushTiming) => {
+    pushTiming[key] = Math.round(performance.now() - stepStarted);
+  };
   const event = await db.productSyncEvent.create({
     data: { productId, direction: "PUSH", status: "PROCESSING", attemptCount: 1 },
   });
@@ -1783,7 +1820,9 @@ export async function pushProductToShopify(
         return null;
       }
     };
+    beginStep();
     const currentRemote = product.shopifyProductId ? await fetchShopifyProduct(product.shopifyProductId) : null;
+    endStep("currentFetchMs");
     // OUR tree alts (Media tab after Pull / after local media released on Push).
     // Must ride productSet — falling back to product.name for every image made
     // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
@@ -1825,7 +1864,9 @@ export async function pushProductToShopify(
       }),
     );
     const assetsToStage = localAssets.filter((asset) => !remoteByFilename.has(asset.filename));
+    beginStep();
     const stagedUrls = await uploadAssetsToShopifyStaging(assetsToStage);
+    endStep("stagingUploadMs");
     const seenMediaUrls = new Set<string>();
     const seenMediaIds = new Set<string>();
     const remoteByUrl = new Map(
@@ -1938,6 +1979,7 @@ export async function pushProductToShopify(
       } : {}),
       files,
     };
+    beginStep();
     const data = await shopifyAdminRequest<{
       productSet: { product: ShopifyProduct | null; userErrors: UserError[] };
     }>(
@@ -1952,10 +1994,13 @@ export async function pushProductToShopify(
     userErrors(data.productSet.userErrors);
     if (!data.productSet.product) throw new ShopifyAdminError("Shopify did not return the saved product.");
     const remote = data.productSet.product;
+    endStep("productSetMs");
+    beginStep();
     await syncOnlineStorePublication(
       remote.id,
       product.status === "ACTIVE" || product.status === "UNLISTED",
     );
+    endStep("publicationMs");
     const desiredCollections = product.collections.flatMap((item) =>
       item.collection.shopifyCollectionId
         ? [{
@@ -1968,6 +2013,7 @@ export async function pushProductToShopify(
     const desiredCollectionIds = desiredCollections.map((collection) => collection.shopifyCollectionId);
     const currentCollectionIds = (currentRemote?.collections.nodes ?? []).map((item) => item.id);
     const { toJoin, toLeave } = diffCollectionMembership(desiredCollectionIds, currentCollectionIds);
+    beginStep();
     for (const collection of desiredCollections.filter((item) => toJoin.includes(item.shopifyCollectionId))) {
       await addProductToShopifyCollection(collection, remote.id);
     }
@@ -1990,6 +2036,8 @@ export async function pushProductToShopify(
         shopifyManualSourceId: collection.shopifyManualSourceId,
       }, remote.id);
     }
+    endStep("collectionMembershipMs");
+    beginStep();
     const setMetafieldRefs = await pushProductMetafields({
       ownerId: remote.id,
       desired: metafields,
@@ -1999,6 +2047,8 @@ export async function pushProductToShopify(
         "certificate" in item ? [item.key, `${item.key}_certificate`] : [item.key],
       )),
     });
+    endStep("metafieldsMs");
+    beginStep();
     if (pushRegisteredTranslations) {
       const { pushCustomMetafieldTranslations, metafieldRefsFromNodes } = await import(
         "@/lib/shopify/product-metafield-translations"
@@ -2020,6 +2070,8 @@ export async function pushProductToShopify(
         })),
       });
     }
+    endStep("metafieldTranslationsMs");
+    beginStep();
     const remoteVariant = remote.variants.nodes[0];
     let pushedInventory: { variantId: string; quantity: number } | null = null;
     if (remoteVariant) {
@@ -2133,10 +2185,14 @@ export async function pushProductToShopify(
         }
       }
     }
+    endStep("variantInventoryMs");
+    beginStep();
     const mediaSettled = await waitForReadyProductMedia(remote, localAssets);
+    endStep("mediaSettlementMs");
     // Inventory SetQuantities can lag one fetch behind; wait so agreedProjectionWrite
     // does not freeze a stale quantity into OUR/Shopify and force a second Push cycle.
     const expectedInventory = pushedInventory;
+    beginStep();
     const settled = {
       ...mediaSettled,
       product: await refreshShopifyProductAfterPush(
@@ -2155,6 +2211,7 @@ export async function pushProductToShopify(
           : undefined,
       ),
     };
+    endStep("finalSnapshotMs");
     const remoteImageUrl = pickShopifyProductImageUrl({
       featuredImageUrl: settled.product.featuredMedia?.preview?.image?.url,
       media: settled.product.media.nodes.map((item) => ({
@@ -2192,6 +2249,7 @@ export async function pushProductToShopify(
     }
     await deleteUnreferencedArchivedProductAssets();
 
+    beginStep();
     const translationErrors: string[] = [];
     const pushTranslationLocales = pushRegisteredTranslations
       ? (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault)
@@ -2248,13 +2306,16 @@ export async function pushProductToShopify(
         }
       }
     }
+    endStep("productTranslationsMs");
     const translationError = translationErrors.length > 0 ? translationErrors.join(" ") : undefined;
     await db.productSyncEvent.update({ where: { id: event.id }, data: { shopifyProductId: remote.id, status: "SUCCEEDED", completedAt: new Date() } });
+    emitPushTiming(true);
     return { ok: true as const, shopifyProductId: remote.id, translationError };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown Shopify sync error.";
     await db.product.update({ where: { id: productId }, data: { syncStatus: "FAILED", syncError: message } });
     await db.productSyncEvent.update({ where: { id: event.id }, data: { status: "FAILED", error: message, completedAt: new Date() } });
+    emitPushTiming(false);
     return { ok: false as const, error: message };
   }
 }

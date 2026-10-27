@@ -1,7 +1,6 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
-import { after } from "next/server";
 
 import { revalidateStorefront } from "@/lib/content/revalidate-storefront";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
@@ -54,6 +53,21 @@ function applyMessages(appliedCount: number, failedCount: number) {
   };
 }
 
+/** Local entity ids that Apply wrote successfully (skip virtual shopify:* rows). */
+function appliedEntityIds(
+  results: Array<{ ok: boolean; productId?: string; collectionId?: string; localProductId?: string; localCollectionId?: string }>,
+  entity: ConflictEntity,
+): string[] {
+  return [...new Set(
+    results
+      .filter((result) => result.ok)
+      .map((result) => entity === "product"
+        ? (result.localProductId ?? result.productId)
+        : (result.localCollectionId ?? result.collectionId))
+      .filter((id): id is string => typeof id === "string" && !id.startsWith("shopify:")),
+  )];
+}
+
 /** Optional-field shape preserves prior server-action caller checks (`if (result.signals)`). */
 export type ConflictSignalsResult = { signals?: CatalogConflictSignals; error?: string };
 export type ConflictPreviewResult<T> = { preview?: T; error?: string };
@@ -91,20 +105,44 @@ async function markProductIncomingWatermark(
   }
 }
 
+/**
+ * Invalidate caches at the write — never after a long recheck.
+ * If the request is cut during recheck, DB already changed; caches must not stay stale.
+ * Do not defer storefront invalidation to after() (safe-to-lose only).
+ */
+function invalidateAfterWrite(adminPaths: string[]) {
+  for (const path of adminPaths) revalidatePath(path);
+  revalidateStorefront();
+}
+
 function finishApply<T extends { appliedCount: number; failedCount: number }>(
   entity: ConflictEntity,
   outcome: T,
-  adminPaths: string[],
   warning?: string,
 ): ConflictApplyResult<T> {
-  // Admin pages are invalidated BEFORE the response: the client router.refresh()es right after Apply,
-  // and a revalidatePath deferred to after() runs too late (stale page until the next navigation).
-  for (const path of adminPaths) revalidatePath(path);
-  after(() => {
-    revalidateStorefront();
-  });
   const messages = applyMessages(outcome.appliedCount, outcome.failedCount);
   return entity === "product" ? { outcome, warning, ...messages } : { outcome, ...messages };
+}
+
+/** Scoped recheck after Apply — never throws into Apply (caches already invalidated). */
+async function recheckAppliedEntities(
+  username: string,
+  entity: ConflictEntity,
+  ids: string[],
+): Promise<void> {
+  for (const id of ids) {
+    try {
+      await runAfterSaveCatalogConflictCheck(
+        username,
+        entity === "product"
+          ? { kind: "product", productId: id }
+          : { kind: "collection", collectionId: id },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error(`[conflict-apply] scoped recheck failed after write for ${entity} ${id}`, message);
+    }
+  }
 }
 
 export async function loadSignals(entity: ConflictEntity, username: string): Promise<ConflictSignalsResult> {
@@ -217,9 +255,13 @@ export async function applyResolution(
     if (entity === "product") {
       const productInput = input as { entries: CatalogConflictApplyEntryInput[]; acknowledgeClears: boolean };
       const outcome = await applyCatalogConflictResolution({ ...productInput, actorUsername: username });
+      // Write phase done — invalidate before any recheck (recheck must not gate caches).
+      invalidateAfterWrite(["/admin/products"]);
       const warning = await markProductIncomingWatermark(productInput.entries, outcome);
-      if (outcome.appliedCount > 0) await runAfterSaveCatalogConflictCheck(username);
-      return finishApply(entity, outcome, ["/admin/products"], warning);
+      if (outcome.appliedCount > 0) {
+        await recheckAppliedEntities(username, "product", appliedEntityIds(outcome.results, "product"));
+      }
+      return finishApply(entity, outcome, warning);
     }
 
     const collectionInput = input as {
@@ -227,12 +269,15 @@ export async function applyResolution(
       acknowledgeClears: boolean;
     };
     const outcome = await applyCollectionConflictResolution({ ...collectionInput, actorUsername: username });
-    if (outcome.appliedCount > 0) await runAfterSaveCatalogConflictCheck(username);
     const adminPaths = [
       "/admin/collections",
       ...[...new Set(collectionInput.entries.map((e) => e.collectionId))].map((id) => `/admin/collections/${id}`),
     ];
-    return finishApply(entity, outcome, adminPaths);
+    invalidateAfterWrite(adminPaths);
+    if (outcome.appliedCount > 0) {
+      await recheckAppliedEntities(username, "collection", appliedEntityIds(outcome.results, "collection"));
+    }
+    return finishApply(entity, outcome);
   } catch (error) {
     return err(error, ERRORS.applyFailed);
   }

@@ -20,19 +20,20 @@ human **Apply** after preview.
   must match the current shop.
 - Collections use the **same** ConflictResolver UI as Products (one shared
   control in synarava-cms).
-- Shopify fetch+compare runs from the admin top-bar Shopify control (once at
-  login, on click) and after Save. Catalog banners and ConflictResolver open
-  only display the last SyncResult leaves (`skipRefresh` — no Shopify fetch).
+- Full catalog fetch+compare runs from the admin top-bar Shopify control (once
+  at login, on click). After Save / Apply, only that collection is rechecked.
+  Catalog banners and ConflictResolver open only display the last SyncResult
+  leaves (`skipRefresh` — no Shopify fetch).
 
 :::good-to-know
 There are two copies of commerce fields: a **Shopify** copy (left cell in the
 conflict UI) and a **Synarava** copy (right cell). Nothing is written
 automatically when you open the page or the conflict list. Webhooks update the
 Shopify-side copy. A full catalog check runs from the admin top-bar Shopify
-control (once at login, on click) and after every product / collection /
-language-setting Save. While a check runs, Save and Take Shopify / Keep ours
-stay disabled; fields stay editable. Conflict counts come from SyncResult
-leaves — not from a `syncStatus: CONFLICT` database flag.
+control (once at login, on click). After product / collection Save or Apply, a
+one-entity recheck runs for that item only. While a check runs, Save and Take
+Shopify / Keep ours stay disabled; fields stay editable. Conflict counts come
+from SyncResult leaves — not from a `syncStatus: CONFLICT` database flag.
 :::
 
 ## Steps
@@ -100,7 +101,7 @@ grouped by item with the same header as the conflict list (for example
 Nothing is written until you **Confirm changes** (the acknowledgement
 checkbox still appears for clears / removals). Confirm writes only those
 selections. Apply may refresh that one collection for write safety, then
-rebuilds leaves; after a successful Apply the after-save full check runs.
+rebuilds leaves; after a successful Apply the one-entity recheck runs again.
 :::
 
 :::warning
@@ -108,7 +109,7 @@ The banner is display-only (saved SyncResult counts and last full-check time).
 It does not show check progress. Use the admin top-bar Shopify control for
 status (**Shopify current \<time\>**, **Checking Shopify…**, **Check failed**,
 or **Shopify disconnected**) and to start a manual full check. Saving a
-collection also runs that same full check. Use **Show conflicts** to review or
+collection rechecks that collection only. Use **Show conflicts** to review or
 resolve differences without starting another fetch.
 :::
 

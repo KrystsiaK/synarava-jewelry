@@ -7,6 +7,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   hasShopifyAdminConfig: vi.fn(() => true),
+  fetchShopifyShopIdentity: vi.fn(async () => ({
+    name: "Synarava",
+    myshopifyDomain: "synarava.myshopify.com",
+  })),
+  ensureShopifyStoreBinding: vi.fn(async () => ({
+    status: "MATCH" as const,
+    currentShopDomain: "synarava.myshopify.com",
+  })),
   refreshShopifyProductState: vi.fn(),
   refreshShopifyCollectionState: vi.fn(),
   scanAndSaveCatalogPresence: vi.fn(),
@@ -37,6 +45,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/shopify/admin", () => ({
   hasShopifyAdminConfig: mocks.hasShopifyAdminConfig,
+  fetchShopifyShopIdentity: mocks.fetchShopifyShopIdentity,
+}));
+vi.mock("@/lib/shopify/store-binding", () => ({
+  ensureShopifyStoreBinding: mocks.ensureShopifyStoreBinding,
+  assertShopifyStoreBinding: vi.fn(),
 }));
 vi.mock("@/lib/shopify/product-sync", () => ({
   refreshShopifyProductState: mocks.refreshShopifyProductState,
@@ -69,6 +82,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     collection: { findMany: mocks.findManyCollections },
     product: { findMany: mocks.findManyProducts },
+    shopifyTranslationBinding: { count: vi.fn(async () => 0) },
   },
 }));
 
@@ -79,6 +93,7 @@ import { refreshShopifyState } from "@/lib/sync/refresh-shopify-state";
 describe("top-bar full catalog waterfall", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
     mocks.hasShopifyAdminConfig.mockReturnValue(true);
     mocks.beginCatalogCheckRun.mockResolvedValue({
       status: "started",
@@ -145,6 +160,8 @@ describe("top-bar full catalog waterfall", () => {
 
   it("runCatalogConflictCheck drives product AND collection conflict counts", async () => {
     const checked = await runCatalogConflictCheck("admin", { trigger: "MANUAL" });
+    expect(mocks.fetchShopifyShopIdentity).toHaveBeenCalledOnce();
+    expect(mocks.ensureShopifyStoreBinding).toHaveBeenCalledWith("synarava.myshopify.com");
     const nav = selectAdminNavSyncCounts(checked.result);
     const productSignals = catalogConflictSignalsFromSyncResult(checked.result, "PRODUCT", [
       { code: "en", name: "English", nativeName: "English" },

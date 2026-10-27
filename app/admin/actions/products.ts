@@ -1386,7 +1386,10 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
 
   let syncWarning: string | undefined;
   if (hasShopifyAdminConfig()) {
-    const check = await runAfterSaveCatalogConflictCheck(currentUser.username);
+    const check = await runAfterSaveCatalogConflictCheck(currentUser.username, {
+      kind: "product",
+      productId: savedProduct.id,
+    });
     syncWarning = check.warning;
   }
 

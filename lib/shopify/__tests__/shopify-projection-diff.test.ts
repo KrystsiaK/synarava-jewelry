@@ -419,6 +419,26 @@ it("treats Shopify null SEO overrides as the empty editor value", () => {
   expect(diffShopifyProjections({ seo: { title: "", description: "" } }, { seo: { title: null, description: null } })).toEqual([]);
 });
 
+it("treats bare Shopify span wrappers and dir attrs as equal descriptionHtml", () => {
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>x</p>" },
+    { descriptionHtml: "<p><span>x</span></p>" },
+  )).toEqual([]);
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>x</p>" },
+    { descriptionHtml: '<p dir="ltr">x</p>' },
+  )).toEqual([]);
+});
+
+it("still conflicts when descriptionHtml text actually changes", () => {
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>x</p>" },
+    { descriptionHtml: "<p><span>y</span></p>" },
+  )).toEqual([
+    { path: "descriptionHtml", field: "Description", local: "<p>x</p>", shopify: "<p>y</p>" },
+  ]);
+});
+
 
 it("reports one SEO conflict rather than its duplicate global metafield view", () => {
   const window = (title: string) => ({ seo: { title, description: "" }, metafields: [{ namespace: "global", key: "title_tag", value: title, type: "single_line_text_field" }] });

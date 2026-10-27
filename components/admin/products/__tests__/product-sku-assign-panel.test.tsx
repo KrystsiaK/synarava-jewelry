@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
@@ -208,5 +209,122 @@ describe("ProductSkuAssignPanel M2 UI", () => {
     );
 
     expect(await screen.findByRole("button", { name: "Retry confirm" })).toBeEnabled();
+  });
+
+  it("does not preselect a family; Preview and Confirm stay disabled until chosen", async () => {
+    mocks.loadSkuAssignContext.mockResolvedValue({
+      configured: true,
+      familyKeys: ["accessory.eyeglasses", "jewelry.earring"],
+      currentSku: "PENDING-abc",
+      pending: true,
+      pendingReservationSku: null,
+      shopifyLinked: false,
+      variantId: "var-1",
+      variants: [{
+        variantId: "var-1",
+        title: "Default Title",
+        sku: "PENDING-abc",
+        shopifyVariantId: null,
+        pending: true,
+        pendingReservationSku: null,
+        shopifyLinked: false,
+      }],
+    });
+
+    render(
+      <ProductSkuAssignPanel
+        productId="p1"
+        draftSku="PENDING-abc"
+        fieldErrors={{}}
+        validation={validation as never}
+      />,
+    );
+
+    const preview = await screen.findByRole("button", { name: "Preview" });
+    const confirm = screen.getByRole("button", { name: "Confirm assign" });
+    const family = screen.getByLabelText(/^Family/);
+    expect(family).toHaveValue("");
+    expect(preview).toBeDisabled();
+    expect(confirm).toBeDisabled();
+    expect(screen.getByRole("option", { name: "Choose family…" })).toBeInTheDocument();
+    expect(mocks.previewProductSkuAction).not.toHaveBeenCalled();
+    expect(mocks.assignProductSkuAction).not.toHaveBeenCalled();
+  });
+
+  it("selecting a family enables actions and sends exactly that family (no first-key fallback)", async () => {
+    const user = userEvent.setup();
+    mocks.loadSkuAssignContext.mockResolvedValue({
+      configured: true,
+      familyKeys: ["accessory.eyeglasses", "jewelry.earring"],
+      currentSku: "PENDING-abc",
+      pending: true,
+      pendingReservationSku: null,
+      shopifyLinked: false,
+      variantId: "var-1",
+      variants: [{
+        variantId: "var-1",
+        title: "Default Title",
+        sku: "PENDING-abc",
+        shopifyVariantId: null,
+        pending: true,
+        pendingReservationSku: null,
+        shopifyLinked: false,
+      }],
+    });
+    mocks.previewProductSkuAction.mockResolvedValue({
+      ok: true,
+      previewSku: "ER-EAR-001",
+      policyVersion: 1,
+    });
+    mocks.assignProductSkuAction.mockResolvedValue({
+      ok: true,
+      sku: "ER-EAR-001",
+      message: "Assigned ER-EAR-001",
+    });
+
+    render(
+      <ProductSkuAssignPanel
+        productId="p1"
+        draftSku="PENDING-abc"
+        fieldErrors={{}}
+        validation={validation as never}
+      />,
+    );
+
+    const family = await screen.findByLabelText(/^Family/);
+    await user.selectOptions(family, "jewelry.earring");
+    expect(family).toHaveValue("jewelry.earring");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
+    expect(document.querySelector("[data-sku-assign-choice='true']")?.textContent).toContain(
+      "jewelry.earring",
+    );
+
+    await user.click(screen.getByRole("button", { name: "Preview" }));
+    await waitFor(() => {
+      expect(mocks.previewProductSkuAction).toHaveBeenCalledWith({
+        productId: "p1",
+        familyKey: "jewelry.earring",
+      });
+    });
+    expect(mocks.previewProductSkuAction).not.toHaveBeenCalledWith(
+      expect.objectContaining({ familyKey: "accessory.eyeglasses" }),
+    );
+
+    await waitFor(() => {
+      expect(document.querySelector("[data-sku-assign-choice='true']")?.textContent).toContain(
+        "ER-EAR-001",
+      );
+    });
+
+    await user.click(screen.getByRole("button", { name: "Confirm assign" }));
+    await waitFor(() => {
+      expect(mocks.assignProductSkuAction).toHaveBeenCalledWith({
+        productId: "p1",
+        familyKey: "jewelry.earring",
+        variantId: "var-1",
+      });
+    });
+    expect(mocks.assignProductSkuAction.mock.calls[0][0].familyKey).toBe("jewelry.earring");
   });
 });
