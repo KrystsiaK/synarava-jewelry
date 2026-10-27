@@ -346,8 +346,8 @@ describe("EditProductForm", () => {
     expect(family).toHaveValue("jewelry.necklace");
     expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
-    // Dirty form → Create in Shopify copy.
-    expect(screen.getByText("Save changes first")).toBeInTheDocument();
+    // Family has no named FormData field — must not mark the product dirty.
+    expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
 
     // Save remounts ProductFormFields (fieldsRevision); lifted family must survive.
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
@@ -519,7 +519,7 @@ describe("EditProductForm", () => {
     expect(screen.getByText(/Legacy cover image/i)).toBeInTheDocument();
   });
 
-  it("marks a section dirty when edited while linked", async () => {
+  it("marks a section dirty when a named field changes, and clears when reverted", async () => {
     adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
@@ -527,10 +527,84 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })} collections={[]} />);
     await act(async () => {});
 
-    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), " Updated");
+    const title = screen.getByRole("textbox", { name: /Title \* Shopify/ });
+    const original = (title as HTMLInputElement).value;
+    await user.type(title, " Updated");
     // Dirty is signaled on section/locale tabs (accessible name includes "unsaved edits").
     expect(screen.getByRole("tab", { name: /Product Title & organization, unsaved edits/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save this branch" })).not.toBeInTheDocument();
+
+    await user.clear(title);
+    await user.type(title, original);
+    await waitFor(() => {
+      expect(screen.queryByRole("tab", { name: /Product Title & organization, unsaved edits/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not dirty the form when choosing a SKU Family (Resolve stays available)", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      shopifyProductId: "gid://shopify/Product/1",
+      sku: "PENDING-abc",
+      variants: [primaryVariant("PENDING-abc", "gid://shopify/ProductVariant/1")],
+    });
+    mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext({
+      shopifyLinked: true,
+      variants: [{
+        variantId: "variant-1",
+        title: "Default Title",
+        sku: "PENDING-abc",
+        shopifyVariantId: "gid://shopify/ProductVariant/1",
+        pending: true,
+        pendingReservationSku: null,
+        shopifyLinked: true,
+      }],
+    }));
+    adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
+      signals: {
+        state: "ready" as const,
+        totalCount: 1,
+        checkedAt: "2026-10-27T10:00:00.000Z",
+        products: {
+          [product.id]: {
+            shared: true,
+            sharedCount: 1,
+            leafCount: 1,
+            locales: [],
+            sections: ["price"],
+          },
+        },
+        recentlyUpdatedProducts: {},
+      },
+    });
+
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={{
+          state: "ready",
+          totalCount: 1,
+          checkedAt: "2026-10-27T10:00:00.000Z",
+          products: {
+            [product.id]: {
+              shared: true,
+              sharedCount: 1,
+              leafCount: 1,
+              locales: [],
+              sections: ["price"],
+            },
+          },
+          recentlyUpdatedProducts: {},
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    const family = await screen.findByLabelText(/^Family/);
+    fireEvent.change(family, { target: { value: "jewelry.necklace" } });
+
+    expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
   });
 
   it("keeps the editor available when the save action rejects", async () => {
