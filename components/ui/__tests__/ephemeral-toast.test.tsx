@@ -39,6 +39,9 @@ function ToastProbe() {
 }
 
 afterEach(() => {
+  // Always restore real timers — a mid-test assert failure must not leak fake
+  // timers into later cases (order / shared-timer flakes under CI load).
+  vi.useRealTimers();
   resetToastStoreForTests();
 });
 
