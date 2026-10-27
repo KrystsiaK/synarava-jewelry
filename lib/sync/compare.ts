@@ -222,18 +222,18 @@ export const WHOLE_ITEM_COMMERCE_FIELD_KEY = WHOLE_ITEM_CONTRACT_KEY;
 /** Collapse ALL product commerce diffs into one whole-record leaf (when any need it). */
 function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjectionDiff[]): SyncLeaf {
   const sorted = [...diffs].toSorted((a, b) => a.field.localeCompare(b.field) || a.path.localeCompare(b.path));
-  // One part per contract key (deepDiff may emit nested paths under the same field).
-  const partsByKey = new Map<string, SyncLeafPart>();
-  for (const diff of sorted) {
-    const part = partFromDiff(diff);
-    if (!partsByKey.has(part.contractKey)) partsByKey.set(part.contractKey, part);
-  }
-  const parts = [...partsByKey.values()].toSorted(
-    (a, b) => a.label.localeCompare(b.label) || a.path.localeCompare(b.path),
+  // Group by contractKey for field count, but keep EVERY path/value — dropping
+  // later diffs under the same key made the stale-preview fingerprint miss
+  // second media/variant changes.
+  const parts = sorted.map(partFromDiff).toSorted(
+    (a, b) => a.contractKey.localeCompare(b.contractKey)
+      || a.label.localeCompare(b.label)
+      || a.path.localeCompare(b.path),
   );
+  const fieldCount = new Set(parts.map((part) => part.contractKey)).size;
   const synaravaValue = parts.map((part) => `${part.label}: ${part.local}`).join("\n");
   const shopifyValue = parts.map((part) => `${part.label}: ${part.shopify}`).join("\n");
-  // Fingerprints: canonical {path, local|shopify} from parts — not the visible summary.
+  // Fingerprints hash all paths/values — not the visible summary, not first-only.
   return {
     id: `PRODUCT:${resourceId}:${WHOLE_ITEM_COMMERCE_FIELD_KEY}`,
     resourceType: "PRODUCT",
@@ -241,7 +241,7 @@ function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjec
     kind: "commerce",
     locale: null,
     fieldKey: WHOLE_ITEM_COMMERCE_FIELD_KEY,
-    label: `Product data (${parts.length} fields)`,
+    label: `Product data (${fieldCount} fields)`,
     synaravaValue,
     shopifyValue,
     allowedDirections: [],

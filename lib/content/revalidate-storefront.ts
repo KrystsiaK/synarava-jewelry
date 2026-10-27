@@ -9,10 +9,21 @@ import { getRegisteredRouteSegments } from "@/lib/i18n/registered-route-segments
  * for every registered locale. Storefront pages live under app/[locale]/, so a
  * bare revalidatePath("/shop") call is a no-op — there is no route at that path.
  * Segment list comes from the registry snapshot (ADR-0007), not a hardcoded list.
+ *
+ * Pass type "layout" for locale roots (`"/"`) when the app root layout must
+ * refresh too (e.g. header cart badge in `app/layout.tsx`).
  */
-export function revalidateStorefrontPath(path: string) {
+export function revalidateStorefrontPath(path: string, type?: "page" | "layout") {
   for (const code of getRegisteredRouteSegments()) {
-    revalidatePath(path === "/" ? `/${code}` : `/${code}${path}`);
+    const localePath = path === "/" ? `/${code}` : `/${code}${path}`;
+    if (type) {
+      revalidatePath(localePath, type);
+    } else {
+      revalidatePath(localePath);
+    }
+  }
+  if (path === "/" && type === "layout") {
+    revalidatePath("/", "layout");
   }
 }
 

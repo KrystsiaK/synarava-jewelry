@@ -28,7 +28,7 @@ import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
-import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
+import { inventoryShippingFactsFromProduct, ProductInventoryFields } from "@/components/admin/products/product-inventory-fields";
 import {
   filterSignalsForView,
   type CatalogConflictViewScope,
@@ -46,13 +46,12 @@ import {
   revealProductFieldErrors,
 } from "@/components/admin/products/product-validation-navigate";
 import {
-  dirtyKeyForEdit,
   isSharedSection,
-  localeHasDirty,
-  sectionDirtyKey,
+  localesDirtyFromFields,
+  sectionsDirtyFromFields,
   snapshotFormData,
   SOURCE_LOCALE,
-  type DirtyScopeKey,
+  syncBaselineNamedFields,
 } from "@/components/admin/products/product-editor-scope";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
 import { ProductShopifyHeader, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
@@ -108,7 +107,9 @@ export function EditProductForm({
   const [isPending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [dirtyScopes, setDirtyScopes] = useState<Set<DirtyScopeKey>>(() => new Set());
+  const [isDirty, setIsDirty] = useState(false);
+  const [dirtyLocales, setDirtyLocales] = useState(() => new Set<string>());
+  const [dirtySections, setDirtySections] = useState(() => new Set<ProductEditorSection>());
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
   const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -127,22 +128,35 @@ export function EditProductForm({
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
-  const isDirty = dirtyScopes.size > 0;
   const { pushToast } = useAdminToast();
   const router = useRouter();
   const { leaveModal } = useUnsavedLeaveGuard(isDirty);
 
-  const dirtyLocales = new Set(
-    localeTabs
-      .map((tab) => tab.code)
-      .filter((code) => localeHasDirty(dirtyScopes, code, ALL_SECTIONS)),
-  );
-  const dirtySections = new Set(
-    ALL_SECTIONS.filter((section) => {
-      if (isSharedSection(section)) return dirtyScopes.has(sectionDirtyKey("*", section));
-      return dirtyScopes.has(sectionDirtyKey(activeLocale, section));
-    }),
-  );
+  function recomputeDirtyFromForm() {
+    const form = formRef.current;
+    const baseline = baselineRef.current;
+    if (!form || !baseline) {
+      setIsDirty(false);
+      setDirtyLocales(new Set());
+      setDirtySections(new Set());
+      return;
+    }
+    // Absorb keys that async panels (SKU assign) add/remove; dirty = value edits only.
+    const changed = syncBaselineNamedFields(baseline, snapshotFormData(form));
+    const localeCodes = localeTabs.map((tab) => tab.code);
+    setIsDirty(changed.length > 0);
+    setDirtyLocales(localesDirtyFromFields(changed, localeCodes, ALL_SECTIONS));
+    setDirtySections(sectionsDirtyFromFields(changed, activeLocale, ALL_SECTIONS));
+  }
+
+  function acceptCurrentFormAsBaseline() {
+    const form = formRef.current;
+    if (!form) return;
+    baselineRef.current = snapshotFormData(form);
+    setIsDirty(false);
+    setDirtyLocales(new Set());
+    setDirtySections(new Set());
+  }
   const productConflict = conflictSignals.products[currentProduct.id];
   // Tab dots from signal.sections (leaf/part contract metadata) — never light
   // every shared tab from a bare `shared` flag.
@@ -231,13 +245,20 @@ export function EditProductForm({
   useEffect(() => {
     const form = formRef.current;
     if (!form) return;
-    // Capture the last-saved field snapshot after paint so scoped branch saves
-    // can leave other dirty tabs untouched in the DOM while writing only one branch.
+    // Capture the last-saved named-field snapshot after paint (value-based dirty).
     const timer = window.setTimeout(() => {
       baselineRef.current = snapshotFormData(form);
+      recomputeDirtyFromForm();
     }, 0);
     return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- remount/id only; recompute reads refs + activeLocale
   }, [currentProduct.id, fieldsRevision]);
+
+  useEffect(() => {
+    recomputeDirtyFromForm();
+    // Section/locale tab markers re-derive when the active locale changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeLocale]);
 
   useEffect(() => {
     function openSectionForHash() {
@@ -258,26 +279,6 @@ export function EditProductForm({
     // Mount-only: hash deep-links to product editor fields.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  function markDirty() {
-    setDirtyScopes((prev) => {
-      const next = new Set(prev);
-      next.add(dirtyKeyForEdit(activeLocale, activeSection));
-      return next;
-    });
-  }
-
-  function clearDirty(keys?: DirtyScopeKey[]) {
-    if (!keys) {
-      setDirtyScopes(new Set());
-      return;
-    }
-    setDirtyScopes((prev) => {
-      const next = new Set(prev);
-      for (const key of keys) next.delete(key);
-      return next;
-    });
-  }
 
   /** Reload saved conflict signals (display only — no Shopify fetch). */
   async function refreshConflictSignals(options?: { quiet?: boolean }) {
@@ -303,7 +304,7 @@ export function EditProductForm({
       onUpdated?.(saved);
       setFieldsRevision((value) => value + 1);
       window.setTimeout(() => {
-        if (formRef.current) baselineRef.current = snapshotFormData(formRef.current);
+        acceptCurrentFormAsBaseline();
       }, 0);
       setInspection(null);
       await refreshConflictSignals({ quiet: true });
@@ -328,7 +329,7 @@ export function EditProductForm({
     setConflictOpen(true);
   }
 
-  function persistFormData(formData: FormData, options?: { clearKeys?: DirtyScopeKey[]; remountFields?: boolean }) {
+  function persistFormData(formData: FormData, options?: { remountFields?: boolean }) {
     startTransition(async () => {
       try {
         const result = await saveProductAction(formData);
@@ -345,12 +346,10 @@ export function EditProductForm({
         if (result.success) pushToast({ message: result.success, tone: "success" });
         if (result.warning) pushToast({ message: result.warning, tone: "info" });
         if (result.product) {
-          if (options?.clearKeys) clearDirty(options.clearKeys);
-          else clearDirty();
           if (options?.remountFields) setFieldsRevision((value) => value + 1);
-          // Refresh baseline after paint so the next branch save still protects other dirty tabs.
+          // Refresh baseline after paint so leave-guard matches saved named fields.
           window.setTimeout(() => {
-            if (formRef.current) baselineRef.current = snapshotFormData(formRef.current);
+            acceptCurrentFormAsBaseline();
           }, 0);
           onUpdated?.(result.product);
           if (result.product.shopifyProductId) {
@@ -403,7 +402,6 @@ export function EditProductForm({
         tone: "info",
       });
     } else {
-      clearDirty();
       setFieldsRevision((value) => value + 1);
     }
     onUpdated?.(next);
@@ -458,8 +456,8 @@ export function EditProductForm({
           action={formAction}
           noValidate
           className="grid gap-4"
-          onChange={markDirty}
-          onInput={markDirty}
+          onChange={recomputeDirtyFromForm}
+          onInput={recomputeDirtyFromForm}
         >
           <input type="hidden" name="productId" value={currentProduct.id} />
 
@@ -597,10 +595,6 @@ export function EditProductForm({
                           draft={draft}
                           collections={collections}
                           variantExists={currentProduct.variants.length > 0}
-                          inventoryFacts={inventoryShippingFactsFromProduct({
-                            primaryVariant: currentProduct.variants[0] ?? null,
-                            shopifySnapshot: currentProduct.shopifySnapshot,
-                          })}
                           validation={validation}
                           translationLocales={translationLocales}
                           activeSection={activeSection}
@@ -608,24 +602,36 @@ export function EditProductForm({
                           onLocaleChange={selectLocale}
                           selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
                           productId={currentProduct.id}
-                          onSkuAssigned={() => {
-                            void (async () => {
-                              try {
-                                const saved = await getSavedProductPayload(currentProduct.id);
-                                if (!saved) return;
-                                setState((prev) => ({ ...prev, product: saved }));
-                                onUpdated?.(saved);
-                                setFieldsRevision((value) => value + 1);
-                                if (!saved.shopifyProductId) return;
-                                // SKU write-through already ran after-save full check server-side;
-                                // reload conflict chips from signals — no product inspect fetch.
-                                await refreshConflictSignals({ quiet: true });
-                              } catch {
-                                // Keep assign success; conflict chrome refreshes from the top-bar check.
-                              }
-                            })();
-                          }}
+                          omitInventory
                         />
+                        <div hidden={activeSection !== "inventory"} key={currentProduct.id}>
+                          <ProductInventoryFields
+                            draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
+                            variantExists={currentProduct.variants.length > 0}
+                            facts={inventoryShippingFactsFromProduct({
+                              primaryVariant: currentProduct.variants[0] ?? null,
+                              shopifySnapshot: currentProduct.shopifySnapshot,
+                            })}
+                            fieldErrors={validation.fieldErrors}
+                            validation={validation}
+                            productId={currentProduct.id}
+                            onSkuAssigned={() => {
+                              void (async () => {
+                                try {
+                                  const saved = await getSavedProductPayload(currentProduct.id);
+                                  if (!saved) return;
+                                  setState((prev) => ({ ...prev, product: saved }));
+                                  onUpdated?.(saved);
+                                  setFieldsRevision((value) => value + 1);
+                                  if (!saved.shopifyProductId) return;
+                                  await refreshConflictSignals({ quiet: true });
+                                } catch {
+                                  // Keep assign success; conflict chrome refreshes from the top-bar check.
+                                }
+                              })();
+                            }}
+                          />
+                        </div>
                       </div>
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}
@@ -661,14 +667,14 @@ export function EditProductForm({
                       <ProductMediaManager
                         product={currentProduct}
                         onAltPersistStart={() => {
-                          // Blur fires before the click that may hit a nav link. Clear
-                          // Media dirty synchronously so leave-guard does not false-positive
-                          // while the independent alt server action is already persisting.
-                          flushSync(() => clearDirty([sectionDirtyKey("*", "media")]));
+                          // Blur fires before a possible nav click. Accept current named
+                          // fields as baseline so leave-guard does not false-positive while
+                          // the independent alt server action is already persisting.
+                          flushSync(() => acceptCurrentFormAsBaseline());
                         }}
                         onChange={(next) => {
                           setState({ success: "Gallery updated locally.", product: next });
-                          clearDirty([sectionDirtyKey("*", "media")]);
+                          acceptCurrentFormAsBaseline();
                           // Do not router.refresh here — it races leave-guard / remounts
                           // the editor while alt inputs are mid-edit. Server revalidatePath
                           // keeps list caches; local product state is already updated.

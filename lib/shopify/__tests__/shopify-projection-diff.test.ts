@@ -20,9 +20,11 @@ describe("canonicalizeShopifyProjection", () => {
       },
       media: [{
         id: "m1",
+        alt: " Front ",
         status: "READY",
-        originalSource: { url: "https://storage.googleapis.com/signed?token=x" },
-        preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=1" } },
+        mediaContentType: "IMAGE",
+        originalSource: { url: "https://storage.googleapis.com/a.jpg?token=x" },
+        preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=1", width: 100, height: 80 } },
       }],
       metafields: [{ namespace: "custom", key: "x", value: "1", definition: { name: "X" } }],
       variants: { pageInfo: { hasNextPage: false, endCursor: "c" }, nodes: [] },
@@ -31,6 +33,9 @@ describe("canonicalizeShopifyProjection", () => {
     expect(canonical).toEqual({
       media: [
         {
+          filename: "a.jpg",
+          alt: "Front",
+          position: 0,
           id: "m1",
           preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
         },
@@ -183,6 +188,173 @@ describe("diffShopifyProjections", () => {
     expect(diffs).toEqual([]);
   });
 
+  it("same photo re-hosted (new CDN url, size, id) → zero media diffs", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [{
+          id: "gid://shopify/MediaImage/local",
+          alt: "Ring",
+          status: "READY",
+          mediaContentType: "IMAGE",
+          preview: {
+            image: {
+              url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=1",
+              width: 400,
+              height: 400,
+            },
+          },
+        }],
+      },
+      {
+        media: [{
+          id: "gid://shopify/MediaImage/remote-new",
+          alt: "Ring",
+          status: "READY",
+          mediaContentType: "IMAGE",
+          originalSource: { url: "https://storage.googleapis.com/staged/ring-uuid.jpg?X-Goog=sig" },
+          image: {
+            url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=99",
+            width: 2048,
+            height: 2048,
+          },
+          preview: {
+            image: {
+              url: "https://cdn.shopify.com/s/files/1/ring-uuid.jpg?v=99&width=100",
+              width: 100,
+              height: 100,
+            },
+          },
+        }],
+      },
+    );
+    expect(diffs).toEqual([]);
+  });
+
+  it("different filename → one part at the image position", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [{
+          id: "m1",
+          alt: "Front",
+          preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
+        }],
+      },
+      {
+        media: [{
+          id: "m2",
+          alt: "Front",
+          preview: { image: { url: "https://cdn.shopify.com/b.jpg" } },
+        }],
+      },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "media[0]",
+        field: "Image 1",
+        local: "a.jpg (Front)",
+        shopify: "b.jpg (Front)",
+      },
+    ]);
+  });
+
+  it("alt change → one part at the image position", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [{
+          id: "m1",
+          alt: "Front",
+          preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
+        }],
+      },
+      {
+        media: [{
+          id: "m1",
+          alt: "Side",
+          preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=2" } },
+        }],
+      },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "media[0]",
+        field: "Image 1",
+        local: "a.jpg (Front)",
+        shopify: "a.jpg (Side)",
+      },
+    ]);
+  });
+
+  it("order change → one part per affected image position (not subfields)", () => {
+    const diffs = diffShopifyProjections(
+      {
+        media: [
+          { id: "m1", alt: "A", preview: { image: { url: "https://cdn.shopify.com/a.jpg" } } },
+          { id: "m2", alt: "B", preview: { image: { url: "https://cdn.shopify.com/b.jpg" } } },
+        ],
+      },
+      {
+        media: [
+          { id: "m2", alt: "B", preview: { image: { url: "https://cdn.shopify.com/b.jpg" } } },
+          { id: "m1", alt: "A", preview: { image: { url: "https://cdn.shopify.com/a.jpg" } } },
+        ],
+      },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "media[0]",
+        field: "Image 1",
+        local: "a.jpg (A)",
+        shopify: "b.jpg (B)",
+      },
+      {
+        path: "media[1]",
+        field: "Image 2",
+        local: "b.jpg (B)",
+        shopify: "a.jpg (A)",
+      },
+    ]);
+    expect(diffs.every((d) => /^media\[\d+\]$/.test(d.path))).toBe(true);
+  });
+
+  it("extra or missing image → one part at that position", () => {
+    const missing = diffShopifyProjections(
+      { media: [] },
+      {
+        media: [{
+          id: "gid://shopify/MediaImage/1",
+          alt: null,
+          preview: { image: { url: "https://cdn.shopify.com/ChatGPTImage.png?v=1" } },
+        }],
+      },
+    );
+    expect(missing).toEqual([
+      {
+        path: "media[0]",
+        field: "Image 1 exists only in Shopify, not in Synarava",
+        local: "—",
+        shopify: "ChatGPTImage.png",
+      },
+    ]);
+
+    const extra = diffShopifyProjections(
+      {
+        media: [{
+          id: "local-1",
+          preview: { image: { url: "https://cdn.example/ring.jpg" } },
+        }],
+      },
+      { media: [] },
+    );
+    expect(extra).toEqual([
+      {
+        path: "media[0]",
+        field: "Image 1 exists only in Synarava, not in Shopify",
+        local: "ring.jpg",
+        shopify: "—",
+      },
+    ]);
+  });
+
   it("flags price mismatches with Shopify-shaped amounts", () => {
     const diffs = diffShopifyProjections(
       { variants: [{ id: "v1", price: "10.00" }] },
@@ -204,7 +376,7 @@ describe("diffShopifyProjections", () => {
       {
         media: [{
           id: "gid://shopify/MediaImage/1",
-          originalSource: { url: "https://storage.googleapis.com/secret" },
+          originalSource: { url: "https://storage.googleapis.com/secret/ChatGPTImage.png" },
           preview: { image: { url: "https://cdn.shopify.com/ChatGPTImage.png?v=1" } },
         }],
       },
@@ -378,6 +550,27 @@ describe("projection path helpers", () => {
       field: "Image 1 exists only in Synarava, not in Shopify",
       local: "ring.jpg",
       shopify: "—",
+    });
+  });
+
+  it("GraphQL media.nodes connection canonicalizes like a flat media array", () => {
+    expect(canonicalizeShopifyProjection({
+      media: {
+        pageInfo: { hasNextPage: false, endCursor: null },
+        nodes: [{
+          id: "gid://shopify/MediaImage/1",
+          alt: " Front ",
+          preview: { image: { url: "https://cdn.shopify.com/a.jpg?v=9", width: 10, height: 10 } },
+        }],
+      },
+    })).toEqual({
+      media: [{
+        filename: "a.jpg",
+        alt: "Front",
+        position: 0,
+        id: "gid://shopify/MediaImage/1",
+        preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
+      }],
     });
   });
 });

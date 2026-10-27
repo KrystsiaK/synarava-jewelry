@@ -61,7 +61,6 @@ vi.mock("@/app/admin/actions/sku-assign", () => ({
 }));
 
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
-import { resetSkuFamilySelectionStore } from "@/components/admin/products/product-sku-assign-panel";
 import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
@@ -169,7 +168,6 @@ function unassignedSkuContext(overrides: Record<string, unknown> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  resetSkuFamilySelectionStore();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
   mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext());
   adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
@@ -346,26 +344,57 @@ describe("EditProductForm", () => {
     expect(family).toHaveValue("jewelry.necklace");
     expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
-    // Dirty form → Create in Shopify copy.
-    expect(screen.getByText("Save changes first")).toBeInTheDocument();
+    // Family has no named FormData field — must not mark the product dirty.
+    expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
 
-    // Save remounts ProductFormFields (fieldsRevision); lifted family must survive.
+    // Save remounts ProductFormFields (fieldsRevision); inventory/SKU panel stays mounted.
+    const loadsBeforeSave = mocks.loadSkuAssignContext.mock.calls.length;
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
     await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
     await waitFor(() => expect(mocks.saveProductAction).toHaveBeenCalled());
 
-    await waitFor(() => {
-      expect(mocks.loadSkuAssignContext.mock.calls.length).toBeGreaterThanOrEqual(2);
-    });
-    // Remount shows Loading until context resolves; Family must return with same choice.
-    expect(await screen.findByLabelText(/^Family/, {}, { timeout: 3000 })).toHaveValue(
-      "jewelry.necklace",
-    );
+    // Outside-remount root fix: no panel remount → no second context load; Family survives.
+    expect(mocks.loadSkuAssignContext.mock.calls.length).toBe(loadsBeforeSave);
+    expect(screen.getByLabelText(/^Family/)).toHaveValue("jewelry.necklace");
     expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
     expect(document.querySelector("[data-sku-assign-choice='true']")?.textContent).toContain(
       "jewelry.necklace",
     );
+  });
+
+  it("resets SKU Family when navigating to another product and back", async () => {
+    const user = userEvent.setup();
+    const first = makeProduct({
+      id: "product-1",
+      sku: "PENDING-abc",
+      variants: [primaryVariant("PENDING-abc")],
+    });
+    const second = makeProduct({
+      id: "product-2",
+      sku: "PENDING-xyz",
+      slug: "other-ring",
+      name: "Other Ring",
+      variants: [primaryVariant("PENDING-xyz")],
+    });
+    mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext());
+
+    const { rerender } = render(<EditProductForm product={first} collections={[]} />);
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    const family = await screen.findByLabelText(/^Family/);
+    fireEvent.change(family, { target: { value: "jewelry.earring" } });
+    expect(family).toHaveValue("jewelry.earring");
+
+    rerender(<EditProductForm product={second} collections={[]} />);
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    expect(await screen.findByLabelText(/^Family/)).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
+
+    // Back to the first product — selection must start empty (keyed by product id).
+    rerender(<EditProductForm product={first} collections={[]} />);
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    expect(await screen.findByLabelText(/^Family/)).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
   });
 
   it("does not inspect Shopify on mount when linked (signals only)", async () => {
@@ -519,7 +548,7 @@ describe("EditProductForm", () => {
     expect(screen.getByText(/Legacy cover image/i)).toBeInTheDocument();
   });
 
-  it("marks a section dirty when edited while linked", async () => {
+  it("marks a section dirty when a named field changes, and clears when reverted", async () => {
     adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
@@ -527,10 +556,84 @@ describe("EditProductForm", () => {
     render(<EditProductForm product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })} collections={[]} />);
     await act(async () => {});
 
-    await user.type(screen.getByRole("textbox", { name: /Title \* Shopify/ }), " Updated");
+    const title = screen.getByRole("textbox", { name: /Title \* Shopify/ });
+    const original = (title as HTMLInputElement).value;
+    await user.type(title, " Updated");
     // Dirty is signaled on section/locale tabs (accessible name includes "unsaved edits").
     expect(screen.getByRole("tab", { name: /Product Title & organization, unsaved edits/i })).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Save this branch" })).not.toBeInTheDocument();
+
+    await user.clear(title);
+    await user.type(title, original);
+    await waitFor(() => {
+      expect(screen.queryByRole("tab", { name: /Product Title & organization, unsaved edits/i })).not.toBeInTheDocument();
+    });
+  });
+
+  it("does not dirty the form when choosing a SKU Family (Resolve stays available)", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      shopifyProductId: "gid://shopify/Product/1",
+      sku: "PENDING-abc",
+      variants: [primaryVariant("PENDING-abc", "gid://shopify/ProductVariant/1")],
+    });
+    mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext({
+      shopifyLinked: true,
+      variants: [{
+        variantId: "variant-1",
+        title: "Default Title",
+        sku: "PENDING-abc",
+        shopifyVariantId: "gid://shopify/ProductVariant/1",
+        pending: true,
+        pendingReservationSku: null,
+        shopifyLinked: true,
+      }],
+    }));
+    adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
+      signals: {
+        state: "ready" as const,
+        totalCount: 1,
+        checkedAt: "2026-10-27T10:00:00.000Z",
+        products: {
+          [product.id]: {
+            shared: true,
+            sharedCount: 1,
+            leafCount: 1,
+            locales: [],
+            sections: ["price"],
+          },
+        },
+        recentlyUpdatedProducts: {},
+      },
+    });
+
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={{
+          state: "ready",
+          totalCount: 1,
+          checkedAt: "2026-10-27T10:00:00.000Z",
+          products: {
+            [product.id]: {
+              shared: true,
+              sharedCount: 1,
+              leafCount: 1,
+              locales: [],
+              sections: ["price"],
+            },
+          },
+          recentlyUpdatedProducts: {},
+        }}
+      />,
+    );
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+    const family = await screen.findByLabelText(/^Family/);
+    fireEvent.change(family, { target: { value: "jewelry.necklace" } });
+
+    expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Resolve" })).toBeEnabled();
   });
 
   it("keeps the editor available when the save action rejects", async () => {

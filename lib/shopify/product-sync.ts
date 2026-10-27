@@ -1795,9 +1795,14 @@ export async function pushProductToShopify(
       });
     }
     const unitWeight = product.characteristics.find((item) => item.key === "unit_weight")?.numberValue;
+    // Cost is Shopify-owned. Seed only when CREATING a product that has a local
+    // value — pushing cost on linked Keep ours / Push overwrote Shopify with
+    // stale Synarava costCents (prod).
     const inventoryItemInput = {
       sku: commerceSku,
-      ...(commerceCostCents != null ? { cost: (commerceCostCents / 100).toFixed(2) } : {}),
+      ...(!product.shopifyProductId && commerceCostCents != null
+        ? { cost: (commerceCostCents / 100).toFixed(2) }
+        : {}),
       ...(unitWeight && unitWeight.greaterThan(0)
         ? { measurement: { weight: { value: unitWeight.toNumber(), unit: "GRAMS" as const } } }
         : {}),

@@ -14,25 +14,6 @@ export type ProductEditorBranch =
   | { level: "locale"; locale: string }
   | { level: "section"; locale: string; section: ProductEditorSection };
 
-export type DirtyScopeKey = string;
-
-export function sectionDirtyKey(locale: string, section: ProductEditorSection): DirtyScopeKey {
-  return `${locale}:${section}`;
-}
-
-export function localeHasDirty(
-  dirty: ReadonlySet<DirtyScopeKey>,
-  locale: string,
-  sections: readonly ProductEditorSection[],
-): boolean {
-  if (dirty.has("shared:*")) return true;
-  for (const section of sections) {
-    if (dirty.has(sectionDirtyKey(locale, section))) return true;
-    if (isSharedSection(section) && dirty.has(sectionDirtyKey("*", section))) return true;
-  }
-  return false;
-}
-
 /** Inventory / media / shopify / price are shared across languages.
  * Metafields + Passport are locale-scoped: EN owns source values; PT/RU own text overlays. */
 export function isSharedSection(section: ProductEditorSection): boolean {
@@ -49,10 +30,6 @@ export function isLocaleSection(section: ProductEditorSection): boolean {
     || section === "details"
     || section === "passport"
     || section === "metafields";
-}
-
-export function dirtyKeyForEdit(locale: string, section: ProductEditorSection): DirtyScopeKey {
-  return isSharedSection(section) ? sectionDirtyKey("*", section) : sectionDirtyKey(locale, section);
 }
 
 const ALWAYS_FROM_CURRENT = new Set([
@@ -262,4 +239,82 @@ export function snapshotFormData(form: HTMLFormElement): FormData {
     snapshot.append(key, value);
   }
   return snapshot;
+}
+
+/** Named string fields only (Files already dropped by snapshotFormData). */
+export function namedFormFieldValues(data: FormData): Map<string, string[]> {
+  const out = new Map<string, string[]>();
+  for (const [key, value] of data.entries()) {
+    if (typeof value !== "string") continue;
+    const list = out.get(key);
+    if (list) list.push(value);
+    else out.set(key, [value]);
+  }
+  return out;
+}
+
+/**
+ * Align baseline keys with current (async panels mount/unmount named fields).
+ * Returns field names whose values differ for keys present in both snapshots.
+ */
+export function syncBaselineNamedFields(baseline: FormData, current: FormData): string[] {
+  const left = namedFormFieldValues(baseline);
+  const right = namedFormFieldValues(current);
+
+  for (const key of left.keys()) {
+    if (!right.has(key)) baseline.delete(key);
+  }
+  for (const [key, values] of right) {
+    if (!left.has(key)) {
+      for (const value of values) baseline.append(key, value);
+    }
+  }
+
+  const changed: string[] = [];
+  for (const [key, values] of right) {
+    const prior = left.get(key);
+    if (!prior) continue;
+    if (prior.length !== values.length || prior.some((value, index) => value !== values[index])) {
+      changed.push(key);
+    }
+  }
+  return changed;
+}
+
+/** Tab "unsaved" markers from changed named fields via fieldBelongsToBranch. */
+export function sectionsDirtyFromFields(
+  fieldNames: readonly string[],
+  locale: string,
+  sections: readonly ProductEditorSection[],
+): Set<ProductEditorSection> {
+  const dirty = new Set<ProductEditorSection>();
+  for (const section of sections) {
+    if (fieldNames.some((name) => fieldBelongsToBranch(name, section, locale))) {
+      dirty.add(section);
+    }
+  }
+  return dirty;
+}
+
+export function localesDirtyFromFields(
+  fieldNames: readonly string[],
+  localeCodes: readonly string[],
+  sections: readonly ProductEditorSection[],
+): Set<string> {
+  const dirty = new Set<string>();
+  const sharedHit = fieldNames.some((name) =>
+    sections.some((section) => isSharedSection(section) && fieldBelongsToBranch(name, section, SOURCE_LOCALE)),
+  );
+  for (const locale of localeCodes) {
+    if (sharedHit) {
+      dirty.add(locale);
+      continue;
+    }
+    if (fieldNames.some((name) =>
+      sections.some((section) => !isSharedSection(section) && fieldBelongsToBranch(name, section, locale)),
+    )) {
+      dirty.add(locale);
+    }
+  }
+  return dirty;
 }

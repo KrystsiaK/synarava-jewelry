@@ -227,6 +227,7 @@ export function ProductInventoryFields({
               </div>
             )}
             <AdminTextField
+              key={`stockOnHand-${draft.stockOnHand}`}
               label="Available quantity"
               owner="Shopify"
               help={(

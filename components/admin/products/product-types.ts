@@ -34,8 +34,10 @@ export type ProductDraft = {
   /** Compare-at in EUR string (Shopify pull projection; Synarava read-only). */
   compareAt: string;
   taxable: boolean;
-  /** Unit cost in EUR string (Shopify pull projection; Synarava read-only). */
+  /** OUR stored unit cost (Variant.costCents) as EUR string — form display SoT. */
   cost: string;
+  /** Shopify window unit cost when it differs from OUR (tooltip/marker). */
+  shopifyCost: string;
   seriesLabel: string;
   shortDescription: string;
   description: string;
