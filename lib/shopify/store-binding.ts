@@ -9,6 +9,14 @@ function normalizeShopDomain(domain: string) {
   return domain.trim().toLowerCase().replace(/^https?:\/\//, "").replace(/\/$/, "");
 }
 
+function shopDomainFromSettingValue(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const shopDomain = "shopDomain" in value && typeof value.shopDomain === "string"
+    ? value.shopDomain
+    : null;
+  return shopDomain ? normalizeShopDomain(shopDomain) : null;
+}
+
 export function classifyShopifyStoreBinding(boundShopDomain: string | null, currentShopDomain: string) {
   const current = normalizeShopDomain(currentShopDomain);
   if (!boundShopDomain) return { status: "UNBOUND" as const, currentShopDomain: current };
@@ -23,12 +31,50 @@ export function classifyShopifyStoreBinding(boundShopDomain: string | null, curr
 
 async function getShopifyStoreBinding() {
   const setting = await db.siteSetting.findUnique({ where: { key: SHOPIFY_STORE_BINDING_KEY } });
-  const value = setting?.value;
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const shopDomain = "shopDomain" in value && typeof value.shopDomain === "string"
-    ? value.shopDomain
-    : null;
-  return shopDomain ? normalizeShopDomain(shopDomain) : null;
+  return shopDomainFromSettingValue(setting?.value);
+}
+
+function mismatchError(boundShopDomain: string, currentShopDomain: string) {
+  return new ShopifyAdminError(
+    `This catalog is linked to ${boundShopDomain}, but the current credentials belong to ${currentShopDomain}. Use the Shopify button in the top bar and resolve the store binding before syncing.`,
+  );
+}
+
+/**
+ * First full catalog check (top-bar Manual / once-per-login Auto): bind when UNBOUND.
+ * MATCH → proceed. MISMATCH → fail closed (never overwrite).
+ * Called from runCatalogConflictCheck only — Push/Apply use assertShopifyStoreBinding.
+ *
+ * No rebind UI exists today (rebindShopifyStore was removed with its only callers in #268).
+ * Mismatch stays fail-closed until an explicit human-confirmed rebind UI is restored.
+ */
+export async function ensureShopifyStoreBinding(currentShopDomain: string) {
+  const current = normalizeShopDomain(currentShopDomain);
+  const classification = classifyShopifyStoreBinding(await getShopifyStoreBinding(), current);
+
+  if (classification.status === "MATCH") return classification;
+  if (classification.status === "MISMATCH") {
+    throw mismatchError(classification.boundShopDomain, classification.currentShopDomain);
+  }
+
+  // UNBOUND — re-read inside a transaction so a concurrent bind cannot be overwritten
+  // with a different domain (fail closed if another writer already bound elsewhere).
+  await db.$transaction(async (tx) => {
+    const setting = await tx.siteSetting.findUnique({ where: { key: SHOPIFY_STORE_BINDING_KEY } });
+    const existing = shopDomainFromSettingValue(setting?.value);
+    const again = classifyShopifyStoreBinding(existing, current);
+    if (again.status === "MISMATCH") {
+      throw mismatchError(again.boundShopDomain, again.currentShopDomain);
+    }
+    if (again.status === "MATCH") return;
+    await tx.siteSetting.upsert({
+      where: { key: SHOPIFY_STORE_BINDING_KEY },
+      update: { value: { shopDomain: current } },
+      create: { key: SHOPIFY_STORE_BINDING_KEY, value: { shopDomain: current } },
+    });
+  });
+
+  return { status: "MATCH" as const, currentShopDomain: current };
 }
 
 export async function assertShopifyStoreBinding(currentShopDomain: string) {
@@ -39,9 +85,7 @@ export async function assertShopifyStoreBinding(currentShopDomain: string) {
     );
   }
   if (classification.status === "MISMATCH") {
-    throw new ShopifyAdminError(
-      `This catalog is linked to ${classification.boundShopDomain}, but the current credentials belong to ${classification.currentShopDomain}. Use the Shopify button in the top bar and resolve the store binding before syncing.`,
-    );
+    throw mismatchError(classification.boundShopDomain, classification.currentShopDomain);
   }
   return classification;
 }
