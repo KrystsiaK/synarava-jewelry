@@ -28,7 +28,10 @@ import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
-import { inventoryShippingFactsFromProduct } from "@/components/admin/products/product-inventory-fields";
+import {
+  inventoryShippingFactsFromProduct,
+  ProductInventoryFields,
+} from "@/components/admin/products/product-inventory-fields";
 import {
   filterSignalsForView,
   type CatalogConflictViewScope,
@@ -597,10 +600,6 @@ export function EditProductForm({
                           draft={draft}
                           collections={collections}
                           variantExists={currentProduct.variants.length > 0}
-                          inventoryFacts={inventoryShippingFactsFromProduct({
-                            primaryVariant: currentProduct.variants[0] ?? null,
-                            shopifySnapshot: currentProduct.shopifySnapshot,
-                          })}
                           validation={validation}
                           translationLocales={translationLocales}
                           activeSection={activeSection}
@@ -608,24 +607,37 @@ export function EditProductForm({
                           onLocaleChange={selectLocale}
                           selectedShopifyCategoryAttributes={extractSelectedShopifyCategoryAttributes(currentProduct.shopifySnapshot)}
                           productId={currentProduct.id}
-                          onSkuAssigned={() => {
-                            void (async () => {
-                              try {
-                                const saved = await getSavedProductPayload(currentProduct.id);
-                                if (!saved) return;
-                                setState((prev) => ({ ...prev, product: saved }));
-                                onUpdated?.(saved);
-                                setFieldsRevision((value) => value + 1);
-                                if (!saved.shopifyProductId) return;
-                                // SKU write-through already ran after-save full check server-side;
-                                // reload conflict chips from signals — no product inspect fetch.
-                                await refreshConflictSignals({ quiet: true });
-                              } catch {
-                                // Keep assign success; conflict chrome refreshes from the top-bar check.
-                              }
-                            })();
-                          }}
+                          omitInventory
                         />
+                        {/* Outside fieldsRevision remount — SKU Family useState must survive Save. */}
+                        <div hidden={activeSection !== "inventory"} key={currentProduct.id}>
+                          <ProductInventoryFields
+                            draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
+                            variantExists={currentProduct.variants.length > 0}
+                            facts={inventoryShippingFactsFromProduct({
+                              primaryVariant: currentProduct.variants[0] ?? null,
+                              shopifySnapshot: currentProduct.shopifySnapshot,
+                            })}
+                            fieldErrors={validation.fieldErrors}
+                            validation={validation}
+                            productId={currentProduct.id}
+                            onSkuAssigned={() => {
+                              void (async () => {
+                                try {
+                                  const saved = await getSavedProductPayload(currentProduct.id);
+                                  if (!saved) return;
+                                  setState((prev) => ({ ...prev, product: saved }));
+                                  onUpdated?.(saved);
+                                  setFieldsRevision((value) => value + 1);
+                                  if (!saved.shopifyProductId) return;
+                                  await refreshConflictSignals({ quiet: true });
+                                } catch {
+                                  // Keep assign success; conflict chrome refreshes from the top-bar check.
+                                }
+                              })();
+                            }}
+                          />
+                        </div>
                       </div>
                       <ProductDetailFields
                         key={`details-${currentProduct.id}-${fieldsRevision}`}

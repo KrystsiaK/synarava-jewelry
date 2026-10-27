@@ -559,6 +559,7 @@ export function ProductFormFields({
   selectedShopifyCategoryAttributes = [],
   productId = null,
   onSkuAssigned,
+  omitInventory = false,
 }: {
   draft: ProductDraft;
   collections: CollectionOption[];
@@ -578,6 +579,8 @@ export function ProductFormFields({
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
   productId?: string | null;
   onSkuAssigned?: (sku: string) => void;
+  /** Edit form renders Inventory outside fieldsRevision remount so SKU Family survives Save. */
+  omitInventory?: boolean;
 }) {
   const { fieldErrors } = validation;
   const [nameValue, setNameValue] = useState(draft.name);
@@ -869,26 +872,28 @@ export function ProductFormFields({
       </div>
 
       {/* Inventory + shipping — Shopify Inventory / Shipping cards (primary variant). */}
-      <div hidden={activeSection !== "inventory"}>
-        <ProductInventoryFields
-          draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
-          variantExists={variantExists}
-          facts={inventoryFacts ?? {
-            barcode: null,
-            tracked: null,
-            inventoryPolicy: null,
-            requiresShipping: null,
-            weightGrams: null,
-            countryCodeOfOrigin: null,
-            harmonizedSystemCode: null,
-            locations: [],
-          }}
-          fieldErrors={fieldErrors}
-          validation={validation}
-          productId={productId}
-          onSkuAssigned={onSkuAssigned}
-        />
-      </div>
+      {!omitInventory ? (
+        <div hidden={activeSection !== "inventory"}>
+          <ProductInventoryFields
+            draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
+            variantExists={variantExists}
+            facts={inventoryFacts ?? {
+              barcode: null,
+              tracked: null,
+              inventoryPolicy: null,
+              requiresShipping: null,
+              weightGrams: null,
+              countryCodeOfOrigin: null,
+              harmonizedSystemCode: null,
+              locations: [],
+            }}
+            fieldErrors={fieldErrors}
+            validation={validation}
+            productId={productId}
+            onSkuAssigned={onSkuAssigned}
+          />
+        </div>
+      ) : null}
 
       <div className="grid gap-5" hidden={activeSection !== "price"}>
         <ProductPriceFields
