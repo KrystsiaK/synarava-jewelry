@@ -34,6 +34,7 @@ const syncResult = {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  vi.spyOn(console, "info").mockImplementation(() => undefined);
   mocks.readSynaravaStateForCompare.mockResolvedValue(compareInput);
   mocks.compareSyncState.mockReturnValue(syncResult);
 });
