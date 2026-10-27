@@ -579,7 +579,7 @@ export function ProductFormFields({
   selectedShopifyCategoryAttributes?: ShopifyCategoryAttributeSelection[];
   productId?: string | null;
   onSkuAssigned?: (sku: string) => void;
-  /** Edit form renders Inventory outside fieldsRevision remount so SKU Family survives Save. */
+  /** Edit form hosts Inventory outside fieldsRevision so SKU Family survives Save. */
   omitInventory?: boolean;
 }) {
   const { fieldErrors } = validation;

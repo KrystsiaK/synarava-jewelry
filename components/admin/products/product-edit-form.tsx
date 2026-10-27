@@ -28,10 +28,7 @@ import { useSyncedState } from "@/components/admin/shared/use-synced-state";
 import { ProductDetailFields, ProductFormFields } from "@/components/admin/products/product-form-fields";
 import { ProductMetafieldsPanel } from "@/components/admin/products/product-metafields-panel";
 import { extractSelectedShopifyCategoryAttributes } from "@/lib/shopify/category-attribute-values";
-import {
-  inventoryShippingFactsFromProduct,
-  ProductInventoryFields,
-} from "@/components/admin/products/product-inventory-fields";
+import { inventoryShippingFactsFromProduct, ProductInventoryFields } from "@/components/admin/products/product-inventory-fields";
 import {
   filterSignalsForView,
   type CatalogConflictViewScope,
@@ -609,7 +606,6 @@ export function EditProductForm({
                           productId={currentProduct.id}
                           omitInventory
                         />
-                        {/* Outside fieldsRevision remount — SKU Family useState must survive Save. */}
                         <div hidden={activeSection !== "inventory"} key={currentProduct.id}>
                           <ProductInventoryFields
                             draft={{ sku: draft.sku, stockOnHand: draft.stockOnHand }}
