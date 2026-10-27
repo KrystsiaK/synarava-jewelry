@@ -4,6 +4,10 @@ New admin how-to documentation belongs in this directory. Each article is a
 reviewed Markdown file named with a lowercase kebab-case slug. Images belong in
 `docs/user/assets/` and are referenced as `assets/file-name.png`.
 
+Russian owner copies use a `-ru` slug suffix (for example `sync-flow.md` and
+`sync-flow-ru.md`). Keep RU and EN behavior in lockstep; mark unfinished
+product work as **coming**, never as current.
+
 Copy this template into `docs/user/<slug>.md`:
 
 ```md

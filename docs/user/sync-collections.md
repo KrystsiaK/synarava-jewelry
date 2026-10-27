@@ -100,8 +100,13 @@ grouped by item with the same header as the conflict list (for example
 
 Nothing is written until you **Confirm changes** (the acknowledgement
 checkbox still appears for clears / removals). Confirm writes only those
-selections. Apply may refresh that one collection for write safety, then
+selections. Direction lines such as **Remove item: Shopify → Synarava** mean
+the Synarava copy will be removed after you confirm — read before → after
+carefully. Apply may refresh that one collection for write safety, then
 rebuilds leaves; after a successful Apply the one-entity recheck runs again.
+
+Owner overview (EN + RU): [Shopify sync flow](/admin/help/sync-flow) /
+[Синхронизация с Shopify](/admin/help/sync-flow-ru).
 :::
 
 :::warning
