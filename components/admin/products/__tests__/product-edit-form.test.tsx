@@ -17,6 +17,10 @@ const mocks = vi.hoisted(() => ({
   removeWorkingSnapshotMediaAction: vi.fn(),
   setPrimaryProductMediaAction: vi.fn(),
   refreshPreservingScroll: vi.fn(),
+  loadSkuAssignContext: vi.fn(),
+  previewProductSkuAction: vi.fn(),
+  assignProductSkuAction: vi.fn(),
+  resumePendingSkuAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
@@ -49,7 +53,15 @@ vi.mock("@/app/admin/actions/product-organization", () => ({
   listShopifyProductOrganizationAction: vi.fn().mockResolvedValue({ options: [] }),
 }));
 
+vi.mock("@/app/admin/actions/sku-assign", () => ({
+  loadSkuAssignContext: (...args: unknown[]) => mocks.loadSkuAssignContext(...args),
+  previewProductSkuAction: (...args: unknown[]) => mocks.previewProductSkuAction(...args),
+  assignProductSkuAction: (...args: unknown[]) => mocks.assignProductSkuAction(...args),
+  resumePendingSkuAction: (...args: unknown[]) => mocks.resumePendingSkuAction(...args),
+}));
+
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
+import { resetSkuFamilySelectionStore } from "@/components/admin/products/product-sku-assign-panel";
 import { adminSyncActionMocks } from "@/test/mocks/admin-sync-actions";
 
 function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
@@ -133,9 +145,33 @@ function productSignals(productId: string, presence: "SYNARAVA_ONLY" | "SHOPIFY_
   };
 }
 
+function unassignedSkuContext(overrides: Record<string, unknown> = {}) {
+  return {
+    configured: true,
+    familyKeys: ["accessory.eyeglasses", "jewelry.earring", "jewelry.necklace"],
+    currentSku: "PENDING-abc",
+    pending: true,
+    pendingReservationSku: null,
+    shopifyLinked: false,
+    variantId: "variant-1",
+    variants: [{
+      variantId: "variant-1",
+      title: "Default Title",
+      sku: "PENDING-abc",
+      shopifyVariantId: null,
+      pending: true,
+      pendingReservationSku: null,
+      shopifyLinked: false,
+    }],
+    ...overrides,
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
+  resetSkuFamilySelectionStore();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
+  mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext());
   adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
     signals: { state: "ready", totalCount: 0, checkedAt: null, products: {}, recentlyUpdatedProducts: {} },
   });
@@ -244,6 +280,18 @@ describe("EditProductForm", () => {
     adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
     });
+    // Real commerce SKU → assign panel shows readonly SKU, not Family select.
+    mocks.loadSkuAssignContext.mockResolvedValue({
+      configured: false,
+      reason: "test",
+      familyKeys: [],
+      currentSku: "LAVA-1",
+      pending: false,
+      pendingReservationSku: null,
+      shopifyLinked: true,
+      variantId: "variant-1",
+      variants: [],
+    });
     const user = userEvent.setup();
     render(<EditProductForm product={makeProduct({
       shopifyProductId: "gid://shopify/Product/1",
@@ -262,6 +310,62 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("spinbutton", { name: /Available quantity/ })).toBeVisible();
     expect(screen.getAllByText("Shop location").length).toBeGreaterThanOrEqual(1);
     expect(screen.getByRole("button", { name: "Shipping" })).toBeInTheDocument();
+  });
+
+  it("keeps SKU Family across select, context resolve, Save remount, and signal refresh", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      sku: "PENDING-abc",
+      variants: [primaryVariant("PENDING-abc")],
+    });
+    let resolveContext: (value: unknown) => void = () => undefined;
+    const firstLoad = new Promise((resolve) => {
+      resolveContext = resolve;
+    });
+    mocks.loadSkuAssignContext.mockReturnValueOnce(firstLoad);
+    mocks.loadSkuAssignContext.mockResolvedValue(unassignedSkuContext());
+    mocks.saveProductAction.mockResolvedValue({ success: "Saved.", product });
+    mocks.getSavedProductPayload.mockResolvedValue(product);
+    adminSyncActionMocks.loadCatalogConflictSignalsAction.mockResolvedValue({
+      signals: productSignals(product.id, "SYNARAVA_ONLY"),
+    });
+
+    render(<EditProductForm product={product} collections={[]} />);
+    await user.click(screen.getByRole("tab", { name: /Inventory/ }));
+
+    await act(async () => {
+      resolveContext(unassignedSkuContext());
+      await firstLoad;
+    });
+
+    const family = await screen.findByLabelText(/^Family/);
+    expect(family).toHaveValue("");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeDisabled();
+
+    fireEvent.change(family, { target: { value: "jewelry.necklace" } });
+    expect(family).toHaveValue("jewelry.necklace");
+    expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
+    // Dirty form → Create in Shopify copy.
+    expect(screen.getByText("Save changes first")).toBeInTheDocument();
+
+    // Save remounts ProductFormFields (fieldsRevision); lifted family must survive.
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
+    await waitFor(() => expect(mocks.saveProductAction).toHaveBeenCalled());
+
+    await waitFor(() => {
+      expect(mocks.loadSkuAssignContext.mock.calls.length).toBeGreaterThanOrEqual(2);
+    });
+    // Remount shows Loading until context resolves; Family must return with same choice.
+    expect(await screen.findByLabelText(/^Family/, {}, { timeout: 3000 })).toHaveValue(
+      "jewelry.necklace",
+    );
+    expect(screen.getByRole("button", { name: "Preview" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Confirm assign" })).toBeEnabled();
+    expect(document.querySelector("[data-sku-assign-choice='true']")?.textContent).toContain(
+      "jewelry.necklace",
+    );
   });
 
   it("does not inspect Shopify on mount when linked (signals only)", async () => {
