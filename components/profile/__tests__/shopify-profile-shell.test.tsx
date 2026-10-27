@@ -45,6 +45,11 @@ const customer = {
 } as unknown as ShopifyCustomerProfile;
 
 describe("ShopifyProfileShell security tab", () => {
+  afterEach(() => {
+    // Fake system time in the lifetime case must not leak across describes.
+    vi.useRealTimers();
+  });
+
   it("labels the tab Sign-in & security instead of the bare Security slug", () => {
     render(
       <ShopifyProfileShell
