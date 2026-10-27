@@ -18,6 +18,7 @@ export type ProductRowForOurWindow = {
   vendor?: string | null;
   productType?: string | null;
   status: string;
+  currency?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
   shopifyCategoryId?: string | null;
@@ -100,6 +101,7 @@ export function ourProductWindowFromRow(product: ProductRowForOurWindow): unknow
     vendor: product.vendor,
     productType: product.productType,
     status: product.status,
+    currency: product.currency,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,
     shopifyCategoryId: product.shopifyCategoryId,

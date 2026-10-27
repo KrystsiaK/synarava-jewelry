@@ -96,6 +96,7 @@ import {
   extractProductExtrasFromWorkingSnapshot,
   productExtrasFromShopifySnapshot,
 } from "@/lib/sync/extras";
+import { mapShopifyProductSnapshotToDeriveInput } from "@/lib/shopify/pull-product-mapping";
 import { ourProductWindowFromRow } from "@/lib/sync/our-window-from-row";
 
 export {
@@ -775,6 +776,8 @@ type SavePulledProductOptions = {
   force?: boolean;
   /** When false, skip locale translation pull (product webhooks). Default true. */
   pullTranslations?: boolean;
+  /** Precomputed snapshot→pull mapping (required when finishing a human pull). */
+  pulled?: ReturnType<typeof mapShopifyProductSnapshotToDeriveInput>;
 };
 
 async function savePulledProduct(
@@ -844,24 +847,35 @@ async function savePulledProduct(
   }
 
   const projectionWrite = await agreedProjectionWrite(remote);
+  const stockByVariantId = Object.fromEntries(
+    remote.variants.nodes.map((variant) => [
+      variant.id,
+      selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID),
+    ]),
+  );
+  const pulled = mapShopifyProductSnapshotToDeriveInput(projectionWrite.shopifySnapshot, {
+    stockByVariantId,
+  });
   const product = await db.product.upsert({
     where: existing ? { id: existing.id } : { shopifyProductId: remote.id },
     update: {
       shopifyProductId: remote.id,
       shopifyHandle: remote.handle,
-      slug: remote.handle,
+      slug: pulled.slug,
       sku: remoteSku,
-      name: remote.title,
-      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
-      vendor: remote.vendor || null,
-      shopifyCategoryId: remote.category?.id ?? null,
-      shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
-      seoTitle: remote.seo.title || null,
-      seoDescription: remote.seo.description || null,
+      name: pulled.name,
+      description: pulled.description,
+      vendor: pulled.vendor || null,
+      shopifyCategoryId: pulled.shopifyCategoryId ?? null,
+      shopifyCategoryName: pulled.shopifyCategoryName ?? null,
+      seoTitle: pulled.seoTitle || null,
+      seoDescription: pulled.seoDescription || null,
       ...projectionWrite,
-      productType: remote.productType || null,
-      priceCents: shopifyAmountToCents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
+      productType: pulled.productType || null,
+      currency: pulled.currency,
+      priceCents: pulled.variants[0]?.priceCents ?? shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: pulled.variants[0]?.compareAtCents
+        ?? (firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null),
       imageUrl,
       status: remote.status,
       visibility,
@@ -877,20 +891,21 @@ async function savePulledProduct(
     create: {
       shopifyProductId: remote.id,
       shopifyHandle: remote.handle,
-      slug: remote.handle,
+      slug: pulled.slug,
       sku: remoteSku,
-      name: remote.title,
-      description: sanitizeRichTextHtml(remote.descriptionHtml) || null,
-      vendor: remote.vendor || null,
-      shopifyCategoryId: remote.category?.id ?? null,
-      shopifyCategoryName: remote.category?.fullName ?? remote.category?.name ?? null,
-      seoTitle: remote.seo.title || null,
-      seoDescription: remote.seo.description || null,
+      name: pulled.name,
+      description: pulled.description,
+      vendor: pulled.vendor || null,
+      shopifyCategoryId: pulled.shopifyCategoryId ?? null,
+      shopifyCategoryName: pulled.shopifyCategoryName ?? null,
+      seoTitle: pulled.seoTitle || null,
+      seoDescription: pulled.seoDescription || null,
       ...projectionWrite,
-      productType: remote.productType || null,
-      currency: "EUR",
-      priceCents: shopifyAmountToCents(firstVariant?.price),
-      compareAtCents: firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null,
+      productType: pulled.productType || null,
+      currency: pulled.currency,
+      priceCents: pulled.variants[0]?.priceCents ?? shopifyAmountToCents(firstVariant?.price),
+      compareAtCents: pulled.variants[0]?.compareAtCents
+        ?? (firstVariant?.compareAtPrice ? shopifyAmountToCents(firstVariant.compareAtPrice) : null),
       imageUrl,
       status: remote.status,
       visibility,
@@ -907,6 +922,7 @@ async function savePulledProduct(
     return await finishPulledProduct(product, remote, remoteSku, firstVariant, eventId, {
       force,
       pullTranslations,
+      pulled,
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Shopify pull failed after the product row was written.";
@@ -928,7 +944,7 @@ async function finishPulledProduct(
   remoteSku: string,
   firstVariant: ShopifyProduct["variants"]["nodes"][number] | undefined,
   eventId: string | undefined,
-  { pullTranslations = true }: SavePulledProductOptions = {},
+  { pullTranslations = true, pulled }: SavePulledProductOptions = {},
 ) {
   // One aggregate status across every published translation locale — worst
   // case wins (UNAVAILABLE > CONFLICT > LOCAL_CHANGES > SYNCED) — since
@@ -989,62 +1005,53 @@ async function finishPulledProduct(
     }
   }
 
+  const mappedVariants = pulled?.variants ?? mapShopifyProductSnapshotToDeriveInput(
+    snapshotForShopifyProduct(remote),
+    {
+      stockByVariantId: Object.fromEntries(
+        remote.variants.nodes.map((variant) => [
+          variant.id,
+          selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID),
+        ]),
+      ),
+    },
+  ).variants;
+
   const pulledVariantIds: string[] = [];
-  for (const variant of remote.variants.nodes) {
-    const sku = variant.sku?.trim()
+  for (const mapped of mappedVariants) {
+    const variantId = mapped.shopifyVariantId;
+    if (!variantId) continue;
+    const sku = mapped.sku.trim()
       || localSkuForEmptyShopifySku({
         shopifyProductId: remote.id,
-        shopifyVariantId: variant.id,
+        shopifyVariantId: variantId,
       });
-    // Same Shopify-compatible stock contract as the inventory_levels/update webhook
-    // (REV-05) — otherwise a multi-location product's stock flips depending on
-    // whether it was last touched by a full pull or the webhook.
-    const stockOnHand = selectStockOnHand(variant.inventoryItem?.inventoryLevels ?? [], env.SHOPIFY_LOCATION_ID);
-    const byRemoteId = await db.productVariant.findUnique({ where: { shopifyVariantId: variant.id } });
+    const byRemoteId = await db.productVariant.findUnique({ where: { shopifyVariantId: variantId } });
+    const inventoryPolicy = (mapped.inventoryPolicy === "CONTINUE" ? "CONTINUE" : "DENY") as
+      "DENY" | "CONTINUE";
+    const variantFields = {
+      productId: product.id,
+      shopifyVariantId: variantId,
+      shopifyInventoryItemId: mapped.shopifyInventoryItemId ?? null,
+      sku,
+      title: mapped.title,
+      priceCents: mapped.priceCents,
+      compareAtCents: mapped.compareAtCents ?? null,
+      costCents: mapped.costCents ?? null,
+      stockOnHand: mapped.stockOnHand,
+      barcode: mapped.barcode ?? null,
+      inventoryPolicy,
+      taxable: mapped.taxable,
+      requiresShipping: mapped.requiresShipping ?? true,
+      tracked: mapped.tracked ?? true,
+      weightGrams: mapped.weightGrams ?? null,
+      selectedOptions: (mapped.selectedOptions ?? []) as Prisma.InputJsonValue,
+      status: remote.status,
+    };
     const pulledVariant = await db.productVariant.upsert({
       where: byRemoteId ? { id: byRemoteId.id } : { sku },
-      update: {
-        productId: product.id,
-        shopifyVariantId: variant.id,
-        shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
-        sku,
-        title: variant.title,
-        priceCents: shopifyAmountToCents(variant.price),
-        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        costCents: variant.inventoryItem?.unitCost?.amount
-          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
-          : null,
-        stockOnHand,
-        barcode: variant.barcode,
-        inventoryPolicy: variant.inventoryPolicy,
-        taxable: variant.taxable,
-        requiresShipping: variant.inventoryItem?.requiresShipping ?? true,
-        tracked: variant.inventoryItem?.tracked ?? true,
-        weightGrams: weightInGrams(variant.inventoryItem?.measurement?.weight) ?? null,
-        selectedOptions: variant.selectedOptions as Prisma.InputJsonValue,
-        status: remote.status,
-      },
-      create: {
-        productId: product.id,
-        shopifyVariantId: variant.id,
-        shopifyInventoryItemId: variant.inventoryItem?.id ?? null,
-        sku,
-        title: variant.title,
-        priceCents: shopifyAmountToCents(variant.price),
-        compareAtCents: variant.compareAtPrice ? shopifyAmountToCents(variant.compareAtPrice) : null,
-        costCents: variant.inventoryItem?.unitCost?.amount
-          ? shopifyAmountToCents(variant.inventoryItem.unitCost.amount)
-          : null,
-        stockOnHand,
-        barcode: variant.barcode,
-        inventoryPolicy: variant.inventoryPolicy,
-        taxable: variant.taxable,
-        requiresShipping: variant.inventoryItem?.requiresShipping ?? true,
-        tracked: variant.inventoryItem?.tracked ?? true,
-        weightGrams: weightInGrams(variant.inventoryItem?.measurement?.weight) ?? null,
-        selectedOptions: variant.selectedOptions as Prisma.InputJsonValue,
-        status: remote.status,
-      },
+      update: variantFields,
+      create: variantFields,
     });
     pulledVariantIds.push(pulledVariant.id);
   }
