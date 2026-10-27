@@ -80,15 +80,40 @@ describe("pushCollectionToShopify linked update", () => {
     const result = await pushCollectionToShopify("col-1");
     expect(result).toEqual({ ok: true, shopifyCollectionId: "gid://shopify/Collection/1" });
     expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
-      expect.stringContaining("collectionUpdate"),
+      expect.stringContaining("collectionUpdate(collection: $collection)"),
       expect.objectContaining({
-        input: expect.objectContaining({
+        collection: expect.objectContaining({
           id: "gid://shopify/Collection/1",
           title: "Rings Local",
           handle: "rings",
         }),
       }),
     );
+  });
+
+  it("surfaces collectionUpdate userErrors as ShopifyAdminError", async () => {
+    mocks.shopifyAdminRequest.mockReset();
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({
+        collection: {
+          id: "gid://shopify/Collection/1",
+          title: "Rings",
+          handle: "rings",
+          updatedAt: "2026-09-26T00:00:00Z",
+          descriptionHtml: "<p>Fine rings</p>",
+          seo: { title: "Rings SEO", description: null },
+          sources: [],
+        },
+      })
+      .mockResolvedValueOnce({
+        collectionUpdate: {
+          collection: null,
+          job: null,
+          userErrors: [{ message: "Handle already taken" }],
+        },
+      });
+
+    await expect(pushCollectionToShopify("col-1")).rejects.toThrow(/Handle already taken/);
   });
 
   it("does not unlink or wipe extras when Shopify fetch fails for a non-missing reason", async () => {

@@ -21,6 +21,7 @@ import {
   diffCollectionCommerceWindows,
   plainDescriptionToHtml,
 } from "@/lib/shopify/collection-commerce-projection";
+import { runShopifyCollectionUpdate } from "@/lib/shopify/collection-update";
 import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 import { ensureTranslationBinding } from "@/lib/shopify/translation-sync";
 
@@ -158,34 +159,16 @@ async function pushLinkedCollectionUpdate(collection: {
     throw new ShopifyAdminError("Synarava collection has no commerce window to push.");
   }
   const input = collectionCommerceInputFromWindow(window);
-  const result = await shopifyAdminRequest<{
-    collectionUpdate: {
-      collection: { id: string; handle: string; updatedAt?: string } | null;
-      userErrors: Array<{ field?: string[]; message: string }>;
-    };
-  }>(
-    `mutation SynaravaCollectionCommerceUpdate($input: CollectionInput!) {
-      collectionUpdate(input: $input) {
-        collection { id handle updatedAt }
-        userErrors { field message }
-      }
-    }`,
+  await runShopifyCollectionUpdate(
     {
-      input: {
-        id: collection.shopifyCollectionId,
-        title: input.title,
-        handle: input.handle || undefined,
-        descriptionHtml: input.descriptionHtml,
-        seo: input.seo,
-      },
+      id: collection.shopifyCollectionId,
+      title: input.title,
+      handle: input.handle || undefined,
+      descriptionHtml: input.descriptionHtml,
+      seo: input.seo,
     },
+    { requireCollection: true },
   );
-  if (result.collectionUpdate.userErrors.length > 0) {
-    throw new ShopifyAdminError(result.collectionUpdate.userErrors.map((error) => error.message).join("; "));
-  }
-  if (!result.collectionUpdate.collection) {
-    throw new ShopifyAdminError("Shopify did not return the updated collection.");
-  }
 
   await refreshShopifyCollectionState(collection.shopifyCollectionId);
   await ensureTranslationBinding({

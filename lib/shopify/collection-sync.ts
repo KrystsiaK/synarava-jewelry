@@ -13,6 +13,7 @@ import {
   type ShopifyCollectionSource,
   type ShopifyJob,
 } from "@/lib/shopify/collection-membership";
+import { runShopifyCollectionUpdate } from "@/lib/shopify/collection-update";
 
 type UserError = { field?: string[]; message: string };
 
@@ -101,33 +102,8 @@ export async function forgetMissingShopifyCollection(
 }
 
 // Shopify 2026-07 replaces collectionAddProducts/collectionRemoveProducts
-// with source deltas on collectionUpdate.
+// with source deltas on collectionUpdate (shared runShopifyCollectionUpdate).
 // Source: https://shopify.dev/docs/apps/build/product-merchandising/products-and-collections/migrate-to-flexible-collections#step-5-replace-collectionaddproducts-and-collectionremoveproducts
-async function runShopifyCollectionUpdate(input: Record<string, unknown>) {
-  const data = await shopifyAdminRequest<{
-    collectionUpdate: { job: ShopifyJob | null; userErrors: UserError[] };
-  }>(
-    `mutation SynaravaCollectionMembership($collection: CollectionUpdateInput!) {
-      collectionUpdate(collection: $collection) {
-        job { id done }
-        userErrors { field message }
-      }
-    }`,
-    { collection: input },
-  );
-  assertNoUserErrors(data.collectionUpdate.userErrors);
-
-  // A collectionUpdate can be queued; do not mark the product synchronized
-  // until Shopify reports the returned job as done.
-  // Source: https://shopify.dev/docs/api/admin-graphql/2026-07/queries/job
-  await waitForShopifyJobCompletion(data.collectionUpdate.job, async (jobId) => {
-    const jobData = await shopifyAdminRequest<{ job: ShopifyJob | null }>(
-      `query SynaravaJob($id: ID!) { job(id: $id) { id done } }`,
-      { id: jobId },
-    );
-    return jobData.job;
-  });
-}
 
 /**
  * Legacy stopgap when `selectionsToRemove` cannot empty a condition source.

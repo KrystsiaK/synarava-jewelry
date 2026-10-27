@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache";
 
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
 import { waitForShopifyJobCompletion, type ShopifyJob } from "@/lib/shopify/collection-membership";
+import { runShopifyCollectionUpdate } from "@/lib/shopify/collection-update";
 
 type UserError = { field?: string[]; message: string };
 
@@ -35,19 +36,7 @@ async function ensureManualCollectionOrder(collectionId: string) {
   if (!current.collection) throw new ShopifyAdminError("Shopify collection was not found.");
   if (current.collection.sortOrder === "MANUAL") return;
 
-  const result = await shopifyAdminRequest<{
-    collectionUpdate: { job: ShopifyJob | null; userErrors: UserError[] };
-  }>(
-    `mutation SynaravaEnableManualCollectionOrder($collection: CollectionUpdateInput!) {
-      collectionUpdate(collection: $collection) {
-        job { id done }
-        userErrors { field message }
-      }
-    }`,
-    { collection: { id: collectionId, sortOrder: "MANUAL" } },
-  );
-  assertNoUserErrors(result.collectionUpdate.userErrors);
-  await waitForJob(result.collectionUpdate.job);
+  await runShopifyCollectionUpdate({ id: collectionId, sortOrder: "MANUAL" });
 }
 
 async function fetchShopifyCollectionOrder(collectionId: string) {
