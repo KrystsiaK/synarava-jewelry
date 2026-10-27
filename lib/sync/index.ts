@@ -62,6 +62,12 @@ export {
   type RecheckEntityConflictLeavesResult,
 } from "./recheck-entity-leaves";
 export {
+  intendedAddressFromLeaf,
+  verifyConvergenceAfterWrite,
+  type ConvergenceStatus,
+  type IntendedConflictAddress,
+} from "./convergence";
+export {
   selectAdminNavSyncCounts,
   type AdminNavSyncEntityType,
 } from "./nav-counts";

@@ -1,101 +1,34 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { isSharedSection } from "@/components/admin/products/product-editor-scope";
-
-/**
- * Map one commerce conflict fact → the product editor section tab that owns it.
- * Unknown paths land on Sync (`shopify`), never on every tab.
- */
-export function productEditorSectionForCommerceDiff(diff: {
-  path?: string;
-  field: string;
-}): ProductEditorSection {
-  const path = diff.path ?? "";
-  const field = diff.field;
-
-  if (path === "_presence" || field === "Presence") return "shopify";
-  if (path === "_adopt" || field === "Adopt Shopify") return "shopify";
-
-  if (
-    /^variants\[\d+\]\.(price|compareAtPrice|taxable)(\.|$)/.test(path)
-    || /^variants\[\d+\]\.inventoryItem\.unitCost/.test(path)
-    || field === "Price"
-    || field === "Compare-at price"
-    || field === "Charge tax"
-    || field === "Cost"
-  ) {
-    return "price";
-  }
-
-  if (
-    /^variants\[\d+\]\.(sku|barcode|inventoryQuantity|inventoryPolicy)(\.|$)/.test(path)
-    || /^variants\[\d+\]\.inventoryItem\.(requiresShipping|tracked|countryCodeOfOrigin|harmonizedSystemCode|measurement)(\.|$)/.test(path)
-    || field === "Variant SKU"
-    || field === "Barcode"
-    || field === "Available quantity"
-    || field === "Inventory policy"
-  ) {
-    return "inventory";
-  }
-
-  if (
-    /^(title|handle|vendor|productType|tags)(\.|$|\[)/.test(path)
-    || field === "Name"
-    || field === "Handle"
-    || field === "Vendor"
-    || field === "Product type"
-    || field === "Tags"
-  ) {
-    return "essentials";
-  }
-
-  if (
-    /^(category|status|collections|resourcePublicationsV2|publications)(\.|$|\[)/.test(path)
-    || field === "Product category"
-    || field === "Status"
-  ) {
-    return "essentials";
-  }
-
-  if (
-    /^(descriptionHtml|seo)(\.|$)/.test(path)
-    || field === "Description"
-    || field === "SEO title"
-    || field === "SEO description"
-  ) {
-    return "essentials";
-  }
-
-  // Path is authoritative; label may be the raw path (unlabeled leaf) or "Media gallery (…)".
-  if (
-    /^media(\.|$|\[)/.test(path)
-    || /^media(\.|$|\[)/i.test(field)
-    || /^Media gallery/i.test(field)
-  ) {
-    return "media";
-  }
-
-  if (/^metafields(\.|$|\[)/.test(path) || field === "Metafields") return "metafields";
-
-  return "shopify";
-}
+import {
+  lookupContractForPath,
+  type SyncConflictSection,
+} from "@/lib/sync/field-registry";
 
 /**
  * Map a conflict-modal field row → the editor section that owns it.
- * Commerce uses path when present (media diffs are unlabeled paths); else label.
+ * Commerce / presence read leaf contract metadata (`section` / `parts`) only —
+ * no path/label regex routing.
  */
 export function productEditorSectionForConflictField(field: {
   origin: "COMMERCE" | "TRANSLATION" | "PRESENCE";
   label: string;
   fieldKey: string;
   path?: string | null;
+  section?: SyncConflictSection | null;
+  parts?: ReadonlyArray<{ section: SyncConflictSection }> | null;
 }): ProductEditorSection {
   if (field.origin === "PRESENCE") return "shopify";
   if (field.origin === "COMMERCE") {
-    return productEditorSectionForCommerceDiff({
-      path: field.path ?? undefined,
-      field: field.label,
-    });
+    if (field.section) return field.section;
+    if (field.parts && field.parts.length > 0) return field.parts[0]!.section;
+    if (field.path) {
+      const contract = lookupContractForPath(field.path);
+      if (contract) return contract.section;
+    }
+    return "shopify";
   }
+  // Translation leaves: small key→section map (not commerce path regex).
   const key = field.fieldKey.split(":")[2] ?? "";
   if (key === "title" || key === "localizedHandle" || key === "name" || key === "handle") {
     return "essentials";
@@ -121,12 +54,40 @@ export function productEditorSectionForConflictField(field: {
   return "details";
 }
 
+/**
+ * Resolve section from contract metadata (path lookup), never path/label regex.
+ * Prefer passing `section` from the SyncLeaf when available.
+ */
+export function productEditorSectionForCommerceDiff(diff: {
+  path?: string;
+  field: string;
+  section?: SyncConflictSection | null;
+}): ProductEditorSection {
+  if (diff.section) return diff.section;
+  if (diff.path === "_presence" || diff.field === "Presence") return "shopify";
+  if (diff.path === "_adopt" || diff.field === "Adopt Shopify") return "shopify";
+  if (diff.path) {
+    const contract = lookupContractForPath(diff.path);
+    if (contract) return contract.section;
+  }
+  return "shopify";
+}
+
 /** Sections whose tabs should show conflict tone for the given differences. */
 export function conflictSectionsFromDifferences(
-  differences: ReadonlyArray<{ path?: string; field: string }>,
+  differences: ReadonlyArray<{
+    path?: string;
+    field: string;
+    section?: SyncConflictSection | null;
+    parts?: ReadonlyArray<{ section: SyncConflictSection }> | null;
+  }>,
 ): Set<ProductEditorSection> {
   const sections = new Set<ProductEditorSection>();
   for (const diff of differences) {
+    if (diff.parts && diff.parts.length > 0) {
+      for (const part of diff.parts) sections.add(part.section);
+      continue;
+    }
     sections.add(productEditorSectionForCommerceDiff(diff));
   }
   return sections;

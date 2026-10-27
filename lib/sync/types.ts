@@ -3,6 +3,8 @@
  * Two states only: Shopify vs Synarava. No third “base” window.
  */
 
+import type { SyncConflictSection, SyncLeafPart } from "./field-registry";
+
 export type SyncResourceType = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
 
 export type SyncLeafKind = "commerce" | "translation" | "presence";
@@ -21,6 +23,8 @@ export type SyncPresenceSide = "SHOPIFY_ONLY" | "SYNARAVA_ONLY";
 
 export type SyncTargetKind = "NATIVE" | "METAFIELD" | "METAOBJECT";
 
+export type { SyncConflictSection, SyncLeafPart };
+
 /** One diverging field / presence / translation cell. */
 export type SyncLeaf = {
   id: string;
@@ -37,6 +41,15 @@ export type SyncLeaf = {
   blockedReason: string | null;
   sourceId: string | null;
   path: string | null;
+  /** Field-contract key (registry) — authoritative for apply/routing. */
+  contractKey?: string | null;
+  /** Editor section from the field contract (or any part for whole-item). */
+  section?: SyncConflictSection | null;
+  /**
+   * Whole-item leaf only: structured constituent diffs. Display text and
+   * translation-dedupe read `parts` — never parse `Label: value` lines.
+   */
+  parts?: readonly SyncLeafPart[] | null;
   /**
    * Leaf address node: shared commerce/presence → `"base"`;
    * translation → locale code. Never put shared commerce under a locale tab.

@@ -24,6 +24,17 @@ import {
 import type { ReconcileDifferenceView } from "@/lib/shopify/reconciliation-run";
 
 import {
+  ADOPT_CONTRACT_KEY,
+  PRESENCE_CONTRACT_KEY,
+  UNMAPPED_CONTRACT_KEY,
+  WHOLE_ITEM_CONTRACT_KEY,
+  contractKeyForWindowPath,
+  isUnmappedWindowPath,
+  lookupContractForPath,
+  type SyncConflictSection,
+  type SyncLeafPart,
+} from "./field-registry";
+import {
   emptySyncResult,
   type SyncDirection,
   type SyncLeaf,
@@ -149,13 +160,32 @@ function resolveState(input: SyncCompareInput, now: Date): SyncResultState {
   return "ready";
 }
 
+function partFromDiff(diff: ShopifyProjectionDiff): SyncLeafPart {
+  const path = diff.path ?? "";
+  const contract = path ? lookupContractForPath(path) : null;
+  return {
+    contractKey: contract?.contractKey ?? (path ? contractKeyForWindowPath(path) : UNMAPPED_CONTRACT_KEY),
+    path,
+    label: contract?.label ?? diff.field,
+    section: contract?.section ?? "shopify",
+    local: diff.local,
+    shopify: diff.shopify,
+  };
+}
+
 function commerceLeaf(
   resourceType: "PRODUCT" | "COLLECTION",
   resourceId: string,
   diff: ShopifyProjectionDiff,
 ): SyncLeaf {
-  const supported = isScopedCommerceFieldLabel(diff.field);
-  const keySource = diff.path?.trim() || diff.field;
+  const path = diff.path ?? "";
+  const unmapped = Boolean(path) && isUnmappedWindowPath(path);
+  const contract = path ? lookupContractForPath(path) : null;
+  const supported = !unmapped && isScopedCommerceFieldLabel(diff.field);
+  const keySource = path.trim() || diff.field;
+  const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
+  const section: SyncConflictSection = unmapped ? "shopify" : (contract?.section ?? "shopify");
+  const contractKey = unmapped ? UNMAPPED_CONTRACT_KEY : (contract?.contractKey ?? slugFieldKey(keySource));
   // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
     id: `${resourceType}:${resourceId}:commerce:${slugFieldKey(keySource)}`,
@@ -163,20 +193,23 @@ function commerceLeaf(
     resourceId,
     kind: "commerce",
     locale: null,
-    fieldKey: `commerce:${slugFieldKey(keySource)}`,
-    label: diff.field,
+    fieldKey: unmapped ? `commerce:unmapped:${slugFieldKey(path)}` : `commerce:${slugFieldKey(keySource)}`,
+    label,
     synaravaValue: diff.local,
     shopifyValue: diff.shopify,
     allowedDirections: allowedDirectionsForLeaf({
       kind: "commerce",
       resourceType,
-      commerceSupported: supported,
+      commerceSupported: supported && !unmapped,
     }),
-    blockedReason: supported ? null : COMMERCE_UNSUPPORTED_REASON,
+    blockedReason: unmapped || !supported ? COMMERCE_UNSUPPORTED_REASON : null,
     sourceId: null,
-    path: diff.path ?? null,
+    path: path || null,
+    contractKey,
+    section,
+    parts: null,
     presenceSide: null,
-    targetKind: commerceTargetKind(diff.field),
+    targetKind: commerceTargetKind(label),
     localFingerprint: leafFingerprint(diff.local),
     shopifyFingerprint: leafFingerprint(diff.shopify),
     node: "base",
@@ -184,14 +217,23 @@ function commerceLeaf(
 }
 
 /** Stable fieldKey for the one whole-record product commerce leaf. */
-export const WHOLE_ITEM_COMMERCE_FIELD_KEY = "commerce:whole-item";
+export const WHOLE_ITEM_COMMERCE_FIELD_KEY = WHOLE_ITEM_CONTRACT_KEY;
 
 /** Collapse ALL product commerce diffs into one whole-record leaf (when any need it). */
 function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjectionDiff[]): SyncLeaf {
   const sorted = [...diffs].toSorted((a, b) => a.field.localeCompare(b.field) || a.path.localeCompare(b.path));
-  const synaravaValue = sorted.map((d) => `${d.field}: ${d.local}`).join("\n");
-  const shopifyValue = sorted.map((d) => `${d.field}: ${d.shopify}`).join("\n");
-  // Fingerprints: canonical {path, local|shopify} list — not the visible summary.
+  // One part per contract key (deepDiff may emit nested paths under the same field).
+  const partsByKey = new Map<string, SyncLeafPart>();
+  for (const diff of sorted) {
+    const part = partFromDiff(diff);
+    if (!partsByKey.has(part.contractKey)) partsByKey.set(part.contractKey, part);
+  }
+  const parts = [...partsByKey.values()].toSorted(
+    (a, b) => a.label.localeCompare(b.label) || a.path.localeCompare(b.path),
+  );
+  const synaravaValue = parts.map((part) => `${part.label}: ${part.local}`).join("\n");
+  const shopifyValue = parts.map((part) => `${part.label}: ${part.shopify}`).join("\n");
+  // Fingerprints: canonical {path, local|shopify} from parts — not the visible summary.
   return {
     id: `PRODUCT:${resourceId}:${WHOLE_ITEM_COMMERCE_FIELD_KEY}`,
     resourceType: "PRODUCT",
@@ -199,17 +241,20 @@ function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjec
     kind: "commerce",
     locale: null,
     fieldKey: WHOLE_ITEM_COMMERCE_FIELD_KEY,
-    label: `Product data (${sorted.length} fields)`,
+    label: `Product data (${parts.length} fields)`,
     synaravaValue,
     shopifyValue,
     allowedDirections: [],
     blockedReason: COMMERCE_UNSUPPORTED_REASON,
     sourceId: null,
     path: null,
+    contractKey: WHOLE_ITEM_CONTRACT_KEY,
+    section: parts[0]?.section ?? "shopify",
+    parts,
     presenceSide: null,
     targetKind: "NATIVE",
-    localFingerprint: leafFingerprint(JSON.stringify(sorted.map((d) => ({ path: d.path, local: d.local })))),
-    shopifyFingerprint: leafFingerprint(JSON.stringify(sorted.map((d) => ({ path: d.path, shopify: d.shopify })))),
+    localFingerprint: leafFingerprint(JSON.stringify(parts.map((p) => ({ path: p.path, local: p.local })))),
+    shopifyFingerprint: leafFingerprint(JSON.stringify(parts.map((p) => ({ path: p.path, shopify: p.shopify })))),
     node: "base",
   };
 }
@@ -234,6 +279,9 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
     blockedReason: null,
     sourceId: null,
     path: ADOPT_SHOPIFY_FIELD_PATH,
+    contractKey: ADOPT_CONTRACT_KEY,
+    section: "shopify",
+    parts: null,
     presenceSide: null,
     targetKind: "NATIVE",
     localFingerprint: leafFingerprint(synaravaValue),
@@ -296,13 +344,9 @@ function commerceCoveredTranslationKeys(commerceLeaves: readonly SyncLeaf[]): Se
   const covered = new Set<string>();
   for (const leaf of commerceLeaves) {
     if (leaf.kind !== "commerce") continue;
-    // Aggregate: parse constituent labels from `Label: value` lines (not the group title).
+    // Whole-item: read structured parts — never parse `Label: value` lines.
     const labels = leaf.fieldKey === WHOLE_ITEM_COMMERCE_FIELD_KEY
-      ? leaf.synaravaValue.split("\n").flatMap((line) => {
-          const sep = line.indexOf(": ");
-          const label = (sep === -1 ? line : line.slice(0, sep)).trim();
-          return label ? [label] : [];
-        })
+      ? (leaf.parts ?? []).map((part) => part.label)
       : [leaf.label];
     for (const label of labels) {
       const keys = COMMERCE_LABEL_TO_TRANSLATION_KEYS[label];
@@ -388,6 +432,9 @@ function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
     blockedReason: null,
     sourceId: null,
     path: null,
+    contractKey: PRESENCE_CONTRACT_KEY,
+    section: "shopify",
+    parts: null,
     displayName: identity?.name ?? difference.name,
     displayHandle: identity?.handle ?? difference.handle,
     displaySku: identity?.sku ?? difference.sku,
@@ -427,6 +474,9 @@ function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncL
     blockedReason: null,
     sourceId: null,
     path: null,
+    contractKey: PRESENCE_CONTRACT_KEY,
+    section: "shopify",
+    parts: null,
     displayName: identity?.name ?? difference.name,
     displayHandle: identity?.handle ?? difference.handle,
     displaySku: identity?.sku ?? difference.sku,

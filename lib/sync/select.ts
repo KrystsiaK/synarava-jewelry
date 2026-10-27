@@ -129,11 +129,28 @@ export function selectSyncCounts(
     return leavesForResource(result, view.resourceType, view.resourceId).length;
   }
 
-  // localeTab / sectionChip — tree node slice (shared never under PT/RU).
+  // localeTab — tree node slice (shared never under PT/RU).
+  if (view.kind === "localeTab") {
+    return slice(result, {
+      entityType: view.resourceType,
+      entityId: view.resourceId,
+      node: treeNodeForLocale(view.locale),
+    }).length;
+  }
+
+  // sectionChip — same tree node, then filter by contract section / whole-item parts.
+  const section = view.section;
   return slice(result, {
     entityType: view.resourceType,
     entityId: view.resourceId,
     node: treeNodeForLocale(view.locale),
+  }).filter((leaf) => {
+    if (section == null) return true;
+    if (leaf.kind === "presence") return section === "shopify";
+    if (leaf.parts && leaf.parts.length > 0) {
+      return leaf.parts.some((part) => part.section === section);
+    }
+    return leaf.section === section;
   }).length;
 }
 

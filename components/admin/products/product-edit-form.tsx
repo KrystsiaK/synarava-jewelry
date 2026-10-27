@@ -144,11 +144,11 @@ export function EditProductForm({
     }),
   );
   const productConflict = conflictSignals.products[currentProduct.id];
-  // Section markers from loaded conflict signals (no mount/after-save inspect).
-  // Fine-grained commerce path→section marks need field diffs; signals carry
-  // shared/locale/presence counts — banner + locale chips use those.
-  const conflictSections = new Set<ProductEditorSection>();
-  if (productConflict?.presence) conflictSections.add("shopify");
+  // Tab dots from signal.sections (leaf/part contract metadata) — never light
+  // every shared tab from a bare `shared` flag.
+  const conflictSections = new Set<ProductEditorSection>(
+    (productConflict?.sections ?? []) as ProductEditorSection[],
+  );
   // Tree: shared commerce → base (EN) only; locale-only → that locale.
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
@@ -158,8 +158,7 @@ export function EditProductForm({
     localeSignals: productConflict?.locales,
     baseLocale: SOURCE_LOCALE,
   });
-  const activeSectionHasConflict = conflictSections.has(activeSection)
-    || (Boolean(productConflict?.shared) && isSharedSection(activeSection));
+  const activeSectionHasConflict = conflictSections.has(activeSection);
   const syncLocale = isSharedSection(activeSection) ? SOURCE_LOCALE : activeLocale;
   const entityConflictCount = productConflictBadgeCount(productConflict);
   const localeConflictCount = productConflictBadgeCount(
@@ -169,13 +168,14 @@ export function EditProductForm({
       locale: activeLocale,
     }).products[currentProduct.id],
   );
-  // Section chip: only light when this section owns a conflict (no zeroing blob).
+  // Section chip: leaf count filtered by contract section via selectSyncCounts.
   const sectionConflictCount = activeSectionHasConflict
     ? productConflictBadgeCount(
       filterSignalsForView(conflictSignals, {
-        kind: "productLocale",
+        kind: "productSection",
         productId: currentProduct.id,
         locale: syncLocale,
+        section: activeSection,
       }).products[currentProduct.id],
     )
     : 0;

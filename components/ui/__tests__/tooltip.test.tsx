@@ -1,10 +1,16 @@
 import { act, fireEvent, render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { EphemeralToastProvider, useEphemeralToast } from "@/components/ui/ephemeral-toast";
 import { resetTooltipWarmth, Tooltip } from "@/components/ui/tooltip";
 
 describe("Tooltip", () => {
+  afterEach(() => {
+    // Isolate fake-timer tests from siblings (shared timers / order flakes).
+    vi.useRealTimers();
+    resetTooltipWarmth();
+  });
+
   it("waits out the rest delay, then opens the next tag immediately", () => {
     vi.useFakeTimers();
     resetTooltipWarmth();

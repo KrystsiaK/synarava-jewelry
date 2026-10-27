@@ -2,11 +2,13 @@
 
 **Status:** live on staging/main (**one** sync system).  
 **Date:** 2026-10-26  
-**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md); [ADR-0009](../adr/0009-derive-synarava-commerce-state.md) (derive OUR window).
+**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md); [ADR-0009](../adr/0009-derive-synarava-commerce-state.md) (derive OUR window); [ADR-0010](../adr/0010-field-contract-and-verified-convergence.md) (field contract + verified convergence — **proposed** until PR-6..8 merge).
 
 **Two states only:** Synarava **derived OUR window** (columns + `extras` + locale rows) ↔ Shopify `shopifySnapshot` (last fetched). No stored `workingSnapshot`.  
 **Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy; humans Apply.  
 **ONE compare → SyncResult leaves:** `lib/sync` (`compareSyncState` → `SyncResult` leaves → `selectSyncCounts` / ConflictResolver fields / list + banner). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor. No `CommerceSyncStore` catalog cache.  
+**Field contract** (`lib/sync/field-registry.ts`): each commerce leaf carries `contractKey` / `section` / (whole-item) `parts` — consumers route tabs and chips from that metadata, not path/label regex. Unknown non-technical paths → blocked `Unmapped Shopify field <path>`.  
+**Verified convergence:** after Apply/write, one scoped entity recheck proves intended leaves cleared (`verifyConvergenceAfterWrite`). Destructive collection Remove archives into `SyncEntityArchive` first.  
 **`syncStatus` is not the conflict SoT** — list, banner, resolver, and badges derive from SyncResult leaves. `Product.syncStatus` / `Collection.syncStatus` remain operational (PENDING / FAILED / SYNCED / identity CONFLICT / UNLINKED), not a parallel conflict inventory.
 
 This is the only admin sync architecture doc for the current model. Older drafts
@@ -26,7 +28,7 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 | --- | --- |
 | Per-product windows | OUR = `deriveProductWindow(columns + Product.extras)` + `Product.shopifySnapshot` (last Shopify). Orphan keys (media GIDs, publications, metafields remainder, options, category object, variant HS/origin) live in `extras`. |
 | Per-collection windows | OUR = `deriveCollectionWindow(columns + Collection.extras)` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
-| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner. Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
+| Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner (including **sectionChip** filtered by leaf/part `section`). Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/sections/apply; tab dots use `signal.sections` |
 | One-sided presence | A product or collection missing from either side produces exactly one `presence` leaf on `node: base` with `locale: null`. Commerce and translation leaves for that entity are suppressed until both copies exist. |
 | Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save one-entity recheck** (`runAfterSaveCatalogConflictCheck` + `{ kind:"product"|"collection", …Id }`) — refresh+compare that entity only; does not stamp top-bar `checkedAt` |
 | SKU assign (Family → Confirm / resume) | Column write + after-save one-entity product recheck. SKU is column-backed; derive reads `ProductVariant.sku` |
