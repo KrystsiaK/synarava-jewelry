@@ -49,12 +49,25 @@ Additive-only migrations (new tables/indexes/columns with defaults) usually do n
 - [ ] Watch Railway **production** deploy for `synarava-shop-app` (build + `pnpm prisma:deploy` + start).
 - [ ] Confirm deploy commit SHA matches the merge on `main` (see pitfall below).
 
-## 6. Verify
+## 6. Verify (post-deploy curls + smoke)
 
-- [ ] `GET /api/health` → `200`, `ok: true`, revision = merged SHA.
-- [ ] Admin: top-bar Shopify check (Manual) completes; store binding matches expected shop.
+From a laptop (no secrets). Replace host with production public URL:
+
+```bash
+# Health — expect 200, ok:true, revision = staging→main merge SHA
+curl -sS "https://<prod-host>/api/health" | tee /tmp/prod-health.json
+# Optional: jq -e --arg sha "<merge-sha>" '.ok == true and .revision == $sha'
+
+# Storefront home should not 5xx
+curl -sS -o /dev/null -w "%{http_code}\n" "https://<prod-host>/"
+curl -sS -o /dev/null -w "%{http_code}\n" "https://<prod-host>/pt"
+```
+
+- [ ] Health JSON `ok: true` and **revision matches** the merge commit on `main`.
+- [ ] Home / locale home return **2xx** (not 5xx).
+- [ ] Admin login works; top-bar Shopify check (Manual) completes; store binding matches expected shop.
 - [ ] One controlled **Apply** (or Pull) on a non-critical product; confirm no surprise wipe.
-- [ ] Optional: paste [`prod-readiness-check.sql`](../../scripts/db/prod-readiness-check.sql) sections in Railway Data tab (SELECT only).
+- [ ] Optional: paste [`prod-readiness-check.sql`](../../scripts/db/prod-readiness-check.sql) sections in Railway Data tab (**SELECT only**).
 
 ## 7. Rollback
 
