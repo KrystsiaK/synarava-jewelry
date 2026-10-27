@@ -1,6 +1,10 @@
 # Enable GitHub native auto-merge for PRs into staging that carry the
 # `automerge` label. Merge happens only after required checks are green.
 # Does not target main. Requires repo setting: Allow auto-merge.
+#
+# Dependabot: never production deps or majors. Only development-dependencies
+# group (patch/minor per .github/dependabot.yml). Human PRs with `automerge`
+# are unchanged.
 name: Automerge to staging
 
 on:
@@ -22,6 +26,7 @@ concurrency:
 permissions:
   contents: write
   pull-requests: write
+  checks: read
 
 jobs:
   enable:
@@ -33,6 +38,65 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
+      - name: Gate Dependabot to development patch/minor only
+        env:
+          ACTOR: ${{ github.event.pull_request.user.login }}
+          TITLE: ${{ github.event.pull_request.title }}
+          BODY: ${{ github.event.pull_request.body }}
+        run: |
+          set -euo pipefail
+          # Humans with the automerge label are unchanged.
+          if [ "$ACTOR" != "dependabot[bot]" ]; then
+            echo "Non-Dependabot PR — skip Dependabot gate."
+            exit 0
+          fi
+          # Group names come from .github/dependabot.yml (patch+minor only).
+          # Majors are ungrouped one-PR-each and must never auto-merge.
+          if printf '%s\n%s\n' "$TITLE" "$BODY" | grep -qiE 'production-dependencies'; then
+            echo "::error::Refuse Dependabot automerge for production dependencies."
+            exit 1
+          fi
+          if ! printf '%s\n%s\n' "$TITLE" "$BODY" | grep -qiE 'development-dependencies'; then
+            echo "::error::Refuse Dependabot automerge unless the PR is the development-dependencies group (patch/minor). Majors and production groups stay manual."
+            exit 1
+          fi
+          echo "Dependabot development-dependencies group — OK to queue auto-merge."
+
+      - name: Require named CI checks before queueing auto-merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # Branch protection + --auto still wait for required checks. This step
+          # fails fast if any named check already failed on the head SHA.
+          REQUIRED_CHECKS=(
+            "Quality Gates"
+            "Storefront smoke (desktop and mobile)"
+            "Path filter"
+            "SKU Quality Gates"
+          )
+          # `gh pr checks` exits non-zero when any check failed; pending is OK
+          # (auto-merge waits). We only hard-fail on an already-failed name.
+          checks_json="$(gh pr checks "$PR" --repo "${{ github.repository }}" --json name,state,bucket 2>/dev/null || true)"
+          if [ -z "$checks_json" ] || [ "$checks_json" = "[]" ]; then
+            echo "No check runs yet — queue auto-merge; GitHub waits for required checks."
+            exit 0
+          fi
+          failed=0
+          for name in "${REQUIRED_CHECKS[@]}"; do
+            state="$(printf '%s' "$checks_json" | jq -r --arg n "$name" '
+              [.[] | select(.name == $n) | .bucket // .state] | first // "missing"
+            ')"
+            echo "check: $name → $state"
+            case "$state" in
+              fail|failed|FAILURE|CANCELLED|TIMED_OUT) echo "::error::$name failed"; failed=1 ;;
+            esac
+          done
+          if [ "$failed" -ne 0 ]; then
+            exit 1
+          fi
+
       - name: Enable GitHub auto-merge into staging
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

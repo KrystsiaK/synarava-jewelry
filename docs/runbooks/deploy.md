@@ -134,6 +134,8 @@ pnpm install
 
 Bot-PR Dependabot по-прежнему может не получить `NODE_AUTH_TOKEN` в CI. Предпочтительный путь: ручные батчи с staging (dev patch/minor → prod patch/minor → каждый major отдельно). Не мержить Dependabot-группы, которые смешивают major Prisma / Next с остальным.
 
+`Automerge to staging` (label `automerge`): for Dependabot, only the **development-dependencies** group (patch/minor) may auto-merge, and only after required checks are green (Quality Gates, Storefront smoke, Path filter, SKU Quality Gates). Production-dependency groups and majors stay manual.
+
 ### Версионирование релиза
 
 - [ ] Перед production deploy поднять `package.json` `version` по semver.
