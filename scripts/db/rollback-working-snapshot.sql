@@ -1,8 +1,26 @@
--- Rollback for prisma/migrations/20261026160000_derive_synarava_extras_drop_working_snapshot
--- Restores Product/Collection.workingSnapshot from archive tables created by that migration.
--- Run manually against the target DB after confirming archives exist.
--- Does NOT drop Product.extras / Collection.extras (safe to leave; unused after restore until
--- code is also rolled back). Drop extras only if you are fully reverting the ADR-0009 cutover.
+-- Rollback helper for prisma/migrations/20261026160000_derive_synarava_extras_drop_working_snapshot
+--
+-- What this does
+--   Restores Product/Collection.workingSnapshot columns from the pre-cutover
+--   archive tables created by that migration:
+--     _archive_product_working_snapshot
+--     _archive_collection_working_snapshot
+--
+-- Safety window
+--   Safe ONLY before post-cutover writes (Pull / Apply / admin Save) have
+--   mutated columns or extras after the migration. After traffic resumes,
+--   archive rows are stale relative to live commerce state — do NOT use this
+--   script as the primary rollback. Restore a verified DB backup taken
+--   immediately before the migration instead.
+--
+-- Production migration posture
+--   Stop the app, workers, and Shopify webhooks before applying the cutover
+--   migration. The migration's CTAS archive copy runs before the exclusive
+--   ALTER that drops workingSnapshot; quiescing writers avoids mid-copy drift.
+--
+-- Does NOT drop Product.extras / Collection.extras (safe to leave; unused after
+-- restore until application code is also rolled back). Drop extras only if you
+-- are fully reverting the ADR-0009 cutover and have rolled back app code first.
 
 -- Restore Product.workingSnapshot
 ALTER TABLE "Product" ADD COLUMN IF NOT EXISTS "workingSnapshot" JSONB;

@@ -31,4 +31,4 @@ ADR-0008 fixed “two states, nothing automatic, one compare module” with Syna
 
 - **Positive**: one home per field; Save/Apply write columns or `extras`; compare always sees live columns; net code shrinks (no resolve/write-through dual paths).
 - **Negative**: derive must stay in lockstep with GraphQL snapshot shape; `extras` must be updated when Apply/Pull copies orphan Shopify fields.
-- **Risks**: migrate without verifying derive ≡ archived window → false conflicts. Mitigate with `scripts/db/verify-derived-window.mjs` before merge.
+- **Risks**: migrate without verifying derive ≡ archived window → false conflicts. Mitigate with `scripts/db/verify-derived-window.mjs` (both archives required; IDs/paths only) and the production checklist in [`docs/runbooks/derive-synarava-state-release.md`](../runbooks/derive-synarava-state-release.md).
