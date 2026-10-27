@@ -3,7 +3,7 @@ title: Add a product
 section: Catalog
 status: draft
 verifiedOn:
-updatedOn: 2026-10-23
+updatedOn: 2026-10-27
 ---
 
 # Add a product
@@ -16,8 +16,9 @@ storefront. Saving and syncing are separate parts of that workflow.
 
 ## Before you start
 
-- Prepare a unique name, slug, and SKU.
-- Set a price greater than zero. These four values are required for every save.
+- Prepare a unique name and a price greater than zero. Synarava can save this
+  local draft before it has a SKU.
+- Add a unique SKU before creating the product in Shopify.
 - Prepare a main product image before choosing [Published](glossary:published)
   or Unlisted. A product can remain a [Draft](glossary:draft) without one.
 
@@ -40,8 +41,9 @@ product as a private draft while there is work to save.
 
 ### Enter the required product identity
 
-Add the name, slug, SKU, and a price greater than zero. A duplicate slug or SKU
-is shown as a field error and does not update the existing product.
+Add the name and a price greater than zero. Add a slug and SKU now if they are
+known; a duplicate slug or SKU is shown as a field error and does not update the
+existing product.
 
 ### Work through the Shopify and Synarava sections
 
@@ -66,6 +68,20 @@ gallery image is the catalog cover, and gallery images can be reordered.
 Keep the product in **Draft** to hide it. **Published** makes it visible in the
 catalog and at its direct link. **Unlisted** removes it from catalog and search
 but keeps the direct link and cart access available.
+
+### Create or reconcile the Shopify copy from the header
+
+After the first save, the product header stays visible on every tab. It shows
+one Shopify status and, when work is available, one action: **Create in
+Shopify**, **Push**, **Pull**, or **Resolve**. A local-only product shows **Only
+in Synarava**. If it has no SKU, Create is disabled and `SKU required` appears
+beside it before you click. Add and save the SKU, then choose **Create in
+Shopify**. The action pushes the product, confirms any pending SKU reservation,
+checks Shopify again, and changes the status to **In sync** when the copies
+match.
+
+The Sync section contains Shopify link and variant diagnostics. It does not own
+a separate sync action.
 
 ### Resolve Shopify conflicts in ConflictResolver
 
@@ -105,8 +121,19 @@ transfer Shopify-owned fields; they are not a replacement for Save.
 
 **What happens:** The create form does not show Sync yet.
 
-**What to do:** Complete the required name, slug, SKU, and price, then save the
-product once.
+**What to do:** Complete the required name and price, then save the product
+once.
+
+### Create in Shopify is disabled
+
+**Cause:** A required precondition is shown beside the action, such as `SKU
+required` or `Save changes first`.
+
+**What happens:** The action remains visible but cannot start an invalid push.
+
+**What to do:** Complete the named next step. If Inventory shows a pending SKU
+reservation for an unlinked product, use the header's **Create in Shopify**
+action; that push writes and confirms the reserved SKU.
 
 ### Publishing is blocked
 

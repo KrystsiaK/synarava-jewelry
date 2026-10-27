@@ -27,6 +27,7 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 | Per-product windows | OUR = `deriveProductWindow(columns + Product.extras)` + `Product.shopifySnapshot` (last Shopify). Orphan keys (media GIDs, publications, metafields remainder, options, category object, variant HS/origin) live in `extras`. |
 | Per-collection windows | OUR = `deriveCollectionWindow(columns + Collection.extras)` + `Collection.shopifySnapshot` (title/handle/description/seo V1). Pull replaces those local columns, including an empty Shopify value. Choosing Shopify for a Synarava-only collection deletes it. Hero, manifesto, symbolism, and site state stay Synarava. |
 | Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner. Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/apply |
+| One-sided presence | A product or collection missing from either side produces exactly one `presence` leaf on `node: base` with `locale: null`. Commerce and translation leaves for that entity are suppressed until both copies exist. |
 | Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save full catalog check** (`runAfterSaveCatalogConflictCheck`) — same full fetch+compare as the top-bar |
 | SKU assign (Family → Confirm / resume) | Column write + after-save full check (`lib/sku/persist-local-sku.ts`). SKU is column-backed; derive reads `ProductVariant.sku` |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
@@ -131,6 +132,14 @@ Mirror Shopify Admin product header + Product organization:
 Local Save updates Prisma columns and patches `extras` (media / metafields /
 metafieldTranslations) as needed. After Save, the full catalog check re-derives
 OUR windows so conflict markers refresh — there is no stored commerce JSON blob.
+
+The product header is persistent across every section. It shows one Shopify
+status (`Only in Synarava`, `Only in Shopify`, `In sync`, or `N conflicts`) and
+at most one next action from the same SyncResult: Create in Shopify, Push, Pull,
+or Resolve. Create/Push preconditions are shown inline before execution (for
+example `SKU required` or `Save changes first`). The Sync tab is informational:
+link, quantity, site state, last-sync data, and multi-variant detail. It does not
+own a second status/action mechanism.
 
 ---
 

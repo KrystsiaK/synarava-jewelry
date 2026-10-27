@@ -128,4 +128,56 @@ describe("readSynaravaStateForCompare presence precedence", () => {
       })).toBe(0);
     }
   });
+
+  it("keeps Shopify-only products and one-sided collections to one base leaf each", () => {
+    const result = compareSyncState({
+      commerceWindows: [],
+      translationDifferences: translations,
+      productPresence: [{
+        ...presence[0],
+        kind: "SHOPIFY_ONLY",
+        localProductId: "product-1",
+        shopifyProductId: "gid://shopify/Product/1",
+        shopifyIdentity: { name: "test new 4", handle: "test-new-4", sku: "BA-CH-002" },
+      }],
+      collectionPresence: [{
+        id: "collection-1",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "collection-1",
+        shopifyProductId: null,
+        name: "Bracelets",
+        handle: "bracelets",
+        sku: "",
+        localFingerprint: "local-collection",
+        shopifyFingerprint: "missing-collection",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: { name: "Bracelets", handle: "bracelets", sku: "" },
+        shopifyIdentity: null,
+      }],
+      locales: [
+        { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
+        { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
+      ],
+      connected: true,
+      checkedAt: "2026-10-27T10:00:00.000Z",
+      runStatus: "SUCCEEDED",
+      now: new Date("2026-10-27T10:01:00.000Z"),
+    });
+
+    expect(result.leaves).toHaveLength(2);
+    expect(result.leaves.every((leaf) => leaf.kind === "presence" && leaf.node === "base")).toBe(true);
+    expect(selectSyncCounts(result, {
+      kind: "localeTab",
+      resourceType: "PRODUCT",
+      resourceId: "product-1",
+      locale: "pt",
+    })).toBe(0);
+    expect(selectSyncCounts(result, {
+      kind: "localeTab",
+      resourceType: "COLLECTION",
+      resourceId: "collection-1",
+      locale: "pt",
+    })).toBe(0);
+  });
 });

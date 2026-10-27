@@ -16,7 +16,7 @@ describe("admin help document loader", () => {
       section: "Catalog",
       status: "draft",
       verifiedOn: null,
-      updatedOn: "2026-10-23",
+      updatedOn: "2026-10-27",
     });
     expect(article?.headings.map((heading) => heading.label)).toContain("Steps");
   });

@@ -89,4 +89,39 @@ describe("conflict leaf badges — menu ≡ banner ≡ entity ≡ table", () => 
       new Set([3]),
     );
   });
+
+  it("counts a presence conflict as one leaf through every selector surface", () => {
+    const result = compareSyncState({
+      commerceWindows: [],
+      translationDifferences: [],
+      productPresence: [{
+        id: "p1",
+        kind: "SYNARAVA_ONLY",
+        localProductId: "p1",
+        shopifyProductId: null,
+        name: "Local product",
+        handle: "local-product",
+        sku: "SKU-1",
+        localFingerprint: "local",
+        shopifyFingerprint: "missing",
+        remoteMissing: false,
+        matchReason: null,
+        localIdentity: { name: "Local product", handle: "local-product", sku: "SKU-1" },
+        shopifyIdentity: null,
+      }],
+      collectionPresence: [],
+      locales: [],
+      connected: true,
+      checkedAt: "2026-10-27T10:00:00.000Z",
+      runStatus: "SUCCEEDED",
+      now: new Date("2026-10-27T10:01:00.000Z"),
+    });
+
+    const signals = catalogConflictSignalsFromSyncResult(result, "PRODUCT");
+    expect(selectAdminNavSyncCounts(result).products).toBe(1);
+    expect(selectSyncCounts(result, { kind: "editorBanner", resourceType: "PRODUCT", resourceId: "p1" })).toBe(1);
+    expect(selectSyncCounts(result, { kind: "listChip", resourceType: "PRODUCT", resourceId: "p1" })).toBe(1);
+    expect(signals.totalCount).toBe(1);
+    expect(signals.products.p1?.leafCount).toBe(1);
+  });
 });

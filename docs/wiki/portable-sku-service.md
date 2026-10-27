@@ -70,7 +70,7 @@ cutover use the published allocation policy.
 
 Shared → **SKU policy** (`/admin/settings#shared-sku-policy`): draft/publish profile, read-only assignments + audit. Shows a staging-gate alert when the SKU API env is unset.
 
-Product → **Inventory**: when sku-api is configured, each local variant row uses Preview / Confirm assign (`ProductSkuAssignPanel`). Linked variants run reserve → Shopify write → read-back → confirm; unlinked reserve locally and confirm on Push. **Retry confirm** resumes a pending reservation without a new sequence (idempotent).
+Product → **Inventory**: when sku-api is configured, each local variant row uses Preview / Confirm assign (`ProductSkuAssignPanel`). Linked variants run reserve → Shopify write → read-back → confirm. Unlinked variants reserve locally; the persistent header action remains **Create in Shopify**, whose push writes the SKU and confirms the reservation. **Retry confirm** is shown only for a linked variant, where resuming the existing reservation is a valid idempotent action.
 
 ## Synarava adapter (Этап 3–4)
 

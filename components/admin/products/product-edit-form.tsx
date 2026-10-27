@@ -55,7 +55,7 @@ import {
   type DirtyScopeKey,
 } from "@/components/admin/products/product-editor-scope";
 import { ShopifyProductMirror } from "@/components/admin/products/shopify-product-mirror";
-import { ProductSyncDetailModal, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
+import { ProductShopifyHeader, ProgressBar, ProductSyncStrip, SaveButtons } from "@/components/admin/products/product-sync-strip";
 import { useUnsavedLeaveGuard } from "@/components/admin/products/use-unsaved-leave-guard";
 import {
   getProductEditorDetails,
@@ -110,7 +110,6 @@ export function EditProductForm({
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [dirtyScopes, setDirtyScopes] = useState<Set<DirtyScopeKey>>(() => new Set());
   const [inspection, setInspection] = useState<ProductSyncInspection | null>(null);
-  const [syncDetailOpen, setSyncDetailOpen] = useState(false);
   const [conflictSignals, setConflictSignals] = useSyncedState(initialConflictSignals);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
@@ -424,15 +423,10 @@ export function EditProductForm({
       if (result.inspection) setInspection(result.inspection);
       if (result.product) {
         applySyncedProduct(result.product, result.success);
-        setSyncDetailOpen(false);
+        await refreshConflictSignals({ quiet: true });
         refreshPreservingScroll(router);
       }
     });
-  }
-
-  function openConflictsFromSyncStrip() {
-    setSyncDetailOpen(false);
-    openConflicts({ kind: "product", productId: currentProduct.id });
   }
 
   async function handleDelete(formData: FormData) {
@@ -489,14 +483,15 @@ export function EditProductForm({
               ) : null}
             </div>
             <div className="flex flex-wrap items-center justify-end gap-1.5">
-              {currentProduct.shopifyProductId ? (
-                <SyncConflictIndicator
-                  checkIconOnly
-                  label="this product"
-                  count={entityConflictCount}
-                  onOpen={() => openConflicts({ kind: "product", productId: currentProduct.id })}
-                />
-              ) : null}
+              <ProductShopifyHeader
+                product={currentProduct}
+                signal={productConflict}
+                conflictCount={entityConflictCount}
+                dirty={isDirty}
+                pending={isPending}
+                onPush={handlePushToShopify}
+                onResolve={() => openConflicts({ kind: "product", productId: currentProduct.id })}
+              />
               <AdminIconButton
                 label="Delete product"
                 tooltip="Delete this product permanently. Storefront pages for it will stop working."
@@ -538,7 +533,7 @@ export function EditProductForm({
                 conflictLocales={conflictLocales}
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
-                  currentProduct.shopifyProductId ? (
+                  entityConflictCount > 0 ? (
                     <SyncConflictIndicator
                       checkIconOnly
                       label={`${activeLocaleLabel} (all sections)`}
@@ -591,11 +586,7 @@ export function EditProductForm({
                     <div hidden={activeSection !== "shopify"}>
                       <ProductSyncStrip
                         product={currentProduct}
-                        dirty={isDirty}
                         inspection={inspection}
-                        pending={isPending}
-                        hasOpenConflicts={(productConflict?.leafCount ?? 0) > 0}
-                        onOpenDetail={() => setSyncDetailOpen(true)}
                       />
                     </div>
 
@@ -697,17 +688,6 @@ export function EditProductForm({
       </div>
 
       {leaveModal}
-
-      <ProductSyncDetailModal
-        open={syncDetailOpen}
-        onClose={() => setSyncDetailOpen(false)}
-        product={currentProduct}
-        dirty={isDirty}
-        inspection={inspection}
-        pending={isPending}
-        onPush={handlePushToShopify}
-        onOpenConflicts={openConflictsFromSyncStrip}
-      />
 
       <AdminConfirmModal
         open={confirmOpen}

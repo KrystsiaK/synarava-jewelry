@@ -226,6 +226,20 @@ describe("EditProductForm", () => {
     expect(adminSyncActionMocks.loadCatalogConflictSignalsAction).toHaveBeenCalled();
   });
 
+  it("shows Pull for a Shopify-only product matched to this local row", () => {
+    const product = makeProduct({ variants: [primaryVariant("BA-CH-002")] });
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SHOPIFY_ONLY")}
+      />,
+    );
+
+    expect(screen.getByText("Only in Shopify")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pull" })).toBeEnabled();
+  });
+
   it("shows SKU and inventory location table on the Inventory tab", async () => {
     adminSyncActionMocks.inspectProductSyncAction.mockResolvedValue({
       inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },

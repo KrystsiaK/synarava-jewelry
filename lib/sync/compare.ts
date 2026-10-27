@@ -395,6 +395,7 @@ function productPresenceLeaf(difference: CatalogPresenceDifference): SyncLeaf {
     targetKind: "NATIVE",
     localFingerprint: difference.localFingerprint,
     shopifyFingerprint: difference.shopifyFingerprint,
+    node: "base",
   };
 }
 
@@ -433,6 +434,7 @@ function collectionPresenceLeaf(difference: CollectionPresenceDifference): SyncL
     targetKind: "NATIVE",
     localFingerprint: difference.localFingerprint,
     shopifyFingerprint: difference.shopifyFingerprint,
+    node: "base",
   };
 }
 
