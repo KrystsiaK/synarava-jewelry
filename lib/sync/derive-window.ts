@@ -63,7 +63,7 @@ export type DeriveProductInput = {
   shopifyCategoryId?: string | null;
   shopifyCategoryName?: string | null;
   tags?: string[];
-  collections?: Array<{ id: string; handle: string; title: string }>;
+  collections?: Array<{ id: string; handle?: string; title?: string }>;
   variants: DeriveProductVariantInput[];
   extras?: unknown;
   /** Prefer existing descriptionHtml shape when stripped text matches. */
