@@ -100,21 +100,60 @@ describe("canonicalizeShopifyProjection", () => {
     )).toEqual([]);
   });
 
-  it("equates null / undefined / whitespace and never emits identical displayValues", () => {
+  it("equates null / undefined / whitespace", () => {
     expect(diffShopifyProjections(
       { vendor: "", productType: "  ", seo: { title: null }, barcode: undefined },
       { vendor: null, productType: null, seo: { title: "" }, barcode: null },
     )).toEqual([]);
-    const diffs = diffShopifyProjections(
-      { title: "A", variants: [{ id: "v1", price: "1.0" }] },
-      { title: "B", variants: [{ id: "v1", price: "1.00" }] },
-    );
-    expect(diffs.every((d) => d.local !== d.shopify)).toBe(true);
-    expect(diffs.map((d) => d.path)).toEqual(["title"]);
+  });
+
+  it("keeps UNLISTED distinct from ACTIVE", () => {
+    expect(canonicalizeShopifyProjection({ status: "UNLISTED" })).toEqual({
+      status: "UNLISTED",
+    });
+    expect(canonicalizeShopifyProjection({ status: "ACTIVE" })).toEqual({
+      status: "ACTIVE",
+    });
   });
 });
 
 describe("diffShopifyProjections", () => {
+  it("emits one leaf when canonical values differ but display strings match (number vs string)", () => {
+    const diffs = diffShopifyProjections(
+      { position: 1 },
+      { position: "1" },
+    );
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.path).toBe("position");
+    expect(diffs[0]?.local).toBe(diffs[0]?.shopify);
+  });
+
+  it("emits one leaf when boolean false differs from string No", () => {
+    const diffs = diffShopifyProjections(
+      { taxable: false },
+      { taxable: "No" },
+    );
+    expect(diffs).toHaveLength(1);
+    expect(diffs[0]?.path).toBe("taxable");
+    expect(diffs[0]?.local).toBe("No");
+    expect(diffs[0]?.shopify).toBe("No");
+  });
+
+  it("flags UNLISTED vs ACTIVE as one Status conflict", () => {
+    const diffs = diffShopifyProjections(
+      { status: "UNLISTED" },
+      { status: "ACTIVE" },
+    );
+    expect(diffs).toEqual([
+      {
+        path: "status",
+        field: "Status",
+        local: "UNLISTED",
+        shopify: "ACTIVE",
+      },
+    ]);
+  });
+
   it("flags taxable mismatches", () => {
     const diffs = diffShopifyProjections(
       { variants: [{ id: "v1", taxable: true, price: "10.00" }] },

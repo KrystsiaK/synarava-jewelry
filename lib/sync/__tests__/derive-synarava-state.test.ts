@@ -49,6 +49,21 @@ function productColumns(overrides: Partial<Parameters<typeof deriveProductWindow
 }
 
 describe("derive-synarava-state (ADR-0009)", () => {
+  it("preserves UNLISTED status distinct from ACTIVE in the derived window", () => {
+    const unlisted = deriveProductWindow(productColumns({ status: "UNLISTED" }));
+    const active = deriveProductWindow(productColumns({ status: "ACTIVE" }));
+    expect((unlisted as { status?: string }).status).toBe("UNLISTED");
+    expect((active as { status?: string }).status).toBe("ACTIVE");
+    expect(diffShopifyProjections(unlisted, active)).toEqual([
+      {
+        path: "status",
+        field: "Status",
+        local: "UNLISTED",
+        shopify: "ACTIVE",
+      },
+    ]);
+  });
+
   it("image only in Synarava extras.media conflicts vs empty/missing shopify media (derive, no prior save)", () => {
     const ourWindow = deriveProductWindow(productColumns({
       extras: {

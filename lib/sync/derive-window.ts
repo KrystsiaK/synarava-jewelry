@@ -28,8 +28,7 @@ function centsToShopifyAmount(cents: number): string {
 }
 
 function shopifyProductStatus(status: string): string {
-  if (status === "ACTIVE" || status === "UNLISTED") return "ACTIVE";
-  if (status === "ARCHIVED") return "ARCHIVED";
+  if (status === "ACTIVE" || status === "UNLISTED" || status === "ARCHIVED") return status;
   return "DRAFT";
 }
 

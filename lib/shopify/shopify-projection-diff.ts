@@ -106,7 +106,6 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
   if (typeof value === "string") {
     const s = value.replace(/\r\n/g, "\n").normalize("NFC").trim();
     if (!s) return null;
-    if (path === "status" && s === "UNLISTED") return "ACTIVE";
     if (MONEY_PATH_RE.test(path)) { const n = Number(s); return Number.isFinite(n) ? n : s; }
     if (INSTANT_PATH_RE.test(path)) {
       const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
@@ -392,7 +391,7 @@ export function diffShopifyProjections(
   const right = canonicalizeShopifyProjection(shopifyProjection);
   const differences: ShopifyProjectionDiff[] = [];
   walkDiff(left, right, "", differences);
-  return differences.filter((d) => d.local !== d.shopify);
+  return differences;
 }
 
 function parsePathSegments(path: string): Array<string | number> {
