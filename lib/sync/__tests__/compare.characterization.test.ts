@@ -121,7 +121,7 @@ describe("compareSyncState (characterization)", () => {
     });
   });
 
-  it("presence replaces commerce/translation leaves for the same resource", () => {
+  it("keeps a Synarava-only product to one base presence leaf across EN/PT/RU", () => {
     const result = compareSyncState({
       commerceWindows: [
         {
@@ -146,6 +146,34 @@ describe("compareSyncState (characterization)", () => {
           shopifyFingerprint: "b",
           targetKind: "NATIVE",
         },
+        {
+          id: "div-pt",
+          rootEntityType: "PRODUCT",
+          rootEntityId: "p1",
+          locale: "pt-PT",
+          fieldKey: "title",
+          fieldLabel: "Title",
+          kind: "CONFLICT",
+          localValue: "A em PT",
+          shopifyValue: "B em PT",
+          localFingerprint: "pt-a",
+          shopifyFingerprint: "pt-b",
+          targetKind: "NATIVE",
+        },
+        {
+          id: "div-ru",
+          rootEntityType: "PRODUCT",
+          rootEntityId: "p1",
+          locale: "ru",
+          fieldKey: "title",
+          fieldLabel: "Title",
+          kind: "CONFLICT",
+          localValue: "A RU",
+          shopifyValue: "B RU",
+          localFingerprint: "ru-a",
+          shopifyFingerprint: "ru-b",
+          targetKind: "NATIVE",
+        },
       ],
       productPresence: [
         {
@@ -167,6 +195,8 @@ describe("compareSyncState (characterization)", () => {
       collectionPresence: [],
       locales: [
         { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
+        { code: "pt", shopifyLocale: "pt-PT", name: "Portuguese", nativeName: "Português", isDefault: false, sortOrder: 1 },
+        { code: "ru", shopifyLocale: "ru", name: "Russian", nativeName: "Русский", isDefault: false, sortOrder: 2 },
       ],
       connected: true,
       checkedAt: "2026-10-23T10:00:00.000Z",
@@ -175,7 +205,7 @@ describe("compareSyncState (characterization)", () => {
     });
 
     expect(result.leaves).toHaveLength(1);
-    expect(result.leaves[0]?.kind).toBe("presence");
+    expect(result.leaves[0]).toMatchObject({ kind: "presence", locale: null, node: "base" });
   });
 
   it("page EN title conflict still appears (no commerce leaf covers PAGE)", () => {

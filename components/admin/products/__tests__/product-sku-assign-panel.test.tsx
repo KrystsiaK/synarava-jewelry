@@ -144,4 +144,69 @@ describe("ProductSkuAssignPanel M2 UI", () => {
     expect(screen.queryByRole("button", { name: "Confirm assign" })).not.toBeInTheDocument();
     expect(document.querySelector("[data-sku-assign-controls='true']")).toBeNull();
   });
+
+  it("keeps the single Create in Shopify next step for an unlinked pending reservation", async () => {
+    mocks.loadSkuAssignContext.mockResolvedValue({
+      configured: true,
+      familyKeys: ["jewelry.bracelet"],
+      currentSku: "BA-CH-002",
+      pending: false,
+      pendingReservationSku: "BA-CH-002",
+      shopifyLinked: false,
+      variantId: "var-1",
+      variants: [{
+        variantId: "var-1",
+        title: "Default Title",
+        sku: "BA-CH-002",
+        shopifyVariantId: null,
+        pending: false,
+        pendingReservationSku: "BA-CH-002",
+        shopifyLinked: false,
+      }],
+    });
+
+    render(
+      <ProductSkuAssignPanel
+        productId="p1"
+        draftSku="BA-CH-002"
+        fieldErrors={{}}
+        validation={validation as never}
+      />,
+    );
+
+    expect(await screen.findByText(/Next step: Create in Shopify/)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry confirm" })).not.toBeInTheDocument();
+  });
+
+  it("shows enabled Retry confirm only for a linked pending reservation", async () => {
+    mocks.loadSkuAssignContext.mockResolvedValue({
+      configured: true,
+      familyKeys: ["jewelry.bracelet"],
+      currentSku: "BA-CH-002",
+      pending: false,
+      pendingReservationSku: "BA-CH-002",
+      shopifyLinked: true,
+      variantId: "var-1",
+      variants: [{
+        variantId: "var-1",
+        title: "Default Title",
+        sku: "BA-CH-002",
+        shopifyVariantId: "gid://shopify/ProductVariant/1",
+        pending: false,
+        pendingReservationSku: "BA-CH-002",
+        shopifyLinked: true,
+      }],
+    });
+
+    render(
+      <ProductSkuAssignPanel
+        productId="p1"
+        draftSku="BA-CH-002"
+        fieldErrors={{}}
+        validation={validation as never}
+      />,
+    );
+
+    expect(await screen.findByRole("button", { name: "Retry confirm" })).toBeEnabled();
+  });
 });

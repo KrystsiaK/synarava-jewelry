@@ -94,6 +94,45 @@ function makeProduct(overrides: Partial<ProductRecord> = {}): ProductRecord {
   } as ProductRecord;
 }
 
+function primaryVariant(sku: string, shopifyVariantId: string | null = null) {
+  return {
+    id: "variant-1",
+    shopifyVariantId,
+    title: "Default Title",
+    sku,
+    barcode: null,
+    priceCents: 4500,
+    compareAtCents: null,
+    costCents: null,
+    stockOnHand: 1,
+    weightGrams: null,
+    taxable: true,
+    requiresShipping: true,
+    tracked: true,
+    selectedOptions: [],
+    shopifyInventoryItemId: null,
+    imageUrl: null,
+  } as ProductRecord["variants"][number];
+}
+
+function productSignals(productId: string, presence: "SYNARAVA_ONLY" | "SHOPIFY_ONLY") {
+  return {
+    state: "ready" as const,
+    totalCount: 1,
+    checkedAt: "2026-10-27T10:00:00.000Z",
+    products: {
+      [productId]: {
+        shared: true,
+        sharedCount: 0,
+        leafCount: 1,
+        locales: [],
+        presence,
+      },
+    },
+    recentlyUpdatedProducts: {},
+  };
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.getShopifyCategoryAttributesAction.mockResolvedValue({ attributes: [] });
@@ -118,6 +157,87 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("textbox", { name: /Title \* Shopify/ })).toHaveValue("Lava Ring");
     expect(screen.getByLabelText(/SKU/)).not.toBeVisible();
     expect(adminSyncActionMocks.inspectProductSyncAction).not.toHaveBeenCalled();
+  });
+
+  it("shows Only in Synarava and blocks Create inline when the SKU is missing on every tab", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({ sku: "", variants: [primaryVariant("")] });
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SYNARAVA_ONLY")}
+      />,
+    );
+
+    expect(screen.getByText("Only in Synarava")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create in Shopify" })).toBeDisabled();
+    expect(screen.getByText("SKU required")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("tab", { name: /Price/ }));
+    expect(screen.getByRole("button", { name: "Create in Shopify" })).toBeDisabled();
+    expect(screen.getByText("SKU required")).toBeInTheDocument();
+  });
+
+  it("keeps Create in Shopify visible for a pending reservation and becomes In sync after push", async () => {
+    const user = userEvent.setup();
+    const product = makeProduct({
+      sku: "BA-CH-002",
+      details: {
+        skuAssignmentPendings: {
+          "variant-1": {
+            reservationId: "res-1",
+            sku: "BA-CH-002",
+            familyKey: "jewelry.bracelet",
+            correlationId: "corr-1",
+            idempotencyKey: "idem-1",
+            localVariantId: "variant-1",
+          },
+        },
+      },
+      variants: [primaryVariant("BA-CH-002")],
+    });
+    const linked = makeProduct({
+      ...product,
+      shopifyProductId: "gid://shopify/Product/1",
+      syncStatus: "SYNCED",
+      variants: [primaryVariant("BA-CH-002", "gid://shopify/ProductVariant/1")],
+    });
+    adminSyncActionMocks.pushSingleProductToShopifyAction.mockResolvedValue({
+      success: "Commerce changes pushed to Shopify.",
+      product: linked,
+      inspection: { state: "SYNCED", remoteUpdatedAt: null, publications: [], differences: [] },
+    });
+
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SYNARAVA_ONLY")}
+      />,
+    );
+
+    const create = screen.getByRole("button", { name: "Create in Shopify" });
+    expect(create).toBeEnabled();
+    await user.click(create);
+
+    expect(await screen.findByText("In sync")).toBeInTheDocument();
+    expect(adminSyncActionMocks.pushSingleProductToShopifyAction).toHaveBeenCalledWith(product.id);
+    expect(adminSyncActionMocks.loadCatalogConflictSignalsAction).toHaveBeenCalled();
+  });
+
+  it("shows Pull for a Shopify-only product matched to this local row", () => {
+    const product = makeProduct({ variants: [primaryVariant("BA-CH-002")] });
+    render(
+      <EditProductForm
+        product={product}
+        collections={[]}
+        initialConflictSignals={productSignals(product.id, "SHOPIFY_ONLY")}
+      />,
+    );
+
+    expect(screen.getByText("Only in Shopify")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Pull" })).toBeEnabled();
   });
 
   it("shows SKU and inventory location table on the Inventory tab", async () => {

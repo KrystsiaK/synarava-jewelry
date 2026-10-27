@@ -38,7 +38,7 @@
 
 **Admin help** — [article template](user/README.md) · [add a product](user/add-a-product.md) · [sync collections](user/sync-collections.md) · [Shopify sync button](user/shopify-sync-button.md)
 
-**Testing** — [обзор](testing/README.md) · [admin manual (RU)](testing/admin-test-cases-manual-ru.md) · [admin Playwright (EN)](testing/admin-test-cases-playwright-en.md) · [payment/checkout matrix](testing/payment-checkout-test-matrix.md) · [portable SKU staging matrix](testing/portable-sku-staging-matrix.md) · [legacy SKU backfill evidence](testing/legacy-sku-backfill.md)
+**Testing** — [обзор](testing/README.md) · [admin manual (RU)](testing/admin-test-cases-manual-ru.md) · [admin Playwright (EN)](testing/admin-test-cases-playwright-en.md) · [payment/checkout matrix](testing/payment-checkout-test-matrix.md) · [portable SKU staging matrix](testing/portable-sku-staging-matrix.md) · [product create → Shopify TDD evidence](testing/product-create-shopify-flow.tdd.md) · [legacy SKU backfill evidence](testing/legacy-sku-backfill.md)
 
 **ADR** — [индекс](adr/README.md)
 

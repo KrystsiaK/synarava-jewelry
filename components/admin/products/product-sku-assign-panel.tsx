@@ -33,7 +33,6 @@ function rowNeedsAssignControls(row: SkuAssignVariantRow): boolean {
 }
 
 function VariantAssignRow({
-  productId,
   familyKey,
   familyKeys,
   row,
@@ -45,7 +44,6 @@ function VariantAssignRow({
   previewSku,
   previewMeta,
 }: {
-  productId: string;
   familyKey: string;
   familyKeys: string[];
   row: SkuAssignVariantRow;
@@ -70,8 +68,8 @@ function VariantAssignRow({
         <AdminAlert
           message={`Reservation pending confirm: ${row.pendingReservationSku}. ${
             row.shopifyLinked
-              ? "Use Retry confirm (idempotent) — no new reservation."
-              : "Push to Shopify to write the SKU and confirm, or link the variant first."
+              ? "Retry confirm writes the SKU and confirms the existing reservation."
+              : "Next step: Create in Shopify. That push writes the SKU and confirms the reservation."
           }`}
         />
       ) : null}
@@ -105,12 +103,11 @@ function VariantAssignRow({
         </div>
       ) : null}
 
-      {row.pendingReservationSku ? (
+      {row.pendingReservationSku && row.shopifyLinked ? (
         <AdminButton
           variant="primary"
           className="w-fit"
           busy={isPending}
-          disabled={!row.shopifyLinked}
           onClick={onResume}
         >
           {isPending ? "Working…" : "Retry confirm"}
@@ -304,7 +301,6 @@ export function ProductSkuAssignPanel({
         {rows.map((row) => (
           <VariantAssignRow
             key={row.variantId}
-            productId={productId}
             familyKey={familyByVariant[row.variantId] || context.familyKeys[0] || ""}
             familyKeys={context.familyKeys}
             row={row}
