@@ -10,6 +10,8 @@ const mocks = vi.hoisted(() => ({
   createCollection: vi.fn(),
   deleteCollection: vi.fn(),
   deleteBindings: vi.fn(),
+  findManyBindings: vi.fn(),
+  createArchive: vi.fn(),
   transaction: vi.fn(),
   shopifyAdminRequest: vi.fn(),
   ensureTranslationBinding: vi.fn(),
@@ -18,7 +20,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/db", () => ({
   db: {
     shopifyCatalogPresenceSnapshot: { findUnique: mocks.findSnapshot, update: mocks.updateSnapshot },
-    shopifyTranslationBinding: { deleteMany: mocks.deleteBindings },
+    shopifyTranslationBinding: {
+      deleteMany: mocks.deleteBindings,
+      findMany: mocks.findManyBindings,
+    },
+    syncEntityArchive: { create: mocks.createArchive },
     collection: {
       findUnique: mocks.findUniqueCollection,
       findMany: mocks.findManyCollections,
@@ -83,8 +89,13 @@ describe("applyCollectionPresenceDifference", () => {
     mocks.ensureTranslationBinding.mockResolvedValue({});
     mocks.transaction.mockImplementation(async (callback: (tx: unknown) => Promise<unknown>) => {
       const tx = {
-        shopifyTranslationBinding: { deleteMany: mocks.deleteBindings },
+        shopifyTranslationBinding: {
+          deleteMany: mocks.deleteBindings,
+          findMany: mocks.findManyBindings,
+        },
+        syncEntityArchive: { create: mocks.createArchive },
         collection: {
+          findUnique: mocks.findUniqueCollection,
           delete: mocks.deleteCollection,
           findMany: mocks.findManyCollections,
           update: mocks.updateCollection,
@@ -95,6 +106,8 @@ describe("applyCollectionPresenceDifference", () => {
     mocks.deleteBindings.mockResolvedValue({ count: 0 });
     mocks.deleteCollection.mockResolvedValue({ id: "local-7" });
     mocks.findManyCollections.mockResolvedValue([]);
+    mocks.findManyBindings.mockResolvedValue([]);
+    mocks.createArchive.mockResolvedValue({ id: "archive-local-7" });
   });
 
   it("pulls a Shopify-only collection and removes the saved difference", async () => {
@@ -252,7 +265,16 @@ describe("applyCollectionPresenceDifference", () => {
     expect(linkWrite?.[0].data).not.toHaveProperty("workingSnapshot");
   });
 
-  it("deletes a Synarava-only collection when Shopify side is chosen", async () => {
+  it("archives then deletes a Synarava-only collection when Shopify side is chosen", async () => {
+    mocks.findUniqueCollection.mockResolvedValue({
+      id: "local-7",
+      name: "Local kits",
+      slug: "local-kits",
+      translations: [],
+      products: [],
+      sections: [],
+    });
+
     const result = await applyCollectionPresenceDifference({
       difference: synaravaOnly,
       direction: "SHOPIFY_TO_SYNARAVA",
@@ -263,6 +285,15 @@ describe("applyCollectionPresenceDifference", () => {
       localCollectionId: "local-7",
       message: expect.stringMatching(/removed from Synarava/i),
     });
+    expect(mocks.createArchive).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          resourceType: "COLLECTION",
+          entityId: "local-7",
+          reason: expect.stringMatching(/Shopify → Synarava/i),
+        }),
+      }),
+    );
     expect(mocks.deleteCollection).toHaveBeenCalledWith({ where: { id: "local-7" } });
     expect(mocks.deleteBindings).toHaveBeenCalledWith({
       where: { resourceType: "COLLECTION", entityId: "local-7" },
