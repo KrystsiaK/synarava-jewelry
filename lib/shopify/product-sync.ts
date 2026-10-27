@@ -536,7 +536,13 @@ async function fetchCategoryMetafieldDisplayValues(productId: string, key: strin
   return [...new Set(names)];
 }
 
-export async function fetchShopifyProduct(id: string) {
+/** `snapshot` (default) skips inventoryLevels; `pull` enriches for stock. One gate. */
+export type FetchShopifyProductPurpose = "snapshot" | "pull";
+
+export async function fetchShopifyProduct(
+  id: string,
+  purpose: FetchShopifyProductPurpose = "snapshot",
+) {
   const shopifyId = shopifyNumericId(id);
   const data = await shopifyAdminRequest<{ product: ShopifyProduct | null }>(
     `query SynaravaProduct($id: ID!) { product(id: $id) { ${PRODUCT_FIELDS} } }`,
@@ -558,9 +564,11 @@ export async function fetchShopifyProduct(id: string) {
     if (metafield.namespace !== "shopify" || !isShopifyCategoryMetafieldType(metafield.type)) continue;
     metafield.resolvedValues = await fetchCategoryMetafieldDisplayValues(shopifyId, metafield.key);
   }
-  for (const variant of product.variants.nodes) {
-    if (!variant.inventoryItem?.tracked) continue;
-    variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
+  if (purpose === "pull") {
+    for (const variant of product.variants.nodes) {
+      if (!variant.inventoryItem?.tracked) continue;
+      variant.inventoryItem.inventoryLevels = await fetchInventoryLevels(variant.inventoryItem.id);
+    }
   }
   return product;
 }
@@ -1226,7 +1234,7 @@ export async function applyShopifyProductToSynarava(
   force = false,
   options: { pullTranslations?: boolean } = {},
 ) {
-  const remote = await fetchShopifyProduct(id);
+  const remote = await fetchShopifyProduct(id, "pull");
   if (!remote) throw new ShopifyAdminError(`Shopify product ${id} was not found.`);
   return savePulledProduct(remote, eventId, {
     force,
