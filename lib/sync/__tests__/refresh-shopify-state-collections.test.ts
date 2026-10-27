@@ -106,11 +106,12 @@ describe("refreshShopifyState — collections commerce", () => {
 
     expect(mocks.refreshShopifyCollectionState).toHaveBeenCalledOnce();
     expect(mocks.runTranslationReconciliation).not.toHaveBeenCalled();
-    expect(result).toEqual({
+    expect(result).toMatchObject({
       ok: true,
       runId: null,
       warning: "translations not rechecked",
     });
+    expect(result.timing?.status).toBe("translations_skipped");
     expect(result.warning ?? "").not.toMatch(/Shopify Markets/i);
   });
 });

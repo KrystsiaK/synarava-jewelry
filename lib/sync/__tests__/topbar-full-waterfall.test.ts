@@ -82,6 +82,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     collection: { findMany: mocks.findManyCollections },
     product: { findMany: mocks.findManyProducts },
+    shopifyTranslationBinding: { count: vi.fn(async () => 0) },
   },
 }));
 
@@ -92,6 +93,7 @@ import { refreshShopifyState } from "@/lib/sync/refresh-shopify-state";
 describe("top-bar full catalog waterfall", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
     mocks.hasShopifyAdminConfig.mockReturnValue(true);
     mocks.beginCatalogCheckRun.mockResolvedValue({
       status: "started",

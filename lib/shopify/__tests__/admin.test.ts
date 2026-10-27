@@ -14,6 +14,7 @@ describe("Shopify Admin authentication", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.restoreAllMocks();
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
     // Isolated from the real registry so these tests stay deterministic as
     // more locales get registered in the dev DB over time. vi.doMock (not
     // the hoisted vi.mock) because this file dynamically re-imports
@@ -224,5 +225,152 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingTranslationScopes).toContain("read_locales or read_markets_home");
     expect(connection.locales).toEqual([]);
     expect(connection.unpublishedLocales).toEqual([{ code: "pt", name: "Portuguese", shopifyLocale: "pt-PT" }]);
+  });
+
+  it("logs extensions.cost on success without document or variables", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        data: { product: { id: "gid://shopify/Product/1", title: "Secret Title", sku: "SKU-SECRET" } },
+        extensions: {
+          cost: {
+            requestedQueryCost: 12,
+            actualQueryCost: 4,
+            throttleStatus: {
+              maximumAvailable: 2000,
+              currentlyAvailable: 1996,
+              restoreRate: 100,
+            },
+          },
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { shopifyAdminRequest } = await import("@/lib/shopify/admin");
+    const result = await shopifyAdminRequest<{ product: { id: string } }>(
+      "query SynaravaProduct($id: ID!) { product(id: $id) { id title } }",
+      {
+        id: "gid://shopify/Product/1",
+        title: "Honey Pearl Necklace",
+        sku: "HP-001",
+        imageUrl: "https://cdn.shopify.com/secret.jpg",
+        token: "shpat_should_never_log",
+      },
+    );
+
+    expect(result.product.id).toBe("gid://shopify/Product/1");
+    expect(info).toHaveBeenCalledTimes(1);
+    const logLine = String(info.mock.calls[0]?.[0]);
+    const payload = JSON.parse(logLine) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      event: "shopify.admin.request",
+      operation: "SynaravaProduct",
+      httpStatus: 200,
+      requestedQueryCost: 12,
+      actualQueryCost: 4,
+      maximumAvailable: 2000,
+      currentlyAvailable: 1996,
+      restoreRate: 100,
+      success: true,
+    });
+    expect(typeof payload.durationMs).toBe("number");
+    expect(logLine).not.toContain("Honey Pearl");
+    expect(logLine).not.toContain("HP-001");
+    expect(logLine).not.toContain("cdn.shopify.com");
+    expect(logLine).not.toContain("shpat_");
+    expect(logLine).not.toContain("Secret Title");
+    expect(logLine).not.toContain("variables");
+    expect(logLine).not.toContain("product(id:");
+  });
+
+  it("keeps GraphQL error behavior and still logs cost from failed payloads", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        errors: [{ message: "Access denied for products field." }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 8,
+            actualQueryCost: 2,
+            throttleStatus: {
+              maximumAvailable: 2000,
+              currentlyAvailable: 1998,
+              restoreRate: 100,
+            },
+          },
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
+    await expect(
+      shopifyAdminRequest("query SynaravaProducts { products(first: 1) { nodes { id } } }", {
+        sku: "NEVER-LOG-SKU",
+      }),
+    ).rejects.toSatisfy((error: unknown) =>
+      error instanceof ShopifyAdminError
+      && error.message === "Access denied for products field."
+      && Array.isArray(error.details)
+      && error.details?.[0]?.message === "Access denied for products field.",
+    );
+
+    expect(info).toHaveBeenCalledTimes(1);
+    const logLine = String(info.mock.calls[0]?.[0]);
+    const payload = JSON.parse(logLine) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      event: "shopify.admin.request",
+      operation: "SynaravaProducts",
+      success: false,
+      requestedQueryCost: 8,
+      actualQueryCost: 2,
+      currentlyAvailable: 1998,
+    });
+    expect(logLine).not.toContain("NEVER-LOG-SKU");
+  });
+
+  it("keeps HTTP error messages unchanged when a cost payload is present", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
+      new Response(JSON.stringify({
+        errors: [{ message: "Throttled" }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 100,
+            actualQueryCost: null,
+            throttleStatus: {
+              maximumAvailable: 2000,
+              currentlyAvailable: 0,
+              restoreRate: 100,
+            },
+          },
+        },
+      }), { status: 429, statusText: "Too Many Requests", headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
+    await expect(shopifyAdminRequest("query SynaravaShop { shop { name } }")).rejects.toSatisfy(
+      (error: unknown) =>
+        error instanceof ShopifyAdminError
+        && error.message === "Shopify Admin API returned 429 Too Many Requests.",
+    );
+
+    const payload = JSON.parse(String(info.mock.calls[0]?.[0])) as Record<string, unknown>;
+    expect(payload).toMatchObject({
+      event: "shopify.admin.request",
+      operation: "SynaravaShop",
+      httpStatus: 429,
+      success: false,
+      requestedQueryCost: 100,
+      currentlyAvailable: 0,
+    });
   });
 });

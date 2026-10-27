@@ -2,9 +2,32 @@ import "server-only";
 
 import { env } from "@/lib/env";
 import { listStorefrontLocales } from "@/lib/i18n/storefront-locale-registry";
+import {
+  SHOPIFY_RATE_LIMIT_USER_MESSAGE,
+  SHOPIFY_THROTTLE_MAX_ATTEMPTS,
+  SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS,
+  computeThrottleWaitMs,
+  hasThrottleBudgetShortfall,
+  isExplicitThrottledError,
+  isGraphqlMutation,
+  isIdempotentGraphqlMutation,
+  logShopifyAdminRequest,
+  parseShopifyQueryCost,
+  sanitizeGraphqlOperationName,
+  type ShopifyQueryCost,
+  type ShopifyThrottleStatus,
+} from "@/lib/shopify/admin-telemetry";
 
-type GraphQLError = { message: string; path?: Array<string | number> };
-type AdminResponse<T> = { data?: T; errors?: GraphQLError[] };
+type GraphQLError = {
+  message: string;
+  path?: Array<string | number>;
+  extensions?: { code?: string };
+};
+type AdminResponse<T> = {
+  data?: T;
+  errors?: GraphQLError[];
+  extensions?: { cost?: unknown; code?: unknown };
+};
 type AccessTokenResponse = {
   access_token?: string;
   expires_in?: number;
@@ -19,6 +42,39 @@ type CachedAccessToken = {
 
 let cachedAccessToken: CachedAccessToken | null = null;
 let accessTokenRequest: Promise<string> | null = null;
+/** Last observed throttle bucket — in-process pacing only (no cross-process state). */
+let lastThrottleStatus: ShopifyThrottleStatus | null = null;
+let lastRequestedQueryCost: number | null = null;
+
+function sleep(ms: number) {
+  return new Promise<void>((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+function rememberThrottle(cost: ShopifyQueryCost | null) {
+  if (!cost) return;
+  lastThrottleStatus = cost.throttleStatus;
+  if (cost.requestedQueryCost != null) lastRequestedQueryCost = cost.requestedQueryCost;
+}
+
+/** Wait when the last bucket cannot cover the next estimated request cost. */
+async function paceForThrottleBudget() {
+  const available = lastThrottleStatus?.currentlyAvailable;
+  const restoreRate = lastThrottleStatus?.restoreRate;
+  const requested = lastRequestedQueryCost;
+  if (available == null || restoreRate == null || restoreRate <= 0 || requested == null) return;
+  if (requested <= available) return;
+  const waitMs = computeThrottleWaitMs({
+    retryAfterHeader: null,
+    cost: {
+      requestedQueryCost: requested,
+      actualQueryCost: null,
+      throttleStatus: lastThrottleStatus!,
+    },
+  });
+  if (waitMs > 0) await sleep(waitMs);
+}
 
 export class ShopifyAdminError extends Error {
   constructor(message: string, readonly details?: GraphQLError[]) {
@@ -135,35 +191,123 @@ export async function shopifyAdminRequest<T>(
   query: string,
   variables: Record<string, unknown> = {},
 ): Promise<T> {
+  const operation = sanitizeGraphqlOperationName(query);
+  const started = performance.now();
+  let httpStatus: number | null = null;
+  let cost: ShopifyQueryCost | null = null;
+  let logged = false;
+  const mutation = isGraphqlMutation(query);
+  const retryPredictedShortfall = !mutation || isIdempotentGraphqlMutation(query);
+
+  const emit = (success: boolean) => {
+    if (logged) return;
+    logged = true;
+    logShopifyAdminRequest({
+      operation,
+      durationMs: Math.round(performance.now() - started),
+      httpStatus,
+      cost,
+      success,
+    });
+  };
+
   const config = getShopifyAdminConfig();
-  let response: Response;
+  let attempts = 0;
+  let totalWaitMs = 0;
 
-  try {
-    const token = await getShopifyAdminAccessToken();
-    response = await sendAdminRequest(config.endpoint, token, query, variables);
+  await paceForThrottleBudget();
 
-    if (response.status === 401 && config.clientId && config.clientSecret) {
-      cachedAccessToken = null;
-      const refreshedToken = await getShopifyAdminAccessToken(true);
-      response = await sendAdminRequest(config.endpoint, refreshedToken, query, variables);
+  while (true) {
+    attempts += 1;
+    let response: Response;
+
+    try {
+      const token = await getShopifyAdminAccessToken();
+      response = await sendAdminRequest(config.endpoint, token, query, variables);
+
+      if (response.status === 401 && config.clientId && config.clientSecret) {
+        cachedAccessToken = null;
+        const refreshedToken = await getShopifyAdminAccessToken(true);
+        response = await sendAdminRequest(config.endpoint, refreshedToken, query, variables);
+      }
+    } catch (error) {
+      emit(false);
+      if (error instanceof ShopifyAdminError) throw error;
+      throw new ShopifyAdminError(
+        error instanceof Error ? `Unable to reach Shopify: ${error.message}` : "Unable to reach Shopify.",
+      );
     }
-  } catch (error) {
-    if (error instanceof ShopifyAdminError) throw error;
-    throw new ShopifyAdminError(
-      error instanceof Error ? `Unable to reach Shopify: ${error.message}` : "Unable to reach Shopify.",
-    );
-  }
 
-  if (!response.ok) {
-    throw new ShopifyAdminError(`Shopify Admin API returned ${response.status} ${response.statusText}.`);
-  }
+    httpStatus = response.status;
+    const retryAfterHeader = response.headers.get("Retry-After");
 
-  const payload = (await response.json()) as AdminResponse<T>;
-  if (payload.errors?.length) {
-    throw new ShopifyAdminError(payload.errors.map((error) => error.message).join("; "), payload.errors);
+    if (!response.ok) {
+      const failedPayload = (await response.json().catch(() => null)) as AdminResponse<T> | null;
+      cost = parseShopifyQueryCost(failedPayload?.extensions);
+      rememberThrottle(cost);
+      const explicitThrottle = response.status === 429
+        || isExplicitThrottledError(failedPayload?.errors, failedPayload?.extensions);
+      const canRetry = explicitThrottle
+        && attempts < SHOPIFY_THROTTLE_MAX_ATTEMPTS
+        && totalWaitMs < SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS;
+      if (canRetry) {
+        const waitMs = computeThrottleWaitMs({ retryAfterHeader, cost });
+        totalWaitMs += waitMs;
+        if (totalWaitMs <= SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS) {
+          await sleep(waitMs);
+          continue;
+        }
+      }
+      emit(false);
+      if (explicitThrottle) throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, failedPayload?.errors);
+      throw new ShopifyAdminError(`Shopify Admin API returned ${response.status} ${response.statusText}.`);
+    }
+
+    const payload = (await response.json()) as AdminResponse<T>;
+    cost = parseShopifyQueryCost(payload.extensions);
+    rememberThrottle(cost);
+
+    const explicitThrottle = isExplicitThrottledError(payload.errors, payload.extensions);
+    const budgetShortfall = hasThrottleBudgetShortfall(cost);
+    const throttleHit = explicitThrottle || budgetShortfall;
+    const canRetryThrottle = throttleHit
+      && attempts < SHOPIFY_THROTTLE_MAX_ATTEMPTS
+      && totalWaitMs < SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS
+      && (explicitThrottle || retryPredictedShortfall);
+
+    if (payload.errors?.length) {
+      if (canRetryThrottle) {
+        const waitMs = computeThrottleWaitMs({ retryAfterHeader, cost });
+        totalWaitMs += waitMs;
+        if (totalWaitMs <= SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS) {
+          await sleep(waitMs);
+          continue;
+        }
+      }
+      emit(false);
+      if (explicitThrottle || (budgetShortfall && !payload.data)) {
+        throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, payload.errors);
+      }
+      throw new ShopifyAdminError(payload.errors.map((error) => error.message).join("; "), payload.errors);
+    }
+
+    if (!payload.data) {
+      if (canRetryThrottle) {
+        const waitMs = computeThrottleWaitMs({ retryAfterHeader, cost });
+        totalWaitMs += waitMs;
+        if (totalWaitMs <= SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS) {
+          await sleep(waitMs);
+          continue;
+        }
+      }
+      emit(false);
+      if (throttleHit) throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE);
+      throw new ShopifyAdminError("Shopify Admin API returned no data.");
+    }
+
+    emit(true);
+    return payload.data;
   }
-  if (!payload.data) throw new ShopifyAdminError("Shopify Admin API returned no data.");
-  return payload.data;
 }
 
 const REQUIRED_SYNC_SCOPES = [
