@@ -2,25 +2,47 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildScopedProductFormData,
-  dirtyKeyForEdit,
   fieldBelongsToBranch,
-  localeHasDirty,
-  sectionDirtyKey,
+  localesDirtyFromFields,
+  sectionsDirtyFromFields,
+  syncBaselineNamedFields,
 } from "@/components/admin/products/product-editor-scope";
 
 describe("product-editor-scope", () => {
-  it("marks passport dirty per locale (TEXT overlays), not as shared *", () => {
-    expect(dirtyKeyForEdit("pt", "passport")).toBe("pt:passport");
-    expect(dirtyKeyForEdit("en", "passport")).toBe("en:passport");
-    expect(dirtyKeyForEdit("pt", "essentials")).toBe("pt:essentials");
+  it("differs named form fields by value (typing and reverting)", () => {
+    const baseline = new FormData();
+    baseline.set("name", "Ring");
+    baseline.set("sku", "SKU-1");
+    const edited = new FormData();
+    edited.set("name", "Ring Updated");
+    edited.set("sku", "SKU-1");
+    expect(syncBaselineNamedFields(baseline, edited)).toEqual(["name"]);
+    const reverted = new FormData();
+    reverted.set("name", "Ring");
+    reverted.set("sku", "SKU-1");
+    expect(syncBaselineNamedFields(baseline, reverted)).toEqual([]);
   });
 
-  it("detects dirty locale from shared or locale-scoped sections", () => {
-    const dirty = new Set([sectionDirtyKey("en", "passport")]);
-    expect(localeHasDirty(dirty, "en", ["essentials", "passport"])).toBe(true);
-    expect(localeHasDirty(dirty, "pt", ["essentials", "passport"])).toBe(false);
-    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "en", ["details"])).toBe(false);
-    expect(localeHasDirty(new Set([sectionDirtyKey("pt", "details")]), "pt", ["details"])).toBe(true);
+  it("absorbs newly appeared named fields without marking dirty", () => {
+    const baseline = new FormData();
+    baseline.set("name", "Ring");
+    const current = new FormData();
+    current.set("name", "Ring");
+    current.set("sku", "PENDING-1");
+    expect(syncBaselineNamedFields(baseline, current)).toEqual([]);
+    expect(baseline.get("sku")).toBe("PENDING-1");
+  });
+
+  it("derives dirty locales/sections from changed field names", () => {
+    expect([...sectionsDirtyFromFields(["name"], "en", ["essentials", "price", "inventory"])]).toEqual([
+      "essentials",
+    ]);
+    expect([...sectionsDirtyFromFields(["price"], "pt", ["essentials", "price"])]).toEqual(["price"]);
+    expect([...localesDirtyFromFields(["price"], ["en", "pt"], ["essentials", "price"])].toSorted()).toEqual([
+      "en",
+      "pt",
+    ]);
+    expect([...localesDirtyFromFields(["ptTitle"], ["en", "pt"], ["essentials", "price"])]).toEqual(["pt"]);
   });
 
   it("attributes translation and shared fields to the right branch", () => {
@@ -46,15 +68,6 @@ describe("product-editor-scope", () => {
     expect(fieldBelongsToBranch("symbolismBody", "details", "en")).toBe(true);
   });
 
-  it("marks price as a shared dirty section", () => {
-    expect(dirtyKeyForEdit("pt", "price")).toBe("*:price");
-  });
-
-  it("marks metafields as a locale-scoped dirty section", () => {
-    expect(dirtyKeyForEdit("pt", "metafields")).toBe("pt:metafields");
-    expect(dirtyKeyForEdit("en", "metafields")).toBe("en:metafields");
-  });
-
   it("attributes custom metafield form fields to the Metafields section by locale", () => {
     expect(fieldBelongsToBranch("customMetafieldValue:custom:warranty", "metafields", "en")).toBe(true);
     expect(fieldBelongsToBranch("customMetafieldType:custom:warranty", "metafields", "en")).toBe(true);
@@ -74,7 +87,6 @@ describe("product-editor-scope", () => {
   });
 
   it("attributes passport characteristic fields to Passport, not Product", () => {
-    expect(dirtyKeyForEdit("pt", "passport")).toBe("pt:passport");
     expect(fieldBelongsToBranch("characteristic_chain_length", "passport", "en")).toBe(true);
     expect(fieldBelongsToBranch("characteristic_reach_certified", "passport", "en")).toBe(true);
     expect(fieldBelongsToBranch("characteristic_chain_length", "essentials", "en")).toBe(false);
@@ -213,12 +225,7 @@ describe("product-editor-scope", () => {
     expect(scoped.get("name")).toBe("Saved Name");
   });
 
-  it("marks inventory as a shared dirty section", () => {
-    expect(dirtyKeyForEdit("pt", "inventory")).toBe("*:inventory");
-  });
-
   it("attributes gallery alt FormData keys to the Media branch", () => {
-    expect(dirtyKeyForEdit("pt", "media")).toBe("*:media");
     expect(fieldBelongsToBranch("media-alt-abc123", "media", "en")).toBe(true);
     expect(fieldBelongsToBranch("media-alt-tree-0", "media", "pt")).toBe(true);
     expect(fieldBelongsToBranch("media-alt-abc123", "essentials", "en")).toBe(false);
