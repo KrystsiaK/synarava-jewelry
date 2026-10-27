@@ -6,7 +6,7 @@
 **Staging matrix:** [`docs/testing/portable-sku-staging-matrix.md`](../testing/portable-sku-staging-matrix.md)
 **Railway staging:** [`docs/runbooks/sku-api-railway-staging.md`](../runbooks/sku-api-railway-staging.md)
 **Catalog audit:** [`docs/runbooks/sku-catalog-audit-staging.md`](../runbooks/sku-catalog-audit-staging.md)
-**Current status snapshot:** [`portable-sku-current-status.md`](portable-sku-current-status.md)
+**Current status (agent handoff):** [`docs/runbooks/portable-sku-current-status.md`](../runbooks/portable-sku-current-status.md)
 **Platform Railway:** [`docs/runbooks/portable-sku-platform-railway.md`](../runbooks/portable-sku-platform-railway.md)
 
 ## Packages
