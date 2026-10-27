@@ -21,10 +21,7 @@ vi.mock("@/components/admin/shared/admin-toast", () => ({
   useAdminToast: () => ({ pushToast: mocks.pushToast }),
 }));
 
-import {
-  ProductSkuAssignPanel,
-  resetSkuFamilySelectionStore,
-} from "@/components/admin/products/product-sku-assign-panel";
+import { ProductSkuAssignPanel } from "@/components/admin/products/product-sku-assign-panel";
 
 const validation = {
   fieldErrorId: (name: string) => `${name}-error`,
@@ -34,7 +31,6 @@ const validation = {
 describe("ProductSkuAssignPanel M2 UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    resetSkuFamilySelectionStore();
   });
 
   it("shows Family / Preview / Confirm for linked variant with SHOPIFY-* invent", async () => {
