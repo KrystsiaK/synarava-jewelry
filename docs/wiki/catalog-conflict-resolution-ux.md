@@ -16,7 +16,9 @@ UX: сигнал → список → поля → preview → **human Apply onl
 
 Как маркеры **распространяются по дереву вью** админа (язык — оболочка над секциями; shared commerce не «четвёртый язык»; один fact price → catalog + product + все locale shells + Price в каждом): [`commerce-sync.md`](./commerce-sync.md).
 
-Рядом с заголовком «Каталог» показывается статус последней полной сверки (SyncResult): есть ли открытые leaves, свежа ли проверка и когда она выполнялась. **Отдельной кнопки `Run conflict check` на странице каталога нет** — единственное место fetch+compare: top-bar Shopify control (клик + раз за login-сессию) и after-Save full check. В панели над таблицей длинный статус не дублируется: там появляется только компактный янтарный вход `N conflicts`, и только когда count > 0. Цвет заметный, но не тревожно-красный; красный остаётся для ошибки выполнения. Метки не кодируют состояние одним цветом.
+Рядом с заголовком «Каталог» показывается статус последней полной сверки (SyncResult): есть ли открытые leaves, свежа ли проверка и когда она выполнялась. **Отдельной кнопки `Run conflict check` на странице каталога нет** — полный fetch+compare: top-bar Shopify control (клик + раз за login-сессию); после Save / Apply / Push / Pull / SKU assign — **one-entity** recheck (не штампует top-bar `checkedAt`). В панели над таблицей длинный статус не дублируется: там появляется только компактный янтарный вход `N conflicts`, и только когда count > 0. Цвет заметный, но не тревожно-красный; красный остаётся для ошибки выполнения. Метки не кодируют состояние одним цветом.
+
+Кнопки в ConflictResolver (английский UI): **Take Shopify** (= Shopify → Synarava), **Keep ours** (= Synarava → Shopify), в т.ч. «… for all» только *выбирают* строки до preview. Whole-item commerce — одна карточка **Product data (N fields)**. У multi-variant **Keep ours** заблокирован (Take Shopify доступен).
 
 Тот же сигнал открывается в редакторе товара (chrome / section chips из conflict signals на SyncResult leaves). Открытие ConflictResolver **не** ходит в Shopify (`skipRefresh`); Apply перед записью делает единственный разрешённый live inspect одного entity.
 
@@ -81,7 +83,7 @@ UX: сигнал → список → поля → preview → **human Apply onl
 
 ## Состояния и безопасность
 
-- Список и resolver читают сохранённый SyncResult (`skipRefresh`); свежий Shopify fetch — только top-bar / after-Save / Apply safety inspect. Нельзя выдавать локальный `syncStatus` (в т.ч. `CONFLICT`) за inventory конфликтов или за свежий факт о Shopify. UI-состояний `LOCAL_CHANGES` / `REMOTE_CHANGES` больше нет.
+- Список и resolver читают сохранённый SyncResult (`skipRefresh`); свежий Shopify fetch — только top-bar / after-Save **one-entity** recheck / Apply safety inspect. Нельзя выдавать локальный `syncStatus` (в т.ч. `CONFLICT`) за inventory конфликтов или за свежий факт о Shopify. UI-состояний `LOCAL_CHANGES` / `REMOTE_CHANGES` больше нет.
 - Пока есть несохранённые изменения в редакторе товара, применение конфликтного решения запрещено до сохранения или выхода из черновика.
 - Сервер принимает IDs и решения, но сам загружает значения и проверяет fingerprints/актуальный Shopify digest; клиентские значения служат только preview.
 - Для массовой операции нужны ограничение размера партии, progress и результат по каждому товару. Повторный submit не должен дважды применять один batch.

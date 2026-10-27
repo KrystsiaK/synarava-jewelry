@@ -4,10 +4,10 @@
 где что находится, как создавать и публиковать контент, как работает
 синхронизация с Shopify и на что обращать внимание при повседневной работе.
 
-Актуализировано по состоянию на 2026-09-25: Pages draft restore after
-deployment skew reload; product workspace sticky chrome, locale-scoped
-conflict sync, whole-product Save, leave-guard, scroll preserve after Save;
-legal/service page sections are add/remove/reorder with editable names.
+Актуализировано по состоянию на 2026-10-27 (staging): двухсостоятельная
+синхронизация (Shopify copy / Synarava editable), один ConflictResolver
+(Take Shopify / Keep ours), one-entity recheck после Save. Полный owner-guide
+rewrite — отдельный PR (A2).
 
 ---
 
@@ -262,29 +262,27 @@ legacy cover, пока не загружены изображения галер
 
 ### 4.5. Синхронизация с Shopify
 
-Раздел товаров использует единый conflict workflow. Fetch + compare — одно место:
+Единый conflict workflow. SoT конфликтов — SyncResult leaves (`compareSyncState` →
+`selectSyncCounts` / ConflictResolver). Автоматика пишет только Shopify-копию;
+контент Synarava меняет только человек после preview.
 
-- **Кнопка Shopify в верхней панели** — единственный полный check (раз при открытии
-  админ-сессии и по клику). Обновляет Shopify-копии товаров и коллекций, переводы,
-  presence, сравнивает с Synarava и сохраняет счётчики для баннеров/меню.
-- **Show conflicts** открывает сохранённый список. Массовое или точечное разрешение всегда сначала
-  показывает preview конкретных товаров, полей и языков, а запись начинается только после Confirm.
-  Товар только в Shopify показывается с единственным действием Pull; товар только в Synarava — с
-  единственным действием Push. В смешанном наборе каждый bulk применяет только своё направление,
-  а несовместимые товары остаются в preview с объяснением.
-- Точечные Apply на карточке товара: **Pull Shopify update** (когда есть remote changes),
-  **Push to Shopify** / **Create in Shopify**, при CONFLICT — **Use Shopify version** /
-  **Keep Synarava and push**. Отдельной кнопки «Check Shopify» / «Refresh from Shopify» нет.
-- Состояния синхронизации: `UNLINKED`, `PENDING`, `SYNCED`, `CONFLICT`,
-  `FAILED`, плюс отдельные состояния сравнения `LOCAL_CHANGES`,
-  `REMOTE_CHANGES`, `REMOTE_MISSING`.
-  - При конфликте (правки есть и локально, и в Shopify) push/pull без
-    подтверждения блокируется; нужно явно выбрать «Use Shopify version» или
-    «Keep Synarava and push».
-  - Если связанный товар пропал из Shopify, обычные pull/push редактора блокируются. После новой
-    сверки верхней панели карточка `Missing in Shopify` позволяет явно пересоздать его через Push с preview.
-  - Push при отсутствии ещё ни одного варианта товара недоступен (кнопка
-    показывает «Save core fields first»).
+- **Кнопка Shopify в верхней панели** — единственный **полный** check (раз за
+  login-сессию и по клику). После Save / Apply / Push / Pull / SKU assign —
+  **one-entity** recheck (не обновляет top-bar `checkedAt`).
+- **Show conflicts** открывает сохранённый список. Один UI — ConflictResolver.
+  Выбор стороны: **Take Shopify** (Shopify → Synarava) или **Keep ours**
+  (Synarava → Shopify); «… for all» только выделяет строки. Запись — только
+  после preview → Confirm. Whole-item commerce: карточка **Product data (N
+  fields)**. Multi-variant: Keep ours заблокирован.
+- Presence: товар только в Shopify → Pull; только в Synarava → Push / Create.
+  Массовые операции не смешивают направления в одном Apply.
+- Операционные `Product.syncStatus` / `Collection.syncStatus`: `UNLINKED`,
+  `PENDING`, `SYNCED`, `CONFLICT`, `FAILED` — **не** inventory конфликтов.
+  Состояний `LOCAL_CHANGES` / `REMOTE_CHANGES` / `REMOTE_MISSING` больше нет.
+- SKU (portable): вкладка **Inventory** → Family → Preview → Confirm assign
+  (для PENDING-\*); иначе Push (sku-api) отказан.
+- Cost / weight / origin / stock — владение Shopify; **cost на linked Push не
+  уходит**. Dirty формы — по значениям named fields, не по флагу.
 
 ## 5. Коллекции (`/admin/collections`)
 

@@ -1,10 +1,10 @@
 # ADR-0010: Field contract metadata + verified convergence
 
 **Date**: 2026-10-27  
-**Status**: proposed  
+**Status**: accepted  
 **Deciders**: владелец проекта  
 **Depends on**: [ADR-0003](0003-commerce-conflict-deep-diff.md), [ADR-0008](0008-sync-two-state-owner-model.md), [ADR-0009](0009-derive-synarava-commerce-state.md)  
-**Accepted when**: sync-reliability PR-6, PR-7, and PR-8 are merged to staging (`field-contract-metadata`, `generated-roundtrip-invariant`, `convergence-archive`).
+**Accepted**: sync-reliability PR-6..PR-8 merged to staging (`field-contract-metadata` #308, `generated-roundtrip-invariant` #309, `convergence-archive` #311; architecture #312).
 
 ## Context
 
@@ -37,5 +37,5 @@ Conflict UI routed sections with path/label regex; nested window paths mis-label
 ## Consequences
 
 - Consumers (nav, chip, banner, locale tab, section modal, labels, whole-item card) read leaf contract metadata only.
-- ADR-0010 becomes **Accepted** when PR-6..PR-8 land; until then status stays **proposed**.
+- ADR-0010 is **Accepted** on staging (PR-6..PR-8 landed).
 - Wiki: [`docs/wiki/commerce-sync.md`](../wiki/commerce-sync.md).

@@ -105,8 +105,11 @@ When any product commerce difference needs a whole-item Pull/Push (tags, status,
 cost, and similar), the compare shows **one** base card — **Product data (N
 fields)** — covering every commerce difference for that product, including
 otherwise scoped fields such as Price or Name. Choosing a side runs one
-whole-item sync. If every commerce difference is scoped, each field stays its
-own selectable card. Locale translation rows (PT/RU, …) are unchanged.
+whole-item sync. Multi-variant products block **Keep ours** on that card (Take
+Shopify still works). Linked Keep ours / Push never sends unit cost. Gallery
+compare identity is filename + alt + position. If every commerce difference is
+scoped, each field stays its own selectable card. Locale translation rows
+(PT/RU, …) are unchanged.
 :::
 
 :::note
