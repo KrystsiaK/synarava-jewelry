@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { MULTI_VARIANT_PUSH_BLOCKED_REASON } from "@/lib/shopify/catalog-conflict-policy";
 import {
   catalogConflictSignalsFromSyncResult,
   selectAdminNavSyncCounts,
@@ -50,6 +51,34 @@ const PRICE_TAGS_STATUS_SHOPIFY = {
 };
 
 describe("product whole-product commerce leaf (PR-A3)", () => {
+  it("multi-variant whole-item leaf allows Take Shopify only (Keep ours blocked)", () => {
+    const result = compareProduct(
+      {
+        status: "ACTIVE",
+        tags: ["a"],
+        variants: [
+          { id: "v1", price: "10.00" },
+          { id: "v2", price: "20.00" },
+        ],
+      },
+      {
+        status: "DRAFT",
+        tags: ["b"],
+        variants: [
+          { id: "v1", price: "12.00" },
+          { id: "v2", price: "22.00" },
+        ],
+      },
+    );
+    const commerce = result.leaves.filter((leaf) => leaf.kind === "commerce");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]).toMatchObject({
+      fieldKey: "commerce:whole-item",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      blockedReason: MULTI_VARIANT_PUSH_BLOCKED_REASON,
+    });
+  });
+
   it("Price + Tags + Status → exactly ONE commerce:whole-item leaf", () => {
     const result = compareProduct(PRICE_TAGS_STATUS_LOCAL, PRICE_TAGS_STATUS_SHOPIFY);
     const commerce = result.leaves.filter((leaf) => leaf.kind === "commerce");

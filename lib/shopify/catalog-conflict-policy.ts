@@ -58,3 +58,10 @@ export function isAdoptShopifyConflictField(field: {
 
 export const COMMERCE_UNSUPPORTED_REASON =
   "No safe field-by-field write yet (e.g. Status, tags). Resolve with Pull (take Shopify) or Push (send Synarava) for the whole commerce record.";
+
+/**
+ * Linked Keep ours / whole-record Push updates only Shopify's first variant.
+ * Until multi-variant push exists, block that direction (Take Shopify still OK).
+ */
+export const MULTI_VARIANT_PUSH_BLOCKED_REASON =
+  "This product has more than one variant. Keep ours / Push to Shopify is blocked until multi-variant push exists — Take Shopify still works.";
