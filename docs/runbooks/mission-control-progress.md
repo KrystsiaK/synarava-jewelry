@@ -6,6 +6,41 @@ Track each stage with dated evidence. Do not mark a stage done without proof.
 
 ---
 
+## Gap analysis vs staging (2026-10-27)
+
+Compared plan stages 1–6 + §4 DoD to code on `staging`. Status legend:
+**done** / **partial** / **missing** / **out-of-contract** (needs owner “да” per §0).
+
+| Area | Plan / DoD | Staging reality | Status | Notes for B2 |
+|---|---|---|---|---|
+| Stage 1 — `@synarava/*` packages | Probe widget in shell | Packages + probe path present; hub uses shell-kit / wiring-engine | **done** | — |
+| Stage 2 — status schema | 2 tables + TS contract | `ServiceNodeStatus` / `ServiceFlowStatus` in Prisma + migration + `status.ts` | **done** | — |
+| Stage 3 — canvas | WiringConfig graph + mobile list | React Flow hub, mobile list, localStorage layout (ADR-0006) | **done** | — |
+| Stage 4 — 3–4 live nodes | site-health, shopify-sync, orders, sentry | Live providers: **site-health**, **shopify-sync**, **orders** only; sentry = placeholder | **partial** | Sentry live API = owner decision / out of early v1 placeholders OK |
+| Stage 5 — collector + Telegram | Cron writes tables; alert with hub link | `services/mission-control-collector` + lib collector; Railway runbook | **partial** | Confirm cron is actually scheduled on staging/prod Railway (ops, not code) |
+| Stage 6 — fixHint / fixPrompt | Static hints in WiringConfig | Present on live nodes; Copy prompt in UI; Telegram uses hint | **done** | Merged via #205 |
+| §4 DoD — hub opens, map + honest stubs | 3–4 live, rest stubs | Map opens; many `info`/`placeholder` nodes; 3 live | **partial** | Expand live coverage only within budget |
+| §4 DoD — ADR-0005 accepted | Status `accepted` | Still **proposed** | **missing** | Owner accept after DoD; docs-only |
+| Live: app health | site-health | Provider exists | **done** | — |
+| Live: Postgres | Honest status | `db` is **info** (no heartbeat provider) | **missing** | In-budget: read-only provider or stay info — owner pick |
+| Live: Shopify sync freshness | shopify-sync | Provider from `ProductSyncEvent` | **done** | — |
+| Live: sku-api | Real service node | `sku-api` is **info**, no provider | **missing** | In-budget HTTP/health probe if sku-api exposes one |
+| Live: collector heartbeat | Stale ≠ ok | Hub shows collector stale banner; must not paint all-clear when stale | **partial** | B3: test fails if ok without fresh heartbeat |
+| Honest levels | unknown ≠ ok | Levels include unknown; placeholders labeled | **partial** | Audit any path that coerces missing → ok (B2/B3) |
+| Stale / empty / error UI | Clear states | Stale collector + demo notice exist | **partial** | Tighten empty/error copy if gaps remain |
+| a11y / mobile | List on small screens | Mobile list + reduced-motion coverage in tests | **partial** | Spot-check remaining a11y in B2 |
+| Write actions in hub | Forbidden | Links + clipboard only (by design) | **done** | B3: import guard against write actions |
+| New tables / deps / writers | §0 budget | Within budget historically | **done** | Any new table/cache/global state → **out-of-contract** STOP |
+| Finances / CRM / ads live | Explicitly out of v1 | Placeholders only | **out-of-contract** | Do not wire in B2 |
+
+**Needs owner decision (do not implement in B2 without “да”):**
+1. Accept ADR-0005 when DoD is satisfied.
+2. Whether Postgres / sku-api become **live** providers (and which read-only signal).
+3. Whether Sentry leaves placeholder or gets a live API key path.
+4. Confirm Mission Control collector cron is enabled on Railway staging + production.
+
+---
+
 ## Redesign brief — operational hub
 
 **Users.** The owner operates Synarava alone across roughly fifteen services and
@@ -107,7 +142,7 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 - [2026-10-19T21:02:30Z] Migration folder: `prisma/migrations/20261019143000_mission_control_status/migration.sql` (diff output only).
 - [2026-10-19T21:03:00Z] TS contract: `lib/mission-control/status.ts` (`ServiceStatusLevel` + read/write helpers). Unit test (mocked Prisma, no DB): `lib/mission-control/__tests__/status.test.ts` — **1 passed**.
 
-**Stage 2 status:** schema + migration SQL + status type + mocked unit test in PR → `staging` (not applied; not merged). Waiting owner: continue Stage 3?
+**Stage 2 status:** **done on staging** (schema + migration applied via normal pipeline; `status.ts` + tests).
 
 ---
 
@@ -131,7 +166,7 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 - [2026-10-19T21:42:00Z] Review: fixture statuses need a visible admin notice. Added `mc-fixture-notice` (“Demo data. Live statuses arrive in Stage 4.”) on `MissionControlHub` + render test.
 - [2026-10-19T21:50:00Z] CI green on `16790670` (6/6). PR #197 marked ready for review (not merged).
 
-**Stage 3 status:** canvas + `@xyflow/react` + tests in PR #197 → `staging`, ready for review (not merged). Waiting owner: continue Stage 4?
+**Stage 3 status:** **done on staging** (canvas + `@xyflow/react` + tests; later redesign PRs stacked on top).
 
 ---
 
@@ -154,7 +189,7 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 
 - [2026-10-19T22:16:00Z] CI green on `892189bb` (6/6). PR #200 marked ready for review (not merged).
 
-**Stage 4 status:** live providers + page wiring in PR #200 → `staging`, ready for review (not merged). Waiting owner: continue Stage 5?
+**Stage 4 status:** **partial on staging** — three live providers (`site-health`, `shopify-sync`, `orders`); sentry remains placeholder (see gap table).
 
 ---
 
@@ -186,7 +221,7 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 - [2026-10-20T15:55:00Z] Tests: wiring-config fix contract; canvas/list hint show/hide; collector alert contains hint.
 - [2026-10-20T15:57:00Z] CI green on HEAD `4df47107` (Path filter + Quality Gates + Storefront smoke, push + pull_request). PR #205 ready for review (not merged).
 
-**Stage 6 status:** PR [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205) → `staging`, ready for review (not merged). CI green.
+**Stage 6 status:** **done on staging** (merged via [#205](https://github.com/KrystsiaK/synarava-jewelry/pull/205)).
 
 ---
 
@@ -233,7 +268,7 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 
 ## Later stages
 
-v1 complete after Stage 6 lands (see plan §4 Definition of Done).
+Stages 1–6 code is on staging; v1 DoD still **partial** (ADR-0005 not accepted; live node coverage / collector ops — see gap table). B2 closes only in-budget read-only gaps.
 
 ---
 
