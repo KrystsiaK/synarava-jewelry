@@ -143,7 +143,7 @@ function emptyLocaleDraft(): ProductLocaleDraft {
 
 export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): ProductDraft {
   return {
-    name: "", vendor: "", productType: "", slug: "", sku: "", price: "", compareAt: "", taxable: true, cost: "", seriesLabel: "",
+    name: "", vendor: "", productType: "", slug: "", sku: "", price: "", compareAt: "", taxable: true, cost: "", shopifyCost: "", seriesLabel: "",
     shortDescription: "", description: "", seoTitle: "", seoDescription: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
@@ -177,10 +177,14 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
       return cents == null ? "" : centsToPrice(cents);
     })(),
     taxable: primaryVariant?.taxable ?? true,
-    cost: (() => {
+    // OUR stored cost is the form SoT so conflicts stay visible. Shopify value
+    // is a marker when it differs (was: Shopify-first hid OUR and the conflict).
+    cost: primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents),
+    shopifyCost: (() => {
       const fromSnapshot = costFromShopifySnapshot(product.shopifySnapshot);
-      if (fromSnapshot != null) return fromSnapshot;
-      return primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents);
+      if (fromSnapshot == null) return "";
+      const ours = primaryVariant?.costCents == null ? "" : centsToPrice(primaryVariant.costCents);
+      return fromSnapshot !== ours ? fromSnapshot : "";
     })(),
     seriesLabel: product.seriesLabel ?? "",
     shortDescription: product.shortDescription ?? "",

@@ -66,6 +66,8 @@ export function ProductPriceFields({
     compareAt: string;
     taxable: boolean;
     cost: string;
+    /** Set when Shopify unit cost differs from OUR displayed cost. */
+    shopifyCost?: string;
   };
   fieldErrors: Partial<Record<ProductFieldName, string>>;
   validation: AdminFormValidation<ProductFieldName>;
@@ -133,12 +135,32 @@ export function ProductPriceFields({
         <AdminReadonlyField
           label="Cost"
           owner="Shopify"
-          value={formatCostDisplay(draft.cost)}
+          value={(() => {
+            const ours = formatCostDisplay(draft.cost);
+            const shopify = draft.shopifyCost ? formatCostDisplay(draft.shopifyCost) : null;
+            if (ours == null && !shopify) return null;
+            return (
+              <>
+                {ours}
+                {shopify ? (
+                  <span
+                    className={ours ? "ml-2 text-xs font-normal" : "text-xs font-normal"}
+                    style={{ color: "var(--adm-muted)" }}
+                    title={`Shopify: ${shopify}`}
+                    data-cost-shopify-marker="true"
+                  >
+                    Shopify: {shopify}
+                  </span>
+                ) : null}
+              </>
+            );
+          })()}
           emptyLabel="Not set"
           help={(
             <AdminHelp label="Cost guidance">
-              Shopify InventoryItem unit cost. Shown for profit/margin only — edit cost
-              in Shopify Admin. Synarava does not push cost changes from this field.
+              Synarava shows OUR stored unit cost so conflicts stay visible. Edit the
+              live InventoryItem cost in Shopify Admin; Synarava does not push cost
+              from this field.
             </AdminHelp>
           )}
         />
