@@ -63,6 +63,10 @@ Translation rollout and recovery are documented in `docs/runbooks/translation-op
 - [ ] Установить `ADMIN_USERNAME`, `ADMIN_PASSWORD_HASH`, `ADMIN_SESSION_SECRET`
 - [ ] Проверить что `/admin` редиректит на `/admin/login`, а после входа доступны все разделы
 
+## ADR-0009 derive cutover (workingSnapshot → extras)
+
+Production release for `20261026160000_derive_synarava_extras_drop_working_snapshot`: stop app/workers/webhooks, take a verified backup, deploy migration, run `scripts/db/verify-derived-window.mjs` (exit 0 required; missing archive = failure). Full pre/post commands and rollback policy: [`derive-synarava-state-release.md`](derive-synarava-state-release.md).
+
 ## Railway
 
 Конфигурация **synarava-web** хранится в [`deploy/railway.synarava-web.json`](../../deploy/railway.synarava-web.json) (legacy Config as Code). В Settings сервиса Config File должен быть `/deploy/railway.synarava-web.json` — не корень репозитория, иначе новый `sku-api` подхватывал Next `pnpm build`/`start`.

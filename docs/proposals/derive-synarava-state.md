@@ -79,4 +79,4 @@ No commerce windows. Translations only (`Page` + `PageTranslation`).
 
 ## Operator gate
 
-`scripts/db/verify-derived-window.mjs` — read-only compare of derive vs archived/`workingSnapshot` before merge.
+`scripts/db/verify-derived-window.mjs` — read-only compare of derive vs archived `workingSnapshot` before merge (both archives required; IDs/paths only). Production checklist: [`docs/runbooks/derive-synarava-state-release.md`](../runbooks/derive-synarava-state-release.md).
