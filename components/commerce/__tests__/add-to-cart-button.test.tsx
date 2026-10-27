@@ -1,10 +1,13 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRouter } from "next/navigation";
 
-const mocks = vi.hoisted(() => ({ trackCommerceEvent: vi.fn() }));
+const mocks = vi.hoisted(() => ({ trackCommerceEvent: vi.fn(), refresh: vi.fn() }));
 vi.mock("@/lib/analytics/commerce", () => ({ trackCommerceEvent: mocks.trackCommerceEvent }));
 
 import { AddToCartButton } from "../add-to-cart-button";
+
+const mockUseRouter = useRouter as ReturnType<typeof vi.fn>;
 
 function setupFetch(payload: object, ok = true) {
   vi.stubGlobal(
@@ -20,9 +23,20 @@ afterEach(() => {
   vi.unstubAllGlobals();
   vi.useRealTimers();
   mocks.trackCommerceEvent.mockClear();
+  mocks.refresh.mockClear();
 });
 
 describe("AddToCartButton", () => {
+  beforeEach(() => {
+    mockUseRouter.mockReturnValue({
+      push: vi.fn(),
+      replace: vi.fn(),
+      prefetch: vi.fn(),
+      refresh: mocks.refresh,
+      back: vi.fn(),
+    });
+  });
+
   it("renders Add to cart button initially", () => {
     render(<AddToCartButton productSlug="birch-bracelet" />);
     expect(screen.getByRole("button", { name: "Add to cart" })).toBeInTheDocument();
@@ -63,15 +77,12 @@ describe("AddToCartButton", () => {
     await waitFor(() => expect(screen.getByText("3 products in cart")).toBeInTheDocument());
   });
 
-  it("dispatches cart-updated event on success", async () => {
+  it("calls router.refresh after a successful add so the header badge updates", async () => {
     setupFetch({ ok: true, count: 2 });
-    const listener = vi.fn();
-    window.addEventListener("synarava:cart-updated", listener);
     const user = userEvent.setup();
     render(<AddToCartButton productSlug="birch-bracelet" />);
     await user.click(screen.getByRole("button"));
-    await waitFor(() => expect(listener).toHaveBeenCalled());
-    window.removeEventListener("synarava:cart-updated", listener);
+    await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
   });
 
   it("shows error message on network failure", async () => {

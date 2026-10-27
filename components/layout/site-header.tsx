@@ -34,18 +34,12 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
   const { resolvedTheme } = useTheme();
   const { t, plural, locale } = useTranslations();
   const reduceMotion = useReducedMotion() ?? false;
-  const [cartCountOverride, setCartCountOverride] = useState<{
-    count: number;
-    sourceCount: number | null;
-  } | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [hasScrolledHeader, setHasScrolledHeader] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
-  const cartCount =
-    cartCountOverride?.sourceCount === initialCartCount
-      ? cartCountOverride.count
-      : initialCartCount;
+  // Server layout count only — null means unknown (Shopify down), never "empty".
+  const cartCount = initialCartCount;
   const hasCartItems = cartCount != null && cartCount > 0;
 
   const localeLabels = headerNav.labels[locale];
@@ -58,21 +52,6 @@ export function SiteHeader({ initialCartCount, isLoggedIn = false, headerNav }: 
       (item.href === "/" ? t("nav.home") : item.href.replace(/^\//, "") || item.href);
     return { href: item.href, match: item.href, label };
   });
-
-  useEffect(() => {
-    function handleCartUpdated(event: Event) {
-      const detail = (event as CustomEvent<{ count?: number }>).detail;
-      setCartCountOverride({
-        count: detail?.count ?? 0,
-        sourceCount: initialCartCount,
-      });
-    }
-
-    window.addEventListener("synarava:cart-updated", handleCartUpdated);
-    return () => {
-      window.removeEventListener("synarava:cart-updated", handleCartUpdated);
-    };
-  }, [initialCartCount]);
 
   useDrawerFocusTrap(isMenuOpen, drawerRef, menuButtonRef, () => setIsMenuOpen(false));
 

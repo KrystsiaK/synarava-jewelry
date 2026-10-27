@@ -1,6 +1,7 @@
 "use client";
 
 import { Check, X } from "@phosphor-icons/react/ssr";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
@@ -30,6 +31,7 @@ export function AddToCartButton({
   disabled = false,
   unavailableLabel,
 }: AddToCartButtonProps) {
+  const router = useRouter();
   const { t, plural, locale } = useTranslations();
   const [isPending, setIsPending] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -61,12 +63,6 @@ export function AddToCartButton({
         throw new Error(payload.error || t("product.addFailed"));
       }
 
-      window.dispatchEvent(
-        new CustomEvent("synarava:cart-updated", {
-          detail: { count: payload.count ?? 0 },
-        }),
-      );
-
       // Shopify reports a capped/adjusted quantity (e.g. hit the available stock)
       // as a warning rather than an error — reporting a clean "added" success and
       // a confirmed add_to_cart for the requested quantity would be a false
@@ -96,6 +92,8 @@ export function AddToCartButton({
       setRecentEcommerce(payload.ecommerce ?? null);
       setRecentWarnings(warnings);
       setMessage(t("product.added"));
+      // Header badge reads the server layout count — refresh RSC after layout revalidate.
+      router.refresh();
     } catch (error) {
       setIsError(true);
       setMessage(error instanceof Error ? error.message : t("product.addFailed"));
