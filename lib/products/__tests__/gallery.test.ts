@@ -8,6 +8,7 @@ import {
   galleryFrameId,
   localFrameId,
   readGalleryFrames,
+  resolveGalleryFramesForMutation,
   seedFramesFromLocalRows,
   validateGalleryUploadFile,
 } from "@/lib/products/gallery";
@@ -224,6 +225,105 @@ describe("applyGalleryOp locking contract", () => {
     const source = readFileSync(join(process.cwd(), "lib/products/gallery.ts"), "utf8");
     expect(source).toMatch(/FOR UPDATE/);
     expect(source).toMatch(/\$transaction/);
+  });
+
+  it("seeds legacy ProductMedia for every op including add (not only non-add)", () => {
+    const source = readFileSync(join(process.cwd(), "lib/products/gallery.ts"), "utf8");
+    expect(source).not.toMatch(/frames\.length === 0 && op\.type !== ["']add["']/);
+    expect(source).not.toMatch(/op\.type !== ["']add["']/);
+  });
+
+  it("commitGalleryUpload loads/seeds frames before creating the new asset row", () => {
+    const source = readFileSync(join(process.cwd(), "lib/products/gallery.ts"), "utf8");
+    const fnStart = source.indexOf("export async function commitGalleryUpload");
+    expect(fnStart).toBeGreaterThanOrEqual(0);
+    const fnBody = source.slice(fnStart, fnStart + 1800);
+    const loadIdx = fnBody.indexOf("loadFramesForOp");
+    const createIdx = fnBody.indexOf("mediaAsset.create");
+    expect(loadIdx).toBeGreaterThanOrEqual(0);
+    expect(createIdx).toBeGreaterThan(loadIdx);
+  });
+});
+
+describe("legacy draft seed on add / upload", () => {
+  const legacyRows = [
+    { assetId: "a1", alt: "One", url: "/media/1.webp", width: 10, height: 10 },
+    { assetId: "a2", alt: "Two", url: "/media/2.webp", width: 10, height: 10 },
+  ];
+
+  it("seeds 2 ProductMedia rows when extras.media is absent, then add yields 3 ordered frames", () => {
+    // Same path applyGalleryOp(add) / commitGalleryUpload use before appending.
+    const seeded = resolveGalleryFramesForMutation({
+      extras: null,
+      shopifySnapshot: null,
+      localRows: legacyRows,
+    });
+    expect(seeded.map((node) => galleryFrameId(node))).toEqual(["local:a1", "local:a2"]);
+
+    const afterAdd = applyGalleryOpToFrames(seeded, {
+      type: "add",
+      assetId: "a3",
+      url: "/media/3.webp",
+      width: 10,
+      height: 10,
+      alt: "",
+    });
+    expect(afterAdd.media.map((node) => galleryFrameId(node))).toEqual([
+      "local:a1",
+      "local:a2",
+      "local:a3",
+    ]);
+    const ids = afterAdd.media.map((node) => galleryFrameId(node)!);
+    expect(new Set(ids).size).toBe(3);
+  });
+
+  it("does not double-count when seed runs before the new ProductMedia insert", () => {
+    // commitGalleryUpload must seed from existing rows only, then append the new asset.
+    const beforeInsert = resolveGalleryFramesForMutation({
+      extras: {},
+      shopifySnapshot: null,
+      localRows: legacyRows,
+    });
+    const afterInsertWouldSee = resolveGalleryFramesForMutation({
+      extras: {},
+      shopifySnapshot: null,
+      localRows: [
+        ...legacyRows,
+        { assetId: "a3", alt: null, url: "/media/3.webp", width: 10, height: 10 },
+      ],
+    });
+
+    const correct = applyGalleryOpToFrames(beforeInsert, {
+      type: "add",
+      assetId: "a3",
+      url: "/media/3.webp",
+      width: 10,
+      height: 10,
+      alt: "",
+    });
+    expect(correct.media.map((node) => galleryFrameId(node))).toEqual([
+      "local:a1",
+      "local:a2",
+      "local:a3",
+    ]);
+    expect(new Set(correct.media.map((node) => galleryFrameId(node))).size).toBe(3);
+
+    // Seeding after insert already includes local:a3 — adding a3 again must fail (no dup ids).
+    expect(afterInsertWouldSee.map((node) => galleryFrameId(node))).toEqual([
+      "local:a1",
+      "local:a2",
+      "local:a3",
+    ]);
+    expect(() =>
+      applyGalleryOpToFrames(afterInsertWouldSee, {
+        type: "add",
+        assetId: "a3",
+        url: "/media/3.webp",
+        width: 10,
+        height: 10,
+        alt: "",
+      }),
+    ).toThrow(/already in the gallery/i);
   });
 });
 

@@ -138,18 +138,20 @@ export function readGalleryFrames(extras: unknown, shopifySnapshot: unknown = nu
   return [];
 }
 
+export type LocalGalleryRowSeed = {
+  assetId: string;
+  alt: string | null;
+  url: string;
+  width: number | null;
+  height: number | null;
+};
+
 /**
  * Seed display frames when extras has no media key yet but local staging rows exist
  * (unlinked draft before the first gallery op). Does not invent Shopify GIDs.
  */
 export function seedFramesFromLocalRows(
-  rows: ReadonlyArray<{
-    assetId: string;
-    alt: string | null;
-    url: string;
-    width: number | null;
-    height: number | null;
-  }>,
+  rows: ReadonlyArray<LocalGalleryRowSeed>,
 ): GalleryFrameNode[] {
   return rows.map((row) =>
     makeLocalFrame({
@@ -160,6 +162,23 @@ export function seedFramesFromLocalRows(
       alt: typeof row.alt === "string" ? row.alt.trim() : "",
     }),
   );
+}
+
+/**
+ * Resolve frames for any gallery mutation (including add / upload).
+ * Prefer extras.media / snapshot; when empty, seed from existing ProductMedia rows.
+ * Callers that will create a new ProductMedia row must resolve BEFORE that insert
+ * so the new asset is not double-counted in the seed.
+ */
+export function resolveGalleryFramesForMutation(input: {
+  extras: unknown;
+  shopifySnapshot?: unknown;
+  localRows: ReadonlyArray<LocalGalleryRowSeed>;
+}): unknown[] {
+  const frames = readGalleryFrames(input.extras, input.shopifySnapshot ?? null);
+  if (frames.length > 0) return frames;
+  if (input.localRows.length > 0) return seedFramesFromLocalRows(input.localRows);
+  return [];
 }
 
 function findFrameIndex(frames: readonly unknown[], frameId: string): number {
@@ -328,34 +347,32 @@ async function syncLocalRowOrder(
 async function loadFramesForOp(
   tx: Prisma.TransactionClient,
   product: LockedProduct,
-  op: GalleryOp,
 ): Promise<unknown[]> {
-  let frames = readGalleryFrames(product.extras, product.shopifySnapshot);
+  // Seed legacy ProductMedia rows for EVERY op (including add / upload). Skipping
+  // seed on add dropped existing draft frames from extras.media on first upload.
+  const tree = readGalleryFrames(product.extras, product.shopifySnapshot);
+  if (tree.length > 0) return tree;
 
-  // Unlinked drafts may only have ProductMedia staging rows until the first op.
-  if (frames.length === 0 && op.type !== "add") {
-    const localRows = await tx.productMedia.findMany({
-      where: { productId: product.id },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: {
-        assetId: true,
-        alt: true,
-        asset: { select: { key: true, width: true, height: true } },
-      },
-    });
-    if (localRows.length > 0) {
-      frames = seedFramesFromLocalRows(
-        localRows.map((row) => ({
-          assetId: row.assetId,
-          alt: row.alt,
-          url: getS3PublicUrl(row.asset.key),
-          width: row.asset.width,
-          height: row.asset.height,
-        })),
-      );
-    }
-  }
-  return frames;
+  const localRows = await tx.productMedia.findMany({
+    where: { productId: product.id },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: {
+      assetId: true,
+      alt: true,
+      asset: { select: { key: true, width: true, height: true } },
+    },
+  });
+  return resolveGalleryFramesForMutation({
+    extras: product.extras,
+    shopifySnapshot: product.shopifySnapshot,
+    localRows: localRows.map((row) => ({
+      assetId: row.assetId,
+      alt: row.alt,
+      url: getS3PublicUrl(row.asset.key),
+      width: row.asset.width,
+      height: row.asset.height,
+    })),
+  });
 }
 
 async function persistGalleryResult(
@@ -414,7 +431,7 @@ export async function applyGalleryOp(
     const product = await lockProduct(tx, productId);
     if (!product) throw new GalleryOpError("Product not found.");
 
-    const frames = await loadFramesForOp(tx, product, op);
+    const frames = await loadFramesForOp(tx, product);
     if (op.type === "add" && frames.length >= GALLERY_MAX_FRAMES) {
       throw new GalleryOpError("Shopify supports up to 250 media items per product.");
     }
@@ -448,14 +465,9 @@ export async function commitGalleryUpload(
     const product = await lockProduct(tx, input.productId);
     if (!product) throw new GalleryOpError("Product not found.");
 
-    const frames = await loadFramesForOp(tx, product, {
-      type: "add",
-      assetId: "pending",
-      url: input.publicPath,
-      width: input.width,
-      height: input.height,
-      alt: "",
-    });
+    // Seed existing ProductMedia BEFORE inserting the new asset so the new row
+    // is not double-counted in the legacy seed list.
+    const frames = await loadFramesForOp(tx, product);
     if (frames.length >= GALLERY_MAX_FRAMES) {
       throw new GalleryOpError("Shopify supports up to 250 media items per product.");
     }
