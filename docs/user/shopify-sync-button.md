@@ -86,6 +86,11 @@ During a check:
 - Reloading the page keeps the lock while the check is still running.
 - A stuck check expires after 10 minutes and unlocks the UI.
 
+If Shopify throttles Admin API calls, the UI shows a friendly rate-limit
+message (wait a few seconds and try again). Pause, then retry the button once —
+do not stack Push / Pull / Apply while that message is active. Owner walkthrough:
+[Shopify sync flow for catalog owners](/admin/help/sync-flow).
+
 ### Read banners and counters after the check
 
 Catalog banners and counters (**N conflicts** = SyncResult leaf tally — not

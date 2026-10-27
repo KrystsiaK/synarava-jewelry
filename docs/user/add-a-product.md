@@ -69,6 +69,15 @@ Keep the product in **Draft** to hide it. **Published** makes it visible in the
 catalog and at its direct link. **Unlisted** removes it from catalog and search
 but keeps the direct link and cart access available.
 
+### Assign SKU before Create (explicit family)
+
+When portable SKU assignment is configured, Inventory uses **Family → Preview →
+Confirm** (or **Resume** for a pending reservation). You must pick a **family**
+yourself — nothing is pre-selected, and Preview/Confirm stay disabled until you
+choose. The registry ledger is **immutable**: a wrong family permanently
+reserves that path, so Preview first. If assignment is not configured, type the
+SKU field manually. See [Shopify sync flow for catalog owners](/admin/help/sync-flow).
+
 ### Create or reconcile the Shopify copy from the header
 
 After the first save, the product header stays visible on every tab. It shows
