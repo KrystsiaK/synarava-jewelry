@@ -3,6 +3,7 @@
  * No stored workingSnapshot (ADR-0009).
  */
 
+import { sanitizeRichTextHtml } from "@/lib/content/rich-text";
 import {
   plainDescriptionToHtml,
   stripCollectionHtml,
@@ -58,6 +59,8 @@ export type DeriveProductInput = {
   vendor?: string | null;
   productType?: string | null;
   status: string;
+  /** Shop currency for unitCost (Product.currency); default EUR. */
+  currency?: string | null;
   seoTitle?: string | null;
   seoDescription?: string | null;
   shopifyCategoryId?: string | null;
@@ -66,11 +69,15 @@ export type DeriveProductInput = {
   collections?: Array<{ id: string; handle?: string; title?: string }>;
   variants: DeriveProductVariantInput[];
   extras?: unknown;
-  /** Prefer existing descriptionHtml shape when stripped text matches. */
+  /** Prefer Shopify HTML when sanitize(preferred) equals stored local HTML. */
   preferredDescriptionHtml?: string | null;
 };
 
-function mergeVariantInventory(variant: DeriveProductVariantInput, extras: ProductExtras) {
+function mergeVariantInventory(
+  variant: DeriveProductVariantInput,
+  extras: ProductExtras,
+  currencyCode: string,
+) {
   const key = (variant.shopifyVariantId?.trim())
     || (variant.sku.trim() ? `sku:${variant.sku.trim()}` : null);
   const orphan: VariantInventoryExtras | undefined = key
@@ -86,7 +93,7 @@ function mergeVariantInventory(variant: DeriveProductVariantInput, extras: Produ
     ...(orphan && "harmonizedSystemCode" in orphan
       ? { harmonizedSystemCode: orphan.harmonizedSystemCode ?? null } : {}),
     unitCost: variant.costCents != null
-      ? { amount: centsToShopifyAmount(variant.costCents), currencyCode: "EUR" } : null,
+      ? { amount: centsToShopifyAmount(variant.costCents), currencyCode } : null,
     measurement: grams != null && grams > 0 ? { weight: { value: grams, unit: "GRAMS" } } : null,
   }) ?? {};
 }
@@ -95,7 +102,8 @@ function descriptionHtmlForProduct(input: DeriveProductInput): string {
   const plain = (input.description ?? "").trim();
   const preferred = (input.preferredDescriptionHtml ?? "").trim();
   if (!plain) return "";
-  if (preferred && stripCollectionHtml(preferred) === plain) return preferred;
+  // Prefer Shopify HTML when sanitize(preferred) equals stored local HTML.
+  if (preferred && sanitizeRichTextHtml(preferred).trim() === plain) return preferred;
   // Product descriptions are often already HTML from Shopify/admin rich text.
   if (/<[a-z][\s\S]*>/i.test(plain)) return plain;
   return plainDescriptionToHtml(plain);
@@ -106,6 +114,7 @@ function descriptionHtmlForProduct(input: DeriveProductInput): string {
  */
 export function deriveProductWindow(input: DeriveProductInput): unknown {
   const extras = parseProductExtras(input.extras);
+  const currencyCode = (input.currency?.trim() || "EUR");
   const variants = input.variants.map((variant) => ({
     id: variant.shopifyVariantId ?? null,
     title: variant.title,
@@ -118,7 +127,7 @@ export function deriveProductWindow(input: DeriveProductInput): unknown {
     inventoryQuantity: variant.stockOnHand,
     taxable: variant.taxable,
     selectedOptions: variant.selectedOptions ?? [],
-    inventoryItem: mergeVariantInventory(variant, extras),
+    inventoryItem: mergeVariantInventory(variant, extras, currencyCode),
   }));
 
   const totalInventory = variants.reduce(

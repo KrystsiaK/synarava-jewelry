@@ -1,14 +1,15 @@
 /**
- * Round-trip: snapshotForShopifyProduct → pull mapping → derive → diff === [].
- * Fixtures include inventoryLevels, KILOGRAMS 0, unitCost null, frontpage, "5.0", empty arrays, kg/oz/lb.
+ * Round-trip: snapshotForShopifyProduct → real pull mapper → derive → diff === [].
+ * Fixtures: null/empty, "5.0" money, non-EUR unitCost, kg/oz/lb, frontpage, metafields,
+ * publications, media alt, HTML with unsupported tag/attribute.
+ *
+ * OUT OF SCOPE (report only): multi-location inventory aggregate; 101+ variants/collections.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { shopifyAmountToCents } from "@/lib/shopify/money";
-import { weightInGrams } from "@/lib/shopify/commerce-mirror-shape";
 import { diffShopifyProjections } from "@/lib/shopify/shopify-projection-diff";
 import { deriveProductWindow } from "@/lib/sync/derive-window";
-import { productExtrasFromShopifySnapshot } from "@/lib/sync/extras";
+import { mapShopifyProductSnapshotToDeriveInput } from "@/lib/shopify/pull-product-mapping";
 
 vi.mock("@/lib/env", () => ({ env: { SHOPIFY_LOCATION_ID: undefined } }));
 vi.mock("@/lib/db", () => ({ db: {} }));
@@ -25,78 +26,10 @@ import { snapshotForShopifyProduct } from "@/lib/shopify/product-sync";
 
 type Snapshot = Record<string, unknown>;
 
-/** Snapshot money may be string or number after canonicalize. */
-function moneyToCents(value: unknown): number {
-  if (typeof value === "number" && Number.isFinite(value)) return Math.round(value * 100);
-  if (typeof value === "string") return shopifyAmountToCents(value);
-  return 0;
-}
-
-/** Pull mapping: mapped snapshot → columns + extras (mirrors product-sync upsert). */
-function pullSnapshotToDeriveInput(snapshot: Snapshot) {
-  const variants = Array.isArray(snapshot.variants) ? snapshot.variants : [];
-  const seo = (snapshot.seo && typeof snapshot.seo === "object"
-    ? snapshot.seo
-    : {}) as { title?: string | null; description?: string | null };
-  const category = snapshot.category && typeof snapshot.category === "object"
-    ? snapshot.category as { id?: string; name?: string | null; fullName?: string | null }
-    : null;
-
-  return {
-    shopifyProductId: typeof snapshot.id === "string" ? snapshot.id : null,
-    name: String(snapshot.title ?? ""),
-    slug: String(snapshot.handle ?? ""),
-    description: typeof snapshot.descriptionHtml === "string" ? snapshot.descriptionHtml : null,
-    preferredDescriptionHtml:
-      typeof snapshot.descriptionHtml === "string" ? snapshot.descriptionHtml : null,
-    vendor: typeof snapshot.vendor === "string" ? snapshot.vendor : null,
-    productType: typeof snapshot.productType === "string" ? snapshot.productType : null,
-    status: String(snapshot.status ?? "ACTIVE"),
-    seoTitle: seo.title || null,
-    seoDescription: seo.description || null,
-    shopifyCategoryId: category?.id ?? null,
-    shopifyCategoryName: category?.fullName ?? category?.name ?? null,
-    tags: Array.isArray(snapshot.tags) ? snapshot.tags.map(String) : [],
-    collections: Array.isArray(snapshot.collections)
-      ? snapshot.collections.filter((c): c is { id: string; handle: string; title: string } =>
-        Boolean(c && typeof c === "object" && typeof (c as { id?: string }).id === "string"))
-      : [],
-    variants: variants.map((raw) => {
-      const v = (raw && typeof raw === "object" ? raw : {}) as Record<string, unknown>;
-      const inv = (v.inventoryItem && typeof v.inventoryItem === "object"
-        ? v.inventoryItem
-        : {}) as Record<string, unknown>;
-      const unitCost = inv.unitCost && typeof inv.unitCost === "object"
-        ? inv.unitCost as { amount?: string }
-        : null;
-      const measurement = inv.measurement && typeof inv.measurement === "object"
-        ? inv.measurement as { weight?: { value: number; unit: "GRAMS" | "KILOGRAMS" | "OUNCES" | "POUNDS" } }
-        : null;
-      return {
-        shopifyVariantId: typeof v.id === "string" ? v.id : null,
-        sku: String(v.sku ?? ""),
-        title: String(v.title ?? ""),
-        barcode: typeof v.barcode === "string" ? v.barcode : null,
-        priceCents: moneyToCents(v.price),
-        compareAtCents: v.compareAtPrice == null ? null : moneyToCents(v.compareAtPrice),
-        costCents: unitCost?.amount != null ? moneyToCents(unitCost.amount) : null,
-        inventoryPolicy: typeof v.inventoryPolicy === "string" ? v.inventoryPolicy : "DENY",
-        stockOnHand: typeof v.inventoryQuantity === "number" ? v.inventoryQuantity : 0,
-        taxable: Boolean(v.taxable),
-        selectedOptions: v.selectedOptions ?? [],
-        shopifyInventoryItemId: typeof inv.id === "string" ? inv.id : null,
-        requiresShipping: typeof inv.requiresShipping === "boolean" ? inv.requiresShipping : true,
-        tracked: typeof inv.tracked === "boolean" ? inv.tracked : true,
-        weightGrams: weightInGrams(measurement?.weight),
-      };
-    }),
-    extras: productExtrasFromShopifySnapshot(snapshot),
-  };
-}
-
 function assertRoundTrip(name: string, remote: Parameters<typeof snapshotForShopifyProduct>[0]) {
   const snapshot = snapshotForShopifyProduct(remote) as Snapshot;
-  const derived = deriveProductWindow(pullSnapshotToDeriveInput(snapshot));
+  const pulled = mapShopifyProductSnapshotToDeriveInput(snapshot);
+  const derived = deriveProductWindow(pulled);
   const diffs = diffShopifyProjections(derived, snapshot);
   if (diffs.length > 0) {
     const paths = diffs.map((d) => `${d.path}: ${d.local} vs ${d.shopify}`).join("\n");
@@ -227,6 +160,20 @@ describe("projection round-trip invariant", () => {
     }));
   });
 
+  it("non-EUR unitCost currency round-trips through Product.currency", () => {
+    assertRoundTrip("usd-cost", remoteProduct({}, {
+      inventoryItem: {
+        unitCost: { amount: "12.50", currencyCode: "USD" },
+      },
+    }));
+  });
+
+  it("HTML with unsupported tag/attribute prefers Shopify when sanitize matches stored", () => {
+    assertRoundTrip("html-h2-class", remoteProduct({
+      descriptionHtml: '<h2>Care</h2><p class="x">Polish gently.</p>',
+    }));
+  });
+
   it("filled remote: decimals, metafields, publications, media", () => {
     assertRoundTrip("filled", remoteProduct({
       title: "Pearl Ring\r\n ",
@@ -290,5 +237,11 @@ describe("projection round-trip invariant", () => {
         ],
       },
     }));
+  });
+
+  it("documents out-of-scope: multi-location inventory aggregate and 101+ variants/collections", () => {
+    // Report only — not asserted here. Round-trip uses inventoryQuantity; location
+    // aggregate (selectStockOnHand) and pages beyond first 100 are production concerns.
+    expect(true).toBe(true);
   });
 });
