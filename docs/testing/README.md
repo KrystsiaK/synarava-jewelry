@@ -1,7 +1,8 @@
 # Testing docs
 
 ```
-runbooks/admin-guide-ru.md            ← что админка должна делать (ожидаемое поведение)
+runbooks/admin-guide-ru.md            ← owner guide (RU, plain language; not a test oracle)
+wiki/commerce-sync.md                 ← sync behavior SoT for expected admin sync UX
         ├── admin-test-cases-manual-ru.md      ← как проверить руками
         └── admin-test-cases-playwright-en.md  ← как проверить кодом (слой + целевой spec)
 payment-checkout-test-matrix.md       ← checkout/оплата Shopify: матрица + журнал прогонов

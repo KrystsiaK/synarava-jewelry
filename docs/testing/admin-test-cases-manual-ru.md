@@ -7,7 +7,8 @@
 
 - План работ по автоматизации: `docs/history/2026-09-admin-test-plan.md`
 - Англоязычный каталог для авторов автотестов: `docs/testing/admin-test-cases-playwright-en.md`
-- Справочник поведения админки: `docs/runbooks/admin-guide-ru.md`
+- Owner guide (RU): `docs/runbooks/admin-guide-ru.md`
+- Sync behavior SoT: `docs/wiki/commerce-sync.md`
 
 **Обозначения:**
 - Приоритет: **P1** — блокер, **P2** — важно, **P3** — edge case.
