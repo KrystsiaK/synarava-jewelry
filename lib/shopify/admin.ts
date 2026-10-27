@@ -259,7 +259,9 @@ export async function shopifyAdminRequest<T>(
         }
       }
       emit(false);
-      if (explicitThrottle) throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, failedPayload?.errors);
+      if (explicitThrottle || response.status === 429) {
+        throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, failedPayload?.errors);
+      }
       throw new ShopifyAdminError(`Shopify Admin API returned ${response.status} ${response.statusText}.`);
     }
 
@@ -269,39 +271,43 @@ export async function shopifyAdminRequest<T>(
 
     const explicitThrottle = isExplicitThrottledError(payload.errors, payload.extensions);
     const budgetShortfall = hasThrottleBudgetShortfall(cost);
-    const throttleHit = explicitThrottle || budgetShortfall;
-    const canRetryThrottle = throttleHit
+    // Explicit THROTTLED/429 always retryable. Predicted shortfall retries only for
+    // reads / idempotent mutations (never non-idempotent mutation side effects).
+    const canRetryThrottle = (explicitThrottle || (budgetShortfall && retryPredictedShortfall))
       && attempts < SHOPIFY_THROTTLE_MAX_ATTEMPTS
-      && totalWaitMs < SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS
-      && (explicitThrottle || retryPredictedShortfall);
+      && totalWaitMs < SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS;
 
     if (payload.errors?.length) {
-      if (canRetryThrottle) {
+      if (canRetryThrottle && (explicitThrottle || budgetShortfall)) {
         const waitMs = computeThrottleWaitMs({ retryAfterHeader, cost });
         totalWaitMs += waitMs;
         if (totalWaitMs <= SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS) {
           await sleep(waitMs);
           continue;
         }
+        emit(false);
+        throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, payload.errors);
       }
       emit(false);
-      if (explicitThrottle || (budgetShortfall && !payload.data)) {
+      if (explicitThrottle) {
         throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE, payload.errors);
       }
       throw new ShopifyAdminError(payload.errors.map((error) => error.message).join("; "), payload.errors);
     }
 
     if (!payload.data) {
-      if (canRetryThrottle) {
+      if (canRetryThrottle && (explicitThrottle || budgetShortfall)) {
         const waitMs = computeThrottleWaitMs({ retryAfterHeader, cost });
         totalWaitMs += waitMs;
         if (totalWaitMs <= SHOPIFY_THROTTLE_MAX_TOTAL_WAIT_MS) {
           await sleep(waitMs);
           continue;
         }
+        emit(false);
+        throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE);
       }
       emit(false);
-      if (throttleHit) throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE);
+      if (explicitThrottle) throw new ShopifyAdminError(SHOPIFY_RATE_LIMIT_USER_MESSAGE);
       throw new ShopifyAdminError("Shopify Admin API returned no data.");
     }
 

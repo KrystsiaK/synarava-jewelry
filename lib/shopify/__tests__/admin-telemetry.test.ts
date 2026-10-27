@@ -1,9 +1,14 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  computeThrottleWaitMs,
+  isExplicitThrottledError,
+  isGraphqlMutation,
+  isIdempotentGraphqlMutation,
   logProductPushTiming,
   logShopifyAdminRequest,
   logSyncWaterfallTiming,
+  parseRetryAfterMs,
   parseShopifyQueryCost,
   sanitizeGraphqlOperationName,
 } from "@/lib/shopify/admin-telemetry";
@@ -84,6 +89,25 @@ describe("admin-telemetry", () => {
     const serialized = JSON.stringify(payload);
     expect(serialized).not.toMatch(/shpat_|client.secret|variables|sku|https?:\/\//i);
     expect(serialized).not.toContain("title");
+  });
+
+  it("classifies mutations and explicit throttle signals", () => {
+    expect(isGraphqlMutation("mutation SynaravaProductSet { productSet { id } }")).toBe(true);
+    expect(isGraphqlMutation("query SynaravaProduct { product { id } }")).toBe(false);
+    expect(isIdempotentGraphqlMutation("mutation X { inventoryActivate @idempotent(key: $k) { id } }")).toBe(true);
+    expect(isIdempotentGraphqlMutation("mutation X { productSet { id } }")).toBe(false);
+    expect(isExplicitThrottledError([{ message: "Throttled", extensions: { code: "THROTTLED" } }], null)).toBe(true);
+    expect(isExplicitThrottledError([{ message: "Access denied" }], { code: "ACCESS_DENIED" })).toBe(false);
+    expect(parseRetryAfterMs("2")).toBe(2000);
+    expect(computeThrottleWaitMs({
+      retryAfterHeader: "1",
+      cost: {
+        requestedQueryCost: 200,
+        actualQueryCost: null,
+        throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 0, restoreRate: 100 },
+      },
+      jitterMs: 0,
+    })).toBe(2000);
   });
 
   it("emits waterfall and push timing summaries with counts only", () => {

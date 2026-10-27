@@ -12,6 +12,7 @@ vi.mock("@/lib/env", () => ({ env: mockedEnv }));
 
 describe("Shopify Admin authentication", () => {
   beforeEach(() => {
+    vi.useRealTimers();
     vi.resetModules();
     vi.restoreAllMocks();
     vi.spyOn(console, "info").mockImplementation(() => undefined);
@@ -334,43 +335,206 @@ describe("Shopify Admin authentication", () => {
     expect(logLine).not.toContain("NEVER-LOG-SKU");
   });
 
-  it("keeps HTTP error messages unchanged when a cost payload is present", async () => {
+  it("retries HTTP 429 with Retry-After then succeeds", async () => {
     mockedEnv.SHOPIFY_CLIENT_ID = undefined;
     mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
     mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
-    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
-    vi.spyOn(globalThis, "fetch").mockResolvedValueOnce(
-      new Response(JSON.stringify({
-        errors: [{ message: "Throttled" }],
-        extensions: {
-          cost: {
-            requestedQueryCost: 100,
-            actualQueryCost: null,
-            throttleStatus: {
-              maximumAvailable: 2000,
-              currentlyAvailable: 0,
-              restoreRate: 100,
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+          extensions: {
+            cost: {
+              requestedQueryCost: 100,
+              actualQueryCost: null,
+              throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 0, restoreRate: 100 },
             },
           },
+        }), {
+          status: 429,
+          statusText: "Too Many Requests",
+          headers: { "Content-Type": "application/json", "Retry-After": "1" },
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          data: { shop: { name: "Synarava" } },
+          extensions: {
+            cost: {
+              requestedQueryCost: 1,
+              actualQueryCost: 1,
+              throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 1999, restoreRate: 100 },
+            },
+          },
+        }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      );
+
+    const { shopifyAdminRequest } = await import("@/lib/shopify/admin");
+    const pending = shopifyAdminRequest<{ shop: { name: string } }>("query SynaravaShop { shop { name } }");
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toEqual({ shop: { name: "Synarava" } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("retries GraphQL THROTTLED then succeeds", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    const fetchMock = vi.spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+          extensions: {
+            cost: {
+              requestedQueryCost: 50,
+              actualQueryCost: null,
+              throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 10, restoreRate: 100 },
+            },
+          },
+        }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      )
+      .mockResolvedValueOnce(
+        new Response(JSON.stringify({
+          data: { shop: { name: "Synarava" } },
+          extensions: {
+            cost: {
+              requestedQueryCost: 1,
+              actualQueryCost: 1,
+              throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 1999, restoreRate: 100 },
+            },
+          },
+        }), { status: 200, headers: { "Content-Type": "application/json" } }),
+      );
+
+    const { shopifyAdminRequest } = await import("@/lib/shopify/admin");
+    const pending = shopifyAdminRequest<{ shop: { name: string } }>("query SynaravaShop { shop { name } }");
+    await vi.runAllTimersAsync();
+    await expect(pending).resolves.toEqual({ shop: { name: "Synarava" } });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    vi.useRealTimers();
+  });
+
+  it("throws a friendly rate-limit message after the retry cap", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    vi.useFakeTimers();
+    const throttledBody = () => new Response(JSON.stringify({
+      errors: [{ message: "Throttled", extensions: { code: "THROTTLED" } }],
+      extensions: {
+        cost: {
+          requestedQueryCost: 100,
+          actualQueryCost: null,
+          throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 0, restoreRate: 100 },
         },
-      }), { status: 429, statusText: "Too Many Requests", headers: { "Content-Type": "application/json" } }),
+      },
+    }), { status: 200, headers: { "Content-Type": "application/json" } });
+    vi.spyOn(globalThis, "fetch").mockImplementation(async () => throttledBody());
+
+    const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
+    const pending = shopifyAdminRequest("query SynaravaShop { shop { name } }").then(
+      (value) => ({ ok: true as const, value }),
+      (error: unknown) => ({ ok: false as const, error }),
+    );
+    await vi.runAllTimersAsync();
+    const result = await pending;
+    expect(result.ok).toBe(false);
+    if (result.ok) throw new Error("expected failure");
+    expect(result.error).toBeInstanceOf(ShopifyAdminError);
+    expect((result.error as Error).message).toBe(
+      "Shopify is rate-limiting requests; wait a few seconds and try again",
+    );
+    expect((result.error as Error).message).not.toMatch(/^Throttled$/i);
+    expect(vi.mocked(globalThis.fetch).mock.calls.length).toBeGreaterThanOrEqual(5);
+    vi.useRealTimers();
+  });
+
+  it("does not retry non-throttle GraphQL errors", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        errors: [{ message: "Access denied for products field." }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 8,
+            actualQueryCost: 2,
+            throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 1998, restoreRate: 100 },
+          },
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
     );
 
     const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
-    await expect(shopifyAdminRequest("query SynaravaShop { shop { name } }")).rejects.toSatisfy(
-      (error: unknown) =>
-        error instanceof ShopifyAdminError
-        && error.message === "Shopify Admin API returned 429 Too Many Requests.",
+    await expect(shopifyAdminRequest("query SynaravaProducts { products(first: 1) { nodes { id } } }"))
+      .rejects.toSatisfy((error: unknown) =>
+        error instanceof ShopifyAdminError && error.message === "Access denied for products field.",
+      );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not retry non-throttle mutation failures", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        errors: [{ message: "Product not found" }],
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
     );
 
-    const payload = JSON.parse(String(info.mock.calls[0]?.[0])) as Record<string, unknown>;
-    expect(payload).toMatchObject({
-      event: "shopify.admin.request",
-      operation: "SynaravaShop",
-      httpStatus: 429,
-      success: false,
-      requestedQueryCost: 100,
-      currentlyAvailable: 0,
-    });
+    const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
+    await expect(
+      shopifyAdminRequest(
+        `mutation SynaravaProductDelete($input: ProductDeleteInput!) {
+          productDelete(input: $input) { deletedProductId }
+        }`,
+        { input: { id: "gid://shopify/Product/1" } },
+      ),
+    ).rejects.toSatisfy((error: unknown) =>
+      error instanceof ShopifyAdminError && error.message === "Product not found",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("retries mutation only on explicit THROTTLED, not on budget shortfall alone", async () => {
+    mockedEnv.SHOPIFY_CLIENT_ID = undefined;
+    mockedEnv.SHOPIFY_CLIENT_SECRET = undefined;
+    mockedEnv.SHOPIFY_ADMIN_ACCESS_TOKEN = "static-token";
+    vi.spyOn(console, "info").mockImplementation(() => undefined);
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({
+        errors: [{ message: "Product not found" }],
+        extensions: {
+          cost: {
+            requestedQueryCost: 50,
+            actualQueryCost: 0,
+            throttleStatus: { maximumAvailable: 2000, currentlyAvailable: 10, restoreRate: 100 },
+          },
+        },
+      }), { status: 200, headers: { "Content-Type": "application/json" } }),
+    );
+
+    const { shopifyAdminRequest, ShopifyAdminError } = await import("@/lib/shopify/admin");
+    await expect(
+      shopifyAdminRequest(
+        `mutation SynaravaProductSet($input: ProductSetInput!) {
+          productSet(input: $input) { product { id } }
+        }`,
+        { input: { title: "Secret Title" } },
+      ),
+    ).rejects.toSatisfy((error: unknown) =>
+      error instanceof ShopifyAdminError && error.message === "Product not found",
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
   });
 });
