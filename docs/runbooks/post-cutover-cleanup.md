@@ -14,7 +14,7 @@ After ADR-0009 / EN-base cutovers, PostgreSQL keeps recovery copies:
 
 Dropping them is irreversible without a backup. Keep them until the waiting period and a fresh backup say otherwise.
 
-Related: [`derive-synarava-state-release.md`](derive-synarava-state-release.md), [`deploy.md`](deploy.md), [`prod-readiness-check.sql`](../../scripts/db/prod-readiness-check.sql) (sibling PR if not yet on staging).
+Related: [`derive-synarava-state-release.md`](derive-synarava-state-release.md), [`release-prod.md`](release-prod.md), [`deploy.md`](deploy.md), [`prod-readiness-check.sql`](../../scripts/db/prod-readiness-check.sql).
 
 ---
 
