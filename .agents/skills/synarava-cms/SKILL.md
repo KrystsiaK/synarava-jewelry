@@ -74,6 +74,7 @@ When the user says **общий компонент**, **shared control**, or **l
 | Compact sort chips | `AdminSortChips` |
 | Status / workflow pill | `AdminStatusBadge` |
 | Ordered rows (up/down; DnD later) | `AdminOrderedList` |
+| Product / entity media gallery | `AdminMediaGallery` — add/move/remove/cover/alt by frame id; confirm via `AdminConfirmModal` |
 | Form-level error / success banner | `AdminAlert` — transparent wash, `--adm-danger-ink`. Not `AuthMessage` |
 | SEO search listing preview | `AdminSerpPreview` + `lib/seo/serp-preview` soft 60/160 warnings on SEO fields |
 | Admin dialog / confirm | `AdminModal` / `AdminConfirmModal` — 14px sheet, dimmed page, no bounce. Not storefront `.t-modal` |
