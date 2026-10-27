@@ -32,8 +32,16 @@ export type CatalogConflictField = {
   blockedReason: string | null;
   /** The underlying ShopifyFieldDivergence row id for a TRANSLATION field (what applyReconcileChoice needs); null for COMMERCE, which applies as a whole-product write instead of one row per field. */
   sourceId: string | null;
-  /** Shopify projection path for COMMERCE rows — used to map media/etc. to the owning editor tab. */
+  /** Shopify projection path for COMMERCE rows. */
   path?: string | null;
+  /** Field-contract key from SyncLeaf. */
+  contractKey?: string | null;
+  /** Editor section from the field contract (authoritative for tab routing). */
+  section?: import("@/lib/sync/field-registry").SyncConflictSection | null;
+  /**
+   * Whole-item leaf parts — section modal matches when ANY part's section matches.
+   */
+  parts?: readonly import("@/lib/sync/field-registry").SyncLeafPart[] | null;
   presenceDifference?: CatalogPresenceDifference;
 };
 

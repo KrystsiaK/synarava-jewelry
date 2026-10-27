@@ -9,8 +9,25 @@ import type {
   CatalogConflictSignals,
 } from "@/lib/shopify/catalog-conflict-signals";
 
+import type { SyncConflictSection } from "./field-registry";
 import { selectSyncCounts, slice } from "./select";
 import type { SyncLeaf, SyncResourceType, SyncResult } from "./types";
+
+function sectionsFromLeaves(leaves: readonly SyncLeaf[]): SyncConflictSection[] {
+  const sections = new Set<SyncConflictSection>();
+  for (const leaf of leaves) {
+    if (leaf.kind === "presence") {
+      sections.add("shopify");
+      continue;
+    }
+    if (leaf.parts && leaf.parts.length > 0) {
+      for (const part of leaf.parts) sections.add(part.section);
+      continue;
+    }
+    if (leaf.section) sections.add(leaf.section);
+  }
+  return [...sections].toSorted();
+}
 
 function localeSignal(
   code: string,
@@ -84,6 +101,7 @@ export function catalogConflictSignalsFromSyncResult(
       shared: sharedCount > 0 || Boolean(presence),
       sharedCount,
       leafCount,
+      sections: sectionsFromLeaves(leaves),
       locales,
       presence,
       name: displayName,

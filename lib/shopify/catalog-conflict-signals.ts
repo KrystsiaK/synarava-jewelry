@@ -28,6 +28,11 @@ export type CatalogConflictProductSignal = {
    * parallel reduce over locales/shared.
    */
   leafCount?: number;
+  /**
+   * Editor sections that own at least one leaf/part (presence → `"shopify"`).
+   * Tab dots read this — never invent presence-only or light every shared tab.
+   */
+  sections?: readonly import("@/lib/sync/field-registry").SyncConflictSection[];
   locales: CatalogConflictLocaleSignal[];
   presence?: CatalogPresenceDifference["kind"] | "BOTH";
   localProductId?: string | null;
