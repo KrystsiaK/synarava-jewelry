@@ -2,13 +2,14 @@
 
 **Status:** live on staging/main (**one** sync system).  
 **Date:** 2026-10-26  
-**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md); [ADR-0009](../adr/0009-derive-synarava-commerce-state.md) (derive OUR window); [ADR-0010](../adr/0010-field-contract-and-verified-convergence.md) (field contract + verified convergence — **proposed** until PR-6..8 merge).
+**Contract:** [`docs/history/sync-unification.md`](../history/sync-unification.md) (historical owner-model write-up); [ADR-0008](../adr/0008-sync-two-state-owner-model.md); [ADR-0009](../adr/0009-derive-synarava-commerce-state.md) (derive OUR window); [ADR-0010](../adr/0010-field-contract-and-verified-convergence.md) (field contract + verified convergence — **accepted**; PR-6..8 on staging).
 
 **Two states only:** Synarava **derived OUR window** (columns + `extras` + locale rows) ↔ Shopify `shopifySnapshot` (last fetched). No stored `workingSnapshot`.  
 **Nothing automatic writes Synarava content** — webhooks/refresh update the Shopify-side copy; humans Apply.  
 **ONE compare → SyncResult leaves:** `lib/sync` (`compareSyncState` → `SyncResult` leaves → `selectSyncCounts` / ConflictResolver fields / list + banner). Low-level commerce window diff remains `canonicalizeShopifyProjection` + `diffShopifyProjections` (ADR-0003). No third-state base / ancestor. No `CommerceSyncStore` catalog cache.  
 **Field contract** (`lib/sync/field-registry.ts`): each commerce leaf carries `contractKey` / `section` / (whole-item) `parts` — consumers route tabs and chips from that metadata, not path/label regex. Unknown non-technical paths → blocked `Unmapped Shopify field <path>`.  
-**Verified convergence:** after Apply/write, one scoped entity recheck proves intended leaves cleared (`verifyConvergenceAfterWrite`). Destructive collection Remove archives into `SyncEntityArchive` first.  
+**Verified convergence:** after Apply/write, one scoped entity recheck proves intended leaves cleared (`verifyConvergenceAfterWrite`). Destructive collection Remove archives into `SyncEntityArchive` first (restore: [`scripts/db/restore-entity-archive.sql`](../../scripts/db/restore-entity-archive.sql)).  
+**Conflict buttons (English UI):** **Take Shopify** = pull Shopify → Synarava; **Keep ours** = push Synarava → Shopify. Whole-item commerce uses one leaf labelled **Product data (N fields)** (`commerce:whole-item`). Multi-variant products: Keep ours / Push blocked until multi-variant push exists — Take Shopify still works.  
 **`syncStatus` is not the conflict SoT** — list, banner, resolver, and badges derive from SyncResult leaves. `Product.syncStatus` / `Collection.syncStatus` remain operational (PENDING / FAILED / SYNCED / identity CONFLICT / UNLINKED), not a parallel conflict inventory.
 
 This is the only admin sync architecture doc for the current model. Older drafts
@@ -31,9 +32,11 @@ Proposal: [`docs/proposals/derive-synarava-state.md`](../proposals/derive-synara
 | Detect / counters | Waterfall in `lib/sync`: refresh Shopify copy → read Synarava (derive) → `compareSyncState` → SyncResult leaves → `selectSyncCounts` / `slice` for every badge/chip/banner (including **sectionChip** filtered by leaf/part `section`). Every counter is **leaf conflicts** (`count(entity) = count(base) + sum(locales)`), never distinct entities. **No** commerce field allowlists for detection; field registry owns labels/scopes/sections/apply; tab dots use `signal.sections` |
 | One-sided presence | A product or collection missing from either side produces exactly one `presence` leaf on `node: base` with `locale: null`. Commerce and translation leaves for that entity are suppressed until both copies exist. |
 | Local Save | Update columns; patch `extras.media` / metafields / metafieldTranslations as needed; then **after-save one-entity recheck** (`runAfterSaveCatalogConflictCheck` + `{ kind:"product"|"collection", …Id }`) — refresh+compare that entity only; does not stamp top-bar `checkedAt` |
-| SKU assign (Family → Confirm / resume) | Column write + after-save one-entity product recheck. SKU is column-backed; derive reads `ProductVariant.sku` |
+| SKU assign | **Inventory** tab (Push gate copy says “Stock tab”) → **Family → Preview → Confirm assign** (or Resume). PENDING-\* placeholders need that path before Push (sku-api). Column write + after-save one-entity product recheck. Derive reads `ProductVariant.sku` |
 | Markers | Shared commerce facts (e.g. price) light **Price** under **every** locale shell (EN/PT/RU), not EN-only |
-| Cost / compare-at | Read from Shopify-shaped snapshot projection, not stale Prisma-only guesses |
+| Cost / compare-at | Shopify-owned. Read from Shopify-shaped snapshot. **Linked Push / Keep ours never sends `inventoryItem.cost`** (create may still seed cost). Compare-at is pull projection in the Price UI |
+| Dirty form | Product editor dirty markers come from **named field values** vs last-saved baseline (`recomputeDirtyFromForm`) — not a boolean stamp |
+| Admin API | Shopify Admin GraphQL **2026-07**; client retries explicit throttle / shortfall (`lib/shopify/admin.ts`) |
 | Translations | Two-way only: Synarava row ↔ Shopify translation. Differs = divergence; human Apply / force Push chooses. No `KEEP_LOCAL` / `APPLY_REMOTE` / `localIsDirty` auto paths |
 | Default-locale EN dedupe | Drop an EN **translation** leaf only when a **commerce** leaf already covers the same field (narrow label→fieldKey map). PAGE EN and non-commerce editorial translation leaves stay |
 | Product-type labels | Human Apply via Field Conflict preview (`affects N products` confirm) or Settings → Taxonomy. No `applyShopifyProductTypeLabel` auto-write |
@@ -140,8 +143,8 @@ Mirror Shopify Admin product header + Product organization:
   Synarava → Passport
 
 Local Save updates Prisma columns and patches `extras` (media / metafields /
-metafieldTranslations) as needed. After Save, the full catalog check re-derives
-OUR windows so conflict markers refresh — there is no stored commerce JSON blob.
+metafieldTranslations) as needed. After Save, a **one-entity** recheck refresh+compares
+that product only (does not stamp top-bar `checkedAt`) — there is no stored commerce JSON blob.
 
 The product header is persistent across every section. It shows one Shopify
 status (`Only in Synarava`, `Only in Shopify`, `In sync`, or `N conflicts`) and
@@ -156,6 +159,10 @@ own a second status/action mechanism.
 ## Media tab
 
 Gallery is part of the dual commerce windows — **not** a parallel ProductMedia world.
+
+**Compare identity:** `canonicalizeShopifyProjection` keys each image by
+**filename + alt + position** (not CDN url / width / height / Shopify media id).
+One part per image position — never separate filename/alt/position subfield lines.
 
 | Piece | Behavior |
 | --- | --- |
@@ -175,14 +182,18 @@ Code: `shopify-snapshot-media.ts`, media actions patching `extras.media`,
 
 ## Inventory tab
 
-Shopify Inventory + Shipping cards for the **primary variant**:
+Shopify Inventory + Shipping cards for the **primary variant**. Field registry
+marks stock, weight, origin, HS, and unit cost as **Shopify-owned**.
 
 | Field | Behavior |
 | --- | --- |
-| SKU, Available quantity | Editable → Save → Push |
+| SKU | Editable; PENDING-\* → Family → Preview → Confirm assign before Push (sku-api) |
+| Available quantity | Editable locally → Save → inventory Push path (ownership remains Shopify) |
 | Location quantities, barcode, tracked, sell-when-out-of-stock, weight, origin, HS | Pull projections (`AdminReadonlyField`); edit in Shopify Admin for now |
+| Unit cost | Pull projection on Price; **never pushed on linked products** |
 
-No separate Variants tab yet — multi-variant detail remains on Sync.
+No separate Variants tab yet — multi-variant detail remains on Sync. Multi-variant
+**Keep ours** is blocked in ConflictResolver (Take Shopify only).
 
 ---
 

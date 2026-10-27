@@ -28,11 +28,11 @@ for Synarava-structured content with no native Shopify equivalent), or `—`
 | mediaCaption | localized | optional | metaobject `product_detail_copy.media_caption` |
 | slug | shared | always | — (one path for every locale; commerce `productSet` maps to `PRODUCT.handle`) |
 | sku, price, compareAt, currency, status, visibility, category, collections, tags, media, variants | shared | — | — |
-| merchant product metafield text (`custom.*` etc., Fields tab) | localized | optional | metafield `value` via Translations API on Metafield GID |
+| merchant product metafield text (`custom.*` etc., Metafields tab / strip **Fields**) | localized | optional | metafield `value` via Translations API on Metafield GID |
 | merchant product metafield non-text (number/boolean/date/url/json) | shared | optional | metafieldsSet (EN only) |
 
 Structured Synarava CMS copy still uses `$app:` metaobjects (Task 16). Merchant
-**Fields** tab text metafields (e.g. Care instructions) use Shopify Metafield
+**Metafields** tab (strip label **Fields**) text metafields use Shopify Metafield
 translations (`translationsRegister` / `key: value`) so each locale can differ.
 Overlays live in `extras.metafieldTranslations` and are stripped from
 commerce conflict compare.

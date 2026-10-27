@@ -99,8 +99,9 @@ cost и т.п.), в сравнении одна базовая карточка 
 
 ### Назначение SKU (явное семейство, неизменяемый ledger)
 
-Если подключён portable SKU-сервис, в Inventory: **Family → Preview → Confirm**
-(или **Resume** для незавершённого резерва):
+Если подключён portable SKU-сервис, вкладка **Inventory** (в тексте ошибки
+Push может быть «Stock tab»): **Family → Preview → Confirm assign** (или
+**Resume**). PENDING-\* нужно закрыть этим путём до Push:
 
 - Семейство выбираете **сами**. Автовыбора нет.
 - Preview и Confirm неактивны, пока семейство не выбрано.
@@ -109,6 +110,11 @@ cost и т.п.), в сравнении одна базовая карточка 
   Сначала Preview, Confirm — только когда кандидат SKU верный.
 
 Если сервис не настроен — SKU вводите вручную до Create in Shopify.
+
+**Cost** — владение Shopify: linked Keep ours / Push не отправляет unit cost.
+**Multi-variant**: Keep ours на карточке **Product data (N fields)**
+заблокирован (Take Shopify доступен). Сравнение галереи: filename + alt +
+position.
 
 ### Удаление позиции
 
