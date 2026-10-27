@@ -975,3 +975,19 @@ model ServiceFlowStatus {
   @@index([level])
   @@index([lastFlowAt])
 }
+
+/// Soft archive for destructive sync resolutions (PR-8). Additive only —
+/// never alters Collection/Product tables. Restore via scripts/db/restore-entity-archive.sql.
+model SyncEntityArchive {
+  id           String   @id @default(cuid())
+  resourceType String
+  entityId     String
+  /// Full JSON snapshot of the row + dependants (translations, memberships, bindings).
+  payload      Json
+  reason       String
+  archivedBy   String?
+  archivedAt   DateTime @default(now())
+
+  @@index([resourceType, entityId])
+  @@index([archivedAt])
+}

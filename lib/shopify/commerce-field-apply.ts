@@ -3,8 +3,10 @@ import "server-only";
 import { db } from "@/lib/db";
 import {
   findConflictLeaf,
+  intendedAddressFromLeaf,
   leafMatchesExpectedFingerprints,
   recheckEntityConflictLeaves,
+  verifyConvergenceAfterWrite,
   type SyncLeaf,
 } from "@/lib/sync";
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
@@ -246,52 +248,37 @@ async function writeToShopify(productId: string, label: string, value: string, v
   throw new Error(`${label} is not a supported commerce field.`);
 }
 
-function leafStillOpen(
-  leaves: readonly SyncLeaf[],
-  label: string,
-): boolean {
-  if (isMediaGalleryFieldLabel(label)) {
-    return leaves.some((leaf) => isMediaGalleryFieldLabel(leaf.label));
-  }
-  return findConflictLeaf(leaves, { label }) != null;
-}
-
 /**
- * Re-check SyncResult leaves after a successful field write.
- * Field leaf gone = resolved. Does **not** write `syncStatus: SYNCED`
+ * Re-check SyncResult leaves after a successful field write (PR-8 convergence).
+ * Field leaf gone = converged. Does **not** write `syncStatus: SYNCED`
  * (conflict inventory is SyncResult leaves, not that column).
  */
 async function verifyAfterWrite(
   productId: string,
-  label: string,
+  leaf: SyncLeaf,
   requestedBy: string,
 ): Promise<
   | { status: "resolved" }
-  | { status: "still-conflicting" }
+  | { status: "still-conflicting"; message: string }
   | { status: "unverifiable"; message: string }
 > {
-  try {
-    const { leaves } = await recheckEntityConflictLeaves({
-      resourceType: "PRODUCT",
-      resourceId: productId,
-      requestedBy,
-    });
-    if (leafStillOpen(leaves, label)) {
-      return { status: "still-conflicting" };
-    }
+  const result = await verifyConvergenceAfterWrite({
+    resourceType: "PRODUCT",
+    resourceId: productId,
+    requestedBy,
+    intended: [intendedAddressFromLeaf(leaf)],
+  });
+  if (result.status === "converged" || result.status === "unrelated_new_leaves") {
+    // Intended address cleared; unrelated leaves are reported separately by callers later.
     return { status: "resolved" };
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Post-write recheck failed.";
-    if (/was not found|no longer exists|not linked/i.test(message)) {
-      return {
-        status: "unverifiable",
-        message: /was not found|no longer exists/i.test(message)
-          ? "The linked Shopify product no longer exists — this field's write could not be verified. Nothing is marked resolved."
-          : "This product is no longer linked to Shopify — this field's write could not be verified. Nothing is marked resolved.",
-      };
-    }
-    return { status: "unverifiable", message };
   }
+  if (result.status === "did_not_converge") {
+    return {
+      status: "still-conflicting",
+      message: `did not converge: ${result.remainingLabels.join(", ")}`,
+    };
+  }
+  return { status: "unverifiable", message: result.message };
 }
 
 /**
@@ -389,7 +376,7 @@ export async function applyCommerceField({
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };
   }
 
-  const refreshResult = await verifyAfterWrite(productId, label, requestedBy);
+  const refreshResult = await verifyAfterWrite(productId, leaf, requestedBy);
   if (refreshResult.status === "unverifiable") {
     return { ok: false, reason: "WRITE_FAILED", message: refreshResult.message };
   }
@@ -397,7 +384,7 @@ export async function applyCommerceField({
     return {
       ok: false,
       reason: "WRITE_FAILED",
-      message: "The write went through, but Shopify and Synarava still disagree on this field after re-checking. Nothing is marked resolved — try again.",
+      message: `The write went through, but ${refreshResult.message}. Nothing is marked resolved — try again.`,
     };
   }
 
