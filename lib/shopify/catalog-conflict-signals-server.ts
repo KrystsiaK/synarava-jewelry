@@ -1,8 +1,10 @@
 import "server-only";
 
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { fetchShopifyShopIdentity } from "@/lib/shopify/admin";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import { cleanupSyncHistoryBestEffort } from "@/lib/shopify/sync-history-retention";
+import { ensureShopifyStoreBinding } from "@/lib/shopify/store-binding";
 import {
   catalogConflictSignalsFromSyncResult,
   runSyncWaterfall,
@@ -102,6 +104,10 @@ export async function runCatalogConflictCheck(
   alreadyRunning?: boolean;
   result: Awaited<ReturnType<typeof runSyncWaterfall>>["result"];
 }> {
+  // ONE bind writer: top-bar Manual / once-per-login Auto, after shop identity, before refresh.
+  const shop = await fetchShopifyShopIdentity();
+  await ensureShopifyStoreBinding(shop.myshopifyDomain);
+
   const checked = await signalsFromWaterfall(
     { kind: "catalog" },
     requestedBy,

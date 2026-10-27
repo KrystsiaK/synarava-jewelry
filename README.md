@@ -179,12 +179,13 @@ an explicit decision; Synarava-only editorial fields are preserved.
 Install Shopify's free **Translate & Adapt** app in each store where staff should edit these fields
 inside Shopify Admin; API synchronization itself uses the translation scopes above.
 
-The catalog records the canonical `*.myshopify.com` store it is linked to. If credentials are
-changed to a duplicated Shopify store, **Run conflict check** reports the mismatch and offers an
-explicit rebind action. Rebinding clears only old store-specific IDs; subsequent saves, webhooks,
-product refreshes, and conflict checks establish the new store identities. The new store still needs its own app
-installation/token, required scopes, published locales, publication ID, and inventory
-location ID. Editorial page layout remains owned by this application; supported page copy
+The catalog records the canonical `*.myshopify.com` store it is linked to on the first top-bar
+Shopify check (`ensureShopifyStoreBinding`). If credentials later point at a different shop, the
+check and every Push/Apply fail closed with an explicit mismatch message — the bound domain is
+never overwritten automatically. There is no silent rebind UI today; fixing a deliberate store
+change is an ops procedure (see `docs/runbooks/database-incident-recovery.md`). The new store still
+needs its own app installation/token, required scopes, published locales, publication ID, and
+inventory location ID. Editorial page layout remains owned by this application; supported page copy
 is synchronized to Shopify Pages or app-owned metaobjects through the localization system.
 The public app URL must be HTTPS so Shopify can deliver signed webhooks.
 
