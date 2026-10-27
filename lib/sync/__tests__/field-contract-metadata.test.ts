@@ -106,9 +106,16 @@ describe("whole-item parts + section routing (PR-6)", () => {
     expect(commerce).toHaveLength(1);
     const leaf = commerce[0]!;
     expect(leaf.fieldKey).toBe("commerce:whole-item");
-    expect(leaf.parts?.map((p) => p.label).toSorted()).toEqual(["Collections", "Cost"]);
+    // All paths kept under each contractKey (Collections may emit id+handle).
+    expect([...new Set(leaf.parts?.map((p) => p.label) ?? [])].toSorted()).toEqual([
+      "Collections",
+      "Cost",
+    ]);
+    expect(leaf.parts?.some((p) => p.label === "Collections")).toBe(true);
+    expect(leaf.parts?.some((p) => p.label === "Cost")).toBe(true);
     expect(leaf.parts?.find((p) => p.label === "Cost")?.section).toBe("price");
     expect(leaf.parts?.find((p) => p.label === "Collections")?.section).toBe("essentials");
+    expect(leaf.label).toBe("Product data (2 fields)");
 
     const signals = catalogConflictSignalsFromSyncResult(result, "PRODUCT");
     expect(signals.products.p1?.sections?.toSorted()).toEqual(["essentials", "price"]);

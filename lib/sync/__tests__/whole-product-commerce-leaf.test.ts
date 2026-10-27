@@ -142,6 +142,41 @@ describe("product whole-product commerce leaf (PR-A3)", () => {
     );
   });
 
+  it("two media diffs under one contractKey: changing the second changes the fingerprint", () => {
+    const our = {
+      status: "ACTIVE",
+      media: [
+        { id: "m1", alt: "Front", preview: { image: { url: "https://cdn.shopify.com/a.jpg" } } },
+        { id: "m2", alt: "Side", preview: { image: { url: "https://cdn.shopify.com/b.jpg" } } },
+      ],
+    };
+    const shopifyBase = {
+      status: "DRAFT",
+      media: [
+        { id: "m1", alt: "Front remote", preview: { image: { url: "https://cdn.shopify.com/a.jpg" } } },
+        { id: "m2", alt: "Side remote", preview: { image: { url: "https://cdn.shopify.com/b.jpg" } } },
+      ],
+    };
+    const first = compareProduct(our, shopifyBase);
+    const leaf = first.leaves.find((item) => item.fieldKey === "commerce:whole-item")!;
+    expect(leaf).toBeDefined();
+    const mediaParts = (leaf.parts ?? []).filter((part) => part.contractKey === "media");
+    expect(mediaParts.length).toBeGreaterThanOrEqual(2);
+    expect(new Set(mediaParts.map((part) => part.path)).size).toBe(mediaParts.length);
+
+    const shopifySecondChanged = {
+      ...shopifyBase,
+      media: [
+        shopifyBase.media[0],
+        { id: "m2", alt: "Side CHANGED", preview: { image: { url: "https://cdn.shopify.com/b.jpg" } } },
+      ],
+    };
+    const second = compareProduct(our, shopifySecondChanged);
+    const changed = second.leaves.find((item) => item.fieldKey === "commerce:whole-item")!;
+    expect(changed.shopifyFingerprint).not.toBe(leaf.shopifyFingerprint);
+    expect(changed.localFingerprint).toBe(leaf.localFingerprint);
+  });
+
   it("all-scoped diffs remain individually selectable (no whole-item leaf)", () => {
     const result = compareProduct(
       { title: "Local", handle: "ring", vendor: "Us", variants: [{ id: "v1", price: "10.00" }] },
