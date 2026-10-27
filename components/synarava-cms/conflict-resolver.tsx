@@ -318,9 +318,6 @@ export function ConflictRow({
         {field.origin === "TRANSLATION" ? (
           <span className="text-xs text-[var(--adm-muted)]">Only this language</span>
         ) : null}
-        {wholeRecord ? (
-          <span className="text-xs text-[var(--adm-muted)]">Whole-item sync</span>
-        ) : null}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {canTakeShopify ? (
@@ -348,14 +345,11 @@ export function ConflictRow({
           <ConflictValueCell label="Synarava (ours)" value={displaySideValue(field, "synarava")} />
         )}
       </div>
-      {wholeRecord ? (
+      {wholeRecord || field.blockedReason ? (
         <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
-          No field-by-field write for this commerce field. Choosing a side applies a whole-item
-          sync for this product (preview lists every commerce field that will change).
-        </p>
-      ) : field.blockedReason ? (
-        <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
-          Cannot choose here: {field.blockedReason}
+          {wholeRecord
+            ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
+            : `Cannot choose here: ${field.blockedReason}`}
         </p>
       ) : null}
     </section>
@@ -759,22 +753,8 @@ function ConflictResolverSession({
     if (busy) return;
     const directions = effectiveDirections(field, supportsWholeRecord);
     if (!directions.includes(direction)) return;
-    const wholeRecord = supportsWholeRecord && isWholeRecordField(field);
+    const key = selectionKey(entityId, field.fieldKey);
     setSelections((current) => {
-      if (wholeRecord) {
-        // One direction for all blocked commerce rows on this item (whole-record intent).
-        const blockedKeys = (loadedRows[entityId] ?? [])
-          .filter((candidate) => isWholeRecordField(candidate))
-          .map((candidate) => selectionKey(entityId, candidate.fieldKey));
-        const clearing = blockedKeys.some((key) => current[key] === direction);
-        const next = { ...current };
-        for (const key of blockedKeys) {
-          if (clearing) delete next[key];
-          else next[key] = direction;
-        }
-        return next;
-      }
-      const key = selectionKey(entityId, field.fieldKey);
       if (current[key] === direction) {
         const next = { ...current };
         delete next[key];
@@ -843,33 +823,21 @@ function ConflictResolverSession({
           if (result.preview) fieldPreview = result.preview;
         }
         const wholeRecordEntries: ConflictPreviewEntry[] = [];
-        const wholeByEntity = new Map<string, CatalogConflictDirection>();
         for (const pick of wholeRecordPicks) {
-          const existing = wholeByEntity.get(pick.entityId);
-          if (existing && existing !== pick.direction) {
-            onToast(
-              "Choose one side for whole-item commerce fields on the same product (Take Shopify or Keep ours, not both).",
-              "error",
-            );
-            return;
-          }
-          wholeByEntity.set(pick.entityId, pick.direction);
-        }
-        for (const [entityId, direction] of wholeByEntity) {
-          const blockedFields = (loadedRows[entityId] ?? []).filter((field) => isWholeRecordField(field));
-          const impactNote = direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
-            ? "Whole-item sync: Take Shopify pulls the entire commerce record into Synarava (including these fields)."
-            : "Whole-item sync: Keep ours pushes the entire Synarava commerce record to Shopify (including these fields).";
-          for (const field of blockedFields) {
-            wholeRecordEntries.push({
-              entityId,
-              field,
-              direction,
-              willClearNonEmptyValue: false,
-              impactNote,
-              wholeRecord: true,
-            });
-          }
+          const field = (loadedRows[pick.entityId] ?? []).find(
+            (candidate) => candidate.fieldKey === pick.fieldKey,
+          );
+          if (!field) continue;
+          wholeRecordEntries.push({
+            entityId: pick.entityId,
+            field,
+            direction: pick.direction,
+            willClearNonEmptyValue: false,
+            impactNote: pick.direction === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA
+              ? "Whole-item sync: Take Shopify pulls the entire commerce record into Synarava (including these fields)."
+              : "Whole-item sync: Keep ours pushes the entire Synarava commerce record to Shopify (including these fields).",
+            wholeRecord: true,
+          });
         }
         setPreview({
           truncated: fieldPreview.truncated,
@@ -921,35 +889,29 @@ function ConflictResolverSession({
           if (result.warning) onToast(result.warning, "info");
         }
 
-        const wholeByEntity = new Map<string, CatalogConflictDirection>();
         for (const entry of wholeEntries) {
-          wholeByEntity.set(entry.entityId, entry.direction);
-        }
-        for (const [entityId, direction] of wholeByEntity) {
-          const expectedFingerprints = wholeEntries
-            .filter((entry) => entry.entityId === entityId)
-            .map((entry) => ({
+          try {
+            // One aggregate leaf → one fingerprint expectation → one whole-record call.
+            const whole = await adapter.applyWholeRecord?.(entry.entityId, entry.direction, [{
               fieldKey: entry.field.fieldKey,
               expectedLocalFingerprint: entry.field.localFingerprint,
               expectedShopifyFingerprint: entry.field.shopifyFingerprint,
-            }));
-          try {
-            const whole = await adapter.applyWholeRecord?.(entityId, direction, expectedFingerprints);
+            }]);
             if (!whole?.ok) {
               failedCount += 1;
               const message = whole?.error ?? "Whole-item sync failed.";
-              results.push({ entityId, ok: false, message });
+              results.push({ entityId: entry.entityId, ok: false, message });
               onToast(message, "error");
               continue;
             }
             appliedCount += 1;
-            results.push({ entityId, ok: true, message: whole.success });
+            results.push({ entityId: entry.entityId, ok: true, message: whole.success });
             if (whole.success) successNotes.push(whole.success);
           } catch (error) {
             // Per-item result: earlier field writes / wholes stay recorded.
             failedCount += 1;
             const message = error instanceof Error ? error.message : "Whole-item sync failed.";
-            results.push({ entityId, ok: false, message });
+            results.push({ entityId: entry.entityId, ok: false, message });
             onToast(message, "error");
           }
         }

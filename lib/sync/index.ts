@@ -5,6 +5,7 @@
 export {
   allowedDirectionsForLeaf,
   compareSyncState,
+  WHOLE_ITEM_COMMERCE_FIELD_KEY,
   type SyncCommerceWindow,
   type SyncCompareInput,
   type SyncLocaleRef,

@@ -13,18 +13,14 @@ import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflic
  */
 export function ProductConflictCompareBanner({
   signal,
-  localeTabs,
   onOpen,
   className = "",
 }: {
   signal: CatalogConflictProductSignal | null | undefined;
-  localeTabs?: ReadonlyArray<{ code: string; label: string }>;
   onOpen: () => void;
   className?: string;
 }) {
-  const summary = productConflictCompareSummary(signal, {
-    localeTabs,
-  });
+  const summary = productConflictCompareSummary(signal);
   if (summary.count <= 0) return null;
 
   const localeSuffix = summary.localeLabels.length > 0

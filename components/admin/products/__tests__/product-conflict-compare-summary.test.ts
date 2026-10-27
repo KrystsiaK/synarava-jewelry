@@ -3,17 +3,9 @@ import { describe, expect, it } from "vitest";
 import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { productConflictCompareSummary } from "@/components/admin/products/product-conflict-compare-summary";
 
-const LOCALE_TABS = [
-  { code: "en", label: "English" },
-  { code: "pt", label: "Portuguese" },
-  { code: "ru", label: "Russian" },
-];
-
 describe("productConflictCompareSummary", () => {
   it("stays at zero when only one-sided translation divergences exist (no signal)", () => {
-    const summary = productConflictCompareSummary(null, {
-      localeTabs: LOCALE_TABS,
-    });
+    const summary = productConflictCompareSummary(null);
     expect(summary).toEqual({ count: 0, localeLabels: [] });
     expect(productConflictBadgeCount(null)).toBe(0);
   });
@@ -25,9 +17,7 @@ describe("productConflictCompareSummary", () => {
       sharedCount: 2,
       locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }>,
     };
-    const summary = productConflictCompareSummary(signal, {
-      localeTabs: LOCALE_TABS,
-    });
+    const summary = productConflictCompareSummary(signal);
     expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.count).toBe(2);
     expect(summary.localeLabels).toEqual(["Shared"]);
@@ -40,9 +30,7 @@ describe("productConflictCompareSummary", () => {
       sharedCount: 1,
       locales: [] as Array<{ count: number; name: string; code: string; nativeName: string }>,
     };
-    const summary = productConflictCompareSummary(signal, {
-      localeTabs: LOCALE_TABS,
-    });
+    const summary = productConflictCompareSummary(signal);
     expect(summary.count).toBe(12);
     expect(summary.count).toBe(productConflictBadgeCount(signal));
   });
@@ -57,9 +45,7 @@ describe("productConflictCompareSummary", () => {
         { code: "ru", name: "Russian", nativeName: "Русский", count: 1 },
       ],
     };
-    const summary = productConflictCompareSummary(signal, {
-      localeTabs: LOCALE_TABS,
-    });
+    const summary = productConflictCompareSummary(signal);
     expect(summary.count).toBe(3);
     expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.localeLabels).toEqual(["Portuguese", "Russian"]);
@@ -75,11 +61,8 @@ describe("productConflictCompareSummary", () => {
         { code: "pt", name: "Portuguese", nativeName: "Português", count: 2 },
       ],
     };
-    const summary = productConflictCompareSummary(signal, {
-      localeTabs: LOCALE_TABS,
-    });
+    const summary = productConflictCompareSummary(signal);
     expect(summary.count).toBe(5);
-    expect(summary.count).toBe(productConflictBadgeCount(signal));
     expect(summary.localeLabels).toEqual(["Shared", "English", "Portuguese"]);
   });
 });

@@ -3,7 +3,7 @@ title: Shopify sync button
 section: Catalog
 status: draft
 verifiedOn:
-updatedOn: 2026-10-26
+updatedOn: 2026-10-27
 ---
 
 # Shopify sync button
@@ -85,6 +85,13 @@ When the count is greater than zero, open the list from **Show conflicts** and
 resolve with preview → Apply (Apply may refresh that one product/collection for
 safety before writing). Collections use the same pattern — see
 [Sync collections with Shopify](/admin/help/sync-collections).
+
+When any product commerce difference needs a whole-item Pull/Push (tags, status,
+cost, and similar), the compare shows **one** base card — **Product data (N
+fields)** — covering every commerce difference for that product, including
+otherwise scoped fields such as Price or Name. Choosing a side runs one
+whole-item sync. If every commerce difference is scoped, each field stays its
+own selectable card. Locale translation rows (PT/RU, …) are unchanged.
 :::
 
 :::note

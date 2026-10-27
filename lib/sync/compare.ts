@@ -183,6 +183,37 @@ function commerceLeaf(
   };
 }
 
+/** Stable fieldKey for the one whole-record product commerce leaf. */
+export const WHOLE_ITEM_COMMERCE_FIELD_KEY = "commerce:whole-item";
+
+/** Collapse ALL product commerce diffs into one whole-record leaf (when any need it). */
+function wholeItemCommerceLeaf(resourceId: string, diffs: readonly ShopifyProjectionDiff[]): SyncLeaf {
+  const sorted = [...diffs].toSorted((a, b) => a.field.localeCompare(b.field) || a.path.localeCompare(b.path));
+  const synaravaValue = sorted.map((d) => `${d.field}: ${d.local}`).join("\n");
+  const shopifyValue = sorted.map((d) => `${d.field}: ${d.shopify}`).join("\n");
+  // Fingerprints: canonical {path, local|shopify} list — not the visible summary.
+  return {
+    id: `PRODUCT:${resourceId}:${WHOLE_ITEM_COMMERCE_FIELD_KEY}`,
+    resourceType: "PRODUCT",
+    resourceId,
+    kind: "commerce",
+    locale: null,
+    fieldKey: WHOLE_ITEM_COMMERCE_FIELD_KEY,
+    label: `Product data (${sorted.length} fields)`,
+    synaravaValue,
+    shopifyValue,
+    allowedDirections: [],
+    blockedReason: COMMERCE_UNSUPPORTED_REASON,
+    sourceId: null,
+    path: null,
+    presenceSide: null,
+    targetKind: "NATIVE",
+    localFingerprint: leafFingerprint(JSON.stringify(sorted.map((d) => ({ path: d.path, local: d.local })))),
+    shopifyFingerprint: leafFingerprint(JSON.stringify(sorted.map((d) => ({ path: d.path, shopify: d.shopify })))),
+    node: "base",
+  };
+}
+
 function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, shopifySummary: string): SyncLeaf {
   const synaravaValue = "— No Synarava commerce window —";
   return {
@@ -231,9 +262,11 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
     }
     if (window.ourWindow == null) continue;
     const diffs = diffShopifyProjections(window.ourWindow, window.shopifySnapshot);
-    for (const diff of diffs) {
-      leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
+    if (window.resourceType === "PRODUCT" && diffs.some((d) => !isScopedCommerceFieldLabel(d.field))) {
+      if (diffs.length > 0) leaves.push(wholeItemCommerceLeaf(window.resourceId, diffs));
+      continue;
     }
+    for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
   }
   return { leaves, uncheckedCount };
 }
@@ -263,10 +296,18 @@ function commerceCoveredTranslationKeys(commerceLeaves: readonly SyncLeaf[]): Se
   const covered = new Set<string>();
   for (const leaf of commerceLeaves) {
     if (leaf.kind !== "commerce") continue;
-    const keys = COMMERCE_LABEL_TO_TRANSLATION_KEYS[leaf.label];
-    if (!keys) continue;
-    for (const key of keys) {
-      covered.add(`${leaf.resourceType}:${leaf.resourceId}:${key}`);
+    // Aggregate: parse constituent labels from `Label: value` lines (not the group title).
+    const labels = leaf.fieldKey === WHOLE_ITEM_COMMERCE_FIELD_KEY
+      ? leaf.synaravaValue.split("\n").flatMap((line) => {
+          const sep = line.indexOf(": ");
+          const label = (sep === -1 ? line : line.slice(0, sep)).trim();
+          return label ? [label] : [];
+        })
+      : [leaf.label];
+    for (const label of labels) {
+      const keys = COMMERCE_LABEL_TO_TRANSLATION_KEYS[label];
+      if (!keys) continue;
+      for (const key of keys) covered.add(`${leaf.resourceType}:${leaf.resourceId}:${key}`);
     }
   }
   return covered;

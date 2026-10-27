@@ -63,10 +63,7 @@ export type WholeRecordFingerprintExpectation = {
   expectedShopifyFingerprint: string;
 };
 
-/**
- * Same stale-fingerprint gate Apply uses, for whole-record pull/push:
- * preview showed these blocked commerce fields; refuse if any changed.
- */
+/** Stale-fingerprint gate for whole-record pull/push (one aggregate expectation). */
 export async function assertWholeRecordFingerprintsFresh(input: {
   productId: string;
   expected: WholeRecordFingerprintExpectation[];

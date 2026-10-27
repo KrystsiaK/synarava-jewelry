@@ -59,6 +59,8 @@ describe("conflict leaf badges — menu ≡ banner ≡ entity ≡ table", () => 
 
     const base = slice(result, { entityType: "PRODUCT", entityId: "p1", node: "base" }).length;
     const pt = slice(result, { entityType: "PRODUCT", entityId: "p1", node: "pt" }).length;
+    // All-scoped Name+Vendor stay two base leaves; whole-item collapse only when any
+    // commerce diff needs whole-record apply (see whole-product-commerce-leaf.test.ts).
     expect(base).toBe(2);
     expect(pt).toBe(1);
     expect(base + pt).toBe(3);
