@@ -6,7 +6,7 @@ import { productConflictCompareSummary } from "@/components/admin/products/produ
 describe("productConflictCompareSummary", () => {
   it("stays at zero when only one-sided translation divergences exist (no signal)", () => {
     const summary = productConflictCompareSummary(null);
-    expect(summary).toEqual({ count: 0, localeLabels: [] });
+    expect(summary).toEqual({ count: 0, differenceCount: 0, localeLabels: [] });
     expect(productConflictBadgeCount(null)).toBe(0);
   });
 

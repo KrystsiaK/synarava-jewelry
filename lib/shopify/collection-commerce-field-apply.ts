@@ -4,15 +4,20 @@ import { Prisma } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { ShopifyAdminError } from "@/lib/shopify/admin";
+import {
+  gateWriteConvergence,
+  findConflictLeaf,
+  leafMatchesExpectedFingerprints,
+  recheckEntityConflictLeaves,
+  intendedAddressFromLeaf,
+} from "@/lib/sync";
 
-import { commerceFingerprint } from "./catalog-conflict";
 import {
   isScopedCollectionCommerceFieldLabel,
   SCOPED_COLLECTION_COMMERCE_FIELD_LABELS,
 } from "./catalog-conflict-policy";
 import {
   collectionCommerceInputFromWindow,
-  diffCollectionCommerceWindows,
 } from "./collection-commerce-projection";
 import { refreshShopifyCollectionState } from "./collection-presence-server";
 import { runShopifyCollectionUpdate } from "./collection-update";
@@ -20,7 +25,6 @@ import {
   deriveCollectionWindow,
   preferredHtmlFromShopifySnapshot,
 } from "@/lib/sync/derive-window";
-import { ourCollectionWindowFromRow } from "@/lib/sync/our-window-from-row";
 
 export { isScopedCollectionCommerceFieldLabel, SCOPED_COLLECTION_COMMERCE_FIELD_LABELS };
 
@@ -170,95 +174,67 @@ async function writeToShopify(collectionId: string, label: string, value: string
 export async function applyCollectionCommerceField({
   collectionId,
   label,
+  fieldKey,
   direction,
   expectedLocalFingerprint,
   expectedShopifyFingerprint,
+  requestedBy = "system",
 }: {
   collectionId: string;
   label: string;
+  fieldKey?: string;
   direction: "SHOPIFY_TO_SYNARAVA" | "SYNARAVA_TO_SHOPIFY";
   expectedLocalFingerprint: string;
   expectedShopifyFingerprint: string;
+  requestedBy?: string;
 }): Promise<CollectionCommerceFieldApplyResult> {
   if (!isScopedCollectionCommerceFieldLabel(label)) {
     return { ok: false, reason: "UNSUPPORTED", message: `${label} is not a supported collection commerce field.` };
   }
 
-  const collection = await db.collection.findUnique({
-    where: { id: collectionId },
-    select: {
-      shopifyCollectionId: true,
-      extras: true,
-      shopifySnapshot: true,
-      name: true,
-      slug: true,
-      description: true,
-      seoTitle: true,
-      seoDescription: true,
-    },
-  });
-  if (!collection) {
-    return { ok: false, reason: "STALE", message: "This collection no longer exists." };
-  }
-  if (!collection.shopifyCollectionId) {
-    return { ok: false, reason: "UNSUPPORTED", message: "This collection is not linked to Shopify." };
-  }
-  // Same resolver as the compare (read-synarava-state): a collection that has columns but no stored
-  // window is still comparable, so it must be applicable too (the resolver showed this conflict).
-  const working = ourCollectionWindowFromRow(collection);
-  if (working == null) {
+  let leaves;
+  try {
+    ({ leaves } = await recheckEntityConflictLeaves({
+      resourceType: "COLLECTION",
+      resourceId: collectionId,
+      requestedBy,
+    }));
+  } catch (error) {
     return {
       ok: false,
-      reason: "UNSUPPORTED",
-      message: "Synarava has no commerce window yet. Adopt Shopify first.",
+      reason: "WRITE_FAILED",
+      message: error instanceof Error ? error.message : "Could not recheck this collection.",
     };
   }
-  const shopify = collection.shopifySnapshot
-    ?? ourCollectionWindowFromRow(collection);
-  const differences = diffCollectionCommerceWindows(working, shopify);
-  const difference = differences.find((item) => item.field === label);
-  if (!difference) {
+
+  const leaf = findConflictLeaf(leaves, { fieldKey, label });
+  if (!leaf) {
     return { ok: false, reason: "STALE", message: "This field is no longer different — it may already have been resolved." };
   }
-  if (
-    commerceFingerprint(difference.local) !== expectedLocalFingerprint
-    || commerceFingerprint(difference.shopify) !== expectedShopifyFingerprint
-  ) {
+  if (!leafMatchesExpectedFingerprints(leaf, {
+    localFingerprint: expectedLocalFingerprint,
+    shopifyFingerprint: expectedShopifyFingerprint,
+  })) {
     return { ok: false, reason: "STALE", message: "Synarava or Shopify changed since this was reviewed. Refresh and try again." };
   }
 
   try {
-    const value = rawValue(direction === "SHOPIFY_TO_SYNARAVA" ? difference.shopify : difference.local);
+    const value = rawValue(direction === "SHOPIFY_TO_SYNARAVA" ? leaf.shopifyValue : leaf.synaravaValue);
     if (direction === "SHOPIFY_TO_SYNARAVA") {
       await writeLocally(collectionId, label, value);
     } else {
       await writeToShopify(collectionId, label, value);
     }
 
-    // Re-check the applied field against stored windows (same compare as list).
-    // Do not write syncStatus SYNCED — conflict inventory is SyncResult leaves.
-    const after = await db.collection.findUnique({
-      where: { id: collectionId },
-      select: {
-        extras: true,
-        shopifySnapshot: true,
-        shopifyCollectionId: true,
-        name: true,
-        slug: true,
-        description: true,
-        seoTitle: true,
-        seoDescription: true,
-      },
+    const gate = await gateWriteConvergence({
+      resourceType: "COLLECTION",
+      resourceId: collectionId,
+      requestedBy,
+      leavesBefore: leaves,
+      intended: [intendedAddressFromLeaf(leaf)],
     });
-    if (!after) {
-      return { ok: false, reason: "WRITE_FAILED", message: "Collection disappeared after apply." };
-    }
-    const stillOpen = diffCollectionCommerceWindows(
-      ourCollectionWindowFromRow(after),
-      after.shopifySnapshot,
-    ).some((item) => item.field === label);
-    if (stillOpen) {
-      return { ok: false, reason: "WRITE_FAILED", message: "The field still differs after apply. Nothing is marked resolved." };
+    if (!gate.ok) {
+      return { ok: false, reason: "WRITE_FAILED", message: gate.message };
     }
 
     return {
