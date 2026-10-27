@@ -315,9 +315,11 @@ describe("applyCollectionConflictResolution", () => {
     expect(mocks.applyCollectionCommerceField).toHaveBeenCalledWith({
       collectionId: "collection-1",
       label: "Name",
+      fieldKey: expect.any(String),
       direction: "SHOPIFY_TO_SYNARAVA",
       expectedLocalFingerprint: "commerce-local-fp",
       expectedShopifyFingerprint: "commerce-shopify-fp",
+      requestedBy: "admin",
     });
     expect(outcome.appliedCount).toBe(1);
   });

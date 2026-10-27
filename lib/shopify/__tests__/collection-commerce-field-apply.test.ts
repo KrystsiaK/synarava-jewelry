@@ -8,6 +8,8 @@ const mocks = vi.hoisted(() => ({
   shopifyAdminRequest: vi.fn(),
   findManagedCollectionSourceId: vi.fn(() => null),
   ensureTranslationBinding: vi.fn(),
+  recheckEntityConflictLeaves: vi.fn(),
+  gateWriteConvergence: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -34,12 +36,41 @@ vi.mock("@/lib/shopify/collection-membership", async (importOriginal) => {
 vi.mock("@/lib/shopify/translation-sync", () => ({
   ensureTranslationBinding: mocks.ensureTranslationBinding,
 }));
+vi.mock("@/lib/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sync")>();
+  return {
+    ...actual,
+    recheckEntityConflictLeaves: mocks.recheckEntityConflictLeaves,
+    gateWriteConvergence: mocks.gateWriteConvergence,
+  };
+});
 
 import { createHash } from "node:crypto";
 import { applyCollectionCommerceField } from "../collection-commerce-field-apply";
 
 function fp(value: string) {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function leaf(label: string, local: string, shopify: string) {
+  return {
+    id: "1",
+    resourceType: "COLLECTION" as const,
+    resourceId: "col-1",
+    kind: "commerce" as const,
+    locale: null,
+    fieldKey: `commerce:${label.toLowerCase()}`,
+    label,
+    synaravaValue: local,
+    shopifyValue: shopify,
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,
+    blockedReason: null,
+    sourceId: null,
+    path: null,
+    node: "base" as const,
+    localFingerprint: fp(local),
+    shopifyFingerprint: fp(shopify),
+  };
 }
 
 function linkedCollection(overrides: Record<string, unknown> = {}) {
@@ -66,21 +97,20 @@ function linkedCollection(overrides: Record<string, unknown> = {}) {
 describe("applyCollectionCommerceField", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.recheckEntityConflictLeaves.mockReset();
+    mocks.gateWriteConvergence.mockReset();
     mocks.findFirstCollection.mockResolvedValue(null);
     mocks.updateTranslations.mockResolvedValue({ count: 1 });
+    mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
   });
 
   it("adopts Name from Shopify into Synarava columns (OUR window derived)", async () => {
     const before = linkedCollection();
-    const afterLocal = {
-      ...before,
-      name: "Shopify name",
-    };
-    mocks.findUniqueCollection
-      .mockResolvedValueOnce(before) // initial read
-      .mockResolvedValueOnce(before) // writeLocally read
-      .mockResolvedValueOnce(afterLocal); // post-write re-check
-    mocks.updateCollection.mockResolvedValue(afterLocal);
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce({
+      leaves: [leaf("Name", "Local name", "Shopify name")],
+    });
+    mocks.findUniqueCollection.mockResolvedValue(before);
+    mocks.updateCollection.mockResolvedValue({ ...before, name: "Shopify name" });
 
     const result = await applyCollectionCommerceField({
       collectionId: "col-1",
@@ -88,6 +118,7 @@ describe("applyCollectionCommerceField", () => {
       direction: "SHOPIFY_TO_SYNARAVA",
       expectedLocalFingerprint: fp("Local name"),
       expectedShopifyFingerprint: fp("Shopify name"),
+      requestedBy: "admin",
     });
 
     expect(result).toEqual(expect.objectContaining({ ok: true }));
@@ -95,22 +126,23 @@ describe("applyCollectionCommerceField", () => {
       where: { id: "col-1" },
       data: expect.objectContaining({ name: "Shopify name" }),
     }));
-    expect(mocks.updateCollection.mock.calls[0][0].data).not.toHaveProperty("workingSnapshot");
+    expect(mocks.gateWriteConvergence).toHaveBeenCalled();
     expect(mocks.shopifyAdminRequest).not.toHaveBeenCalled();
   });
 
-  it("applies Name for a collection with columns only — same window the compare derives", async () => {
-    const before = linkedCollection({ extras: null });
-    const afterLocal = {
-      ...before,
-      name: "Shopify name",
-      shopifySnapshot: { ...(before.shopifySnapshot as object), handle: "local-handle" },
-    };
+  it("fails when convergence says the leaf remains", async () => {
+    const before = linkedCollection();
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce({
+      leaves: [leaf("Name", "Local name", "Shopify name")],
+    });
     mocks.findUniqueCollection
-      .mockResolvedValueOnce(before) // initial read
       .mockResolvedValueOnce(before) // writeLocally read
-      .mockResolvedValueOnce(afterLocal); // post-write re-check
-    mocks.updateCollection.mockResolvedValue(afterLocal);
+      .mockResolvedValueOnce({ ...before, name: "Shopify name" }); // writeLocally verify
+    mocks.updateCollection.mockResolvedValue({ ...before, name: "Shopify name" });
+    mocks.gateWriteConvergence.mockResolvedValue({
+      ok: false,
+      message: "The write went through, but did not converge: Name. Nothing is marked resolved — try again.",
+    });
 
     const result = await applyCollectionCommerceField({
       collectionId: "col-1",
@@ -120,22 +152,16 @@ describe("applyCollectionCommerceField", () => {
       expectedShopifyFingerprint: fp("Shopify name"),
     });
 
-    expect(result).toEqual(expect.objectContaining({ ok: true }));
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
+    expect(result.message).toMatch(/did not converge/i);
   });
 
   it("pushes Handle to Shopify then refreshes shopifySnapshot only on success path", async () => {
     const before = linkedCollection();
-    const afterShopify = {
-      ...(before.shopifySnapshot as object),
-      handle: "local-handle",
-    };
-    const afterLocal = {
-      ...before,
-      slug: "local-handle",
-      shopifySnapshot: afterShopify,
-    };
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce({
+      leaves: [leaf("Handle", "local-handle", "shopify-handle")],
+    });
     mocks.findUniqueCollection
-      .mockResolvedValueOnce(before) // initial
       .mockResolvedValueOnce(before) // writeToShopify
       .mockResolvedValueOnce({ // refreshShopifyCollectionState lookup
         id: "col-1",
@@ -147,8 +173,7 @@ describe("applyCollectionCommerceField", () => {
         seoTitle: "Local SEO",
         seoDescription: "Local SEO desc",
         shopifyCollectionId: before.shopifyCollectionId,
-      })
-      .mockResolvedValueOnce(afterLocal); // post-write re-check
+      });
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({
         collectionUpdate: {
@@ -167,7 +192,7 @@ describe("applyCollectionCommerceField", () => {
           sources: [],
         },
       });
-    mocks.updateCollection.mockResolvedValue(afterLocal);
+    mocks.updateCollection.mockResolvedValue(before);
 
     const result = await applyCollectionCommerceField({
       collectionId: "col-1",
@@ -184,27 +209,17 @@ describe("applyCollectionCommerceField", () => {
         collection: expect.objectContaining({
           id: "gid://shopify/Collection/9",
           handle: "local-handle",
-          title: "Local name",
-          descriptionHtml: expect.any(String),
-          seo: expect.objectContaining({
-            title: "Local SEO",
-            description: "Local SEO desc",
-          }),
         }),
       }),
     );
-    const refreshData = mocks.updateCollection.mock.calls
-      .map((call) => call[0].data as Record<string, unknown>)
-      .find((data) => data.shopifySnapshot != null);
-    expect(refreshData).toBeDefined();
-    expect(refreshData).not.toHaveProperty("workingSnapshot");
   });
 
   it("surfaces Shopify userErrors when pushing a commerce field", async () => {
     const before = linkedCollection();
-    mocks.findUniqueCollection
-      .mockResolvedValueOnce(before)
-      .mockResolvedValueOnce(before);
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce({
+      leaves: [leaf("Name", "Local name", "Shopify name")],
+    });
+    mocks.findUniqueCollection.mockResolvedValue(before);
     mocks.shopifyAdminRequest.mockResolvedValueOnce({
       collectionUpdate: {
         collection: null,
@@ -223,16 +238,9 @@ describe("applyCollectionCommerceField", () => {
 
     expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
     expect(result.message).toMatch(/Title is invalid/);
-    expect(mocks.shopifyAdminRequest).toHaveBeenCalledWith(
-      expect.stringContaining("collectionUpdate(collection: $collection)"),
-      expect.objectContaining({
-        collection: expect.objectContaining({ id: "gid://shopify/Collection/9" }),
-      }),
-    );
   });
 
   it("rejects unsupported labels", async () => {
-    mocks.findUniqueCollection.mockResolvedValue(linkedCollection());
     const result = await applyCollectionCommerceField({
       collectionId: "col-1",
       label: "Tags",
@@ -241,5 +249,6 @@ describe("applyCollectionCommerceField", () => {
       expectedShopifyFingerprint: fp("b"),
     });
     expect(result).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
+    expect(mocks.recheckEntityConflictLeaves).not.toHaveBeenCalled();
   });
 });

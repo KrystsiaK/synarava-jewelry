@@ -2,8 +2,10 @@ import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import type { CatalogConflictProductSignal } from "@/lib/shopify/catalog-conflict-signals";
 
 export type ProductConflictCompareSummary = {
-  /** Same integer the conflict icon badge uses. */
+  /** Same integer the conflict icon badge uses (leaf / conflict count). */
   count: number;
+  /** Part-level differences (whole-item parts sum); defaults to count. */
+  differenceCount: number;
   /** Human locale / scope labels for the banner parenthetical. */
   localeLabels: string[];
 };
@@ -17,7 +19,12 @@ export function productConflictCompareSummary(
   signal: CatalogConflictProductSignal | null | undefined,
 ): ProductConflictCompareSummary {
   const count = productConflictBadgeCount(signal);
-  if (count <= 0) return { count: 0, localeLabels: [] };
+  if (count <= 0) return { count: 0, differenceCount: 0, localeLabels: [] };
+
+  const differenceCount = Math.max(
+    count,
+    Math.trunc(signal?.differenceCount ?? count),
+  );
 
   const labels: string[] = [];
   const seen = new Set<string>();
@@ -38,5 +45,5 @@ export function productConflictCompareSummary(
     if (locale.count > 0) pushLabel(locale.name);
   }
 
-  return { count, localeLabels: labels };
+  return { count, differenceCount, localeLabels: labels };
 }

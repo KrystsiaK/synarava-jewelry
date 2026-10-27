@@ -18,6 +18,8 @@ const mocks = vi.hoisted(() => ({
   runAfterSaveCatalogConflictCheck: vi.fn(),
   revalidatePath: vi.fn(),
   revalidateStorefront: vi.fn(),
+  recheckEntityConflictLeaves: vi.fn(),
+  gateWriteConvergence: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -66,6 +68,15 @@ vi.mock("@/lib/sync/conflicts/service", () => ({
   loadSignals: vi.fn(),
   previewResolution: vi.fn(),
 }));
+vi.mock("@/lib/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sync")>();
+  return {
+    ...actual,
+    recheckEntityConflictLeaves: mocks.recheckEntityConflictLeaves,
+    gateWriteConvergence: mocks.gateWriteConvergence,
+    intendedAddressFromLeaf: actual.intendedAddressFromLeaf,
+  };
+});
 
 import { pushSingleProductToShopifyAction } from "../sync";
 
@@ -88,6 +99,8 @@ beforeEach(() => {
   mocks.getSavedProductPayload.mockResolvedValue({ id: "product-1", name: "Ring" });
   mocks.runAfterSaveCatalogConflictCheck.mockResolvedValue(undefined);
   mocks.inspectProductSyncState.mockResolvedValue({ state: "CONFLICT" });
+  mocks.recheckEntityConflictLeaves.mockResolvedValue({ leaves: [] });
+  mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
 });
 
 describe("pushSingleProductToShopifyAction options", () => {

@@ -39,6 +39,11 @@ import {
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 import {
+  gateWriteConvergence,
+  intendedAddressFromLeaf,
+  recheckEntityConflictLeaves,
+} from "@/lib/sync";
+import {
   applyResolution,
   loadEntityConflict,
   loadSignals,
@@ -176,6 +181,11 @@ export async function pushSingleProductToShopifyAction(
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
     const wasUnlinked = before.state === "UNLINKED";
+    const { leaves: leavesBefore } = await recheckEntityConflictLeaves({
+      resourceType: "PRODUCT",
+      resourceId: productId,
+      requestedBy: session.username,
+    });
     const result = await pushProductToShopify(productId, {
       authorizeCommerceConflictOverwrite,
       pushRegisteredTranslations,
@@ -184,6 +194,20 @@ export async function pushSingleProductToShopifyAction(
     // After Create in Shopify: clear that product's presence row without a catalog scan.
     if (wasUnlinked) {
       await removeCatalogPresenceDifference(productId);
+    }
+    if (leavesBefore.length > 0 || authorizeCommerceConflictOverwrite) {
+      const gate = await gateWriteConvergence({
+        resourceType: "PRODUCT",
+        resourceId: productId,
+        requestedBy: session.username,
+        leavesBefore,
+        intended: leavesBefore.length > 0
+          ? leavesBefore.map(intendedAddressFromLeaf)
+          : [],
+      });
+      if (!gate.ok) {
+        return { error: gate.message, inspection: await inspectProductSyncState(productId) };
+      }
     }
     // Invalidate at the write — before scoped recheck (recheck must not gate caches).
     revalidateStorefront();
@@ -234,11 +258,35 @@ export async function pullSingleProductFromShopifyAction(
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
+    const { leaves: leavesBefore } = await recheckEntityConflictLeaves({
+      resourceType: "PRODUCT",
+      resourceId: productId,
+      requestedBy: session.username,
+    });
     const pullResult = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, force);
     // Invalidate at the write — before scoped recheck (recheck must not gate caches).
     revalidateStorefront();
     revalidatePath("/admin/products");
     if (pullResult.status === "SYNCED") {
+      if (leavesBefore.length > 0 || force) {
+        const gate = await gateWriteConvergence({
+          resourceType: "PRODUCT",
+          resourceId: productId,
+          requestedBy: session.username,
+          leavesBefore,
+          intended: leavesBefore.length > 0
+            ? leavesBefore.map(intendedAddressFromLeaf)
+            : [],
+        });
+        if (!gate.ok) {
+          const savedProduct = await getSavedProductPayload(productId);
+          return {
+            error: gate.message,
+            product: savedProduct,
+            inspection: await inspectProductSyncState(productId),
+          };
+        }
+      }
       await runAfterSaveCatalogConflictCheck(session.username, {
         kind: "product",
         productId,
