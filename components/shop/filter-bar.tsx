@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowsDownUp as ArrowUpDown,
   CaretDown as ChevronDown,
@@ -15,21 +15,27 @@ import { cn } from "@/lib/ui";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import { supportsComplianceFilters, supportsTagFilters } from "@/lib/catalog/taxonomy";
+import {
+  shopListStateSchema,
+  type ShopFilters,
+  type ShopListState,
+} from "@/lib/catalog/shop-list-state";
 import type { ShopFilterLabels } from "@/lib/content/shop-page-copy";
+import {
+  createSiteListStateAdapter,
+  useListState,
+} from "@/components/shared/list-state";
 import { shopComplianceOptions } from "./compliance-options";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
 import {
   type FilterOption,
-  type ShopFilters,
-  buildSearchParams,
   clearFiltersSession,
   countActiveFilters,
   filtersWithoutSort,
-  loadFiltersFromSession,
-  parseShopFilters,
-  saveFiltersToSession,
 } from "./types";
+
+const siteListAdapter = createSiteListStateAdapter<ShopListState>();
 
 export type FilterBarProps = {
   categories: FilterOption[];
@@ -53,9 +59,6 @@ export type FilterBarProps = {
   labels?: Partial<ShopFilterLabels>;
 };
 
-const labelOf = (value: string, opts: FilterOption[]) =>
-  opts.find((o) => o.value === value)?.label ?? value;
-
 export function FilterBar({
   categories,
   productTypes = [],
@@ -76,36 +79,55 @@ export function FilterBar({
   const complianceOptions = shopComplianceOptions(t);
   const pinnedCollection = pinnedFilters?.collection;
   const showCollectionFilter = !pinnedCollection;
+  const listPathname = localePath(locale, basePath);
+  const pinned = useMemo(
+    () => (pinnedCollection ? { collection: pinnedCollection } : undefined),
+    [pinnedCollection],
+  );
 
-  const [filters, setFilters] = useState<ShopFilters>(initialFilters);
-  const [search, setSearch] = useState(initialFilters.q ?? "");
+  const {
+    state: filters,
+    draft,
+    setState,
+    setField,
+    setFieldDebounced,
+  } = useListState(shopListStateSchema, siteListAdapter, {
+    initialState: {
+      q: initialFilters.q,
+      availability: initialFilters.availability,
+      category: initialFilters.category,
+      productType: initialFilters.productType,
+      collection: initialFilters.collection,
+      tag: initialFilters.tag,
+      material: initialFilters.material,
+      finish: initialFilters.finish,
+      origin: initialFilters.origin,
+      certified: initialFilters.certified,
+      sort: initialFilters.sort ?? "featured",
+    },
+    pathname: listPathname,
+    pinned,
+    debounceKeys: ["q"],
+    debounceMs: 350,
+  });
 
-  // `initialFilters` only reflects the URL on first mount via useState's
-  // initializer — a route change that doesn't go through this component's
-  // own `navigate()` (an EmptyState CTA `<Link>`, browser back/forward)
-  // otherwise leaves stale filter state applied on top of the new URL.
-  // Re-sync whenever the URL-derived filters actually change.
-  const initialFiltersKey = buildSearchParams(initialFilters);
+  const search = draft.q ?? "";
+  const searchRef = useRef<HTMLInputElement>(null);
+  const skipNotifyRef = useRef(true);
+
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFilters(initialFilters);
-    setSearch(initialFilters.q ?? "");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFiltersKey]);
+    if (skipNotifyRef.current) {
+      skipNotifyRef.current = false;
+      return;
+    }
+    onFiltersChange?.(filters);
+  }, [filters, onFiltersChange]);
 
+  // Drop legacy session key once (site adapter is URL-only).
   useEffect(() => {
-    const syncFromHistory = () => {
-      const next = {
-        ...parseShopFilters(new URLSearchParams(window.location.search)),
-        ...(pinnedCollection ? { collection: pinnedCollection } : {}),
-      };
-      setFilters(next);
-      setSearch(next.q ?? "");
-      onFiltersChange?.(next);
-    };
-    window.addEventListener("popstate", syncFromHistory);
-    return () => window.removeEventListener("popstate", syncFromHistory);
-  }, [onFiltersChange, pinnedCollection]);
+    clearFiltersSession();
+  }, []);
+
   const [mobileOpen, setMobileOpen] = useState(false);
   const [mobileSession, setMobileSession] = useState(0);
   const [advancedOpen, setAdvancedOpen] = useState(() => Boolean(
@@ -113,110 +135,68 @@ export function FilterBar({
       || initialFilters.tag || initialFilters.material
       || initialFilters.finish || initialFilters.origin || initialFilters.certified,
   ));
-  // Saved filters pending opt-in restore (not yet applied)
-  const [pendingRestore, setPendingRestore] = useState<ShopFilters | null>(null);
-
-  const searchRef = useRef<HTMLInputElement>(null);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const sessionCheckedRef = useRef(false);
-
-  function applyPinned(next: ShopFilters): ShopFilters {
-    return pinnedCollection ? { ...next, collection: pinnedCollection } : next;
-  }
-
-  function urlQuery(next: ShopFilters): string {
-    const forUrl = pinnedCollection ? { ...next, collection: undefined } : next;
-    return buildSearchParams(forUrl);
-  }
-
-  function catalogHref(next: ShopFilters): string {
-    const qs = urlQuery(next);
-    return localePath(locale, qs ? `${basePath}?${qs}` : basePath);
-  }
-
-  // ── Session restore: offer, don't auto-apply ───────────────────────────────
-  useEffect(() => {
-    if (sessionCheckedRef.current) return;
-    sessionCheckedRef.current = true;
-
-    const hasUrlFilters = countActiveFilters({
-      ...initialFilters,
-      collection: showCollectionFilter ? initialFilters.collection : undefined,
-    }) > 0;
-    if (hasUrlFilters) return; // URL already has filters — don't offer restore
-
-    const saved = loadFiltersFromSession();
-    if (saved && countActiveFilters(saved) > 0) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setPendingRestore(applyPinned(saved));
-    }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // ── Navigate with current filters ─────────────────────────────────────────
-  const navigate = useCallback(
-    (next: ShopFilters) => {
-      const applied = applyPinned(next);
-      saveFiltersToSession(applied);
-      window.history.pushState(null, "", catalogHref(applied));
-      onFiltersChange?.(applied);
-    },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [locale, onFiltersChange, basePath, pinnedCollection],
-  );
 
   const setFilter = useCallback(
-    (key: keyof ShopFilters, value: string) => {
+    (key: keyof ShopListState, value: string) => {
       if (key === "collection" && pinnedCollection) return;
-      const next = applyPinned({ ...filters, [key]: value || undefined });
-      setFilters(next);
-      navigate(next);
+      if (key === "sort") {
+        const nextSort: ShopListState["sort"] = value
+          ? (value as ShopListState["sort"])
+          : "featured";
+        setField("sort", nextSort);
+        return;
+      }
+      if (key === "availability") {
+        setField("availability", value === "in-stock" ? "in-stock" : undefined);
+        return;
+      }
+      setField(key, (value || undefined) as never);
     },
-    [filters, navigate, pinnedCollection],
+    [pinnedCollection, setField],
   );
 
   const removeFilter = useCallback(
-    (key: keyof ShopFilters) => {
+    (key: keyof ShopListState) => {
       if (key === "collection" && pinnedCollection) return;
-      const next = applyPinned({ ...filters, [key]: undefined });
-      if (key === "q") setSearch("");
-      setFilters(next);
-      navigate(next);
+      if (key === "sort") {
+        setField("sort", "featured");
+        return;
+      }
+      setField(key, undefined as never);
     },
-    [filters, navigate, pinnedCollection],
+    [pinnedCollection, setField],
   );
 
+  const toListState = useCallback((next: ShopFilters): ShopListState => ({
+    q: next.q,
+    availability: next.availability,
+    category: next.category,
+    productType: next.productType,
+    collection: next.collection,
+    tag: next.tag,
+    material: next.material,
+    finish: next.finish,
+    origin: next.origin,
+    certified: next.certified,
+    sort: next.sort ?? "featured",
+  }), []);
+
   const clearAll = useCallback(() => {
-    const next = applyPinned(filtersWithoutSort(filters));
-    setFilters(next);
-    setSearch("");
     clearFiltersSession();
-    window.history.pushState(null, "", catalogHref(next));
-    onFiltersChange?.(next);
-  }, [filters, locale, onFiltersChange, basePath, pinnedCollection]);
+    setState(toListState(filtersWithoutSort(filters)));
+  }, [filters, setState, toListState]);
 
   const chipFilters = pinnedCollection ? { ...filters, collection: undefined } : filters;
   const activeCount = countActiveFilters(chipFilters);
 
-  // ── Debounced search ───────────────────────────────────────────────────────
   const handleSearchChange = (value: string) => {
-    setSearch(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => {
-      const next = { ...filters, q: value.trim() || undefined };
-      setFilters(next);
-      navigate(next);
-    }, 350);
+    setFieldDebounced("q", value.trim() || undefined);
   };
 
   const handleSearchClear = () => {
-    setSearch("");
-    const next = { ...filters, q: undefined };
-    setFilters(next);
-    navigate(next);
+    setField("q", undefined);
     searchRef.current?.focus();
   };
-
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current); }, []);
 
   const sortOptions: FilterOption[] = [
     { value: "popular", label: t("shop.filters.popular") },
@@ -234,65 +214,6 @@ export function FilterBar({
 
   return (
     <div data-component="FilterBar" className="relative">
-      {/* ── Session restore banner ───────────────────────────────────────────── */}
-      {pendingRestore && (
-        <div className="mb-4 flex flex-wrap items-center gap-3 border border-foreground/[0.08] bg-surface/80 px-4 py-3">
-          <span className="shrink-0 text-[0.7rem] font-semibold uppercase tracking-[0.18em] text-muted/70">{t("shop.filters.lastViewing")}</span>
-
-          {/* Summary pills */}
-          <div className="flex flex-wrap gap-1.5">
-            {pendingRestore.category && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                {labelOf(pendingRestore.category, categories)}
-              </span>
-            )}
-            {pendingRestore.productType && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                {labelOf(pendingRestore.productType, productTypes)}
-              </span>
-            )}
-            {pendingRestore.collection && showCollectionFilter && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                {labelOf(pendingRestore.collection, collections)}
-              </span>
-            )}
-            {pendingRestore.tag && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                {labelOf(pendingRestore.tag, tags)}
-              </span>
-            )}
-            {pendingRestore.q && (
-              <span className="border border-foreground/[0.08] px-2 py-0.5 text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-foreground/60">
-                &ldquo;{pendingRestore.q}&rdquo;
-              </span>
-            )}
-          </div>
-
-          <div className="ml-auto flex items-center gap-3">
-            <ArtifactButton
-              type="button"
-              onClick={() => {
-                setFilters(pendingRestore);
-                setSearch(pendingRestore.q ?? "");
-                navigate(pendingRestore);
-                setPendingRestore(null);
-              }}
-              size="sm"
-            >
-              {t("shop.filters.applySaved")}
-            </ArtifactButton>
-            <button
-              type="button"
-              onClick={() => { clearFiltersSession(); setPendingRestore(null); }}
-              className="text-muted hover:text-foreground transition-colors cursor-pointer"
-              aria-label={t("shop.filters.dismissSaved")}
-            >
-              <X className="size-3.5" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* ── Desktop filter bar ──────────────────────────────────────────────── */}
       <div className="hidden border-y border-foreground/[0.08] bg-background/82 md:block">
         <div className="flex items-end justify-between gap-8 border-b border-foreground/[0.06] px-5 py-4 lg:px-6">
@@ -512,10 +433,8 @@ export function FilterBar({
         labels={labels}
         hideCollection={!showCollectionFilter}
         onApply={(next) => {
-          const applied = applyPinned(next);
-          setFilters(applied);
+          setState(toListState(next));
           setMobileOpen(false);
-          navigate(applied);
         }}
         onClose={() => setMobileOpen(false)}
       />

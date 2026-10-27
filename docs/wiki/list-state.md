@@ -33,4 +33,9 @@ When a new admin list gains search/status/sort controls, add a domain schema nex
 
 ## Storefront
 
-Shop / collection filter bars should use the same core with the **site** adapter. Resulting URLs and catalog queries must stay identical (see shop migration PR).
+Shop and collection filter bars use the same core with the **site** adapter (`lib/catalog/shop-list-state.ts` + `useListState`).
+
+- URL-only (no session restore); legacy `synarava:shop-filters` is cleared on mount.
+- Pinned collection on `/collections/[slug]` stays out of the query string via hook `pinned`.
+- URL snapshot tests in `lib/catalog/__tests__/shop-list-state.test.ts` lock shareable query identity.
+- Catalog queries / SEO (canonical, robots, hreflang) are unchanged.

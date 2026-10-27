@@ -26,6 +26,16 @@ export type UseListStateOptions<TState extends Record<string, unknown>> = {
   /** Keys that update a local draft immediately and commit to the URL after debounce. */
   debounceKeys?: ReadonlyArray<keyof TState>;
   debounceMs?: number;
+  /**
+   * Override `usePathname()` for surfaces that build locale-aware paths
+   * (e.g. storefront `localePath(locale, basePath)`).
+   */
+  pathname?: string;
+  /**
+   * Forced values always present in state but omitted from the URL
+   * (e.g. collection pinned on `/collections/[slug]`).
+   */
+  pinned?: Partial<TState>;
 };
 
 export type UseListStateResult<TState extends Record<string, unknown>> = {
@@ -108,20 +118,44 @@ export function useListState<TState extends Record<string, unknown>>(
   options: UseListStateOptions<TState> = {},
 ): UseListStateResult<TState> {
   const router = useRouter();
-  const pathname = usePathname() || "/";
+  const routerPathname = usePathname() || "/";
+  const pathname = options.pathname ?? routerPathname;
+  const pinned = options.pinned;
   const debounceMs = options.debounceMs ?? DEFAULT_DEBOUNCE_MS;
   const debounceKeySet = useMemo(
     () => new Set(options.debounceKeys ?? []),
     [options.debounceKeys],
   );
+  const pinnedKeySet = useMemo(
+    () => new Set(pinned ? (Object.keys(pinned) as Array<keyof TState>) : []),
+    [pinned],
+  );
 
   const defaults = useMemo(() => defaultListState(schema), [schema]);
   const initial = options.initialState ?? defaults;
 
+  const applyPinned = useCallback(
+    (base: TState): TState => (pinned ? { ...base, ...pinned } : base),
+    [pinned],
+  );
+
+  /** Force pinned keys to defaults so they are omitted from the shareable query string. */
+  const stripPinnedForUrl = useCallback(
+    (base: TState): TState => {
+      if (!pinned || pinnedKeySet.size === 0) return base;
+      const next = { ...base };
+      for (const key of pinnedKeySet) {
+        next[key] = defaults[key];
+      }
+      return next;
+    },
+    [defaults, pinned, pinnedKeySet],
+  );
+
   const serverSearch = useMemo(() => {
-    const query = listStateToSearchString(schema, initial);
+    const query = listStateToSearchString(schema, stripPinnedForUrl(initial));
     return query ? `?${query}` : "";
-  }, [schema, initial]);
+  }, [schema, initial, stripPinnedForUrl]);
 
   const urlSearch = useSyncExternalStore(subscribeUrl, getUrlSearchSnapshot, () => serverSearch);
 
@@ -139,8 +173,8 @@ export function useListState<TState extends Record<string, unknown>>(
   void storageSnapshot;
 
   const state = useMemo(
-    () => parseListState(schema, paramsFromSearch(urlSearch)),
-    [schema, urlSearch],
+    () => applyPinned(parseListState(schema, paramsFromSearch(urlSearch))),
+    [schema, urlSearch, applyPinned],
   );
   const stateRef = useRef(state);
   const [draftOverrides, setDraftOverrides] = useState<Partial<TState>>({});
@@ -153,7 +187,8 @@ export function useListState<TState extends Record<string, unknown>>(
 
   const replaceUrl = useCallback(
     (next: TState) => {
-      const query = listStateToSearchString(schema, next);
+      const forUrl = stripPinnedForUrl(applyPinned(next));
+      const query = listStateToSearchString(schema, forUrl);
       const href = hrefFor(pathname, query);
 
       if (urlWrite === "history") {
@@ -173,18 +208,26 @@ export function useListState<TState extends Record<string, unknown>>(
           window.dispatchEvent(new Event(URL_EVENT));
         }
       }
+<<<<<<< HEAD
 
       storage?.save(next);
     },
     [pathname, router, schema, storage, urlWrite],
+=======
+      // Persist the effective (pinned) state for admin adapters; site has no storage.
+      storage?.save(applyPinned(next));
+    },
+    [applyPinned, pathname, router, schema, storage, stripPinnedForUrl],
+>>>>>>> 4e5a7051 (feat: migrate shop filter-bar onto shared list-state)
   );
 
   const commit = useCallback(
     (next: TState) => {
-      if (areListStatesEqual(schema, stateRef.current, next)) return;
-      replaceUrl(next);
+      const resolved = applyPinned(next);
+      if (areListStatesEqual(schema, stateRef.current, resolved)) return;
+      replaceUrl(resolved);
     },
-    [replaceUrl, schema],
+    [applyPinned, replaceUrl, schema],
   );
 
   // One-shot admin restore / URL persist. Mutates URL + storage only (no React setState).
@@ -194,15 +237,15 @@ export function useListState<TState extends Record<string, unknown>>(
 
     const params = readWindowParams();
     if (hasListStateParams(schema, params)) {
-      storage?.save(parseListState(schema, params));
+      storage?.save(applyPinned(parseListState(schema, params)));
       return;
     }
 
     const saved = storage?.load();
     if (saved) {
-      replaceUrl(saved);
+      replaceUrl(applyPinned(saved));
     }
-  }, [schema, storage, replaceUrl]);
+  }, [schema, storage, replaceUrl, applyPinned]);
 
   useEffect(() => () => {
     for (const timer of debounceTimers.current.values()) clearTimeout(timer);
@@ -220,6 +263,7 @@ export function useListState<TState extends Record<string, unknown>>(
 
   const setField = useCallback(
     <K extends keyof TState>(key: K, value: TState[K]) => {
+      if (pinnedKeySet.has(key)) return;
       const timer = debounceTimers.current.get(key);
       if (timer) {
         clearTimeout(timer);
@@ -228,11 +272,12 @@ export function useListState<TState extends Record<string, unknown>>(
       setDraftOverrides((prev) => omitDraftKey(prev, key));
       commit({ ...stateRef.current, [key]: value });
     },
-    [commit],
+    [commit, pinnedKeySet],
   );
 
   const setFieldDebounced = useCallback(
     <K extends keyof TState>(key: K, value: TState[K]) => {
+      if (pinnedKeySet.has(key)) return;
       if (!debounceKeySet.has(key)) {
         setField(key, value);
         return;
@@ -249,7 +294,7 @@ export function useListState<TState extends Record<string, unknown>>(
         }, debounceMs),
       );
     },
-    [commit, debounceKeySet, debounceMs, setField],
+    [commit, debounceKeySet, debounceMs, pinnedKeySet, setField],
   );
 
   const clear = useCallback(() => {
@@ -257,8 +302,8 @@ export function useListState<TState extends Record<string, unknown>>(
     debounceTimers.current.clear();
     setDraftOverrides({});
     storage?.clear();
-    commit(defaults);
-  }, [commit, defaults, storage]);
+    commit(applyPinned(defaults));
+  }, [applyPinned, commit, defaults, storage]);
 
   const draft = useMemo(
     () => ({ ...state, ...draftOverrides }),
