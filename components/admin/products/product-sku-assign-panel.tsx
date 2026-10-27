@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useState, useTransition, type SetStateAction } from "react";
 
 import {
   assignProductSkuAction,
@@ -25,6 +25,14 @@ import {
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
 import { needsSkuAssignment } from "@/lib/sku/pending-sku";
+
+/** Outside ProductFormFields `fieldsRevision` remount — Family must survive Save. */
+const familyByProductId = new Map<string, Record<string, string>>();
+
+/** Test-only: prevent selection leaking across cases that share a productId. */
+export function resetSkuFamilySelectionStore() {
+  familyByProductId.clear();
+}
 
 /** Show Family → Preview → Confirm when SKU is a placeholder (client-side, not only server flag). */
 function rowNeedsAssignControls(row: SkuAssignVariantRow): boolean {
@@ -165,7 +173,16 @@ export function ProductSkuAssignPanel({
   const { pushToast } = useAdminToast();
   const [isPending, startTransition] = useTransition();
   const [context, setContext] = useState<SkuAssignContext | null>(null);
-  const [familyByVariant, setFamilyByVariant] = useState<Record<string, string>>({});
+  const [familyByVariant, setFamilyByVariantState] = useState<Record<string, string>>(
+    () => familyByProductId.get(productId) ?? {},
+  );
+  const setFamilyByVariant = (update: SetStateAction<Record<string, string>>) => {
+    setFamilyByVariantState((prev) => {
+      const next = typeof update === "function" ? update(prev) : update;
+      familyByProductId.set(productId, next);
+      return next;
+    });
+  };
   const [previewByVariant, setPreviewByVariant] = useState<Record<string, { sku: string; meta: string }>>({});
   const [error, setError] = useState<string | null>(null);
 
@@ -174,15 +191,8 @@ export function ProductSkuAssignPanel({
     void loadSkuAssignContext(productId)
       .then((payload) => {
         if (cancelled) return;
+        // Never write familyByVariant — context reload must not wipe a user choice.
         setContext(payload);
-        // Never preselect a family — wrong family permanently reserves in the ledger (ADR-0004).
-        setFamilyByVariant((current) => {
-          const next = { ...current };
-          for (const row of payload.variants) {
-            if (next[row.variantId] == null) next[row.variantId] = "";
-          }
-          return next;
-        });
       })
       .catch(() => {
         if (cancelled) return;

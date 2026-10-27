@@ -4,6 +4,7 @@ import type { TranslationResourceType } from "@prisma/client";
 
 import type { LocalizedFieldDefinition } from "@/lib/i18n/admin-field-registry";
 import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
+import { runShopifyCollectionUpdate } from "@/lib/shopify/collection-update";
 import { metaobjectFieldKey } from "@/lib/shopify/metaobject-field-key";
 import type { TranslatableContent } from "@/lib/shopify/translations";
 
@@ -104,26 +105,17 @@ export async function updateShopifySourceField({
   }
 
   if (resourceType === "COLLECTION") {
-    const input: Record<string, unknown> = { id: resourceId };
-    if (key === "title") input.title = serialized;
+    const collection: Record<string, unknown> = { id: resourceId };
+    if (key === "title") collection.title = serialized;
     else if (key === "handle") {
-      input.handle = serialized;
-      input.redirectNewHandle = true;
-    } else if (key === "body_html") input.descriptionHtml = serialized;
-    else if (key === "meta_title") input.seo = { title: serialized };
-    else if (key === "meta_description") input.seo = { description: serialized };
+      collection.handle = serialized;
+      collection.redirectNewHandle = true;
+    } else if (key === "body_html") collection.descriptionHtml = serialized;
+    else if (key === "meta_title") collection.seo = { title: serialized };
+    else if (key === "meta_description") collection.seo = { description: serialized };
     else throw new Error(`Shopify Collection source field ${key} is not supported.`);
 
-    const result = await shopifyAdminRequest<{
-      collectionUpdate: { collection: { id: string } | null; userErrors: UserError[] };
-    }>(`mutation SynaravaUpdateSourceCollection($input: CollectionInput!) {
-      collectionUpdate(input: $input) {
-        collection { id }
-        userErrors { field message }
-      }
-    }`, { input });
-    throwOnErrors("Unable to update Shopify Collection source content", result.collectionUpdate.userErrors);
-    if (!result.collectionUpdate.collection) throw new ShopifyAdminError("Shopify did not return the updated Collection.");
+    await runShopifyCollectionUpdate(collection, { requireCollection: true });
     return { mutation: "collectionUpdate", key };
   }
 
