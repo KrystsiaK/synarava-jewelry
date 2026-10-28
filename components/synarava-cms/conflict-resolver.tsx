@@ -253,6 +253,7 @@ export function ConflictValueCell({
   disabled,
   onSelect,
   chooseLabel,
+  previewUrl,
 }: {
   label: string;
   value: string;
@@ -260,15 +261,36 @@ export function ConflictValueCell({
   disabled?: boolean;
   onSelect?: () => void;
   chooseLabel?: string;
+  /** Optional media thumbnail — falls back to text when broken/missing. */
+  previewUrl?: string | null;
 }) {
   const content = (
     <>
       <span className="block text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-[var(--adm-muted)]">
         {label}
       </span>
-      <span className="mt-2 block whitespace-pre-wrap break-words text-sm text-[var(--adm-ink)]">
-        {value}
-      </span>
+      {previewUrl ? (
+        <span className="mt-2 flex items-start gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element -- conflict preview; broken → hide */}
+          <img
+            src={previewUrl}
+            alt=""
+            width={40}
+            height={40}
+            className="size-10 shrink-0 rounded object-cover"
+            onError={(event) => {
+              event.currentTarget.style.display = "none";
+            }}
+          />
+          <span className="min-w-0 whitespace-pre-wrap break-words text-sm text-[var(--adm-ink)]">
+            {value}
+          </span>
+        </span>
+      ) : (
+        <span className="mt-2 block whitespace-pre-wrap break-words text-sm text-[var(--adm-ink)]">
+          {value}
+        </span>
+      )}
     </>
   );
   if (!onSelect) {
@@ -332,25 +354,35 @@ export function ConflictRow({
           <ConflictValueCell
             label="Shopify"
             value={displaySideValue(field, "shopify")}
+            previewUrl={field.previewUrl}
             selected={selectedDirection === CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA}
             disabled={busy}
             chooseLabel={CONFLICT_DIRECTION_COPY.SHOPIFY_TO_SYNARAVA.choose}
             onSelect={() => onToggle(CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA)}
           />
         ) : (
-          <ConflictValueCell label="Shopify" value={displaySideValue(field, "shopify")} />
+          <ConflictValueCell
+            label="Shopify"
+            value={displaySideValue(field, "shopify")}
+            previewUrl={field.previewUrl}
+          />
         )}
         {canKeepOurs ? (
           <ConflictValueCell
             label="Synarava (ours)"
             value={displaySideValue(field, "synarava")}
+            previewUrl={field.previewUrl}
             selected={selectedDirection === CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY}
             disabled={busy}
             chooseLabel={CONFLICT_DIRECTION_COPY.SYNARAVA_TO_SHOPIFY.choose}
             onSelect={() => onToggle(CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY)}
           />
         ) : (
-          <ConflictValueCell label="Synarava (ours)" value={displaySideValue(field, "synarava")} />
+          <ConflictValueCell
+            label="Synarava (ours)"
+            value={displaySideValue(field, "synarava")}
+            previewUrl={field.previewUrl}
+          />
         )}
       </div>
       {wholeRecord || field.blockedReason ? (

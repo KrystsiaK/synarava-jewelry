@@ -88,7 +88,7 @@ describe("adversarial: compareSyncState determinism + order independence", () =>
     expect(fingerprint(forward.leaves)).toBe(fingerprint(reverse.leaves));
   });
 
-  it("media re-host (new gid/url, same filename+alt+position) yields zero commerce leaves", () => {
+  it("media re-host on SAME gid (new url/?v=) yields zero commerce leaves", () => {
     const our = canonicalizeShopifyProjection({
       status: "ACTIVE",
       media: [{
@@ -101,7 +101,7 @@ describe("adversarial: compareSyncState determinism + order independence", () =>
     const shopify = canonicalizeShopifyProjection({
       status: "ACTIVE",
       media: [{
-        id: "gid://shopify/MediaImage/99",
+        id: "gid://shopify/MediaImage/1",
         alt: "Front",
         filename: "a.jpg",
         preview: { image: { url: "https://cdn.shopify.com/rehosted/a.jpg?v=9" } },
@@ -113,7 +113,7 @@ describe("adversarial: compareSyncState determinism + order independence", () =>
     expect(result.leaves.filter((leaf) => leaf.kind === "commerce")).toHaveLength(0);
   });
 
-  it("media position swap is a real conflict (position is part of compare identity)", () => {
+  it("media order swap yields exactly one moved leaf (identity compare)", () => {
     const mediaA = [
       { id: "gid://shopify/MediaImage/1", alt: "Front", filename: "a.jpg", preview: { image: { url: "https://cdn/a.jpg" } } },
       { id: "gid://shopify/MediaImage/2", alt: "Side", filename: "b.jpg", preview: { image: { url: "https://cdn/b.jpg" } } },
@@ -124,7 +124,9 @@ describe("adversarial: compareSyncState determinism + order independence", () =>
     const result = compare({
       commerceWindows: [{ resourceType: "PRODUCT", resourceId: "p1", ourWindow: our, shopifySnapshot: shopify }],
     });
-    expect(result.leaves.filter((leaf) => leaf.kind === "commerce").length).toBeGreaterThan(0);
+    const media = result.leaves.filter((leaf) => leaf.kind === "commerce");
+    expect(media).toHaveLength(1);
+    expect(media[0]!.contractKey).toBe("media.moved");
   });
 });
 

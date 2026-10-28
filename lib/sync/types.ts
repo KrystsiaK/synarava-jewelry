@@ -65,6 +65,11 @@ export type SyncLeaf = {
   targetKind?: SyncTargetKind | null;
   localFingerprint?: string | null;
   shopifyFingerprint?: string | null;
+  /**
+   * Optional thumbnail URL for ConflictResolver (media leaves only).
+   * Display-only — never part of fingerprints, contract keys, or counters.
+   */
+  previewUrl?: string | null;
 };
 
 /** Single compare result — SoT for nav badge, list chip, banner, locale tab, section chip. */

@@ -113,8 +113,13 @@ Push может быть «Stock tab»): **Family → Preview → Confirm assign
 
 **Cost** — владение Shopify: linked Keep ours / Push не отправляет unit cost.
 **Multi-variant**: Keep ours на карточке **Product data (N fields)**
-заблокирован (Take Shopify доступен). Сравнение галереи: filename + alt +
-position.
+заблокирован (Take Shopify доступен).
+
+**Фото (Media):** каждое отличие — отдельная строка (удалённое, новое, порядок,
+alt). **Take Shopify** возвращает фото Shopify / убирает ваше новое / берёт
+порядок или alt Shopify. **Keep ours** удаляет фото в Shopify при Push /
+загружает новое / сохраняет ваш порядок или alt. Смена CDN-ссылки у того же
+gid — не конфликт.
 
 ### Удаление позиции
 

@@ -29,11 +29,25 @@ export const ADOPT_SHOPIFY_FIELD_KEY = "commerce:adopt-shopify";
 export const ADOPT_SHOPIFY_FIELD_LABEL = "Adopt Shopify";
 export const ADOPT_SHOPIFY_FIELD_PATH = "_adopt";
 
-/** Media gallery rows — adopt whole `media` (Pull) or Push pipeline (Push). */
+/** Media gallery / identity leaves — scoped Apply via gallery-plan + gallery.ts. */
 export function isMediaGalleryFieldLabel(label: string): boolean {
   return label === "Media gallery"
+    || label === "Removed photo"
+    || label === "New photo"
+    || label === "Photo order"
+    || label === "Photo alt"
+    || label.startsWith("Removed photo ·")
+    || label.startsWith("New photo ·")
+    || label.startsWith("Photo alt ·")
     || label.startsWith("Media gallery (")
     || /^Image \d+(\s|$)/.test(label);
+}
+
+export function isMediaIdentityContractKey(contractKey: string | null | undefined): boolean {
+  return contractKey === "media.removed"
+    || contractKey === "media.added"
+    || contractKey === "media.moved"
+    || contractKey === "media.alt";
 }
 
 export function isScopedCommerceFieldLabel(label: string): boolean {
