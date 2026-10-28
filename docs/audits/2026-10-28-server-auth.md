@@ -3,7 +3,8 @@
 **Date:** 2026-10-28 (Europe/Lisbon)  
 **Mode:** read-only report + new tests (no production behavior changes)  
 **Base:** `staging`  
-**Do not merge without owner.**
+**Do not merge without owner.**  
+**Staging follow-up:** AUTH-ADV-001/002 (`requireAdminSession` on SKU policy + `getSaved*Payload`, including tags/categories) are addressed on current `staging`; inventory tests lock the fixed state.
 
 ## Method
 
