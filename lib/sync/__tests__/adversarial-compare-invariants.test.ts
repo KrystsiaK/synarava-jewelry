@@ -252,11 +252,10 @@ describe("adversarial: every leaf carries contract metadata", () => {
   });
 
   /**
-   * SYNC-ADV-001 — translation leaves omit contractKey/section today.
-   * Expected to fail until a fix PR adds registry metadata for translations.
+   * SYNC-ADV-001 — translation leaves carry registry-driven contractKey/section.
    * @see docs/audits/2026-10-28-sync-adversarial.md#SYNC-ADV-001
    */
-  it.fails("translation leaves expose contractKey and section (SYNC-ADV-001)", () => {
+  it("translation leaves expose contractKey and section (SYNC-ADV-001)", () => {
     const result = compare({
       translationDifferences: [{
         id: "div-pt",

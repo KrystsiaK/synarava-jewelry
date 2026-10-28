@@ -384,6 +384,40 @@ export function isUnmappedWindowPath(path: string): boolean {
   return lookupContractForPath(path) == null;
 }
 
+/**
+ * Translation fieldKey → commerce registry key (same Shopify surface).
+ * Registry-driven metadata for SYNC-ADV-001 translation leaves.
+ */
+const TRANSLATION_FIELD_TO_COMMERCE_KEY: Readonly<Record<string, string>> = {
+  title: "title",
+  name: "title",
+  description: "descriptionHtml",
+  localizedHandle: "handle",
+  seoTitle: "seoTitle",
+  seoDescription: "seoDescription",
+};
+
+/**
+ * Contract metadata for a translation leaf. Prefer the matching commerce
+ * registry entry so section chips stay aligned; otherwise a stable
+ * `translation.<fieldKey>` key under essentials.
+ */
+export function lookupTranslationContractMeta(
+  fieldKey: string,
+  resourceType: "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY",
+): { contractKey: string; section: SyncConflictSection } {
+  const commerceKey = TRANSLATION_FIELD_TO_COMMERCE_KEY[fieldKey];
+  if (commerceKey) {
+    const fields =
+      resourceType === "COLLECTION" ? COLLECTION_COMMERCE_FIELDS : PRODUCT_COMMERCE_FIELDS;
+    const def = fields.find((field) => field.key === commerceKey);
+    if (def) {
+      return { contractKey: def.contractKey, section: def.section };
+    }
+  }
+  return { contractKey: `translation.${fieldKey}`, section: "essentials" };
+}
+
 /** Whole-item / leaf part payload carried on `commerce:whole-item` SyncLeaves. */
 export type SyncLeafPart = {
   contractKey: string;

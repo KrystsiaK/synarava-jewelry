@@ -32,6 +32,7 @@ import {
   contractKeyForWindowPath,
   isUnmappedWindowPath,
   lookupContractForPath,
+  lookupTranslationContractMeta,
   type SyncConflictSection,
   type SyncLeafPart,
 } from "./field-registry";
@@ -403,6 +404,7 @@ function translationLeaves(
     const id = `${resourceType}:${difference.rootEntityId}:translation:${difference.locale}:${difference.fieldKey}`;
     if (seen.has(id)) continue;
     seen.add(id);
+    const meta = lookupTranslationContractMeta(difference.fieldKey, resourceType);
     leaves.push({
       id,
       resourceType,
@@ -421,6 +423,8 @@ function translationLeaves(
       targetKind: difference.targetKind,
       localFingerprint: difference.localFingerprint,
       shopifyFingerprint: difference.shopifyFingerprint,
+      contractKey: meta.contractKey,
+      section: meta.section,
     });
   }
   return leaves;
