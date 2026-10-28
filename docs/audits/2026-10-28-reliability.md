@@ -3,7 +3,8 @@
 **Date:** 2026-10-28 (Europe/Lisbon)  
 **Mode:** report + inventory locks only (no production behavior changes)  
 **Base:** `staging`  
-**Do not merge without owner.**
+**Do not merge without owner.**  
+**Staging follow-up:** REL-001/002 (safe webhook JSON), REL-008 (orders topics), REL-009 (`AbortSignal.timeout`), REL-010 (Railway cleanup cron runbook) are addressed on current `staging`; inventory locks below track the fixed state.
 
 ## Scope
 
@@ -154,11 +155,12 @@ Processing failures correctly return **500** so Shopify retries; SUCCEEDED rows 
 
 | Lock | Test |
 |------|------|
-| products route still lacks try around parse (fails until REL-001) | `it.fails` REL-001 |
-| MC orders provider topic strings match webhook storage (fails until REL-008) | `it.fails` REL-008 |
+| products route safe parse + 400 (REL-001) | passing |
+| MC orders provider topic strings match webhook storage (REL-008) | passing |
 | orders/paid uses safe parse + 400 on bad JSON | passing |
 | claimWebhookEvent reclaim requires webhookId | passing |
 | collector entry has no lease API call | passing |
 | throttle constants + in-process comment present | passing |
 | cited `scripts/db*` paths exist | passing |
-| sku-contract client has no AbortSignal timeout (REL-009 lock) | passing |
+| sku-contract client AbortSignal timeout (REL-009) | passing |
+| sync-history cleanup cron runbook + opportunistic default (REL-010) | passing |
