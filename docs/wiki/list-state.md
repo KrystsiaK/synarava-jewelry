@@ -10,7 +10,12 @@ One schema-driven codec for admin and storefront list filters. Adding a filter =
 | React | `components/shared/list-state/` | `useListState(schema, adapter)`, admin + site adapters |
 | Domain schemas | e.g. `lib/admin/products-list-state.ts` | Concrete field lists per surface |
 
-URL is the source of truth (`router.replace`, `scroll: false`). Invalid / unknown values whitelist-drop to defaults. Pagination `cursor` is never part of a schema (refetch page 1 on restore).
+URL is the source of truth. Invalid / unknown values whitelist-drop to defaults. Pagination `cursor` is never part of a schema (refetch page 1 on restore).
+
+URL writes are adapter-owned (never both):
+
+- **Admin** → `history.replaceState` only (no Next soft-navigation).
+- **Site** → `router.replace({ scroll: false })` only.
 
 ## Adapters
 

@@ -9,24 +9,40 @@ import { buildSearchParams, parseShopFilters } from "@/components/shop/types";
 import { listStateToSearchString, parseListState } from "@/lib/list-state";
 
 /**
- * Snapshot of storefront query strings that must stay identical after the
- * list-state migration (SEO / shareable URLs / catalog results).
+ * Locked shareable query strings — before/after the list-state migration
+ * these serialize identically (SEO / catalog / share links).
  */
-const URL_SNAPSHOTS: Array<{ name: string; query: string }> = [
-  { name: "empty", query: "" },
-  { name: "search", query: "q=pearl" },
-  { name: "category", query: "category=bracelets" },
-  { name: "availability", query: "availability=in-stock" },
-  { name: "sort newest", query: "sort=newest" },
-  { name: "featured omitted", query: "sort=featured" },
-  { name: "combo", query: "q=gold&category=rings&productType=stud&collection=heritage&tag=oak&material=silver&finish=matte&origin=pt&certified=handmade&availability=in-stock&sort=price-asc" },
-  { name: "invalid sort dropped", query: "sort=hacked&category=bracelets" },
-  { name: "invalid availability dropped", query: "availability=out-of-stock" },
-  { name: "legacy department ignored", query: "department=women&category=necklaces" },
+const URL_IDENTITY_CASES: Array<{
+  name: string;
+  query: string;
+  /** Exact serialized form after parse→serialize (defaults omitted). */
+  serialized: string;
+}> = [
+  { name: "empty", query: "", serialized: "" },
+  { name: "sort", query: "sort=newest", serialized: "sort=newest" },
+  { name: "category", query: "category=bracelets", serialized: "category=bracelets" },
+  { name: "collection", query: "collection=heritage", serialized: "collection=heritage" },
+  { name: "tag", query: "tag=oak", serialized: "tag=oak" },
+  { name: "material", query: "material=silver", serialized: "material=silver" },
+  { name: "finish", query: "finish=matte", serialized: "finish=matte" },
+  { name: "origin", query: "origin=pt", serialized: "origin=pt" },
+  {
+    name: "combined",
+    query:
+      "q=gold&category=rings&productType=stud&collection=heritage&tag=oak&material=silver&finish=matte&origin=pt&certified=handmade&availability=in-stock&sort=price-asc",
+    serialized:
+      "q=gold&availability=in-stock&category=rings&productType=stud&collection=heritage&tag=oak&material=silver&finish=matte&origin=pt&certified=handmade&sort=price-asc",
+  },
+  { name: "search", query: "q=pearl", serialized: "q=pearl" },
+  { name: "availability", query: "availability=in-stock", serialized: "availability=in-stock" },
+  { name: "featured omitted", query: "sort=featured", serialized: "" },
+  { name: "invalid sort dropped", query: "sort=hacked&category=bracelets", serialized: "category=bracelets" },
+  { name: "invalid availability dropped", query: "availability=out-of-stock", serialized: "" },
+  { name: "legacy department ignored", query: "department=women&category=necklaces", serialized: "category=necklaces" },
 ];
 
 describe("shop list-state URL snapshots", () => {
-  for (const { name, query } of URL_SNAPSHOTS) {
+  for (const { name, query, serialized } of URL_IDENTITY_CASES) {
     it(`preserves identity for ${name}: ${query || "(empty)"}`, () => {
       const params = new URLSearchParams(query);
       const viaLegacy = parseShopFilters(params);
@@ -34,6 +50,8 @@ describe("shop list-state URL snapshots", () => {
       expect(viaSchema).toEqual(viaLegacy);
 
       const encoded = serializeShopListState(viaSchema);
+      expect(encoded).toBe(serialized);
+
       const reparsed = parseShopListState(new URLSearchParams(encoded));
       expect(reparsed).toEqual(viaSchema);
 

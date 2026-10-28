@@ -208,17 +208,10 @@ export function useListState<TState extends Record<string, unknown>>(
           window.dispatchEvent(new Event(URL_EVENT));
         }
       }
-<<<<<<< HEAD
-
-      storage?.save(next);
-    },
-    [pathname, router, schema, storage, urlWrite],
-=======
       // Persist the effective (pinned) state for admin adapters; site has no storage.
       storage?.save(applyPinned(next));
     },
-    [applyPinned, pathname, router, schema, storage, stripPinnedForUrl],
->>>>>>> 4e5a7051 (feat: migrate shop filter-bar onto shared list-state)
+    [applyPinned, pathname, router, schema, storage, stripPinnedForUrl, urlWrite],
   );
 
   const commit = useCallback(
