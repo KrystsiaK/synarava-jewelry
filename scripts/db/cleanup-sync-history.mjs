@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * One-shot drain of sync audit retention (90 days).
- * Prefer opportunistic cleanup via runCatalogConflictCheck; use this when
- * tables need a full catch-up (this deployment has no app cron).
+ * One-shot / cron drain of sync audit retention (90 days).
+ * Owner schedule: docs/runbooks/sync-history-cleanup-railway.md (REL-010).
+ * Opportunistic one-batch cleanup still runs from runCatalogConflictCheck.
  *
  * Usage (DATABASE_URL must already be set in the environment):
  *   node --import tsx scripts/db/cleanup-sync-history.mjs
