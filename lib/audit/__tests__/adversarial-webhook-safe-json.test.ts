@@ -26,6 +26,7 @@ describe("webhook safe JSON inventory (REL-001/002/DEAD-001)", () => {
 
 const mocks = vi.hoisted(() => ({
   verifyShopifyWebhook: vi.fn(),
+  readShopifyWebhookId: vi.fn((header: string | null) => header?.trim() || null),
   claimWebhookEvent: vi.fn(),
   refreshShopifyProductState: vi.fn(),
   pullShopifyInventory: vi.fn(),
@@ -40,6 +41,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/lib/env", () => ({ env: { SHOPIFY_WEBHOOK_SECRET: "secret" } }));
 vi.mock("@/lib/shopify/webhooks", () => ({
   verifyShopifyWebhook: mocks.verifyShopifyWebhook,
+  readShopifyWebhookId: mocks.readShopifyWebhookId,
 }));
 vi.mock("@/lib/shopify/webhook-event", () => ({
   claimWebhookEvent: mocks.claimWebhookEvent,

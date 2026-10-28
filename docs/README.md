@@ -40,6 +40,7 @@
 | **Mission Control hub** | Plan + §0 contract [mission-control-hub-plan](runbooks/mission-control-hub-plan.md) · [progress](runbooks/mission-control-progress.md) · [ADR-0005](adr/0005-mission-control-hub.md) · [ADR-0006](adr/0006-architecture-map.md) · collector [mission-control-collector-railway](runbooks/mission-control-collector-railway.md) |
 | **Translations / locales** | [wiki/translation-operations](wiki/translation-operations.md) · [runbook translation-operations](runbooks/translation-operations.md) · [translation-field-registry](wiki/translation-field-registry.md) · [ADR-0007](adr/0007-languages-as-data.md) |
 | **Incidents / recovery** | [database-incident-recovery](runbooks/database-incident-recovery.md) · [provider-secret-leak-rotation](runbooks/provider-secret-leak-rotation.md) · sync owner steps in [admin-guide-ru](runbooks/admin-guide-ru.md) §8 · sync audit retention cron [sync-history-cleanup-railway](runbooks/sync-history-cleanup-railway.md) |
+| **2026-10-28 audit (owner)** | [owner index RU](audits/2026-10-28-owner-index.md) · [findings rank](audits/2026-10-28-findings-rank.md) |
 
 Relative markdown links under `docs/` are guarded by `docs/__tests__/markdown-links.guard.test.ts` (skip app routes, `glossary:`, http).
 
@@ -61,6 +62,6 @@ Relative markdown links under `docs/` are guarded by `docs/__tests__/markdown-li
 
 **Strategy** — [growth](strategy/growth.md) · [ecommerce-operating-infrastructure](strategy/ecommerce-operating-infrastructure.md)
 
-**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md) · [2026-10 Shopify API ground truth](audits/2026-10-shopify-api-ground-truth.md) · [2026-10-28 sync adversarial](audits/2026-10-28-sync-adversarial.md) · [2026-10-28 storefront perf](audits/2026-10-28-storefront-perf.md) · [2026-10-28 server auth](audits/2026-10-28-server-auth.md)
+**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md) · [2026-10 Shopify API ground truth](audits/2026-10-shopify-api-ground-truth.md) · [2026-10-28 sync adversarial](audits/2026-10-28-sync-adversarial.md) · [2026-10-28 server auth](audits/2026-10-28-server-auth.md) · [2026-10-28 storefront perf](audits/2026-10-28-storefront-perf.md) · [2026-10-28 dead code](audits/2026-10-28-dead-code.md) · [2026-10-28 reliability](audits/2026-10-28-reliability.md) · **2026-10-28:** [owner index](audits/2026-10-28-owner-index.md) · [findings rank](audits/2026-10-28-findings-rank.md)
 
 **History** — см. [`history/`](history/) (по дате в имени файла).

@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 
-import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
+import { readShopifyWebhookId, verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 describe("Shopify webhook verification", () => {
   it("accepts a valid HMAC and rejects tampering", () => {
@@ -12,5 +12,13 @@ describe("Shopify webhook verification", () => {
     expect(verifyShopifyWebhook(body, signature, secret)).toBe(true);
     expect(verifyShopifyWebhook(`${body}x`, signature, secret)).toBe(false);
     expect(verifyShopifyWebhook(body, null, secret)).toBe(false);
+  });
+
+  it("readShopifyWebhookId rejects missing/blank ids (REL-003)", () => {
+    expect(readShopifyWebhookId("wh-1")).toBe("wh-1");
+    expect(readShopifyWebhookId("  wh-1  ")).toBe("wh-1");
+    expect(readShopifyWebhookId(null)).toBeNull();
+    expect(readShopifyWebhookId("")).toBeNull();
+    expect(readShopifyWebhookId("   ")).toBeNull();
   });
 });
