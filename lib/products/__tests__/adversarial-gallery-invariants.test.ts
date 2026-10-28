@@ -55,10 +55,10 @@ describe("adversarial: gallery GID retention", () => {
   });
 
   /**
-   * SYNC-ADV-004 — retainedShopifyMediaIds is a flatMap without dedupe.
+   * SYNC-ADV-004 — retainedShopifyMediaIds dedupes repeated gids (order preserved).
    * @see docs/audits/2026-10-28-sync-adversarial.md#SYNC-ADV-004
    */
-  it.fails("retainedShopifyMediaIds dedupes repeated gids (SYNC-ADV-004)", () => {
+  it("retainedShopifyMediaIds dedupes repeated gids (SYNC-ADV-004)", () => {
     const ids = retainedShopifyMediaIds({
       media: [
         { id: "gid://shopify/MediaImage/1", alt: "A" },
@@ -67,6 +67,10 @@ describe("adversarial: gallery GID retention", () => {
       ],
     });
     expect(ids).not.toBeNull();
+    expect(ids).toEqual([
+      "gid://shopify/MediaImage/1",
+      "gid://shopify/MediaImage/2",
+    ]);
     expect(ids).toEqual([...new Set(ids!)]);
   });
 });
