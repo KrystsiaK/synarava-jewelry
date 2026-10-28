@@ -17,6 +17,9 @@ import type { ListStateAdapter } from "./adapters";
 const URL_EVENT = "list-state:url";
 const DEFAULT_DEBOUNCE_MS = 280;
 
+/** Optimistic search after site `router.replace` — avoids a second history write. */
+let pendingRouterSearch: string | null = null;
+
 export type UseListStateOptions<TState extends Record<string, unknown>> = {
   /** SSR-parsed state so the first paint matches the server. */
   initialState?: TState;
@@ -57,18 +60,35 @@ function readWindowParams(): URLSearchParams {
 
 function subscribeUrl(onStoreChange: () => void): () => void {
   if (typeof window === "undefined") return () => {};
-  const handler = () => onStoreChange();
-  window.addEventListener("popstate", handler);
-  window.addEventListener(URL_EVENT, handler);
-  return () => {
-    window.removeEventListener("popstate", handler);
-    window.removeEventListener(URL_EVENT, handler);
+  const onPopState = () => {
+    pendingRouterSearch = null;
+    onStoreChange();
   };
+  const onUrlEvent = () => onStoreChange();
+  window.addEventListener("popstate", onPopState);
+  window.addEventListener(URL_EVENT, onUrlEvent);
+  return () => {
+    window.removeEventListener("popstate", onPopState);
+    window.removeEventListener(URL_EVENT, onUrlEvent);
+  };
+}
+
+/** Test helper — clear optimistic router search between cases. */
+export function resetListStateUrlPendingForTests(): void {
+  pendingRouterSearch = null;
 }
 
 function getUrlSearchSnapshot(): string {
   if (typeof window === "undefined") return "";
-  return window.location.search;
+  const live = window.location.search;
+  if (pendingRouterSearch !== null) {
+    if (live === pendingRouterSearch) {
+      pendingRouterSearch = null;
+      return live;
+    }
+    return pendingRouterSearch;
+  }
+  return live;
 }
 
 function paramsFromSearch(search: string): URLSearchParams {
@@ -77,8 +97,9 @@ function paramsFromSearch(search: string): URLSearchParams {
 }
 
 /**
- * Shared list-state hook. URL is the source of truth via `router.replace({ scroll: false })`.
- * Admin adapters may restore the last session when the URL has no schema params.
+ * Shared list-state hook. URL is the source of truth.
+ * Write path is adapter-owned: admin → `history.replaceState` only; site → `router.replace` only.
+ * Never both (no double URL write). Admin may restore the last session when the URL is bare.
  * Committed state is derived with useSyncExternalStore — no local mirror, no render storms.
  */
 export function useListState<TState extends Record<string, unknown>>(
@@ -105,6 +126,7 @@ export function useListState<TState extends Record<string, unknown>>(
   const urlSearch = useSyncExternalStore(subscribeUrl, getUrlSearchSnapshot, () => serverSearch);
 
   const storage = adapter.storage;
+  const urlWrite = adapter.urlWrite;
   const storageSubscribe = useCallback(
     (onChange: () => void) => (storage ? storage.subscribe(onChange) : () => {}),
     [storage],
@@ -133,17 +155,28 @@ export function useListState<TState extends Record<string, unknown>>(
     (next: TState) => {
       const query = listStateToSearchString(schema, next);
       const href = hrefFor(pathname, query);
-      router.replace(href, { scroll: false });
-      if (typeof window !== "undefined") {
-        const current = `${window.location.pathname}${window.location.search}`;
-        if (current !== href) {
-          window.history.replaceState(window.history.state, "", href);
+
+      if (urlWrite === "history") {
+        pendingRouterSearch = null;
+        if (typeof window !== "undefined") {
+          const current = `${window.location.pathname}${window.location.search}`;
+          if (current !== href) {
+            window.history.replaceState(window.history.state, "", href);
+          }
+          window.dispatchEvent(new Event(URL_EVENT));
         }
-        window.dispatchEvent(new Event(URL_EVENT));
+      } else {
+        // Site: router.replace only — never history.replaceState (no double write).
+        pendingRouterSearch = query ? `?${query}` : "";
+        router.replace(href, { scroll: false });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event(URL_EVENT));
+        }
       }
+
       storage?.save(next);
     },
-    [pathname, router, schema, storage],
+    [pathname, router, schema, storage, urlWrite],
   );
 
   const commit = useCallback(

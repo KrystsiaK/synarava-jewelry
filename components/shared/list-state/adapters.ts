@@ -3,11 +3,20 @@ import type { ListStateSchema } from "@/lib/list-state";
 import { createListStateStorage, type ListStateStorage } from "./storage";
 
 /**
- * Thin adapter contract. Both admin and site share one hook; only persistence differs.
+ * How the hook writes the list-state query string into the address bar.
+ * Admin: `history.replaceState` only (no Next soft-navigation).
+ * Site: `router.replace` only (shareable SEO URLs stay in the App Router).
+ */
+export type ListStateUrlWriteMode = "history" | "router";
+
+/**
+ * Thin adapter contract. Both admin and site share one hook; only persistence + URL write differ.
  * Open/Closed: new surfaces add an adapter factory, not a fork of the hook.
  */
 export type ListStateAdapter<TState extends Record<string, unknown>> = {
   readonly kind: "admin" | "site";
+  /** Single URL write path — never both history and router. */
+  readonly urlWrite: ListStateUrlWriteMode;
   /**
    * When the URL has no schema params, restore the last saved state into the URL once.
    * Site adapters leave this undefined (shareable / SEO-clean URLs only).
@@ -23,6 +32,7 @@ export function createAdminListStateAdapter<TState extends Record<string, unknow
 }): ListStateAdapter<TState> {
   return {
     kind: "admin",
+    urlWrite: "history",
     storage: createListStateStorage({
       listId: options.listId,
       schema: options.schema,
@@ -33,5 +43,5 @@ export function createAdminListStateAdapter<TState extends Record<string, unknow
 
 /** Storefront: URL only — no storage restore (shareable, SEO-clean). */
 export function createSiteListStateAdapter<TState extends Record<string, unknown>>(): ListStateAdapter<TState> {
-  return { kind: "site" };
+  return { kind: "site", urlWrite: "router" };
 }

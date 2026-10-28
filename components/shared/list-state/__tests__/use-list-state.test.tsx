@@ -10,7 +10,7 @@ import {
 } from "@/lib/list-state";
 
 import { createAdminListStateAdapter, createSiteListStateAdapter } from "../adapters";
-import { useListState } from "../use-list-state";
+import { resetListStateUrlPendingForTests, useListState } from "../use-list-state";
 
 const schema = defineListStateSchema({
   q: stringField({ key: "q" }),
@@ -28,6 +28,7 @@ function mockLocation(search: string) {
 describe("useListState", () => {
   beforeEach(() => {
     sessionStorage.clear();
+    resetListStateUrlPendingForTests();
     mockLocation("");
     vi.mocked(useRouter).mockReturnValue({
       push: vi.fn(),
@@ -41,6 +42,7 @@ describe("useListState", () => {
 
   afterEach(() => {
     sessionStorage.clear();
+    resetListStateUrlPendingForTests();
     vi.clearAllMocks();
   });
 
@@ -55,17 +57,53 @@ describe("useListState", () => {
     expect(result.current.state).toEqual(serverState);
   });
 
-  it("restores admin storage when the URL has no list params", async () => {
+  it("restores admin storage when the URL has no list params via history only", async () => {
     const adapter = createAdminListStateAdapter({ listId: "admin-products", schema });
     adapter.storage!.save({ q: "silver", sort: "name-asc" });
     mockLocation("");
+    const replace = vi.fn();
+    vi.mocked(useRouter).mockReturnValue({
+      push: vi.fn(),
+      replace,
+      prefetch: vi.fn(),
+      refresh: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    } as ReturnType<typeof useRouter>);
 
     const { result } = renderHook(() => useListState(schema, adapter));
 
     await waitFor(() => {
       expect(result.current.state).toEqual({ q: "silver", sort: "name-asc" });
     });
-    expect(vi.mocked(useRouter)().replace).toHaveBeenCalled();
+    expect(window.location.search).toBe("?q=silver&sort=name-asc");
+    expect(replace).not.toHaveBeenCalled();
+  });
+
+  it("site adapter writes via router.replace only (no history double-write)", async () => {
+    const adapter = createSiteListStateAdapter<{ q: string; sort: "published" | "updated" | "name-asc" }>();
+    const replace = vi.fn();
+    const replaceStateSpy = vi.spyOn(window.history, "replaceState");
+    vi.mocked(useRouter).mockReturnValue({
+      push: vi.fn(),
+      replace,
+      prefetch: vi.fn(),
+      refresh: vi.fn(),
+      back: vi.fn(),
+      forward: vi.fn(),
+    } as ReturnType<typeof useRouter>);
+    mockLocation("");
+
+    const { result } = renderHook(() => useListState(schema, adapter));
+    const historyCallsBefore = replaceStateSpy.mock.calls.length;
+
+    act(() => {
+      result.current.setField("q", "gold");
+    });
+
+    expect(replace).toHaveBeenCalledWith("/?q=gold", { scroll: false });
+    expect(replaceStateSpy.mock.calls.length).toBe(historyCallsBefore);
+    replaceStateSpy.mockRestore();
   });
 
   it("does not restore storage for the site adapter", async () => {
