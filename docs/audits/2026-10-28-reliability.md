@@ -86,6 +86,36 @@
 | **Estimated size** | — |
 | **Fix owner** | infra |
 
+### REL-008 — Mission Control orders counters query wrong topic strings
+
+| | |
+|---|---|
+| **Severity** | high |
+| **Evidence** | `lib/mission-control/providers/orders.ts` L39–44 counts `ShopifyWebhookDelivery` with `topic: "ORDERS_PAID"` / `"ORDERS_CANCELLED"`. Webhook routes persist REST header topics: `orders/paid` (`app/api/shopify/webhooks/orders/paid/route.ts` L54–55, test L42/L88) and `orders/cancelled` (`orders/cancelled/route.ts` L46). Successful deliveries never match → `paid`/`cancelled` stay 0; hub can paint `down` when any recent failures exist with zero “successes”. Existing `orders.test.ts` mocks counts and never asserts the `where.topic` filter. Test: `it.fails(... REL-008)`. |
+| **Proposed minimal fix** | Query `orders/paid` and `orders/cancelled` (or normalize to one canonical form at claim + provider). Add assertion on `count` args in provider tests. |
+| **Estimated size** | XS |
+| **Fix owner** | admin UI / infra (Mission Control) |
+
+### REL-009 — SKU HTTP client has no request timeout
+
+| | |
+|---|---|
+| **Severity** | medium |
+| **Evidence** | `packages/sku-contract/src/client.ts` `fetch` path has no `AbortSignal` / timeout (grep: zero matches). Admin assign waits on hung sku-api indefinitely. |
+| **Proposed minimal fix** | `AbortSignal.timeout(ms)` (or AbortController) on client fetch; surface timeout as typed error. |
+| **Estimated size** | S |
+| **Fix owner** | core/sync |
+
+### REL-010 — Sync-history cleanup is opportunistic only
+
+| | |
+|---|---|
+| **Severity** | medium |
+| **Evidence** | `lib/shopify/sync-history-retention.ts` L162–165: “No platform cron… call opportunistically from the catalog check”. Idle periods grow `ProductSyncEvent` / delivery tables. Script `scripts/db/cleanup-sync-history.mjs` exists but is not scheduled. |
+| **Proposed minimal fix** | Railway cron to run cleanup script, or collector tick best-effort cleanup. |
+| **Estimated size** | S |
+| **Fix owner** | infra |
+
 ## sku-api failure modes (characterization — no new finding id)
 
 | Mode | Evidence | Behavior |
@@ -117,14 +147,18 @@ Processing failures correctly return **500** so Shopify retries; SUCCEEDED rows 
 | REL-H1 | Staging/prod Railway collector cron can overlap in practice | Need Railway schedule + duration metrics; code lacks lock but ops may serialize. |
 | REL-H2 | Shopify omits `x-shopify-webhook-id` on some topics in the wild | Not reproduced; header present in existing route tests. |
 | REL-H3 | Multi-replica throttle stampede has caused production 429 storms | Telemetry exists; no incident log pulled in this audit. |
+| REL-H4 | n8n SKU audit workflow has no `retryOnFail` → silent daily miss until next cron | Workflow JSON inspected by secondary pass; not reproduced against live n8n. |
+| REL-H5 | sku-api in-memory rate limits under-count across Railway replicas | Same pattern as REL-005; no multi-replica proof. |
 
 ## Passing locks
 
 | Lock | Test |
 |------|------|
 | products route still lacks try around parse (fails until REL-001) | `it.fails` REL-001 |
+| MC orders provider topic strings match webhook storage (fails until REL-008) | `it.fails` REL-008 |
 | orders/paid uses safe parse + 400 on bad JSON | passing |
 | claimWebhookEvent reclaim requires webhookId | passing |
 | collector entry has no lease API call | passing |
 | throttle constants + in-process comment present | passing |
 | cited `scripts/db*` paths exist | passing |
+| sku-contract client has no AbortSignal timeout (REL-009 lock) | passing |

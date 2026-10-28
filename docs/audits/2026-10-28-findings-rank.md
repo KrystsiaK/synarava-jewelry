@@ -10,23 +10,26 @@ Weights: critical=4, high=3, medium=2, low=1. Blast: store/money/auth=3, catalog
 
 | # | Finding ids | One-line fix PR | Size | Owner |
 |---|-------------|-----------------|------|-------|
-| 1 | AUTH-ADV-001 (+ optionally 002) | `requireAdminSession` on SKU policy (+ getSaved*) | XS–S | admin UI |
-| 2 | REL-001 + REL-002 + DEAD-001 | products/reviews → `parseShopifyWebhookJson` + 400 on bad JSON | XS | core/sync |
-| 3 | SYNC-ADV-002 | typed `lookupContractForPath(path, resource)` | M | core/sync |
-| 4 | PERF-ADV-001 | LCP mobile/PDP (images, priority) | M | storefront |
-| 5 | A11Y-ADV-001 | footer wordmark contrast | XS | storefront |
-| 6 | SEO-ADV-001 + SEO-ADV-002 | home meta description + PT titles | S | storefront |
-| 7 | REL-003 | reject/synthesize missing webhook id | S | core/sync |
-| 8 | SYNC-ADV-001 | contractKey/section on translation leaves | S | core/sync |
-| 9 | DEAD-005 | shared base64url cursor helper | S | core/sync + storefront |
-| 10 | REL-004 | collector lease or Railway concurrency=1 | S | infra |
-| 11 | DEAD-007 | replace e2e `waitForTimeout` | S–M | infra |
-| 12 | PERF-ADV-002 | trim unused JS / third parties | M | storefront |
-| 13 | SYNC-ADV-004 | dedupe `retainedShopifyMediaIds` | XS | core/sync |
-| 14 | DEAD-002/003/004 + DEAD-006 | drop unused deps + deprecated aliases | XS–S | admin UI / infra |
-| 15 | REL-005 | doc accept or shared throttle bucket | XS or M | infra |
-| 16 | REL-006 | additive-or-runbook checklist for new migrations | S | infra |
-| 17 | SEO-ADV-003 | confirm **prod** robots/sitemap ≠ staging | XS ops | infra |
+| 1 | **REL-008** | MC orders provider: query `orders/paid` / `orders/cancelled` | XS | admin UI / infra |
+| 2 | AUTH-ADV-001 (+ optionally 002) | `requireAdminSession` on SKU policy (+ getSaved*) | XS–S | admin UI |
+| 3 | REL-001 + REL-002 + DEAD-001 | products/reviews → `parseShopifyWebhookJson` + 400 on bad JSON | XS | core/sync |
+| 4 | SYNC-ADV-002 | typed `lookupContractForPath(path, resource)` | M | core/sync |
+| 5 | PERF-ADV-001 | LCP mobile/PDP (images, priority) | M | storefront |
+| 6 | A11Y-ADV-001 | footer wordmark contrast | XS | storefront |
+| 7 | SEO-ADV-001 + SEO-ADV-002 | home meta description + PT titles | S | storefront |
+| 8 | REL-003 | reject/synthesize missing webhook id | S | core/sync |
+| 9 | REL-009 | sku-contract client `AbortSignal.timeout` | S | core/sync |
+| 10 | REL-010 | schedule sync-history cleanup cron | S | infra |
+| 11 | SYNC-ADV-001 | contractKey/section on translation leaves | S | core/sync |
+| 12 | DEAD-005 | shared base64url cursor helper | S | core/sync + storefront |
+| 13 | REL-004 | collector lease or Railway concurrency=1 | S | infra |
+| 14 | DEAD-007 | replace e2e `waitForTimeout` | S–M | infra |
+| 15 | PERF-ADV-002 | trim unused JS / third parties | M | storefront |
+| 16 | SYNC-ADV-004 | dedupe `retainedShopifyMediaIds` | XS | core/sync |
+| 17 | DEAD-002/003/004 + DEAD-006 | drop unused deps + deprecated aliases | XS–S | admin UI / infra |
+| 18 | REL-005 | doc accept or shared throttle bucket | XS or M | infra |
+| 19 | REL-006 | additive-or-runbook checklist for new migrations | S | infra |
+| 20 | SEO-ADV-003 | confirm **prod** robots/sitemap ≠ staging | XS ops | infra |
 
 REL-007 is a **pass** (runbook paths OK) — no fix PR.
 
@@ -34,11 +37,14 @@ REL-007 is a **pass** (runbook paths OK) — no fix PR.
 
 | Rank | Id | Sev | Blast | Size | Score≈ | Fix owner |
 |------|----|-----|-------|------|--------|-----------|
-| 1 | AUTH-ADV-001 | high | auth | XS | 9 | admin UI |
-| 2 | REL-001 | high | catalog ops | XS | 9 | core/sync |
-| 3 | REL-002 / DEAD-001 | high | catalog ops | XS | 9 | core/sync |
-| 4 | SYNC-ADV-002 | high | catalog-admin | M | 2 | core/sync |
-| 5 | AUTH-ADV-002 | medium | auth | XS | 6 | admin UI |
+| 1 | **REL-008** | high | ops hub | XS | 9 | admin UI / infra |
+| 2 | AUTH-ADV-001 | high | auth | XS | 9 | admin UI |
+| 3 | REL-001 | high | catalog ops | XS | 9 | core/sync |
+| 4 | REL-002 / DEAD-001 | high | catalog ops | XS | 9 | core/sync |
+| 5 | SYNC-ADV-002 | high | catalog-admin | M | 2 | core/sync |
+| 6 | AUTH-ADV-002 | medium | auth | XS | 6 | admin UI |
+| — | REL-009 | medium | admin SKU | S | 3 | core/sync |
+| — | REL-010 | medium | ops | S | 3 | infra |
 | 6 | PERF-ADV-001 | high* | storefront | M | ~3 | storefront |
 | 7 | A11Y-ADV-001 | medium | storefront | XS | 6 | storefront |
 | 8 | SEO-ADV-001 | medium | storefront | XS | 6 | storefront |
@@ -71,7 +77,7 @@ REL-007 is a **pass** (runbook paths OK) — no fix PR.
 | PERF-ADV-H1 | 3 | desktop PDP LCP root cause = hero sizing |
 | PERF-ADV-H2 | 3 | real INP needs CrUX/field data |
 | DEAD-H1–H4 | 4 | knip unused exports / chart dual exports / tool noise |
-| REL-H1–H3 | 5 | collector overlap in prod; missing webhook id in wild; 429 storms |
+| REL-H1–H5 | 5 | collector overlap; missing webhook id; 429 storms; n8n retry; sku rate multi-replica |
 
 ## Test-only / docs-only fix PRs
 
