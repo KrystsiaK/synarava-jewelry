@@ -61,6 +61,6 @@ Relative markdown links under `docs/` are guarded by `docs/__tests__/markdown-li
 
 **Strategy** — [growth](strategy/growth.md) · [ecommerce-operating-infrastructure](strategy/ecommerce-operating-infrastructure.md)
 
-**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md) · [2026-10 Shopify API ground truth](audits/2026-10-shopify-api-ground-truth.md)
+**Audits** — [2026-07 security](audits/2026-07-security.md) · [2026-08 security](audits/2026-08-security.md) · [2026-08 UX](audits/2026-08-ux.md) · [2026-09 privacy](audits/2026-09-privacy.md) · [2026-09 infrastructure](audits/2026-09-infrastructure.md) · [2026-10 Shopify API ground truth](audits/2026-10-shopify-api-ground-truth.md) · [2026-10-28 sync adversarial](audits/2026-10-28-sync-adversarial.md)
 
 **History** — см. [`history/`](history/) (по дате в имени файла).
