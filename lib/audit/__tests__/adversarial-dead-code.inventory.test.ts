@@ -42,17 +42,14 @@ function sourceImportCount(packageName: string): number {
 }
 
 describe("Phase 4 dead-code inventory (DEAD-*)", () => {
-  it.fails(
-    "Shopify product+reviews webhooks use parseShopifyWebhookJson (DEAD-001)",
-    () => {
-      const products = read("app/api/shopify/webhooks/products/route.ts");
-      const reviews = read("app/api/shopify/webhooks/reviews/route.ts");
-      expect(products).toMatch(/parseShopifyWebhookJson/);
-      expect(reviews).toMatch(/parseShopifyWebhookJson/);
-      expect(products).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
-      expect(reviews).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
-    },
-  );
+  it("Shopify product+reviews webhooks use parseShopifyWebhookJson (DEAD-001)", () => {
+    const products = read("app/api/shopify/webhooks/products/route.ts");
+    const reviews = read("app/api/shopify/webhooks/reviews/route.ts");
+    expect(products).toMatch(/parseShopifyWebhookJson/);
+    expect(reviews).toMatch(/parseShopifyWebhookJson/);
+    expect(products).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
+    expect(reviews).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
+  });
 
   it("documents which order-family routes already use the safe parser", () => {
     for (const rel of [
@@ -122,12 +119,13 @@ describe("Phase 4 dead-code inventory (DEAD-*)", () => {
     );
   });
 
-  it("admin + catalog cursor decoders share the same base64url parse shell (DEAD-005)", () => {
+  it("admin + catalog cursor decoders share base64url-json-cursor (DEAD-005)", () => {
     const admin = read("lib/admin/list-products.ts");
     const shop = read("lib/catalog/shop-query.ts");
-    const shell = /JSON\.parse\(Buffer\.from\(raw,\s*"base64url"\)\.toString\("utf8"\)\)/;
-    expect(admin).toMatch(shell);
-    expect(shop).toMatch(shell);
+    const helper = read("lib/cursor/base64url-json-cursor.ts");
+    expect(admin).toMatch(/@\/lib\/cursor\/base64url-json-cursor/);
+    expect(shop).toMatch(/@\/lib\/cursor\/base64url-json-cursor/);
+    expect(helper).toMatch(/Buffer\.from\(raw,\s*"base64url"\)\.toString\("utf8"\)/);
   });
 
   it("inventories e2e waitForTimeout call sites (DEAD-007)", () => {
