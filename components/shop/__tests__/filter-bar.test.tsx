@@ -1,9 +1,13 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { FilterBar } from "../filter-bar";
-import { FILTERS_STORAGE_KEY } from "../types";
+import { useRouter } from "next/navigation";
 
-const historyPush = vi.spyOn(window.history, "pushState");
+import { resetListStateUrlPendingForTests } from "@/components/shared/list-state/use-list-state";
+
+import { FilterBar } from "../filter-bar";
+import { buildSearchParams, FILTERS_STORAGE_KEY, type ShopFilters } from "../types";
+
+const routerReplace = vi.fn();
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
@@ -12,17 +16,38 @@ const defaultProps = {
   categories,
   collections,
   tags,
-  initialFilters: {},
+  initialFilters: {} as ShopFilters,
   totalCount: 12,
 };
 
+function setShopUrl(basePath: string, filters: ShopFilters = {}) {
+  resetListStateUrlPendingForTests();
+  const qs = buildSearchParams({ ...filters, sort: filters.sort ?? "featured" });
+  const href = qs ? `/en${basePath}?${qs}` : `/en${basePath}`;
+  window.history.replaceState(window.history.state, "", href);
+  routerReplace.mockClear();
+}
+
+/** Site adapter writes via `router.replace` only (no history.replaceState). */
+function expectHref(href: string) {
+  expect(routerReplace.mock.calls.some((call) => call[0] === href)).toBe(true);
+}
+
 beforeEach(() => {
-  historyPush.mockClear();
   sessionStorage.clear();
+  resetListStateUrlPendingForTests();
+  routerReplace.mockReset();
+  vi.mocked(useRouter).mockReturnValue({
+    push: vi.fn(),
+    replace: routerReplace,
+    prefetch: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  } as ReturnType<typeof useRouter>);
+  setShopUrl("/shop");
   vi.useRealTimers();
 });
-
-// ── Rendering ────────────────────────────────────────────────────────────────
 
 describe("FilterBar", () => {
   it("updates filters without asking Next.js for a new server render", async () => {
@@ -33,8 +58,13 @@ describe("FilterBar", () => {
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
 
-    expect(onFiltersChange).toHaveBeenCalledWith({ category: "bracelets" });
-    expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?category=bracelets");
+    await waitFor(() =>
+      expect(onFiltersChange).toHaveBeenCalledWith(
+        expect.objectContaining({ category: "bracelets", sort: "featured" }),
+      ),
+    );
+    expectHref("/en/shop?category=bracelets");
+    expect(routerReplace).toHaveBeenCalledWith("/en/shop?category=bracelets", { scroll: false });
   });
 
   it("keeps primary filters visible and progressively reveals contextual filters", async () => {
@@ -65,30 +95,25 @@ describe("FilterBar", () => {
     expect(screen.getAllByPlaceholderText(/search/i).length).toBeGreaterThan(0);
   });
 
-  // ── Desktop filter selection ──────────────────────────────────────────────
-
   it("updates the URL when a category is selected", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?category=bracelets"));
+    await waitFor(() => expectHref("/en/shop?category=bracelets"));
   });
 
-  it("saves filters to sessionStorage on selection", async () => {
+  it("does not write filters to sessionStorage (site adapter is URL-only)", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
-    await waitFor(() => {
-      const stored = JSON.parse(sessionStorage.getItem(FILTERS_STORAGE_KEY) ?? "{}");
-      expect(stored.category).toBe("bracelets");
-    });
+    await waitFor(() => expectHref("/en/shop?category=bracelets"));
+    expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull();
   });
 
-  // ── Active filter chips ───────────────────────────────────────────────────
-
   it("shows active filter chip when initialFilters has values", () => {
+    setShopUrl("/shop", { category: "bracelets" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     expect(screen.getByTestId("filter-chips")).toBeInTheDocument();
     expect(screen.getAllByText("Bracelets").length).toBeGreaterThanOrEqual(1);
@@ -96,26 +121,28 @@ describe("FilterBar", () => {
 
   it("removes a filter when chip X is clicked", async () => {
     const user = userEvent.setup();
+    setShopUrl("/shop", { category: "bracelets" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /remove filter bracelets/i }));
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
+    await waitFor(() => expectHref("/en/shop"));
   });
 
-  // ── Clear all ─────────────────────────────────────────────────────────────
-
   it("shows Clear all chip when multiple filters are active", () => {
+    setShopUrl("/shop", { category: "bracelets", tag: "oak" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
     expect(screen.getByRole("button", { name: /^clear all$/i })).toBeInTheDocument();
   });
 
   it("does not show Clear all when only one filter active", () => {
+    setShopUrl("/shop", { category: "bracelets" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     expect(screen.queryByRole("button", { name: /^clear all$/i })).not.toBeInTheDocument();
   });
 
-  it("clears sessionStorage when Clear all is clicked", async () => {
+  it("clears legacy sessionStorage when Clear all is clicked", async () => {
     const user = userEvent.setup();
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
+    setShopUrl("/shop", { category: "bracelets", tag: "oak" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
     await user.click(screen.getByRole("button", { name: /^clear all$/i }));
     await waitFor(() => expect(sessionStorage.getItem(FILTERS_STORAGE_KEY)).toBeNull());
@@ -123,32 +150,31 @@ describe("FilterBar", () => {
 
   it("updates the URL to /shop when Clear all is clicked", async () => {
     const user = userEvent.setup();
+    setShopUrl("/shop", { category: "bracelets", tag: "oak" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />);
     await user.click(screen.getByRole("button", { name: /^clear all$/i }));
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
+    await waitFor(() => expectHref("/en/shop"));
   });
-
-  // ── Search debounce ───────────────────────────────────────────────────────
 
   it("updates the URL with the search query after debounce", async () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     const inputs = screen.getAllByPlaceholderText(/search/i);
     await user.type(inputs[0], "oak");
-    // Debounce is 350ms — waitFor polls until it passes or times out at 1s
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop?q=oak"), { timeout: 1000 });
+    await waitFor(() => expectHref("/en/shop?q=oak"), { timeout: 1000 });
   });
 
   it("clears search and navigates on X button click", async () => {
     const user = userEvent.setup();
+    setShopUrl("/shop", { q: "oak" });
     render(<FilterBar {...defaultProps} initialFilters={{ q: "oak" }} />);
-    // Both desktop and mobile bars render a clear button; click the first
     const clearBtns = screen.getAllByRole("button", { name: /clear search/i });
     await user.click(clearBtns[0]);
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
+    await waitFor(() => expectHref("/en/shop"));
   });
 
   it("hides the WebKit native search cancel so only the custom clear control shows", () => {
+    setShopUrl("/shop", { q: "ажурный полумесяц" });
     render(<FilterBar {...defaultProps} initialFilters={{ q: "ажурный полумесяц" }} />);
     const inputs = screen.getAllByDisplayValue(/ажурный полумесяц/i);
     expect(inputs.length).toBeGreaterThan(0);
@@ -157,13 +183,12 @@ describe("FilterBar", () => {
       expect(input.className).toContain("webkit-search-cancel-button");
       expect(input.className).toContain("appearance-none");
     }
-    // One custom clear per search field (desktop + mobile), not a second native control in DOM.
     expect(screen.getAllByRole("button", { name: /clear search/i })).toHaveLength(2);
   });
 
   it("styles desktop search as a boxed control, not an underline stacked on the band edge", () => {
+    setShopUrl("/shop", { q: "ыва" });
     render(<FilterBar {...defaultProps} initialFilters={{ q: "ыва" }} />);
-    // Desktop search mounts first (md:block band); mobile follows.
     const wrap = screen.getAllByDisplayValue(/ыва/i)[0]?.parentElement;
     expect(wrap).toBeTruthy();
     expect(wrap!.className.split(/\s+/)).toContain("border");
@@ -171,24 +196,12 @@ describe("FilterBar", () => {
     expect(wrap!.className).toContain("bg-surface");
   });
 
-  // ── Session persistence ───────────────────────────────────────────────────
-
-  it("shows restore banner when saved filters exist and URL has no params", async () => {
+  it("does not show a session restore banner (site adapter is URL-only)", async () => {
     sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
     render(<FilterBar {...defaultProps} initialFilters={{}} />);
-    await waitFor(() =>
-      expect(screen.getByRole("button", { name: /apply filters/i })).toBeInTheDocument(),
-    );
-  });
-
-  it("does not restore from session when URL params are present", async () => {
-    sessionStorage.setItem(FILTERS_STORAGE_KEY, JSON.stringify({ category: "bracelets" }));
-    render(<FilterBar {...defaultProps} initialFilters={{ collection: "heritage" }} />);
     await new Promise((r) => setTimeout(r, 50));
-    expect(historyPush).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /apply filters/i })).not.toBeInTheDocument();
   });
-
-  // ── Mobile sheet ──────────────────────────────────────────────────────────
 
   it("opens mobile filter sheet when Filters button is clicked", async () => {
     const user = userEvent.setup();
@@ -212,42 +225,41 @@ describe("FilterBar", () => {
     const user = userEvent.setup();
     render(<FilterBar {...defaultProps} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
-    // Select "Bracelets" inside the sheet
     const sheet = screen.getByRole("dialog");
-    // Find the Bracelets option button inside the sheet
     const allBtns = Array.from(sheet.querySelectorAll("button"));
     const braceletOpt = allBtns.find((b) => b.textContent?.includes("Bracelets"));
     if (braceletOpt) await user.click(braceletOpt);
     await user.click(screen.getByRole("button", { name: /view products/i }));
     await waitFor(() =>
-      expect(historyPush).toHaveBeenCalledWith(null, "", expect.stringContaining("bracelets")),
+      expect(routerReplace.mock.calls.some((call) => String(call[0]).includes("bracelets"))).toBe(true),
     );
   });
 
   it("resets all filters from mobile sheet", async () => {
     const user = userEvent.setup();
+    setShopUrl("/shop", { category: "bracelets" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Clear all in the sheet header, then confirm via CTA.
     await user.click(within(dialog).getByRole("button", { name: /^clear all$/i }));
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(historyPush).toHaveBeenCalledWith(null, "", "/en/shop"));
+    await waitFor(() => expectHref("/en/shop"));
   });
 
   it("can deselect a filter section via All button in mobile sheet", async () => {
     const user = userEvent.setup();
+    setShopUrl("/shop", { category: "bracelets" });
     render(<FilterBar {...defaultProps} initialFilters={{ category: "bracelets" }} />);
     await user.click(screen.getByRole("button", { name: /^filters/i }));
     const dialog = screen.getByRole("dialog");
-    // Category is the first section; click its "All" button.
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
     await user.click(allBtns[0]);
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(historyPush).toHaveBeenCalled());
+    await waitFor(() => expect(routerReplace).toHaveBeenCalled());
   });
 
   it("includes the active filter count in the mobile Filters button", () => {
+    setShopUrl("/shop", { category: "bracelets", tag: "oak" });
     render(
       <FilterBar {...defaultProps} initialFilters={{ category: "bracelets", tag: "oak" }} />,
     );
@@ -258,6 +270,7 @@ describe("FilterBar", () => {
   it("pins collection filters to the collection path instead of /shop", async () => {
     const user = userEvent.setup();
     const onFiltersChange = vi.fn();
+    setShopUrl("/collections/heritage", { collection: "heritage" });
     render(
       <FilterBar
         {...defaultProps}
@@ -274,7 +287,11 @@ describe("FilterBar", () => {
     await user.click(screen.getByRole("button", { name: /^category$/i }));
     await user.click(screen.getByRole("option", { name: "Bracelets" }));
 
-    expect(onFiltersChange).toHaveBeenCalledWith({ category: "bracelets", collection: "heritage" });
-    expect(historyPush).toHaveBeenCalledWith(null, "", "/en/collections/heritage?category=bracelets");
+    await waitFor(() =>
+      expect(onFiltersChange).toHaveBeenCalledWith(
+        expect.objectContaining({ category: "bracelets", collection: "heritage" }),
+      ),
+    );
+    expectHref("/en/collections/heritage?category=bracelets");
   });
 });

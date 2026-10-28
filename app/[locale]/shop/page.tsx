@@ -6,7 +6,7 @@ import { listShopCatalogPage } from "@/lib/content/shop-listing";
 import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { ShopPage } from "@/components/shop/shop-page";
 import type { ShopProductTypeTile } from "@/components/shop/shop-discovery";
-import { normalizeShopSort } from "@/lib/catalog/shop-sort";
+import { parseShopListState } from "@/lib/catalog/shop-list-state";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -79,11 +79,7 @@ async function getProductTypeTiles(productTypes: { slug: string; name: string }[
 
 export default async function Page({ searchParams }: Props) {
   const rawFilters = (await searchParams) ?? {};
-  const filters = {
-    ...rawFilters,
-    availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
-    sort: normalizeShopSort(rawFilters.sort),
-  };
+  const filters = parseShopListState(rawFilters);
   const { t, plural, locale } = await getServerTranslations();
   const [
     filterData,

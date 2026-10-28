@@ -60,7 +60,17 @@ import {
   type AdminProductListPage,
   type AdminProductSortKey,
 } from "@/lib/admin/list-products-shared";
+import {
+  ADMIN_PRODUCTS_LIST_ID,
+  ADMIN_PRODUCTS_LIST_STORAGE_VERSION,
+  adminProductsListSchema,
+  type AdminProductsListState,
+} from "@/lib/admin/products-list-state";
 import { moveCollectionItem, syncedOrderPosition } from "@/lib/catalog/collection-order";
+import {
+  createAdminListStateAdapter,
+  useListState,
+} from "@/components/shared/list-state";
 
 function patchListItem(item: AdminProductListItem, saved: SavedProductPayload): AdminProductListItem {
   return {
@@ -113,12 +123,19 @@ async function fetchProductPage(params: {
   return response.json() as Promise<AdminProductListPage>;
 }
 
+const listStateAdapter = createAdminListStateAdapter({
+  listId: ADMIN_PRODUCTS_LIST_ID,
+  schema: adminProductsListSchema,
+  version: ADMIN_PRODUCTS_LIST_STORAGE_VERSION,
+});
+
 export function ProductsCms({
   initialPage,
   categories,
   tags,
   collections,
   initialConflictSignals,
+  initialListState,
 }: ProductCmsProps) {
   const [products, setProducts] = useState<AdminProductListItem[]>(initialPage.nodes);
   const [hasNextPage, setHasNextPage] = useState(initialPage.hasNextPage);
@@ -127,12 +144,25 @@ export function ProductsCms({
   const [loadingMore, setLoadingMore] = useState(false);
   const [listError, setListError] = useState<string | null>(null);
 
-  const [query, setQuery] = useState("");
-  const [debouncedQuery, setDebouncedQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("ALL");
-  const [categoryFilter, setCategoryFilter] = useState("ALL");
-  const [collectionFilter, setCollectionFilter] = useState("ALL");
-  const [sortBy, setSortBy] = useState<AdminProductSortKey>("published");
+  const {
+    state: listState,
+    draft: listDraft,
+    setField: setListField,
+    setFieldDebounced: setListFieldDebounced,
+    setState: setListState,
+    clear: clearListState,
+  } = useListState(adminProductsListSchema, listStateAdapter, {
+    initialState: initialListState,
+    debounceKeys: ["q"],
+    debounceMs: 280,
+  });
+
+  const query = listDraft.q;
+  const debouncedQuery = listState.q;
+  const statusFilter = listState.status;
+  const categoryFilter = listState.category;
+  const collectionFilter = listState.collection;
+  const sortBy = listState.sort;
 
   const [rowAction, setRowAction] = useState<ProductRowAction | null>(null);
   const [editingProduct, setEditingProduct] = useState<AdminProductListItem | null>(null);
@@ -154,17 +184,13 @@ export function ProductsCms({
   }, []);
   const requestIdRef = useRef(0);
   const skipFilterFetchRef = useRef(true);
+  const initialListKeyRef = useRef(JSON.stringify(initialListState));
 
   function showConflicts(productId: string | null = null) {
     setFocusedConflictProductId(productId);
     setConflictViewScope(productId ? { kind: "product", productId } : { kind: "catalog" });
     setConflictListOpen(true);
   }
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedQuery(query), 280);
-    return () => clearTimeout(timer);
-  }, [query]);
 
   const reloadProductList = useCallback(() => {
     const requestId = ++requestIdRef.current;
@@ -190,12 +216,15 @@ export function ProductsCms({
   }, [debouncedQuery, statusFilter, categoryFilter, collectionFilter, sortBy]);
 
   useEffect(() => {
-    if (skipFilterFetchRef.current) {
+    // Skip the fetch that would duplicate the SSR page for the same filter bag.
+    const listKey = JSON.stringify(listState);
+    if (skipFilterFetchRef.current && listKey === initialListKeyRef.current) {
       skipFilterFetchRef.current = false;
       return;
     }
+    skipFilterFetchRef.current = false;
     void reloadProductList();
-  }, [reloadProductList]);
+  }, [reloadProductList, listState]);
 
   /** Pull/create from Shopify updates the DB, but this list is client state — router.refresh alone leaves stale rows until hard reload. */
   function handleConflictsApplied() {
@@ -382,14 +411,15 @@ export function ProductsCms({
               <AdminTextField
                 label="Search"
                 value={query}
-                onChange={(event) => setQuery(event.target.value)}
+                onChange={(event) => setListFieldDebounced("q", event.target.value)}
+                onClear={() => setListField("q", "")}
                 placeholder="Name, slug, SKU"
                 clearable
               />
               <AdminSelectField
                 label="Status"
                 value={statusFilter}
-                onChange={(event) => setStatusFilter(event.target.value)}
+                onChange={(event) => setListField("status", event.target.value as AdminProductsListState["status"])}
               >
                 <option value="ALL">All</option>
                 <option value="PUBLISHED">Published</option>
@@ -400,7 +430,7 @@ export function ProductsCms({
               <AdminSelectField
                 label="Category"
                 value={categoryFilter}
-                onChange={(event) => setCategoryFilter(event.target.value)}
+                onChange={(event) => setListField("category", event.target.value)}
               >
                 <option value="ALL">All categories</option>
                 {categories.map((category) => (
@@ -414,8 +444,11 @@ export function ProductsCms({
                 value={collectionFilter}
                 onChange={(event) => {
                   const value = event.target.value;
-                  setCollectionFilter(value);
-                  setSortBy(value === "ALL" ? "published" : "collection-priority");
+                  setListState((prev) => ({
+                    ...prev,
+                    collection: value,
+                    sort: value === "ALL" ? "published" : "collection-priority",
+                  }));
                 }}
               >
                 <option value="ALL">All collections</option>
@@ -427,11 +460,20 @@ export function ProductsCms({
                 ))}
               </AdminSelectField>
             </div>
-            <AdminSortChips
-              value={sortBy}
-              options={sortOptions}
-              onChange={setSortBy}
-            />
+            <div className="flex flex-wrap items-center gap-3">
+              <AdminSortChips
+                value={sortBy}
+                options={sortOptions}
+                onChange={(value) => setListField("sort", value)}
+              />
+              <button
+                type="button"
+                className="adm-btn-ghost text-xs"
+                onClick={() => clearListState()}
+              >
+                Clear
+              </button>
+            </div>
           </AdminListWorkspace.Filters>
         </AdminListWorkspace.Header>
 
