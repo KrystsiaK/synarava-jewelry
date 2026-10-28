@@ -37,9 +37,11 @@ describe("Phase 5 reliability inventory (REL-*)", () => {
     expect(src).toMatch(/Invalid webhook payload[\s\S]*status:\s*400/);
   });
 
-  it("claimWebhookEvent only reclaims when webhookId is present (REL-003)", () => {
+  it("claimWebhookEvent requires non-null webhookId string (REL-003)", () => {
     const src = read("lib/shopify/webhook-event.ts");
-    expect(src).toMatch(/!params\.webhookId/);
+    // Routes 400 missing x-shopify-webhook-id before claim; param is string (not string|null).
+    expect(src).toMatch(/webhookId:\s*string;/);
+    expect(src).not.toMatch(/webhookId:\s*string\s*\|\s*null/);
     expect(src).toMatch(/PROCESSING_LEASE_MS\s*=\s*5\s*\*\s*60\s*\*\s*1000/);
     expect(src).toMatch(/status:\s*"FAILED"/);
   });
