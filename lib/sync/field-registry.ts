@@ -344,10 +344,22 @@ function longestMatchingField(
   return best;
 }
 
-/** Lookup the contract entry for a Shopify-shaped window path (product then collection). */
-export function lookupContractForPath(path: string): SyncFieldDef | null {
-  return longestMatchingField(PRODUCT_COMMERCE_FIELDS, path)
-    ?? longestMatchingField(COLLECTION_COMMERCE_FIELDS, path);
+/** Commerce window resource — product and collection registries are separate. */
+export type CommerceResourceType = "PRODUCT" | "COLLECTION";
+
+function commerceFieldsFor(resource: CommerceResourceType): readonly SyncFieldDef[] {
+  return resource === "COLLECTION" ? COLLECTION_COMMERCE_FIELDS : PRODUCT_COMMERCE_FIELDS;
+}
+
+/**
+ * Lookup the contract entry for a Shopify-shaped window path in the given
+ * resource registry only (SYNC-ADV-002 — never product-first fallback).
+ */
+export function lookupContractForPath(
+  path: string,
+  resource: CommerceResourceType,
+): SyncFieldDef | null {
+  return longestMatchingField(commerceFieldsFor(resource), path);
 }
 
 export function lookupContractByKey(contractKey: string): SyncFieldDef | null {
@@ -360,28 +372,43 @@ export function lookupContractByKey(contractKey: string): SyncFieldDef | null {
  * Human label for a window path. Returns null when the path is not in the
  * contract (callers must emit an Unmapped blocked leaf — no last-segment fallback).
  */
-export function labelForWindowPathOrNull(path: string): string | null {
-  return lookupContractForPath(path)?.label ?? null;
+export function labelForWindowPathOrNull(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string | null {
+  return lookupContractForPath(path, resource)?.label ?? null;
 }
 
 /**
  * Label for a registered path. Unmapped paths return a blocked-leaf title
  * (`Unmapped Shopify field <path>`) — never a friendly last-segment guess.
  */
-export function labelForWindowPath(path: string): string {
-  return labelForWindowPathOrNull(path) ?? `Unmapped Shopify field ${path}`;
+export function labelForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string {
+  return labelForWindowPathOrNull(path, resource) ?? `Unmapped Shopify field ${path}`;
 }
 
-export function sectionForWindowPath(path: string): SyncConflictSection {
-  return lookupContractForPath(path)?.section ?? "shopify";
+export function sectionForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): SyncConflictSection {
+  return lookupContractForPath(path, resource)?.section ?? "shopify";
 }
 
-export function contractKeyForWindowPath(path: string): string {
-  return lookupContractForPath(path)?.contractKey ?? UNMAPPED_CONTRACT_KEY;
+export function contractKeyForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string {
+  return lookupContractForPath(path, resource)?.contractKey ?? UNMAPPED_CONTRACT_KEY;
 }
 
-export function isUnmappedWindowPath(path: string): boolean {
-  return lookupContractForPath(path) == null;
+export function isUnmappedWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): boolean {
+  return lookupContractForPath(path, resource) == null;
 }
 
 /**
