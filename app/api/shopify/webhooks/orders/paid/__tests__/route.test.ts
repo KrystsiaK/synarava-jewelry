@@ -13,7 +13,13 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/env", () => ({ env: { SHOPIFY_WEBHOOK_SECRET: "secret" } }));
-vi.mock("@/lib/shopify/webhooks", () => ({ verifyShopifyWebhook: mocks.verifyShopifyWebhook }));
+vi.mock("@/lib/shopify/webhooks", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/shopify/webhooks")>();
+  return {
+    ...actual,
+    verifyShopifyWebhook: mocks.verifyShopifyWebhook,
+  };
+});
 vi.mock("@/lib/db", () => ({
   db: {
     $transaction: mocks.transaction,
@@ -73,6 +79,22 @@ describe("ORDERS_PAID webhook route", () => {
     mocks.verifyShopifyWebhook.mockReturnValue(false);
     const response = await POST(request({ id: 1 }));
     expect(response.status).toBe(401);
+    expect(mocks.claimOrdersPaidDelivery).not.toHaveBeenCalled();
+  });
+
+  it("rejects missing webhook id with 400 before claim (REL-003)", async () => {
+    const response = await POST(
+      new Request("https://shop.synarava.com/api/shopify/webhooks/orders/paid", {
+        method: "POST",
+        headers: {
+          "x-shopify-hmac-sha256": "valid",
+          "x-shopify-topic": "orders/paid",
+        },
+        body: JSON.stringify({ id: 1, name: "#1001", financial_status: "paid" }),
+      }),
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ error: "Missing Shopify webhook id." });
     expect(mocks.claimOrdersPaidDelivery).not.toHaveBeenCalled();
   });
 

@@ -11,7 +11,10 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/env", () => ({ env: { SHOPIFY_WEBHOOK_SECRET: "secret" } }));
-vi.mock("@/lib/shopify/webhooks", () => ({ verifyShopifyWebhook: mocks.verifyShopifyWebhook }));
+vi.mock("@/lib/shopify/webhooks", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/shopify/webhooks")>();
+  return { ...actual, verifyShopifyWebhook: mocks.verifyShopifyWebhook };
+});
 vi.mock("@/lib/shopify/product-reviews", () => ({
   refreshShopifyProductReviewAggregates: mocks.refreshAggregates,
 }));

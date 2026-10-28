@@ -72,4 +72,14 @@ describe("claimWebhookEvent", () => {
 
     expect(event).toBeNull();
   });
+
+  it("reclaims on P2002 even when the duplicate path is taken (id always present)", async () => {
+    mocks.create.mockRejectedValue(duplicateError());
+    mocks.updateMany.mockResolvedValue({ count: 1 });
+    mocks.findUnique.mockResolvedValue({ id: "event-1" });
+
+    await claimWebhookEvent({ ...baseParams, webhookId: "wh-retry" });
+
+    expect(mocks.updateMany).toHaveBeenCalled();
+  });
 });

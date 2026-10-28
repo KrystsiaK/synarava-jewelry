@@ -33,9 +33,10 @@ vi.mock("@/lib/shopify/product-sync", () => ({
 vi.mock("@/lib/shopify/webhook-event", () => ({
   claimWebhookEvent: mocks.claimWebhookEvent,
 }));
-vi.mock("@/lib/shopify/webhooks", () => ({
-  verifyShopifyWebhook: mocks.verifyShopifyWebhook,
-}));
+vi.mock("@/lib/shopify/webhooks", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/shopify/webhooks")>();
+  return { ...actual, verifyShopifyWebhook: mocks.verifyShopifyWebhook };
+});
 
 import { POST } from "@/app/api/shopify/webhooks/products/route";
 
