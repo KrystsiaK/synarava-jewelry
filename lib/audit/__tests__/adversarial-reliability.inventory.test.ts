@@ -21,6 +21,22 @@ describe("Phase 5 reliability inventory (REL-*)", () => {
     },
   );
 
+  it.fails(
+    "MC orders provider queries REST topics stored by webhooks (REL-008)",
+    () => {
+      const provider = read("lib/mission-control/providers/orders.ts");
+      const paidRoute = read("app/api/shopify/webhooks/orders/paid/route.ts");
+      const cancelledRoute = read(
+        "app/api/shopify/webhooks/orders/cancelled/route.ts",
+      );
+      expect(paidRoute).toMatch(/"orders\/paid"/);
+      expect(cancelledRoute).toMatch(/"orders\/cancelled"/);
+      expect(provider).toMatch(/topic:\s*"orders\/paid"/);
+      expect(provider).toMatch(/topic:\s*"orders\/cancelled"/);
+      expect(provider).not.toMatch(/ORDERS_PAID|ORDERS_CANCELLED/);
+    },
+  );
+
   it("orders/paid uses safe parser and returns 400 on bad JSON", () => {
     const src = read("app/api/shopify/webhooks/orders/paid/route.ts");
     expect(src).toMatch(/parseShopifyWebhookJson/);
@@ -75,6 +91,19 @@ describe("Phase 5 reliability inventory (REL-*)", () => {
     for (const rel of required) {
       expect(existsSync(join(ROOT, rel)), rel).toBe(true);
     }
+  });
+
+  it("locks sku-contract client has no AbortSignal timeout (REL-009)", () => {
+    const client = read("packages/sku-contract/src/client.ts");
+    expect(client).not.toMatch(/AbortSignal|AbortController|timeout\s*\(/);
+  });
+
+  it("documents opportunistic sync-history cleanup (REL-010)", () => {
+    const src = read("lib/shopify/sync-history-retention.ts");
+    expect(src).toMatch(/No platform cron|opportunistically/i);
+    expect(
+      existsSync(join(ROOT, "scripts/db/cleanup-sync-history.mjs")),
+    ).toBe(true);
   });
 
   it("all webhook route modules verify HMAC before work", () => {
