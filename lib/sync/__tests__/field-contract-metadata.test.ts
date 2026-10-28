@@ -34,7 +34,7 @@ describe("field contract path matching (PR-6)", () => {
     expect(labelForWindowPath("variants[0].mysteryField")).toBe(
       "Unmapped Shopify field variants[0].mysteryField",
     );
-    expect(lookupContractForPath("variants[0].mysteryField")).toBeNull();
+    expect(lookupContractForPath("variants[0].mysteryField", "PRODUCT")).toBeNull();
   });
 });
 

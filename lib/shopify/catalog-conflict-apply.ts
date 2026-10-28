@@ -33,8 +33,13 @@ import {
   type ProductCatalogConflict,
 } from "./catalog-conflict";
 import { applyCommerceField } from "./commerce-field-apply";
-import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
+import {
+  COMMERCE_UNSUPPORTED_REASON,
+  isMediaIdentityContractKey,
+  isScopedCommerceFieldLabel,
+} from "./catalog-conflict-policy";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
+import { applyMediaIdentityBatch } from "./media-identity-apply";
 import { applyShopifyProductToSynarava } from "./product-sync";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
@@ -489,7 +494,56 @@ export async function applyCatalogConflictResolution({
     }
   }
 
-  for (const { input, field } of readyCommerce) {
+  // Media identity leaves: batch per product (Take-Shopify tree edits → one Push → one gate).
+  const mediaByProduct = new Map<string, Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }>>();
+  const otherCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  for (const item of readyCommerce) {
+    if (isMediaIdentityContractKey(item.field.contractKey)) {
+      const list = mediaByProduct.get(item.input.productId) ?? [];
+      list.push(item);
+      mediaByProduct.set(item.input.productId, list);
+    } else {
+      otherCommerce.push(item);
+    }
+  }
+
+  for (const [productId, batch] of mediaByProduct) {
+    try {
+      const { leaves: leavesBefore } = await recheckEntityConflictLeaves({
+        resourceType: "PRODUCT",
+        resourceId: productId,
+        requestedBy: actorUsername,
+      });
+      const outcome = await applyMediaIdentityBatch({
+        productId,
+        requestedBy: actorUsername,
+        leavesBefore,
+        entries: batch.map(({ input, field }) => ({
+          fieldKey: input.fieldKey,
+          label: field.label,
+          path: field.path ?? null,
+          contractKey: field.contractKey ?? null,
+          direction: input.direction,
+          expectedLocalFingerprint: input.expectedLocalFingerprint,
+          expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+        })),
+      });
+      for (const { input } of batch) {
+        results.push(
+          outcome.ok
+            ? { productId, fieldKey: input.fieldKey, ok: true, message: "Media conflict applied." }
+            : { productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "This change could not be applied.";
+      for (const { input } of batch) {
+        results.push({ productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
+      }
+    }
+  }
+
+  for (const { input, field } of otherCommerce) {
     // applyCommerceField re-validates against fresh SyncResult leaves
     // (refresh + compareSyncState) immediately before writing.
     try {

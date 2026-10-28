@@ -6,6 +6,7 @@ import { env } from "@/lib/env";
 import { pullShopifyInventory, refreshShopifyProductState } from "@/lib/shopify/product-sync";
 import { shopifyGid, shopifyNumericId } from "@/lib/shopify/admin";
 import { claimWebhookEvent } from "@/lib/shopify/webhook-event";
+import { parseShopifyWebhookJson } from "@/lib/shopify/webhook-json";
 import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
@@ -22,7 +23,15 @@ export async function POST(request: Request) {
 
   const webhookId = request.headers.get("x-shopify-webhook-id");
   const topic = request.headers.get("x-shopify-topic") ?? "unknown";
-  const payload = JSON.parse(rawBody) as { id?: string | number; inventory_item_id?: string | number };
+  let payload: { id?: string | number; inventory_item_id?: string | number };
+  try {
+    payload = parseShopifyWebhookJson(rawBody) as {
+      id?: string | number;
+      inventory_item_id?: string | number;
+    };
+  } catch {
+    return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
+  }
   const isInventory = topic === "inventory_levels/update";
   if ((!isInventory && payload.id == null) || (isInventory && payload.inventory_item_id == null)) {
     return NextResponse.json({ error: "Missing Shopify resource id." }, { status: 400 });

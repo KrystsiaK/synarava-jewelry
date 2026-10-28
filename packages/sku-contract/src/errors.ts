@@ -12,6 +12,8 @@ export const skuErrorCodeSchema = z.enum([
   "WORKSPACE_NOT_FOUND",
   "UNAUTHORIZED",
   "RATE_LIMITED",
+  /** Client-side AbortSignal.timeout — never a success envelope (REL-009). */
+  "TIMEOUT",
 ]);
 
 export type SkuApiErrorCode = z.infer<typeof skuErrorCodeSchema>;

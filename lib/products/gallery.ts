@@ -34,7 +34,17 @@ export type GalleryOp =
   | { type: "remove"; frameId: string }
   | { type: "move"; frameId: string; toIndex: number }
   | { type: "setCover"; frameId: string }
-  | { type: "setAlt"; frameId: string; alt: string };
+  | { type: "setAlt"; frameId: string; alt: string }
+  /** Take Shopify on a removed leaf — re-insert a Shopify-shaped frame by gid. */
+  | {
+      type: "insertShopify";
+      frameId: string;
+      toIndex: number;
+      alt: string;
+      url: string;
+      width: number | null;
+      height: number | null;
+    };
 
 export type GalleryFrameNode = {
   id: string;
@@ -263,6 +273,30 @@ export function applyGalleryOpToFrames(
       if (!isPlainObject(node)) throw new GalleryOpError("Gallery image not found.");
       const next = [...current];
       next[index] = { ...node, alt: op.alt.trim() };
+      return { media: next, ...coverMeta(next) };
+    }
+    case "insertShopify": {
+      if (!isShopifyMediaGid(op.frameId)) {
+        throw new GalleryOpError("insertShopify requires a Shopify media gid.");
+      }
+      if (findFrameIndex(current, op.frameId) >= 0) {
+        throw new GalleryOpError("That Shopify image is already in the gallery.");
+      }
+      if (current.length >= GALLERY_MAX_FRAMES) {
+        throw new GalleryOpError("Shopify supports up to 250 media items per product.");
+      }
+      if (!Number.isInteger(op.toIndex) || op.toIndex < 0 || op.toIndex > current.length) {
+        throw new GalleryOpError("Invalid gallery position.");
+      }
+      const frame: GalleryFrameNode = {
+        id: op.frameId,
+        alt: op.alt.trim(),
+        mediaContentType: "IMAGE",
+        preview: { image: { url: op.url, width: op.width, height: op.height } },
+        image: { url: op.url, width: op.width, height: op.height },
+      };
+      const next = [...current];
+      next.splice(op.toIndex, 0, frame);
       return { media: next, ...coverMeta(next) };
     }
     default: {

@@ -19,6 +19,11 @@ import {
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { CollectionPresenceDifference } from "@/lib/shopify/collection-presence";
 import {
+  buildGalleryPlanFromWindow,
+  diffGalleryByIdentity,
+  type GalleryIdentityDiff,
+} from "@/lib/shopify/gallery-plan";
+import {
   diffShopifyProjections,
   type ShopifyProjectionDiff,
 } from "@/lib/shopify/shopify-projection-diff";
@@ -31,7 +36,9 @@ import {
   WHOLE_ITEM_CONTRACT_KEY,
   contractKeyForWindowPath,
   isUnmappedWindowPath,
+  lookupContractByKey,
   lookupContractForPath,
+  lookupTranslationContractMeta,
   type SyncConflictSection,
   type SyncLeafPart,
 } from "./field-registry";
@@ -161,11 +168,15 @@ function resolveState(input: SyncCompareInput, now: Date): SyncResultState {
   return "ready";
 }
 
-function partFromDiff(diff: ShopifyProjectionDiff): SyncLeafPart {
+function partFromDiff(
+  diff: ShopifyProjectionDiff,
+  resourceType: "PRODUCT" | "COLLECTION" = "PRODUCT",
+): SyncLeafPart {
   const path = diff.path ?? "";
-  const contract = path ? lookupContractForPath(path) : null;
+  const contract = path ? lookupContractForPath(path, resourceType) : null;
   return {
-    contractKey: contract?.contractKey ?? (path ? contractKeyForWindowPath(path) : UNMAPPED_CONTRACT_KEY),
+    contractKey: contract?.contractKey
+      ?? (path ? contractKeyForWindowPath(path, resourceType) : UNMAPPED_CONTRACT_KEY),
     path,
     label: contract?.label ?? diff.field,
     section: contract?.section ?? "shopify",
@@ -180,8 +191,8 @@ function commerceLeaf(
   diff: ShopifyProjectionDiff,
 ): SyncLeaf {
   const path = diff.path ?? "";
-  const unmapped = Boolean(path) && isUnmappedWindowPath(path);
-  const contract = path ? lookupContractForPath(path) : null;
+  const unmapped = Boolean(path) && isUnmappedWindowPath(path, resourceType);
+  const contract = path ? lookupContractForPath(path, resourceType) : null;
   const supported = !unmapped && isScopedCommerceFieldLabel(diff.field);
   const keySource = path.trim() || diff.field;
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
@@ -241,7 +252,7 @@ function wholeItemCommerceLeaf(
   // Group by contractKey for field count, but keep EVERY path/value — dropping
   // later diffs under the same key made the stale-preview fingerprint miss
   // second media/variant changes.
-  const parts = sorted.map(partFromDiff).toSorted(
+  const parts = sorted.map((diff) => partFromDiff(diff, "PRODUCT")).toSorted(
     (a, b) => a.contractKey.localeCompare(b.contractKey)
       || a.label.localeCompare(b.label)
       || a.path.localeCompare(b.path),
@@ -308,6 +319,39 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
   };
 }
 
+function galleryIdentityLeaf(
+  resourceId: string,
+  diff: GalleryIdentityDiff,
+): SyncLeaf {
+  const contract = lookupContractByKey(diff.contractKey);
+  const keySource = diff.path;
+  return {
+    id: `PRODUCT:${resourceId}:commerce:${slugFieldKey(keySource)}`,
+    resourceType: "PRODUCT",
+    resourceId,
+    kind: "commerce",
+    locale: null,
+    fieldKey: `commerce:${slugFieldKey(keySource)}`,
+    label: diff.label,
+    synaravaValue: diff.synaravaValue,
+    shopifyValue: diff.shopifyValue,
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    blockedReason: null,
+    sourceId: null,
+    path: diff.path,
+    contractKey: diff.contractKey,
+    section: contract?.section ?? "media",
+    parts: null,
+    presenceSide: null,
+    targetKind: "NATIVE",
+    // Fingerprints cover identity only — never previewUrl.
+    localFingerprint: leafFingerprint(diff.fingerprintLocal),
+    shopifyFingerprint: leafFingerprint(diff.fingerprintShopify),
+    node: "base",
+    previewUrl: diff.previewUrl,
+  };
+}
+
 function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
   leaves: SyncLeaf[];
   uncheckedCount: number;
@@ -334,9 +378,17 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
           multiVariant: isMultiVariantCommerceWindow(window.ourWindow, window.shopifySnapshot),
         }));
       }
-      continue;
+    } else {
+      for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
     }
-    for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
+    // Product media: identity leaves (independent of whole-item collapse).
+    if (window.resourceType === "PRODUCT") {
+      const ourPlan = buildGalleryPlanFromWindow(window.ourWindow);
+      const shopPlan = buildGalleryPlanFromWindow(window.shopifySnapshot);
+      for (const mediaDiff of diffGalleryByIdentity(ourPlan, shopPlan)) {
+        leaves.push(galleryIdentityLeaf(window.resourceId, mediaDiff));
+      }
+    }
   }
   return { leaves, uncheckedCount };
 }
@@ -403,6 +455,7 @@ function translationLeaves(
     const id = `${resourceType}:${difference.rootEntityId}:translation:${difference.locale}:${difference.fieldKey}`;
     if (seen.has(id)) continue;
     seen.add(id);
+    const meta = lookupTranslationContractMeta(difference.fieldKey, resourceType);
     leaves.push({
       id,
       resourceType,
@@ -421,6 +474,8 @@ function translationLeaves(
       targetKind: difference.targetKind,
       localFingerprint: difference.localFingerprint,
       shopifyFingerprint: difference.shopifyFingerprint,
+      contractKey: meta.contractKey,
+      section: meta.section,
     });
   }
   return leaves;

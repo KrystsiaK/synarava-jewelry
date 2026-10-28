@@ -42,6 +42,10 @@ export type CatalogConflictField = {
    * Whole-item leaf parts — section modal matches when ANY part's section matches.
    */
   parts?: readonly import("@/lib/sync/field-registry").SyncLeafPart[] | null;
+  /**
+   * Optional thumbnail (media identity leaves). Display-only — never fingerprinted.
+   */
+  previewUrl?: string | null;
   presenceDifference?: CatalogPresenceDifference;
 };
 
