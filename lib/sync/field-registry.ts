@@ -115,7 +115,32 @@ export const PRODUCT_COMMERCE_FIELDS: readonly SyncFieldDef[] = [
   field({
     key: "media", label: "Media gallery", scope: "base", section: "media",
     ownership: "shopify", valueType: "list", normalizerId: "media-gallery",
+    // Whole-gallery adopt path; identity leaves use media.* keys below.
     windowPaths: ["media"], applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaRemoved", contractKey: "media.removed", label: "Removed photo",
+    scope: "base", section: "media", ownership: "shopify", valueType: "identity",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaAdded", contractKey: "media.added", label: "New photo",
+    scope: "base", section: "media", ownership: "shopify", valueType: "identity",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaMoved", contractKey: "media.moved", label: "Photo order",
+    scope: "base", section: "media", ownership: "shopify", valueType: "list",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaAlt", contractKey: "media.alt", label: "Photo alt",
+    scope: "base", section: "media", ownership: "shopify", valueType: "string",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
   }),
   field({
     key: "publications", label: "Publications", scope: "base", section: "essentials",

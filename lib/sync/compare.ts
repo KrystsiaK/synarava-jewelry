@@ -19,6 +19,11 @@ import {
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { CollectionPresenceDifference } from "@/lib/shopify/collection-presence";
 import {
+  buildGalleryPlanFromWindow,
+  diffGalleryByIdentity,
+  type GalleryIdentityDiff,
+} from "@/lib/shopify/gallery-plan";
+import {
   diffShopifyProjections,
   type ShopifyProjectionDiff,
 } from "@/lib/shopify/shopify-projection-diff";
@@ -31,6 +36,7 @@ import {
   WHOLE_ITEM_CONTRACT_KEY,
   contractKeyForWindowPath,
   isUnmappedWindowPath,
+  lookupContractByKey,
   lookupContractForPath,
   type SyncConflictSection,
   type SyncLeafPart,
@@ -308,6 +314,39 @@ function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, s
   };
 }
 
+function galleryIdentityLeaf(
+  resourceId: string,
+  diff: GalleryIdentityDiff,
+): SyncLeaf {
+  const contract = lookupContractByKey(diff.contractKey);
+  const keySource = diff.path;
+  return {
+    id: `PRODUCT:${resourceId}:commerce:${slugFieldKey(keySource)}`,
+    resourceType: "PRODUCT",
+    resourceId,
+    kind: "commerce",
+    locale: null,
+    fieldKey: `commerce:${slugFieldKey(keySource)}`,
+    label: diff.label,
+    synaravaValue: diff.synaravaValue,
+    shopifyValue: diff.shopifyValue,
+    allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+    blockedReason: null,
+    sourceId: null,
+    path: diff.path,
+    contractKey: diff.contractKey,
+    section: contract?.section ?? "media",
+    parts: null,
+    presenceSide: null,
+    targetKind: "NATIVE",
+    // Fingerprints cover identity only — never previewUrl.
+    localFingerprint: leafFingerprint(diff.fingerprintLocal),
+    shopifyFingerprint: leafFingerprint(diff.fingerprintShopify),
+    node: "base",
+    previewUrl: diff.previewUrl,
+  };
+}
+
 function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
   leaves: SyncLeaf[];
   uncheckedCount: number;
@@ -334,9 +373,17 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
           multiVariant: isMultiVariantCommerceWindow(window.ourWindow, window.shopifySnapshot),
         }));
       }
-      continue;
+    } else {
+      for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
     }
-    for (const diff of diffs) leaves.push(commerceLeaf(window.resourceType, window.resourceId, diff));
+    // Product media: identity leaves (independent of whole-item collapse).
+    if (window.resourceType === "PRODUCT") {
+      const ourPlan = buildGalleryPlanFromWindow(window.ourWindow);
+      const shopPlan = buildGalleryPlanFromWindow(window.shopifySnapshot);
+      for (const mediaDiff of diffGalleryByIdentity(ourPlan, shopPlan)) {
+        leaves.push(galleryIdentityLeaf(window.resourceId, mediaDiff));
+      }
+    }
   }
   return { leaves, uncheckedCount };
 }

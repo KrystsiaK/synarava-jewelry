@@ -53,10 +53,11 @@ import {
   type StagedProductMedia,
 } from "@/lib/shopify/staged-product-media";
 import {
-  rawMediaAltsFromOurWindow,
-  resolveGalleryMediaAlt,
-  ourMediaNodes,
-} from "@/lib/shopify/product-media-alt-form";
+  buildGalleryPlanFromWindow,
+  productSetFilesFromPlan,
+} from "@/lib/shopify/gallery-plan";
+import { parseLocalAssetId } from "@/lib/products/gallery";
+import { resolveGalleryMediaAlt } from "@/lib/shopify/product-media-alt-form";
 import { shopifyProductCategoryInput } from "@/lib/shopify/taxonomy-selection";
 import {
   findOnlineStorePublication,
@@ -1837,22 +1838,21 @@ export async function pushProductToShopify(
     ) {
       throw new ShopifyAdminError(MULTI_VARIANT_PUSH_BLOCKED_REASON);
     }
-    // OUR tree alts (Media tab after Pull / after local media released on Push).
-    // Must ride productSet — falling back to product.name for every image made
-    // Soleil Lemon (and siblings) show identical ALT text in admin + Shopify.
-    const treeAlts = rawMediaAltsFromOurWindow(ourWindow ?? product.extras);
-    const localAssetsById = new Map<string, LocalProductAsset & { sortIndex: number }>();
-    product.media.forEach((item, index) => {
+    // ONE gallery plan → productSet.files (gid frames keep id; pending upload).
+    // DELETED: positional tree walk + directImage URL-match (CDN ?v= re-upload bug).
+    // Create with no frames still uses product.imageUrl once (below).
+    // https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet
+    const galleryPlan = buildGalleryPlanFromWindow(ourWindow ?? product.extras);
+    const localAssetsById = new Map<string, LocalProductAsset>();
+    for (const item of product.media) {
       localAssetsById.set(item.assetId, {
         assetId: item.assetId,
         filename: item.asset.filename,
         key: item.asset.key,
         mimeType: item.asset.mimeType,
-        // Raw staging alt — resolve once when building productSet files.
         alt: item.alt ?? "",
-        sortIndex: index,
       });
-    });
+    }
     if (product.primaryAsset && !localAssetsById.has(product.primaryAsset.id)) {
       localAssetsById.set(product.primaryAsset.id, {
         assetId: product.primaryAsset.id,
@@ -1860,109 +1860,33 @@ export async function pushProductToShopify(
         key: product.primaryAsset.key,
         mimeType: product.primaryAsset.mimeType,
         alt: "",
-        sortIndex: -1,
       });
     }
-    const localAssets = [...localAssetsById.values()].sort((left, right) =>
-      left.assetId === product.primaryAssetId ? -1 : right.assetId === product.primaryAssetId ? 1 : left.sortIndex - right.sortIndex,
-    );
-    const remoteByFilename = new Map(
-      (currentRemote?.media.nodes ?? []).flatMap((item) => {
-        const filename = shopifyMediaFilename({
-          originalSourceUrl: item.originalSource?.url,
-          imageUrl: item.image?.url ?? item.preview?.image?.url,
-        });
-        return filename && item.status !== "FAILED"
-          ? [[filename, item] as const]
-          : [];
-      }),
-    );
-    const assetsToStage = localAssets.filter((asset) => !remoteByFilename.has(asset.filename));
+    const pendingAssetIds = galleryPlan.frames.flatMap((frame) => {
+      const assetId = parseLocalAssetId(frame.frameId);
+      return assetId && localAssetsById.has(assetId) ? [assetId] : [];
+    });
+    const assetsToStage = pendingAssetIds.map((assetId) => localAssetsById.get(assetId)!);
     beginStep();
     const stagedUrls = await uploadAssetsToShopifyStaging(assetsToStage);
     endStep("stagingUploadMs");
-    const seenMediaUrls = new Set<string>();
-    const seenMediaIds = new Set<string>();
-    const remoteByUrl = new Map(
-      (currentRemote?.media.nodes ?? []).flatMap((item) => item.preview?.image?.url ? [[item.preview.image.url, item] as const] : []),
-    );
-    const files: Array<{ id?: string; originalSource?: string; alt: string; filename?: string; contentType?: "IMAGE" }> = [];
-    for (const [assetIndex, asset] of localAssets.entries()) {
-      const existing = remoteByFilename.get(asset.filename);
-      const treeIndex = asset.sortIndex >= 0 ? asset.sortIndex : assetIndex;
-      const alt = resolveGalleryMediaAlt({
-        localAlt: asset.alt,
-        treeAlt: treeAlts[treeIndex],
-        remoteAlt: existing?.alt,
-      });
-      if (existing) {
-        seenMediaIds.add(existing.id);
-        files.push({ id: existing.id, alt });
-        continue;
-      }
-      const originalSource = stagedUrls.get(asset.assetId);
-      if (!originalSource) throw new ShopifyAdminError(`Shopify staging URL is missing for ${asset.filename}.`);
-      files.push({ originalSource, filename: asset.filename, contentType: "IMAGE", alt });
-    }
-    const directImage = localAssets.length ? null : shopifyImageUrl(product.imageUrl);
-    if (directImage) {
-      const existing = remoteByUrl.get(directImage);
-      const alt = resolveGalleryMediaAlt({
-        localAlt: null,
-        treeAlt: treeAlts[0],
-        remoteAlt: existing?.alt,
-      });
-      if (existing) {
-        seenMediaIds.add(existing.id);
-        files.push({ id: existing.id, alt });
-      } else {
-        seenMediaUrls.add(directImage);
-        files.push({ originalSource: directImage, contentType: "IMAGE", alt });
-      }
-    }
-    // Remaining gallery frames after local ProductMedia is released (typical post-Push /
-    // post-Pull Media tab): OUR derived window / extras.media is SoT. Include those Shopify
-    // GIDs (with tree alts) and omit remote media removed from the tree so productSet
-    // list-field semantics delete them on Shopify
-    // (https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet).
-    const remoteNodes = currentRemote?.media.nodes ?? [];
-    const remoteById = new Map(remoteNodes.map((item) => [item.id, item] as const));
-    const treeMedia = ourMediaNodes(ourWindow ?? product.extras);
-    if (treeMedia) {
-      for (const [treeIndex, node] of treeMedia.entries()) {
-        if (!node || typeof node !== "object" || Array.isArray(node)) continue;
-        const id = typeof (node as { id?: unknown }).id === "string"
-          ? (node as { id: string }).id
-          : null;
-        if (!id || !id.startsWith("gid://shopify/") || seenMediaIds.has(id)) continue;
-        const remote = remoteById.get(id);
-        const url = remote?.preview?.image?.url;
-        seenMediaIds.add(id);
-        if (url) seenMediaUrls.add(url);
-        files.push({
-          id,
-          alt: resolveGalleryMediaAlt({
-            localAlt: null,
-            treeAlt: treeAlts[treeIndex] ?? "",
-            remoteAlt: remote?.alt,
-          }),
-        });
-      }
-    } else {
-      // Legacy windows without a `media` key: keep remote frames (do not wipe).
-      for (const [remoteIndex, remote] of remoteNodes.entries()) {
-        const url = remote.preview?.image?.url;
-        if (seenMediaIds.has(remote.id) || (url && seenMediaUrls.has(url))) continue;
-        seenMediaIds.add(remote.id);
-        if (url) seenMediaUrls.add(url);
-        files.push({
-          id: remote.id,
-          alt: resolveGalleryMediaAlt({
-            localAlt: null,
-            treeAlt: treeAlts[remoteIndex] ?? "",
-            remoteAlt: remote.alt,
-          }),
-        });
+    let files = productSetFilesFromPlan(galleryPlan, (frame) => {
+      const assetId = parseLocalAssetId(frame.frameId);
+      if (!assetId) return null;
+      const asset = localAssetsById.get(assetId);
+      const originalSource = stagedUrls.get(assetId);
+      if (!asset || !originalSource) return null;
+      return { originalSource, filename: asset.filename };
+    });
+    // Create only: no frames yet → seed from product.imageUrl (never on linked Push).
+    if (files.length === 0 && !product.shopifyProductId) {
+      const createImage = shopifyImageUrl(product.imageUrl);
+      if (createImage) {
+        files = [{
+          originalSource: createImage,
+          contentType: "IMAGE",
+          alt: resolveGalleryMediaAlt({ localAlt: null, treeAlt: null, remoteAlt: null }),
+        }];
       }
     }
     const input = {
@@ -2201,7 +2125,7 @@ export async function pushProductToShopify(
     }
     endStep("variantInventoryMs");
     beginStep();
-    const mediaSettled = await waitForReadyProductMedia(remote, localAssets);
+    const mediaSettled = await waitForReadyProductMedia(remote, assetsToStage);
     endStep("mediaSettlementMs");
     // Inventory SetQuantities can lag one fetch behind; wait so agreedProjectionWrite
     // does not freeze a stale quantity into OUR/Shopify and force a second Push cycle.
