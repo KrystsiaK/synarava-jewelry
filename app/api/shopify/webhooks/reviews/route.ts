@@ -6,7 +6,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { refreshShopifyProductReviewAggregates } from "@/lib/shopify/product-reviews";
 import { claimWebhookEvent } from "@/lib/shopify/webhook-event";
-import { verifyShopifyWebhook } from "@/lib/shopify/webhooks";
+import { readShopifyWebhookId, verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
 
@@ -36,7 +36,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unexpected Shopify metaobject payload." }, { status: 400 });
   }
 
-  const webhookId = request.headers.get("x-shopify-webhook-id");
+  const webhookId = readShopifyWebhookId(request.headers.get("x-shopify-webhook-id"));
+  if (!webhookId) {
+    return NextResponse.json({ error: "Missing Shopify webhook id." }, { status: 400 });
+  }
   const topic = request.headers.get("x-shopify-topic") ?? "unknown";
   const event = await claimWebhookEvent({
     webhookId,

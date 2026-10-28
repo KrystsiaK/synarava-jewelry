@@ -17,7 +17,8 @@ export type WebhookEventClaim = { id: string };
  * duplicate deliveries without an explicit lock.
  */
 export async function claimWebhookEvent(params: {
-  webhookId: string | null;
+  /** Required — routes must 400 when `x-shopify-webhook-id` is missing (REL-003). */
+  webhookId: string;
   shopifyProductId: string | null;
   direction: SyncDirection;
   topic: string;
@@ -36,7 +37,7 @@ export async function claimWebhookEvent(params: {
       },
     });
   } catch (error) {
-    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") || !params.webhookId) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
       throw error;
     }
   }

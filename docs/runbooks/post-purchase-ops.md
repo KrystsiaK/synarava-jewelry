@@ -85,6 +85,7 @@ observability, until production confirms Order GIDs land correctly and
 | `returns/request` | `/api/shopify/webhooks/returns/request` | `shopify.returns_request` |
 
 Receipts: `ShopifyWebhookDelivery` (dedupe by Shopify webhook id). Not a second Order store.
+All Shopify webhook routes require a non-empty `x-shopify-webhook-id` and return **400** when it is missing (REL-003) — without an id, Postgres NULL uniqueness would skip reclaim and insert unbounded rows. Shopify Admin always sends this header on delivery; treat a 400 as a misconfigured sender, not a silent ack.
 
 Order id on receipts must be an Order GID / order id — never the top-level
 Return or Refund `admin_graphql_api_id`.
