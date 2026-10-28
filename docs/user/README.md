@@ -39,7 +39,9 @@ Explain the outcome and the system concept the reader needs to understand.
 
 Explain the action and why it matters.
 
-![Annotated admin screenshot](assets/example-step.png)
+Put real screenshots under `docs/user/assets/` (for example
+`assets/add-product-header.png`) and embed them with a normal markdown image
+once the file exists.
 
 ### Second step
 

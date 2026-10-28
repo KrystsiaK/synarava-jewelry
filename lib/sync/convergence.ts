@@ -1,5 +1,5 @@
 /**
- * PR-8 — Convergence postcondition after a write batch.
+ * PR-8 / STEP 7 — Convergence postcondition after a write batch.
  * Exactly ONE scoped entity waterfall via recheckEntityConflictLeaves.
  * Scoped runs never replace full-catalog checkedAt/counters (waterfall already scopes).
  */
@@ -7,7 +7,6 @@
 import "server-only";
 
 import {
-  findConflictLeaf,
   recheckEntityConflictLeaves,
   type RecheckEntityConflictLeavesInput,
 } from "./recheck-entity-leaves";
@@ -33,7 +32,7 @@ export type ConvergenceStatus =
     }
   | {
       status: "unrelated_new_leaves";
-      /** Intended addresses converged, but other leaves appeared. */
+      /** Intended addresses converged; these leaves were absent before the write. */
       newLeaves: readonly SyncLeaf[];
     };
 
@@ -41,10 +40,21 @@ function addressKey(address: Pick<IntendedConflictAddress, "entityType" | "entit
   return `${address.entityType}:${address.entityId}:${address.node}:${address.fieldKey}`;
 }
 
+/** Match intended leaf by fieldKey only — label can churn (e.g. Product data (N fields)). */
+function findLeafByFieldKey(
+  leaves: readonly SyncLeaf[],
+  fieldKey: string | null | undefined,
+): SyncLeaf | undefined {
+  const key = fieldKey?.trim();
+  if (!key) return undefined;
+  return leaves.find((leaf) => leaf.fieldKey === key);
+}
+
 /**
  * After a write batch: refresh Shopify → read Synarava → compareSyncState once.
- * Intended leaves must be gone. Unrelated new leaves are reported separately —
- * never counted as success for the intended set, and never as a silent pass.
+ * Intended leaves must be gone. Unrelated new leaves are only those that were
+ * **absent** before the write (pass `leavesBefore`) — pre-existing siblings
+ * are not "new".
  */
 export async function verifyConvergenceAfterWrite(input: {
   resourceType: RecheckEntityConflictLeavesInput["resourceType"];
@@ -52,6 +62,12 @@ export async function verifyConvergenceAfterWrite(input: {
   requestedBy: string;
   /** Conflict addresses that the write was meant to clear. */
   intended: readonly IntendedConflictAddress[];
+  /**
+   * Leaves observed immediately before the write (same entity). Required for
+   * honest `unrelated_new_leaves` — without it, every pre-existing sibling
+   * looks "new".
+   */
+  leavesBefore: readonly SyncLeaf[];
 }): Promise<ConvergenceStatus> {
   let leaves: readonly SyncLeaf[];
   try {
@@ -73,16 +89,15 @@ export async function verifyConvergenceAfterWrite(input: {
   }
 
   const intendedKeys = new Set(input.intended.map(addressKey));
+  const beforeKeys = new Set(
+    input.leavesBefore.map((leaf) => addressKey(conflictAddress(leaf))),
+  );
   const remaining: SyncLeaf[] = [];
   const remainingLabels: string[] = [];
 
   for (const intended of input.intended) {
-    const leaf = findConflictLeaf(leaves, {
-      fieldKey: intended.fieldKey,
-      label: intended.label,
-    });
+    const leaf = findLeafByFieldKey(leaves, intended.fieldKey);
     if (!leaf) continue;
-    // Whole-item / media: treat still-open matching leaf as not converged.
     remaining.push(leaf);
     remainingLabels.push(intended.label?.trim() || leaf.label);
   }
@@ -95,7 +110,12 @@ export async function verifyConvergenceAfterWrite(input: {
     };
   }
 
-  const newLeaves = leaves.filter((leaf) => !intendedKeys.has(addressKey(conflictAddress(leaf))));
+  const newLeaves = leaves.filter((leaf) => {
+    const key = addressKey(conflictAddress(leaf));
+    if (intendedKeys.has(key)) return false;
+    if (beforeKeys.has(key)) return false;
+    return true;
+  });
   if (newLeaves.length > 0 && input.intended.length > 0) {
     return { status: "unrelated_new_leaves", newLeaves };
   }
@@ -109,4 +129,26 @@ export function intendedAddressFromLeaf(leaf: SyncLeaf): IntendedConflictAddress
     ...conflictAddress(leaf),
     label: leaf.label,
   };
+}
+
+/**
+ * Map convergence status to Apply outcome. Intended clear = success even when
+ * truly-new unrelated leaves appeared (reported separately via status).
+ */
+export function convergenceApplyOutcome(
+  result: ConvergenceStatus,
+):
+  | { status: "resolved" }
+  | { status: "still-conflicting"; message: string }
+  | { status: "unverifiable"; message: string } {
+  if (result.status === "converged" || result.status === "unrelated_new_leaves") {
+    return { status: "resolved" };
+  }
+  if (result.status === "did_not_converge") {
+    return {
+      status: "still-conflicting",
+      message: `did not converge: ${result.remainingLabels.join(", ")}`,
+    };
+  }
+  return { status: "unverifiable", message: result.message };
 }

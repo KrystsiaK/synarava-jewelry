@@ -3,6 +3,10 @@
 Короткий порядок действий для ежедневной работы. Без технических терминов.
 Актуально на staging / production после 2026-10-27.
 
+Актуализировано по состоянию на 2026-10-27 (staging): двухсостоятельная
+синхронизация (Shopify copy / Synarava editable), один ConflictResolver
+(Take Shopify / Keep ours), one-entity recheck после Save.
+
 Технические детали для разработчиков: [`docs/wiki/commerce-sync.md`](../wiki/commerce-sync.md),
 помощь в админке: `/admin/help/sync-flow` (есть русская версия).
 
@@ -88,6 +92,30 @@ Shopify. На уже связанном товаре наша сторона **�
 - Решайте **не больше ~10 товаров** за один заход.
 - Смотрите превью по каждому Apply.
 - Не гоняйте параллельно несколько Push / Apply.
+
+### Техническая выжимка (staging)
+
+Единый conflict workflow. SoT конфликтов — SyncResult leaves (`compareSyncState` →
+`selectSyncCounts` / ConflictResolver). Автоматика пишет только Shopify-копию;
+контент Synarava меняет только человек после preview.
+
+- **Кнопка Shopify в верхней панели** — единственный **полный** check (раз за
+  login-сессию и по клику). После Save / Apply / Push / Pull / SKU assign —
+  **one-entity** recheck (не обновляет top-bar `checkedAt`).
+- **Show conflicts** открывает сохранённый список. Один UI — ConflictResolver.
+  Выбор стороны: **Take Shopify** (Shopify → Synarava) или **Keep ours**
+  (Synarava → Shopify); «… for all» только выделяет строки. Запись — только
+  после preview → Confirm. Whole-item commerce: карточка **Product data (N
+  fields)**. Multi-variant: Keep ours заблокирован.
+- Presence: товар только в Shopify → Pull; только в Synarava → Push / Create.
+  Массовые операции не смешивают направления в одном Apply.
+- Операционные `Product.syncStatus` / `Collection.syncStatus`: `UNLINKED`,
+  `PENDING`, `SYNCED`, `CONFLICT`, `FAILED` — **не** inventory конфликтов.
+  Состояний `LOCAL_CHANGES` / `REMOTE_CHANGES` / `REMOTE_MISSING` больше нет.
+- SKU (portable): вкладка **Inventory** → Family → Preview → Confirm assign
+  (для PENDING-\*); иначе Push (sku-api) отказан.
+- Cost / weight / origin / stock — владение Shopify; **cost на linked Push не
+  уходит**. Dirty формы — по значениям named fields, не по флагу.
 
 ---
 

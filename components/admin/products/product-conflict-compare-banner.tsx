@@ -26,6 +26,10 @@ export function ProductConflictCompareBanner({
   const localeSuffix = summary.localeLabels.length > 0
     ? ` (${summary.localeLabels.join(", ")})`
     : "";
+  const conflictWord = summary.count === 1 ? "conflict" : "conflicts";
+  const differenceWord = summary.differenceCount === 1 ? "difference" : "differences";
+  // Whole-item card says "N fields"; banner must not say "1 field" beside it.
+  const headline = `${summary.count} ${conflictWord} (${summary.differenceCount} ${differenceWord})`;
 
   return (
     <div
@@ -46,7 +50,7 @@ export function ProductConflictCompareBanner({
       >
         <AlertTriangle size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden="true" />
         <span>
-          {summary.count} field{summary.count === 1 ? "" : "s"} differ from Shopify{localeSuffix}
+          {headline} from Shopify{localeSuffix}
         </span>
       </button>
     </div>

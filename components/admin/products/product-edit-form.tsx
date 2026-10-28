@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
 
@@ -672,18 +671,14 @@ export function EditProductForm({
                     <div hidden={activeSection !== "media"}>
                       <ProductMediaManager
                         product={currentProduct}
-                        onAltPersistStart={() => {
-                          // Blur fires before a possible nav click. Accept current named
-                          // fields as baseline so leave-guard does not false-positive while
-                          // the independent alt server action is already persisting.
-                          flushSync(() => acceptCurrentFormAsBaseline());
-                        }}
                         onChange={(next) => {
                           setState({ success: "Gallery updated locally.", product: next });
                           acceptCurrentFormAsBaseline();
                           // Do not router.refresh here — it races leave-guard / remounts
                           // the editor while alt inputs are mid-edit. Server revalidatePath
                           // keeps list caches; local product state is already updated.
+                          // Gallery alts are not FormData fields — blur-save is the sole
+                          // alt path, so leave-guard no longer needs a flushSync baseline hack.
                         }}
                       />
                     </div>

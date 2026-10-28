@@ -159,8 +159,8 @@ async function drain(
 
 /**
  * Batched retention cleanup for sync audit tables (90-day default).
- * No platform cron in this deployment — call opportunistically from the
- * admin catalog check path (and optionally a one-shot script).
+ * Scheduled drain: owner Railway cron — docs/runbooks/sync-history-cleanup-railway.md (REL-010).
+ * Opportunistic one-batch call from the admin catalog check remains a supplement.
  */
 export async function cleanupSyncHistory(
   options: CleanupSyncHistoryOptions = {},

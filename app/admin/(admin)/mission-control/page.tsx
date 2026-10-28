@@ -12,6 +12,7 @@ export default async function AdminMissionControlPage() {
       nodeStatuses={snapshot.nodeStatuses}
       flowStatuses={snapshot.flowStatuses}
       nowMs={snapshot.nowMs}
+      collectorCheckedAt={snapshot.collectorCheckedAt}
       showPlaceholderNotice={snapshot.showPlaceholderNotice}
       placeholderNodeKeys={snapshot.placeholderNodeKeys}
       liveEnvironment={isProductionDeployment() ? "production" : "staging"}

@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getCollectionBySlug, getPageBySlug, getShopFilterData } from "@/lib/content/catalog";
 import { listShopCatalogPage } from "@/lib/content/shop-listing";
-import { normalizeShopSort } from "@/lib/catalog/shop-sort";
+import { parseShopListState } from "@/lib/catalog/shop-list-state";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
@@ -88,17 +88,8 @@ export default async function Page({ params, searchParams }: Props) {
   }
 
   const filters = {
-    q: rawFilters.q,
-    category: rawFilters.category,
-    productType: rawFilters.productType,
-    tag: rawFilters.tag,
-    material: rawFilters.material,
-    finish: rawFilters.finish,
-    origin: rawFilters.origin,
-    certified: rawFilters.certified,
-    availability: rawFilters.availability === "in-stock" ? "in-stock" as const : undefined,
+    ...parseShopListState(rawFilters),
     collection: collection.sourceSlug,
-    sort: normalizeShopSort(rawFilters.sort),
   };
 
   const [filterData, firstPage, collectionsPage] = await Promise.all([

@@ -39,11 +39,37 @@ import {
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
 import {
+  gateWriteConvergence,
+  type IntendedConflictAddress,
+} from "@/lib/sync";
+import {
   applyResolution,
   loadEntityConflict,
   loadSignals,
   previewResolution,
 } from "@/lib/sync/conflicts/service";
+
+/**
+ * Whole-record push/pull only intends to clear the leaves named in the
+ * fingerprint gate (commerce whole-item / applied fields). Never every
+ * pre-write leaf — Push with translations off must not require translation
+ * leaves to vanish. Empty → skip gate (gateWriteConvergence already no-ops).
+ */
+function intendedFromWholeRecordFingerprints(
+  productId: string,
+  expectedFingerprints: WholeRecordFingerprintExpectation[] | undefined,
+): IntendedConflictAddress[] {
+  if (!expectedFingerprints || expectedFingerprints.length === 0) return [];
+  return expectedFingerprints.map((item) => ({
+    entityType: "PRODUCT",
+    entityId: productId,
+    // Whole-record commerce Apply uses base; translation fingerprints are not
+    // passed on this path today. Node is unused by fieldKey-only match.
+    node: "base",
+    fieldKey: item.fieldKey,
+    label: item.fieldKey,
+  }));
+}
 
 async function assertConfiguredShopifyStore() {
   const shop = await fetchShopifyShopIdentity();
@@ -176,6 +202,10 @@ export async function pushSingleProductToShopifyAction(
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
     const wasUnlinked = before.state === "UNLINKED";
+    // Intended coverage from fingerprint expectations only — no pre-write
+    // Shopify recheck (assertWholeRecordFingerprintsFresh already refreshed
+    // when fingerprints were supplied).
+    const intended = intendedFromWholeRecordFingerprints(productId, expectedFingerprints);
     const result = await pushProductToShopify(productId, {
       authorizeCommerceConflictOverwrite,
       pushRegisteredTranslations,
@@ -185,9 +215,23 @@ export async function pushSingleProductToShopifyAction(
     if (wasUnlinked) {
       await removeCatalogPresenceDifference(productId);
     }
-    // Invalidate at the write — before scoped recheck (recheck must not gate caches).
+    // Invalidate at the write — before gate/recheck (cut mid-gate must not leave stale caches).
     revalidateStorefront();
     revalidatePath("/admin/products");
+    if (intended.length > 0) {
+      const gate = await gateWriteConvergence({
+        resourceType: "PRODUCT",
+        resourceId: productId,
+        requestedBy: session.username,
+        // Empty before-set: remaining translation siblings become
+        // unrelated_new_leaves → still success (Push did not cover them).
+        leavesBefore: [],
+        intended,
+      });
+      if (!gate.ok) {
+        return { error: gate.message, inspection: await inspectProductSyncState(productId) };
+      }
+    }
     await runAfterSaveCatalogConflictCheck(session.username, {
       kind: "product",
       productId,
@@ -234,11 +278,29 @@ export async function pullSingleProductFromShopifyAction(
     if (before.state === "REMOTE_MISSING") {
       return { error: "The linked Shopify product no longer exists.", inspection: before };
     }
+    const intended = intendedFromWholeRecordFingerprints(productId, expectedFingerprints);
     const pullResult = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, force);
-    // Invalidate at the write — before scoped recheck (recheck must not gate caches).
+    // Invalidate at the write — before gate/recheck (cut mid-gate must not leave stale caches).
     revalidateStorefront();
     revalidatePath("/admin/products");
     if (pullResult.status === "SYNCED") {
+      if (intended.length > 0) {
+        const gate = await gateWriteConvergence({
+          resourceType: "PRODUCT",
+          resourceId: productId,
+          requestedBy: session.username,
+          leavesBefore: [],
+          intended,
+        });
+        if (!gate.ok) {
+          const savedProduct = await getSavedProductPayload(productId);
+          return {
+            error: gate.message,
+            product: savedProduct,
+            inspection: await inspectProductSyncState(productId),
+          };
+        }
+      }
       await runAfterSaveCatalogConflictCheck(session.username, {
         kind: "product",
         productId,

@@ -18,6 +18,7 @@ const mocks = vi.hoisted(() => ({
   runAfterSaveCatalogConflictCheck: vi.fn(),
   revalidatePath: vi.fn(),
   revalidateStorefront: vi.fn(),
+  gateWriteConvergence: vi.fn(),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -66,6 +67,13 @@ vi.mock("@/lib/sync/conflicts/service", () => ({
   loadSignals: vi.fn(),
   previewResolution: vi.fn(),
 }));
+vi.mock("@/lib/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sync")>();
+  return {
+    ...actual,
+    gateWriteConvergence: mocks.gateWriteConvergence,
+  };
+});
 
 import { pushSingleProductToShopifyAction } from "../sync";
 
@@ -88,6 +96,7 @@ beforeEach(() => {
   mocks.getSavedProductPayload.mockResolvedValue({ id: "product-1", name: "Ring" });
   mocks.runAfterSaveCatalogConflictCheck.mockResolvedValue(undefined);
   mocks.inspectProductSyncState.mockResolvedValue({ state: "CONFLICT" });
+  mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
 });
 
 describe("pushSingleProductToShopifyAction options", () => {
@@ -115,6 +124,71 @@ describe("pushSingleProductToShopifyAction options", () => {
     expect(result.success).not.toMatch(/registered translations/i);
   });
 
+  it("write ok + remaining translation leaf is success (intended = fingerprint fields only)", async () => {
+    // Gate sees only commerce:status as intended — a leftover translation leaf
+    // must not fail Keep ours (Push does not clear translations when off).
+    mocks.gateWriteConvergence.mockImplementation(async (input: {
+      intended: Array<{ fieldKey: string }>;
+      leavesBefore: unknown[];
+    }) => {
+      expect(input.intended.map((item) => item.fieldKey)).toEqual(["commerce:status"]);
+      expect(input.leavesBefore).toEqual([]);
+      return { ok: true };
+    });
+
+    const result = await pushSingleProductToShopifyAction(
+      "product-1",
+      {
+        authorizeCommerceConflictOverwrite: true,
+        pushRegisteredTranslations: false,
+      },
+      fingerprints,
+    );
+
+    expect(result.error).toBeUndefined();
+    expect(result.success).toBeTruthy();
+    expect(mocks.gateWriteConvergence).toHaveBeenCalled();
+  });
+
+  it("gate failure still invalidates caches after a successful write", async () => {
+    mocks.gateWriteConvergence.mockResolvedValue({
+      ok: false,
+      message: "The write went through, but did not converge: Status. Nothing is marked resolved — try again.",
+    });
+
+    const result = await pushSingleProductToShopifyAction(
+      "product-1",
+      {
+        authorizeCommerceConflictOverwrite: true,
+        pushRegisteredTranslations: false,
+      },
+      fingerprints,
+    );
+
+    expect(result.error).toMatch(/did not converge/i);
+    expect(mocks.pushProductToShopify).toHaveBeenCalled();
+    expect(mocks.revalidateStorefront).toHaveBeenCalled();
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/admin/products");
+    // Gate ran after revalidate — order matters when the request is cut mid-gate.
+    const revalidateOrder = mocks.revalidateStorefront.mock.invocationCallOrder[0]!;
+    const gateOrder = mocks.gateWriteConvergence.mock.invocationCallOrder[0]!;
+    expect(revalidateOrder).toBeLessThan(gateOrder);
+  });
+
+  it("skips convergence gate when no fingerprint intent (explicit Push)", async () => {
+    mocks.inspectProductSyncState.mockResolvedValue({ state: "SYNCED" });
+
+    const result = await pushSingleProductToShopifyAction("product-1");
+
+    expect(result.error).toBeUndefined();
+    expect(mocks.gateWriteConvergence).not.toHaveBeenCalled();
+    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("product-1", {
+      authorizeCommerceConflictOverwrite: false,
+      pushRegisteredTranslations: true,
+    });
+    expect(result.success).toMatch(/registered translations/i);
+  });
+
   it("blocks push when conflict overwrite is not authorized", async () => {
     const result = await pushSingleProductToShopifyAction("product-1", {
       authorizeCommerceConflictOverwrite: false,
@@ -125,18 +199,5 @@ describe("pushSingleProductToShopifyAction options", () => {
       error: "Shopify has newer changes. Review the conflict before pushing.",
     });
     expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
-  });
-
-  it("explicit full Push still requests registered translation writes", async () => {
-    mocks.inspectProductSyncState.mockResolvedValue({ state: "SYNCED" });
-
-    const result = await pushSingleProductToShopifyAction("product-1");
-
-    expect(result.error).toBeUndefined();
-    expect(mocks.pushProductToShopify).toHaveBeenCalledWith("product-1", {
-      authorizeCommerceConflictOverwrite: false,
-      pushRegisteredTranslations: true,
-    });
-    expect(result.success).toMatch(/registered translations/i);
   });
 });

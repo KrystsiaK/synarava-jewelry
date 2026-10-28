@@ -178,6 +178,12 @@ export {
 } from "@/components/admin/shared/admin-ordered-list";
 
 export {
+  AdminMediaGallery,
+  type AdminMediaGalleryItem,
+  type AdminMediaGalleryProps,
+} from "@/components/admin/shared/admin-media-gallery";
+
+export {
   OwnershipLabel,
   type AdminFieldOwner,
 } from "@/components/admin/shared/ownership-label";

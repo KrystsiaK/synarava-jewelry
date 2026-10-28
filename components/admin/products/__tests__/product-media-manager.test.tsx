@@ -1,4 +1,4 @@
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,20 +6,16 @@ import type { ProductRecord } from "@/components/admin/products/product-types";
 
 const mocks = vi.hoisted(() => ({
   updateProductMediaAltAction: vi.fn(),
-  updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
   removeProductMediaAction: vi.fn(),
-  removeWorkingSnapshotMediaAction: vi.fn(),
   setPrimaryProductMediaAction: vi.fn(),
   pushToast: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/products", () => ({
   updateProductMediaAltAction: mocks.updateProductMediaAltAction,
-  updateWorkingSnapshotMediaAltAction: mocks.updateWorkingSnapshotMediaAltAction,
   moveProductMediaAction: mocks.moveProductMediaAction,
   removeProductMediaAction: mocks.removeProductMediaAction,
-  removeWorkingSnapshotMediaAction: mocks.removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
 }));
 
@@ -87,86 +83,40 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe("ProductMediaManager alt editing", () => {
-  it("emits unique media-alt FormData names for each local gallery image", () => {
+describe("ProductMediaManager unified gallery", () => {
+  it("shows Shopify frames and pending local upload in one list (no dual modes)", () => {
     render(
       <ProductMediaManager
         product={makeProduct({
           media: [
             {
-              id: "media-1",
-              assetId: "asset-1",
-              kind: "PRIMARY",
-              alt: "Front",
-              caption: null,
-              sortOrder: 0,
-              url: "/media/1.jpg",
-              width: 800,
-              height: 800,
-            },
-            {
-              id: "media-2",
-              assetId: "asset-2",
+              id: "media-new",
+              assetId: "asset-new",
               kind: "GALLERY",
-              alt: "Side",
-              caption: null,
-              sortOrder: 1,
-              url: "/media/2.jpg",
-              width: 800,
-              height: 800,
-            },
-            {
-              id: "media-3",
-              assetId: "asset-3",
-              kind: "GALLERY",
-              alt: "Detail",
+              alt: null,
               caption: null,
               sortOrder: 2,
-              url: "/media/3.jpg",
-              width: 800,
-              height: 800,
+              url: "/media/new.webp",
+              width: 640,
+              height: 640,
             },
           ],
-        })}
-        onChange={vi.fn()}
-      />,
-    );
-
-    const inputs = screen.getAllByRole("textbox", { name: /Alt text/i });
-    expect(inputs).toHaveLength(3);
-    expect(inputs.map((input) => (input as HTMLInputElement).name)).toEqual([
-      "media-alt-media-1",
-      "media-alt-media-2",
-      "media-alt-media-3",
-    ]);
-    expect(inputs.map((input) => (input as HTMLInputElement).value)).toEqual([
-      "Front",
-      "Side",
-      "Detail",
-    ]);
-  });
-
-  it("emits unique media-alt-tree FormData names for OUR tree frames", () => {
-    render(
-      <ProductMediaManager
-        product={makeProduct({
-          media: [],
           extras: {
             media: [
               {
-                id: "gid://1",
+                id: "gid://shopify/MediaImage/1",
                 alt: "Front",
                 preview: { image: { url: "https://cdn.example/1.jpg", width: 800, height: 800 } },
               },
               {
-                id: "gid://2",
+                id: "gid://shopify/MediaImage/2",
                 alt: "Side",
                 preview: { image: { url: "https://cdn.example/2.jpg", width: 800, height: 800 } },
               },
               {
-                id: "gid://3",
-                alt: "Detail",
-                preview: { image: { url: "https://cdn.example/3.jpg", width: 800, height: 800 } },
+                id: "local:asset-new",
+                alt: "",
+                preview: { image: { url: "/media/new.webp", width: 640, height: 640 } },
               },
             ],
           },
@@ -175,22 +125,13 @@ describe("ProductMediaManager alt editing", () => {
       />,
     );
 
-    const inputs = screen.getAllByRole("textbox", { name: /Alt text/i });
-    expect(inputs).toHaveLength(3);
-    expect(inputs.map((input) => (input as HTMLInputElement).name)).toEqual([
-      "media-alt-tree-0",
-      "media-alt-tree-1",
-      "media-alt-tree-2",
-    ]);
-    expect(inputs.map((input) => (input as HTMLInputElement).value)).toEqual([
-      "Front",
-      "Side",
-      "Detail",
-    ]);
+    expect(screen.getByText("Will upload")).toBeInTheDocument();
+    expect(screen.getAllByRole("textbox", { name: /Alt text/i })).toHaveLength(3);
+    expect(screen.queryByText(/Legacy cover image/i)).not.toBeInTheDocument();
   });
 
-  it("blur-saves only the edited tree index with its own alt", async () => {
-    mocks.updateWorkingSnapshotMediaAltAction.mockResolvedValue({
+  it("blur-saves alt by frame id (not array index)", async () => {
+    mocks.updateProductMediaAltAction.mockResolvedValue({
       success: "Image alt text updated.",
       product: makeProduct({ media: [] }),
     });
@@ -202,12 +143,12 @@ describe("ProductMediaManager alt editing", () => {
           extras: {
             media: [
               {
-                id: "gid://1",
+                id: "gid://shopify/MediaImage/1",
                 alt: "Soleil Lemon Bag Charm",
                 preview: { image: { url: "https://cdn.example/1.jpg", width: 800, height: 800 } },
               },
               {
-                id: "gid://2",
+                id: "gid://shopify/MediaImage/2",
                 alt: "Soleil Lemon Bag Charm",
                 preview: { image: { url: "https://cdn.example/2.jpg", width: 800, height: 800 } },
               },
@@ -223,16 +164,15 @@ describe("ProductMediaManager alt editing", () => {
     await user.type(inputs[1], "Lemon charm, side");
     await user.tab();
 
-    expect(mocks.updateWorkingSnapshotMediaAltAction).toHaveBeenCalledWith(
+    expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith(
       "product-1",
-      1,
+      "gid://shopify/MediaImage/2",
       "Lemon charm, side",
     );
-    expect(mocks.updateProductMediaAltAction).not.toHaveBeenCalled();
   });
 
-  it("removes a tree gallery frame by index after Pull", async () => {
-    mocks.removeWorkingSnapshotMediaAction.mockResolvedValue({
+  it("removes a tree gallery frame by frame id", async () => {
+    mocks.removeProductMediaAction.mockResolvedValue({
       success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
       product: makeProduct({ media: [] }),
     });
@@ -264,13 +204,14 @@ describe("ProductMediaManager alt editing", () => {
     expect(removeButtons).toHaveLength(2);
     await user.click(removeButtons[1]);
 
-    expect(mocks.removeWorkingSnapshotMediaAction).toHaveBeenCalledWith("product-1", 1);
-    expect(mocks.removeProductMediaAction).not.toHaveBeenCalled();
+    expect(mocks.removeProductMediaAction).toHaveBeenCalledWith(
+      "product-1",
+      "gid://shopify/MediaImage/2",
+    );
   });
 
-  it("asks for confirmation before removing the last tree gallery frame", async () => {
-    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
-    mocks.removeWorkingSnapshotMediaAction.mockResolvedValue({
+  it("confirms before removing the last gallery frame via AdminConfirmModal", async () => {
+    mocks.removeProductMediaAction.mockResolvedValue({
       success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
       product: makeProduct({ media: [] }),
     });
@@ -294,12 +235,16 @@ describe("ProductMediaManager alt editing", () => {
     );
 
     await user.click(screen.getByRole("button", { name: "Remove" }));
-    expect(confirmSpy).toHaveBeenCalled();
-    expect(mocks.removeWorkingSnapshotMediaAction).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
+    expect(mocks.removeProductMediaAction).not.toHaveBeenCalled();
+    expect(screen.getByRole("heading", { name: /Remove last gallery image/i })).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Remove image" }));
+    expect(mocks.removeProductMediaAction).toHaveBeenCalledWith(
+      "product-1",
+      "gid://shopify/MediaImage/1",
+    );
   });
 
-  it("keeps alt editable while blur-save is in flight and does not remount on alt update", async () => {
+  it("exposes accessible names on move controls and keeps alt editable during blur-save", async () => {
     let resolveSave: ((value: unknown) => void) | undefined;
     mocks.updateProductMediaAltAction.mockImplementation(
       () =>
@@ -310,22 +255,24 @@ describe("ProductMediaManager alt editing", () => {
 
     const user = userEvent.setup();
     const onChange = vi.fn();
-    const onAltPersistStart = vi.fn();
     const { rerender } = render(
-      <ProductMediaManager
-        product={makeProduct()}
-        onChange={onChange}
-        onAltPersistStart={onAltPersistStart}
-      />,
+      <ProductMediaManager product={makeProduct()} onChange={onChange} />,
     );
+
+    expect(screen.getByRole("button", { name: "Move left" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Move right" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove" })).toBeEnabled();
 
     const alt = screen.getByRole("textbox", { name: /Alt text/i });
     await user.clear(alt);
     await user.type(alt, "Lava ring, front");
     await user.tab();
 
-    expect(onAltPersistStart).toHaveBeenCalledTimes(1);
-    expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith("media-1", "Lava ring, front");
+    expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith(
+      "product-1",
+      "local:asset-1",
+      "Lava ring, front",
+    );
     expect(screen.getByRole("textbox", { name: /Alt text/i })).not.toBeDisabled();
 
     const nextProduct = makeProduct({
@@ -342,23 +289,33 @@ describe("ProductMediaManager alt editing", () => {
           height: 800,
         },
       ],
+      extras: {
+        media: [
+          {
+            id: "local:asset-1",
+            alt: "Lava ring, front",
+            preview: { image: { url: "/media/lava.jpg", width: 800, height: 800 } },
+          },
+        ],
+      },
     });
 
     await act(async () => {
       resolveSave?.({ success: "Image alt text updated.", product: nextProduct });
     });
 
-    rerender(
-      <ProductMediaManager
-        product={nextProduct}
-        onChange={onChange}
-        onAltPersistStart={onAltPersistStart}
-      />,
-    );
+    rerender(<ProductMediaManager product={nextProduct} onChange={onChange} />);
 
     const afterSave = screen.getByRole("textbox", { name: /Alt text/i });
     expect(afterSave).not.toBeDisabled();
     expect(afterSave).toHaveValue("Lava ring, front");
     expect(onChange).toHaveBeenCalledWith(nextProduct);
+  });
+
+  it("Add images control is keyboard-focusable via the file input", () => {
+    render(<ProductMediaManager product={makeProduct({ media: [] })} onChange={vi.fn()} />);
+    const add = screen.getByLabelText(/Add images/i);
+    expect(add).toHaveAttribute("type", "file");
+    expect(within(add.closest("label")!).getByText(/Add images/i)).toBeInTheDocument();
   });
 });

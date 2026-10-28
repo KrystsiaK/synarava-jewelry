@@ -341,9 +341,11 @@ export async function applyCollectionConflictResolution({
       const outcome = await applyCollectionCommerceField({
         collectionId: input.collectionId,
         label: field.label,
+        fieldKey: field.fieldKey,
         direction: input.direction,
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+        requestedBy: actorUsername,
       });
       results.push(
         outcome.ok

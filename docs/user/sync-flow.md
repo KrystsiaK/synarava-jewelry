@@ -111,8 +111,9 @@ product; sync is not a substitute for Save.
 
 ### Assign a SKU (explicit family, immutable ledger)
 
-When the portable SKU service is configured, Inventory shows **Family →
-Preview → Confirm** (or **Resume** for a pending reservation):
+When the portable SKU service is configured, the **Inventory** tab (Push gate
+copy: “Stock tab”) shows **Family → Preview → Confirm assign** (or **Resume**
+for a pending reservation). PENDING-\* must finish that path before Push:
 
 - You must **choose a family** yourself. Nothing is pre-selected.
 - Preview and Confirm stay disabled until a family is chosen.
@@ -123,6 +124,16 @@ Preview → Confirm** (or **Resume** for a pending reservation):
 
 If SKU assignment is not configured for this environment, you still type the
 SKU field manually before Create in Shopify.
+
+**Cost** is Shopify-owned: linked Keep ours / Push never sends unit cost.
+**Multi-variant** products block Keep ours on the whole-item **Product data
+(N fields)** card — Take Shopify still works.
+
+**Photos (Media):** each difference is its own row — removed photo, new photo,
+order change, or alt text. **Take Shopify** puts Shopify’s photo back / drops
+your new one / uses Shopify order or alt. **Keep ours** deletes the Shopify
+photo on Push / uploads your new one / keeps your order or alt. A CDN link
+change on the same Shopify photo is not a conflict.
 
 ### Remove an item with care
 

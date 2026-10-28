@@ -2,6 +2,7 @@ import type { SavedProductPayload } from "@/app/admin/actions/products";
 import type { SavedTagPayload } from "@/app/admin/actions/tags";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 import type { AdminProductListPage } from "@/lib/admin/list-products-shared";
+import type { AdminProductsListState } from "@/lib/admin/products-list-state";
 
 export type CategoryOption = { slug: string; name: string };
 export type TagOption = SavedTagPayload;
@@ -22,6 +23,8 @@ export type ProductCmsProps = {
   tags: TagOption[];
   collections: CollectionOption[];
   initialConflictSignals: CatalogConflictSignals;
+  /** SSR-parsed list filters (same schema as the client hook). */
+  initialListState: AdminProductsListState;
 };
 
 export type ProductDraft = {

@@ -11,10 +11,8 @@ const mocks = vi.hoisted(() => ({
   getSavedProductPayload: vi.fn(),
   getShopifyCategoryAttributesAction: vi.fn(),
   updateProductMediaAltAction: vi.fn(),
-  updateWorkingSnapshotMediaAltAction: vi.fn(),
   moveProductMediaAction: vi.fn(),
   removeProductMediaAction: vi.fn(),
-  removeWorkingSnapshotMediaAction: vi.fn(),
   setPrimaryProductMediaAction: vi.fn(),
   refreshPreservingScroll: vi.fn(),
   loadSkuAssignContext: vi.fn(),
@@ -28,10 +26,8 @@ vi.mock("@/app/admin/actions/products", () => ({
   deleteProductAction: mocks.deleteProductAction,
   getSavedProductPayload: mocks.getSavedProductPayload,
   updateProductMediaAltAction: mocks.updateProductMediaAltAction,
-  updateWorkingSnapshotMediaAltAction: mocks.updateWorkingSnapshotMediaAltAction,
   moveProductMediaAction: mocks.moveProductMediaAction,
   removeProductMediaAction: mocks.removeProductMediaAction,
-  removeWorkingSnapshotMediaAction: mocks.removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
 }));
 
@@ -563,14 +559,19 @@ describe("EditProductForm", () => {
     expect(screen.getByRole("tab", { name: "Português" })).toBeInTheDocument();
   });
 
-  it("shows the legacy cover image on Media when the gallery is empty", async () => {
+  it("shows empty gallery copy on Media when there are no frames", async () => {
     const user = userEvent.setup();
-    render(<EditProductForm product={makeProduct({ imageUrl: "/media/lava.jpg", media: [] })} collections={[]} />);
+    render(
+      <EditProductForm
+        product={makeProduct({ imageUrl: "/media/lava.jpg", media: [], extras: null, shopifySnapshot: null })}
+        collections={[]}
+      />,
+    );
     await act(async () => {});
 
     await user.click(screen.getByRole("tab", { name: /Media/ }));
-    expect(screen.getByAltText("Lava Ring")).toHaveAttribute("src", expect.stringContaining("lava.jpg"));
-    expect(screen.getByText(/Legacy cover image/i)).toBeInTheDocument();
+    expect(screen.getByText(/No gallery images yet/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Legacy cover image/i)).not.toBeInTheDocument();
   });
 
   it("marks a section dirty when a named field changes, and clears when reverted", async () => {
@@ -723,11 +724,16 @@ describe("EditProductForm", () => {
     await user.tab();
 
     await waitFor(() => {
-      expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith("media-1", "Lava ring, front");
+      expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith(
+        galleryProduct.id,
+        "local:asset-1",
+        "Lava ring, front",
+      );
     });
     expect(screen.getByRole("textbox", { name: /Alt text/i })).not.toBeDisabled();
     expect(mocks.refreshPreservingScroll).not.toHaveBeenCalled();
 
+    // Alt is not a FormData field — blur-save alone must clear leave-guard dirty.
     await user.click(screen.getByRole("link", { name: "Back to products" }));
     expect(screen.queryByRole("heading", { name: "Unsaved product changes" })).not.toBeInTheDocument();
 
@@ -738,49 +744,38 @@ describe("EditProductForm", () => {
       expect(mocks.saveProductAction).toHaveBeenCalled();
     });
     const formData = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
-    expect(formData.get("media-alt-media-1")).toBe("Lava ring, front");
+    expect(formData.get("media-alt-media-1")).toBeNull();
   });
 
-  it("submits distinct media-alt values for every gallery image on product Save", async () => {
+  it("blur-saves distinct alts by frame id without media-alt FormData on Save", async () => {
     const galleryProduct = makeProduct({
       name: "Soleil Lemon Bag Charm",
       imageUrl: "/media/1.jpg",
       primaryAssetId: "asset-1",
-      media: [
-        {
-          id: "media-1",
-          assetId: "asset-1",
-          kind: "PRIMARY",
-          alt: "Soleil Lemon Bag Charm",
-          caption: null,
-          sortOrder: 0,
-          url: "/media/1.jpg",
-          width: 800,
-          height: 800,
-        },
-        {
-          id: "media-2",
-          assetId: "asset-2",
-          kind: "GALLERY",
-          alt: "Soleil Lemon Bag Charm",
-          caption: null,
-          sortOrder: 1,
-          url: "/media/2.jpg",
-          width: 800,
-          height: 800,
-        },
-        {
-          id: "media-3",
-          assetId: "asset-3",
-          kind: "GALLERY",
-          alt: "Soleil Lemon Bag Charm",
-          caption: null,
-          sortOrder: 2,
-          url: "/media/3.jpg",
-          width: 800,
-          height: 800,
-        },
-      ],
+      media: [],
+      extras: {
+        media: [
+          {
+            id: "gid://shopify/MediaImage/1",
+            alt: "Soleil Lemon Bag Charm",
+            preview: { image: { url: "/media/1.jpg", width: 800, height: 800 } },
+          },
+          {
+            id: "gid://shopify/MediaImage/2",
+            alt: "Soleil Lemon Bag Charm",
+            preview: { image: { url: "/media/2.jpg", width: 800, height: 800 } },
+          },
+          {
+            id: "gid://shopify/MediaImage/3",
+            alt: "Soleil Lemon Bag Charm",
+            preview: { image: { url: "/media/3.jpg", width: 800, height: 800 } },
+          },
+        ],
+      },
+    });
+    mocks.updateProductMediaAltAction.mockResolvedValue({
+      success: "Image alt text updated.",
+      product: galleryProduct,
     });
     mocks.saveProductAction.mockResolvedValue({
       success: "Product saved.",
@@ -800,10 +795,20 @@ describe("EditProductForm", () => {
       "Lemon charm, side with pearls",
       "Lemon charm, detail aventurine",
     ];
-    // Set values without blur-save races — Save FormData must still carry each distinct alt.
     for (let index = 0; index < inputs.length; index += 1) {
-      fireEvent.change(inputs[index], { target: { value: distinct[index] } });
+      await user.clear(inputs[index]);
+      await user.type(inputs[index], distinct[index]);
+      await user.tab();
     }
+
+    await waitFor(() => {
+      expect(mocks.updateProductMediaAltAction).toHaveBeenCalledWith(
+        galleryProduct.id,
+        "gid://shopify/MediaImage/3",
+        distinct[2],
+      );
+    });
+    expect(mocks.updateProductMediaAltAction).toHaveBeenCalledTimes(3);
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
     await user.click(await screen.findByRole("button", { name: "Yes, save changes" }));
@@ -812,8 +817,6 @@ describe("EditProductForm", () => {
       expect(mocks.saveProductAction).toHaveBeenCalled();
     });
     const formData = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
-    expect(formData.get("media-alt-media-1")).toBe(distinct[0]);
-    expect(formData.get("media-alt-media-2")).toBe(distinct[1]);
-    expect(formData.get("media-alt-media-3")).toBe(distinct[2]);
+    expect([...formData.keys()].filter((key) => key.startsWith("media-alt-"))).toEqual([]);
   });
 });

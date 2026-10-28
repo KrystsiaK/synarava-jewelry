@@ -32,7 +32,16 @@ const meta = {
   component: MissionControlHub,
   parameters: { layout: "fullscreen" },
   decorators: [(Story) => <div className="admin-terminal !block h-dvh"><Story /></div>],
-  args: { nowMs: NOW.getTime(), catalog: MISSION_CONTROL_NODE_CATALOG, config: fullConfig, nodeStatuses: mixedStatuses, flowStatuses: flows, showPlaceholderNotice: true, liveEnvironment: "staging" },
+  args: {
+    nowMs: NOW.getTime(),
+    catalog: MISSION_CONTROL_NODE_CATALOG,
+    config: fullConfig,
+    nodeStatuses: mixedStatuses,
+    flowStatuses: flows,
+    collectorCheckedAt: NOW,
+    showPlaceholderNotice: true,
+    liveEnvironment: "staging",
+  },
 } satisfies Meta<typeof MissionControlHub>;
 
 export default meta;
@@ -68,8 +77,23 @@ export const FullArchitectureMap: Story = {};
 export const SingleGroup: Story = { args: { config: appConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => appConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
 export const TwelvePlusNodes: Story = { args: { config: twelveConfig, catalog: MISSION_CONTROL_NODE_CATALOG.filter((node) => twelveConfig.nodes.some((item) => item.widgetKey === node.widgetKey)) } };
 export const VeryLongHint: Story = { args: { config: { ...fullConfig, nodes: fullConfig.nodes.map((node) => node.widgetKey === "shopify-sync" ? { ...node, fixHint: "This deliberately long hint proves remediation copy remains in the operations ledger and never stretches a map node. Check the upstream hand-off, compare the expected and observed payload, and document the first broken boundary before proposing a change." } : node) } } };
-export const StaleCollector: Story = { args: { nodeStatuses: mixedStatuses.map((item) => ({ ...item, checkedAt: new Date(NOW.getTime() - 3_600_000) })) } };
-export const AllOk: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "ok")) } };
-export const AllDown: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "down")) } };
+export const StaleCollector: Story = {
+  args: {
+    collectorCheckedAt: new Date(NOW.getTime() - 3_600_000),
+    nodeStatuses: liveKeys.map((key) => status(key, "ok")),
+  },
+};
+export const MissingCollector: Story = {
+  args: {
+    collectorCheckedAt: null,
+    nodeStatuses: liveKeys.map((key) => status(key, "ok")),
+  },
+};
+export const AllOk: Story = {
+  args: {
+    collectorCheckedAt: NOW,
+    nodeStatuses: liveKeys.map((key) => status(key, "ok")),
+  },
+};export const AllDown: Story = { args: { nodeStatuses: liveKeys.map((key) => status(key, "down")) } };
 export const ProductionView: Story = { args: { liveEnvironment: "production" } };
 export const InspectorPanel: Story = { play: async ({ canvasElement }) => { canvasElement.querySelector<HTMLElement>("[data-testid='mc-node-site-health']")?.click(); } };

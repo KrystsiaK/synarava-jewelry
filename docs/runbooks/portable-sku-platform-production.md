@@ -207,4 +207,4 @@ a `LEGACY_V0` exception. Policy v1 applies only to newly allocated SKU values.
 ## Related
 
 - Staging n8n ops: [`sku-catalog-audit-staging.md`](sku-catalog-audit-staging.md)
-- Current status: [`docs/wiki/portable-sku-current-status.md`](../wiki/portable-sku-current-status.md)
+- Current status: [`docs/runbooks/portable-sku-current-status.md`](portable-sku-current-status.md)
