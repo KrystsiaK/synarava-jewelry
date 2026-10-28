@@ -142,7 +142,11 @@ describe("sku-api http", () => {
       credentials: [credential],
       ready: () => true,
       preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
-      postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      // Wide window so wall-clock minute rollover cannot reset mid-test (CI flake).
+      postAuthRateLimiter: createFixedWindowRateLimiter({
+        limitPerMinute: 1,
+        windowMs: 3_600_000,
+      }),
     });
     await new Promise<void>((resolve) => {
       limitedServer.listen(0, "127.0.0.1", () => resolve());
@@ -180,7 +184,10 @@ describe("sku-api http", () => {
       store,
       credentials: [credential],
       ready: () => true,
-      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      preAuthRateLimiter: createFixedWindowRateLimiter({
+        limitPerMinute: 1,
+        windowMs: 3_600_000,
+      }),
       postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
     });
     await new Promise<void>((resolve) => {
@@ -225,7 +232,10 @@ describe("sku-api http", () => {
       store,
       credentials: [credential],
       ready: () => true,
-      preAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 1 }),
+      preAuthRateLimiter: createFixedWindowRateLimiter({
+        limitPerMinute: 1,
+        windowMs: 3_600_000,
+      }),
       postAuthRateLimiter: createFixedWindowRateLimiter({ limitPerMinute: 100 }),
     });
     await new Promise<void>((resolve) => {
