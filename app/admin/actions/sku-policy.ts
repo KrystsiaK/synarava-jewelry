@@ -1,6 +1,8 @@
 "use server";
 
 import { randomUUID } from "node:crypto";
+
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { tryCreateSkuClient } from "@/lib/sku/client";
 import { getSkuServiceConfig } from "@/lib/sku/config";
 
@@ -40,6 +42,7 @@ export type SkuPolicyActionState = {
 };
 
 export async function loadSkuPolicyEditorPayload(): Promise<SkuPolicyEditorPayload> {
+  await requireAdminSession("/admin/settings");
   const config = getSkuServiceConfig();
   if (!config.configured) {
     return {
@@ -112,6 +115,7 @@ export async function saveSkuPolicyDraftAction(input: {
   allowedCharacters: string;
   familiesJson: string;
 }): Promise<SkuPolicyActionState> {
+  await requireAdminSession("/admin/settings");
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };
@@ -142,6 +146,7 @@ export async function saveSkuPolicyDraftAction(input: {
 export async function publishSkuPolicyAction(
   version: number,
 ): Promise<SkuPolicyActionState> {
+  await requireAdminSession("/admin/settings");
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };

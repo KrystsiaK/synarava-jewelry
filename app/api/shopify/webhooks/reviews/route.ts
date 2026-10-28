@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { env } from "@/lib/env";
 import { refreshShopifyProductReviewAggregates } from "@/lib/shopify/product-reviews";
 import { claimWebhookEvent } from "@/lib/shopify/webhook-event";
+import { parseShopifyWebhookJson } from "@/lib/shopify/webhook-json";
 import { readShopifyWebhookId, verifyShopifyWebhook } from "@/lib/shopify/webhooks";
 
 export const runtime = "nodejs";
@@ -28,7 +29,7 @@ export async function POST(request: Request) {
 
   let payload: ProductReviewWebhook;
   try {
-    payload = JSON.parse(rawBody) as ProductReviewWebhook;
+    payload = parseShopifyWebhookJson(rawBody) as ProductReviewWebhook;
   } catch {
     return NextResponse.json({ error: "Invalid webhook payload." }, { status: 400 });
   }

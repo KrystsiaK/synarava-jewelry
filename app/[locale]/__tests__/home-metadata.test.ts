@@ -101,4 +101,44 @@ describe("Home generateMetadata — localized seoTitle / og:title", () => {
     expect(metadata.openGraph?.title).toBe(HOME_SEO_TITLE_BY_LOCALE.en);
     expect(metadata.description).toBe("Meta description only.");
   });
+
+  it("falls back to site SEO description when page SEO/excerpt empty (SEO-ADV-001)", async () => {
+    mocks.getServerTranslations.mockResolvedValue({
+      locale: "en",
+      t: (key: string) =>
+        key === "home.metaTitle" ? HOME_SEO_TITLE_BY_LOCALE.en : key,
+    });
+    mocks.getPageBySlug.mockResolvedValue({
+      slug: "home",
+      title: "TODAY, THIS.",
+      excerpt: null,
+      seoTitle: null,
+      seoDescription: null,
+      content: {},
+    });
+
+    const metadata = await generateMetadata();
+    expect(metadata.description).toBe(SITE_SEO_DEFAULTS.description);
+    expect(metadata.openGraph?.description).toBe(SITE_SEO_DEFAULTS.description);
+  });
+
+  it("uses PT home.metaTitle when page seoTitle is empty (SEO-ADV-002)", async () => {
+    mocks.getServerTranslations.mockResolvedValue({
+      locale: "pt",
+      t: (key: string) =>
+        key === "home.metaTitle" ? HOME_SEO_TITLE_BY_LOCALE.pt : key,
+    });
+    mocks.getPageBySlug.mockResolvedValue({
+      slug: "home",
+      title: "TODAY, THIS.",
+      excerpt: null,
+      seoTitle: null,
+      seoDescription: null,
+      content: {},
+    });
+
+    const metadata = await generateMetadata();
+    expect(metadata.title).toEqual({ absolute: HOME_SEO_TITLE_BY_LOCALE.pt });
+    expect(metadata.openGraph?.title).toBe(HOME_SEO_TITLE_BY_LOCALE.pt);
+  });
 });

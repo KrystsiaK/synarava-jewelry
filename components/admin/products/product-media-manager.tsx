@@ -15,43 +15,29 @@ import {
   AdminMediaGallery,
   type AdminMediaGalleryItem,
 } from "@/components/synarava-cms";
-import {
-  galleryFrameId,
-  galleryFramePreviewUrl,
-  parseLocalAssetId,
-  readGalleryFrames,
-  seedFramesFromLocalRows,
-  validateGalleryUploadFile,
-} from "@/lib/products/gallery";
+import { validateGalleryUploadFile } from "@/lib/products/gallery";
+import { buildGalleryPlan } from "@/lib/shopify/gallery-plan";
 
 function unifiedGalleryItems(product: ProductRecord): AdminMediaGalleryItem[] {
-  const tree = readGalleryFrames(product.extras, product.shopifySnapshot);
-  const frames =
-    tree.length > 0
-      ? tree
-      : seedFramesFromLocalRows(
-          (product.media ?? []).map((item) => ({
-            assetId: item.assetId,
-            alt: item.alt,
-            url: item.url,
-            width: item.width,
-            height: item.height,
-          })),
-        );
+  const plan = buildGalleryPlan({
+    extras: product.extras,
+    shopifySnapshot: product.shopifySnapshot,
+    media: (product.media ?? []).map((item) => ({
+      assetId: item.assetId,
+      alt: item.alt,
+      url: item.url,
+      width: item.width,
+      height: item.height,
+    })),
+  });
 
-  return frames.flatMap((node) => {
-    const id = galleryFrameId(node);
-    const url = galleryFramePreviewUrl(node);
-    if (!id || !url) return [];
-    const alt =
-      node && typeof node === "object" && !Array.isArray(node) && typeof (node as { alt?: unknown }).alt === "string"
-        ? (node as { alt: string }).alt
-        : "";
+  return plan.frames.flatMap((frame) => {
+    if (!frame.previewUrl) return [];
     return [{
-      id,
-      url,
-      alt,
-      pendingUpload: Boolean(parseLocalAssetId(id)),
+      id: frame.frameId,
+      url: frame.previewUrl,
+      alt: frame.alt,
+      pendingUpload: frame.source === "pending-upload",
     }];
   });
 }

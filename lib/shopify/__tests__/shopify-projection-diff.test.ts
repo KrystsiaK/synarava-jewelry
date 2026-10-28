@@ -35,7 +35,6 @@ describe("canonicalizeShopifyProjection", () => {
         {
           filename: "a.jpg",
           alt: "Front",
-          position: 0,
           id: "m1",
           preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
         },
@@ -230,8 +229,8 @@ describe("diffShopifyProjections", () => {
     expect(diffs).toEqual([]);
   });
 
-  it("different filename → one part at the image position", () => {
-    const diffs = diffShopifyProjections(
+  it("media lists are skipped by walkDiff (identity compare owns gallery)", () => {
+    const filenameDiff = diffShopifyProjections(
       {
         media: [{
           id: "m1",
@@ -247,18 +246,7 @@ describe("diffShopifyProjections", () => {
         }],
       },
     );
-    expect(diffs).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1",
-        local: "a.jpg (Front)",
-        shopify: "b.jpg (Front)",
-      },
-    ]);
-  });
-
-  it("alt change → one part at the image position", () => {
-    const diffs = diffShopifyProjections(
+    const altDiff = diffShopifyProjections(
       {
         media: [{
           id: "m1",
@@ -274,18 +262,7 @@ describe("diffShopifyProjections", () => {
         }],
       },
     );
-    expect(diffs).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1",
-        local: "a.jpg (Front)",
-        shopify: "a.jpg (Side)",
-      },
-    ]);
-  });
-
-  it("order change → one part per affected image position (not subfields)", () => {
-    const diffs = diffShopifyProjections(
+    const orderDiff = diffShopifyProjections(
       {
         media: [
           { id: "m1", alt: "A", preview: { image: { url: "https://cdn.shopify.com/a.jpg" } } },
@@ -299,24 +276,6 @@ describe("diffShopifyProjections", () => {
         ],
       },
     );
-    expect(diffs).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1",
-        local: "a.jpg (A)",
-        shopify: "b.jpg (B)",
-      },
-      {
-        path: "media[1]",
-        field: "Image 2",
-        local: "b.jpg (B)",
-        shopify: "a.jpg (A)",
-      },
-    ]);
-    expect(diffs.every((d) => /^media\[\d+\]$/.test(d.path))).toBe(true);
-  });
-
-  it("extra or missing image → one part at that position", () => {
     const missing = diffShopifyProjections(
       { media: [] },
       {
@@ -327,15 +286,6 @@ describe("diffShopifyProjections", () => {
         }],
       },
     );
-    expect(missing).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1 exists only in Shopify, not in Synarava",
-        local: "—",
-        shopify: "ChatGPTImage.png",
-      },
-    ]);
-
     const extra = diffShopifyProjections(
       {
         media: [{
@@ -345,14 +295,11 @@ describe("diffShopifyProjections", () => {
       },
       { media: [] },
     );
-    expect(extra).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1 exists only in Synarava, not in Shopify",
-        local: "ring.jpg",
-        shopify: "—",
-      },
-    ]);
+    expect(filenameDiff).toEqual([]);
+    expect(altDiff).toEqual([]);
+    expect(orderDiff).toEqual([]);
+    expect(missing).toEqual([]);
+    expect(extra).toEqual([]);
   });
 
   it("flags price mismatches with Shopify-shaped amounts", () => {
@@ -370,7 +317,7 @@ describe("diffShopifyProjections", () => {
     ]);
   });
 
-  it("summarizes media gallery diffs instead of dumping GraphQL JSON", () => {
+  it("does not dump GraphQL media JSON into projection diffs (identity owns gallery)", () => {
     const diffs = diffShopifyProjections(
       { media: [] },
       {
@@ -381,14 +328,7 @@ describe("diffShopifyProjections", () => {
         }],
       },
     );
-    expect(diffs).toEqual([
-      {
-        path: "media[0]",
-        field: "Image 1 exists only in Shopify, not in Synarava",
-        local: "—",
-        shopify: "ChatGPTImage.png",
-      },
-    ]);
+    expect(diffs).toEqual([]);
   });
 
   it("clears phantom empty-OUR conflicts after aligning category resolvedValues", () => {
@@ -535,7 +475,7 @@ describe("projection path helpers", () => {
     expect(labelForShopifyProjectionPath("media")).toBe("Media gallery");
   });
 
-  it("states Synarava-only media clearly for the resolver", () => {
+  it("projection walkDiff never emits media[i] (identity compare owns gallery)", () => {
     const diffs = diffShopifyProjections(
       {
         media: [{
@@ -545,12 +485,7 @@ describe("projection path helpers", () => {
       },
       { media: [] },
     );
-    expect(diffs).toContainEqual({
-      path: "media[0]",
-      field: "Image 1 exists only in Synarava, not in Shopify",
-      local: "ring.jpg",
-      shopify: "—",
-    });
+    expect(diffs).toEqual([]);
   });
 
   it("GraphQL media.nodes connection canonicalizes like a flat media array", () => {
@@ -567,7 +502,6 @@ describe("projection path helpers", () => {
       media: [{
         filename: "a.jpg",
         alt: "Front",
-        position: 0,
         id: "gid://shopify/MediaImage/1",
         preview: { image: { url: "https://cdn.shopify.com/a.jpg" } },
       }],

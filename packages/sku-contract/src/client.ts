@@ -22,16 +22,26 @@ import {
 } from "./v1";
 import { skuErrorBodySchema, type SkuErrorBody } from "./errors";
 
+/** Default per-request timeout for sku-api HTTP calls (REL-009). */
+export const DEFAULT_SKU_CLIENT_TIMEOUT_MS = 30_000;
+
 export type SkuClientConfig = {
   readonly baseUrl: string;
   readonly serviceToken: string;
   readonly workspaceKey: string;
   readonly fetch?: typeof fetch;
+  /** Abort after this many ms. Defaults to {@link DEFAULT_SKU_CLIENT_TIMEOUT_MS}. */
+  readonly timeoutMs?: number;
 };
 
 export type SkuClientResult<T> =
   | { readonly ok: true; readonly value: T }
   | { readonly ok: false; readonly error: SkuErrorBody; readonly status: number };
+
+function isAbortOrTimeout(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return error.name === "TimeoutError" || error.name === "AbortError";
+}
 
 async function requestJson<T>(
   config: SkuClientConfig,
@@ -55,14 +65,33 @@ async function requestJson<T>(
     headers["idempotency-key"] = init.idempotencyKey;
   }
 
-  const response = await fetchImpl(
-    `${config.baseUrl.replace(/\/$/, "")}${path}`,
-    {
-      method: init.method,
-      headers,
-      body: init.body === undefined ? undefined : JSON.stringify(init.body),
-    },
-  );
+  const timeoutMs = config.timeoutMs ?? DEFAULT_SKU_CLIENT_TIMEOUT_MS;
+  let response: Response;
+  try {
+    response = await fetchImpl(
+      `${config.baseUrl.replace(/\/$/, "")}${path}`,
+      {
+        method: init.method,
+        headers,
+        body: init.body === undefined ? undefined : JSON.stringify(init.body),
+        signal: AbortSignal.timeout(timeoutMs),
+      },
+    );
+  } catch (error) {
+    if (isAbortOrTimeout(error)) {
+      return {
+        ok: false,
+        status: 408,
+        error: {
+          ok: false,
+          code: "TIMEOUT",
+          message: `sku-api request timed out after ${timeoutMs}ms`,
+          correlationId: "n/a",
+        },
+      };
+    }
+    throw error;
+  }
 
   const json: unknown = await response.json();
   if (!response.ok) {
