@@ -10,32 +10,26 @@ const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("Phase 5 reliability inventory (REL-*)", () => {
-  it.fails(
-    "products webhook catches JSON parse errors as 400 (REL-001)",
-    () => {
-      const src = read("app/api/shopify/webhooks/products/route.ts");
-      // Must not call bare JSON.parse(rawBody) outside a try that returns 400.
-      expect(src).not.toMatch(/const payload = JSON\.parse\(rawBody\)/);
-      expect(src).toMatch(/parseShopifyWebhookJson|try\s*\{[\s\S]*JSON\.parse/);
-      expect(src).toMatch(/status:\s*400/);
-    },
-  );
+  it("products webhook catches JSON parse errors as 400 (REL-001)", () => {
+    const src = read("app/api/shopify/webhooks/products/route.ts");
+    // Must not call bare JSON.parse(rawBody) outside a try that returns 400.
+    expect(src).not.toMatch(/const payload = JSON\.parse\(rawBody\)/);
+    expect(src).toMatch(/parseShopifyWebhookJson|try\s*\{[\s\S]*JSON\.parse/);
+    expect(src).toMatch(/status:\s*400/);
+  });
 
-  it.fails(
-    "MC orders provider queries REST topics stored by webhooks (REL-008)",
-    () => {
-      const provider = read("lib/mission-control/providers/orders.ts");
-      const paidRoute = read("app/api/shopify/webhooks/orders/paid/route.ts");
-      const cancelledRoute = read(
-        "app/api/shopify/webhooks/orders/cancelled/route.ts",
-      );
-      expect(paidRoute).toMatch(/"orders\/paid"/);
-      expect(cancelledRoute).toMatch(/"orders\/cancelled"/);
-      expect(provider).toMatch(/topic:\s*"orders\/paid"/);
-      expect(provider).toMatch(/topic:\s*"orders\/cancelled"/);
-      expect(provider).not.toMatch(/ORDERS_PAID|ORDERS_CANCELLED/);
-    },
-  );
+  it("MC orders provider queries REST topics stored by webhooks (REL-008)", () => {
+    const provider = read("lib/mission-control/providers/orders.ts");
+    const paidRoute = read("app/api/shopify/webhooks/orders/paid/route.ts");
+    const cancelledRoute = read(
+      "app/api/shopify/webhooks/orders/cancelled/route.ts",
+    );
+    expect(paidRoute).toMatch(/"orders\/paid"/);
+    expect(cancelledRoute).toMatch(/"orders\/cancelled"/);
+    expect(provider).toMatch(/topic:\s*"orders\/paid"/);
+    expect(provider).toMatch(/topic:\s*"orders\/cancelled"/);
+    expect(provider).not.toMatch(/ORDERS_PAID|ORDERS_CANCELLED/);
+  });
 
   it("orders/paid uses safe parser and returns 400 on bad JSON", () => {
     const src = read("app/api/shopify/webhooks/orders/paid/route.ts");
@@ -93,16 +87,21 @@ describe("Phase 5 reliability inventory (REL-*)", () => {
     }
   });
 
-  it("locks sku-contract client has no AbortSignal timeout (REL-009)", () => {
+  it("locks sku-contract client AbortSignal timeout (REL-009)", () => {
     const client = read("packages/sku-contract/src/client.ts");
-    expect(client).not.toMatch(/AbortSignal|AbortController|timeout\s*\(/);
+    expect(client).toMatch(/AbortSignal\.timeout/);
+    expect(client).toMatch(/DEFAULT_SKU_CLIENT_TIMEOUT_MS|timeoutMs/);
   });
 
-  it("documents opportunistic sync-history cleanup (REL-010)", () => {
+  it("documents sync-history cleanup cron + opportunistic default (REL-010)", () => {
     const src = read("lib/shopify/sync-history-retention.ts");
-    expect(src).toMatch(/No platform cron|opportunistically/i);
+    expect(src).toMatch(/opportunistic/i);
+    expect(src).toMatch(/sync-history-cleanup-railway/);
     expect(
       existsSync(join(ROOT, "scripts/db/cleanup-sync-history.mjs")),
+    ).toBe(true);
+    expect(
+      existsSync(join(ROOT, "docs/runbooks/sync-history-cleanup-railway.md")),
     ).toBe(true);
   });
 

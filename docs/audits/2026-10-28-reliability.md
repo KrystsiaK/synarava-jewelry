@@ -3,7 +3,8 @@
 **Date:** 2026-10-28 (Europe/Lisbon)  
 **Mode:** report + inventory locks only (no production behavior changes)  
 **Base:** `staging`  
-**Do not merge without owner.**
+**Do not merge without owner.**  
+**Staging follow-up:** REL-001/002 (safe webhook JSON), REL-008 (orders topics), REL-009 (`AbortSignal.timeout`), REL-010 (Railway cleanup cron runbook) are addressed on current `staging`; inventory locks below track the fixed state.
 
 ## Scope
 
