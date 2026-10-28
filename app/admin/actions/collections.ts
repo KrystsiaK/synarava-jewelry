@@ -155,6 +155,7 @@ async function resequenceCollections(
 }
 
 export async function getSavedCollectionPayload(collectionId: string): Promise<SavedCollectionPayload> {
+  await requireAdminSession("/admin/collections");
   const collection = await db.collection.findUnique({
     where: { id: collectionId },
     select: savedCollectionSelect,

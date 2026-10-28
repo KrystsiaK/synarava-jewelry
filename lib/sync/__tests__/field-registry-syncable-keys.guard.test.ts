@@ -61,11 +61,18 @@ describe("field-registry owns syncable commerce keys (ADR-0009)", () => {
   });
 
   it("labelForWindowPath covers every registry windowPaths entry", () => {
-    for (const field of [...PRODUCT_COMMERCE_FIELDS, ...COLLECTION_COMMERCE_FIELDS]) {
+    for (const field of PRODUCT_COMMERCE_FIELDS) {
       if (field.scope === "synaravaOnly") continue;
       for (const path of field.windowPaths) {
         const concrete = path.replace("[]", "[0]");
-        expect(labelForWindowPath(concrete), path).toBe(field.label);
+        expect(labelForWindowPath(concrete, "PRODUCT"), path).toBe(field.label);
+      }
+    }
+    for (const field of COLLECTION_COMMERCE_FIELDS) {
+      if (field.scope === "synaravaOnly") continue;
+      for (const path of field.windowPaths) {
+        const concrete = path.replace("[]", "[0]");
+        expect(labelForWindowPath(concrete, "COLLECTION"), path).toBe(field.label);
       }
     }
   });

@@ -154,6 +154,43 @@ describe("page localization", () => {
     });
   });
 
+  it("does not inherit EN home seoTitle/seoDescription onto PT (SEO-ADV-002)", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "pt",
+      pageSlug: "home",
+      source: {
+        title: "Home",
+        excerpt: "EN excerpt",
+        seoTitle: "Jewellery & Accessories for Everyday Wear | Synarava",
+        seoDescription: "English site description.",
+        content: {},
+      },
+      translation: { title: "Início", excerpt: "", seoTitle: "", seoDescription: "", content: {} },
+    })).toMatchObject({
+      title: "Início",
+      seoTitle: "",
+      seoDescription: "",
+    });
+  });
+
+  it("still inherits EN seoTitle for non-home pages when PT overlay is empty", () => {
+    expect(resolvePageLocalizedCopy({
+      locale: "pt",
+      pageSlug: "about",
+      source: {
+        title: "About",
+        seoTitle: "About | Synarava",
+        seoDescription: "About EN.",
+        content: {},
+      },
+      translation: { title: "Sobre", seoTitle: "", seoDescription: "", content: {} },
+    })).toMatchObject({
+      title: "Sobre",
+      seoTitle: "About | Synarava",
+      seoDescription: "About EN.",
+    });
+  });
+
   it("uses the legacy PT JSON only when no normalized row exists", () => {
     expect(resolvePageLocalizedCopy({
       locale: "pt",

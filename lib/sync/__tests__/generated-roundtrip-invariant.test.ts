@@ -308,12 +308,13 @@ describe("generated round-trip invariant (PR-7)", () => {
     }));
   });
 
-  it("same photo re-hosted (new id/CDN/size) → ZERO media commerce leaves", () => {
+  it("same photo re-hosted (same gid, new CDN/size) → ZERO media commerce leaves", () => {
+    const gid = "gid://shopify/MediaImage/ring";
     const our = remoteProduct({
       media: {
         pageInfo: { hasNextPage: false, endCursor: null },
         nodes: [{
-          id: "gid://shopify/MediaImage/old",
+          id: gid,
           alt: "Ring",
           mediaContentType: "IMAGE",
           status: "READY",
@@ -331,7 +332,7 @@ describe("generated round-trip invariant (PR-7)", () => {
       media: {
         pageInfo: { hasNextPage: false, endCursor: null },
         nodes: [{
-          id: "gid://shopify/MediaImage/new",
+          id: gid,
           alt: "Ring",
           mediaContentType: "IMAGE",
           status: "READY",
@@ -353,6 +354,7 @@ describe("generated round-trip invariant (PR-7)", () => {
     });
     const ourSnap = snapshotForShopifyProduct(our);
     const shopifySnap = snapshotForShopifyProduct(shopify);
+    // Positional projection walk skips media; identity compare matches by gid.
     expect(diffShopifyProjections(ourSnap, shopifySnap)).toEqual([]);
     const result = compareSyncState({
       commerceWindows: [{

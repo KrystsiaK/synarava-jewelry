@@ -309,11 +309,25 @@ export function resolvePageLocalizedCopy({
     blankUntranslatedCollectionsCopy(content, translatedContent);
   }
 
+  // Home SEO (SEO-ADV-002): empty locale overlays must not inherit English page
+  // SEO — generateMetadata falls through to messages + site SEO defaults.
+  const inheritEnSeo = pageSlug !== "home";
+  const seoTitle = hasContent(selected?.seoTitle)
+    ? selected!.seoTitle!
+    : inheritEnSeo
+      ? source.seoTitle ?? ""
+      : "";
+  const seoDescription = hasContent(selected?.seoDescription)
+    ? selected!.seoDescription!
+    : inheritEnSeo
+      ? source.seoDescription ?? ""
+      : "";
+
   return {
     title: hasContent(selected?.title) ? selected!.title : source.title,
     excerpt: hasContent(selected?.excerpt) ? selected!.excerpt! : source.excerpt ?? "",
-    seoTitle: hasContent(selected?.seoTitle) ? selected!.seoTitle! : source.seoTitle ?? "",
-    seoDescription: hasContent(selected?.seoDescription) ? selected!.seoDescription! : source.seoDescription ?? "",
+    seoTitle,
+    seoDescription,
     content,
   };
 }
