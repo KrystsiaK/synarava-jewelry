@@ -78,7 +78,7 @@ function fieldsWithWindowPaths(fields: readonly SyncFieldDef[]): SyncFieldDef[] 
 }
 
 describe("adversarial: field-registry equal windows → zero diffs", () => {
-  it("every PRODUCT_COMMERCE_FIELDS path resolves via lookupContractForPath", () => {
+  it("every PRODUCT_COMMERCE_FIELDS path resolves via lookupContractForPath(path, PRODUCT)", () => {
     for (const field of fieldsWithWindowPaths(PRODUCT_COMMERCE_FIELDS)) {
       for (const pattern of field.windowPaths) {
         const concrete = pattern
@@ -87,8 +87,17 @@ describe("adversarial: field-registry equal windows → zero diffs", () => {
           .replace("metafields[]", "metafields[0]")
           .replace("collections[]", "collections[0]")
           .replace("options[]", "options[0]");
-        const found = lookupContractForPath(concrete);
+        const found = lookupContractForPath(concrete, "PRODUCT");
         expect(found?.contractKey, `${field.contractKey} ← ${concrete}`).toBe(field.contractKey);
+      }
+    }
+  });
+
+  it("every COLLECTION_COMMERCE_FIELDS path resolves via lookupContractForPath(path, COLLECTION)", () => {
+    for (const field of fieldsWithWindowPaths(COLLECTION_COMMERCE_FIELDS)) {
+      for (const pattern of field.windowPaths) {
+        const found = lookupContractForPath(pattern, "COLLECTION");
+        expect(found?.contractKey, `${field.contractKey} ← ${pattern}`).toBe(field.contractKey);
       }
     }
   });
@@ -142,16 +151,22 @@ describe("adversarial: field-registry equal windows → zero diffs", () => {
   });
 
   /**
-   * SYNC-ADV-002 — `lookupContractForPath` searches PRODUCT registry first.
-   * Shared paths (`title`, `handle`, …) resolve to product contractKeys even
-   * when the caller is labeling a collection window.
+   * SYNC-ADV-002 — typed resource lookup; shared paths (`title`, `handle`, …)
+   * resolve to collection contractKeys when resource is COLLECTION.
    * @see docs/audits/2026-10-28-sync-adversarial.md#SYNC-ADV-002
    */
-  it.fails("collection window paths resolve to COLLECTION contractKeys (SYNC-ADV-002)", () => {
+  it("collection window paths resolve to COLLECTION contractKeys (SYNC-ADV-002)", () => {
     expect(fieldsWithWindowPaths(COLLECTION_COMMERCE_FIELDS).length).toBeGreaterThan(0);
     for (const field of fieldsWithWindowPaths(COLLECTION_COMMERCE_FIELDS)) {
       for (const pattern of field.windowPaths) {
-        expect(lookupContractForPath(pattern)?.contractKey, field.contractKey).toBe(field.contractKey);
+        expect(
+          lookupContractForPath(pattern, "COLLECTION")?.contractKey,
+          field.contractKey,
+        ).toBe(field.contractKey);
+        // Product-first lookup must not win for shared paths.
+        if (lookupContractForPath(pattern, "PRODUCT") != null) {
+          expect(lookupContractForPath(pattern, "PRODUCT")?.contractKey).not.toBe(field.contractKey);
+        }
       }
     }
   });

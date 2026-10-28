@@ -106,16 +106,11 @@ function isMediaListPath(path: string): boolean {
 }
 
 /**
- * Gallery compare identity: filename (push correlation) + alt + position.
- * url/width/height/id/status/preview/mediaContentType are NOT compared
- * (Shopify re-hosts every image). id + one preview url are kept as SoT
- * carry for Media tab + productSet GID retention — sameCanonicalMediaItem
- * ignores them.
+ * Media nodes kept as SoT carry (id + alt + preview) for windows / Media tab.
+ * Identity compare lives in `gallery-plan.ts` — walkDiff skips media lists.
  */
-function canonicalizeMediaItem(item: unknown, position: number): Record<string, unknown> {
-  if (!isPlainObject(item)) {
-    return { filename: null, alt: "", position };
-  }
+function canonicalizeMediaItem(item: unknown): Record<string, unknown> {
+  if (!isPlainObject(item)) return {};
 
   const originalSource = isPlainObject(item.originalSource) ? item.originalSource : null;
   const image = isPlainObject(item.image) ? item.image : null;
@@ -137,20 +132,13 @@ function canonicalizeMediaItem(item: unknown, position: number): Record<string, 
   const previewUrl = imageUrl ? normalizeShopifyCdnUrl(imageUrl) : null;
 
   return {
-    filename,
+    ...(filename ? { filename } : {}),
     alt: resolveGalleryMediaAlt({
       localAlt: typeof item.alt === "string" ? item.alt : null,
     }),
-    position,
     ...(id ? { id } : {}),
     ...(previewUrl ? { preview: { image: { url: previewUrl } } } : {}),
   };
-}
-
-/** Compare contract only — id/preview are SoT carry, not conflict signals. */
-function sameCanonicalMediaItem(a: unknown, b: unknown): boolean {
-  if (!isPlainObject(a) || !isPlainObject(b)) return Object.is(a, b);
-  return a.filename === b.filename && a.alt === b.alt && a.position === b.position;
 }
 
 /**
@@ -209,9 +197,9 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
         );
       return metafieldsToIdentityMap(rows);
     }
-    // Ordered gallery identity — never sort by Shopify media id / deep-compare CDN fields.
+    // Ordered SoT carry for windows — identity compare is in gallery-plan.ts.
     if (isMediaListPath(path)) {
-      return value.map((item, index) => canonicalizeMediaItem(item, index));
+      return value.map((item) => canonicalizeMediaItem(item));
     }
     const mapped = value.map((item, index) =>
       canonicalizeShopifyProjection(item, `${path}[${index}]`),
@@ -390,23 +378,15 @@ function walkDiff(
     return;
   }
 
+  // Media lists: identity compare in gallery-plan (never positional media[i]).
+  if (isMediaListPath(path) && (localIsArr || shopifyIsArr || local == null || shopify == null)) {
+    return;
+  }
+
   if (localIsArr && shopifyIsArr) {
     const max = Math.max(local.length, shopify.length);
-    const mediaList = isMediaListPath(path);
     for (let i = 0; i < max; i += 1) {
       const childPath = `${path}[${i}]`;
-      // One part per image position — never filename/alt/position subfield lines.
-      if (mediaList) {
-        if (sameCanonicalMediaItem(local[i], shopify[i])) continue;
-        out.push({
-          path: childPath,
-          field: mediaConflictFieldLabel(childPath, local[i], shopify[i])
-            ?? labelForShopifyProjectionPath(childPath),
-          local: displayValueForPath(childPath, local[i]),
-          shopify: displayValueForPath(childPath, shopify[i]),
-        });
-        continue;
-      }
       walkDiff(local[i], shopify[i], childPath, out);
     }
     return;

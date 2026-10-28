@@ -115,7 +115,32 @@ export const PRODUCT_COMMERCE_FIELDS: readonly SyncFieldDef[] = [
   field({
     key: "media", label: "Media gallery", scope: "base", section: "media",
     ownership: "shopify", valueType: "list", normalizerId: "media-gallery",
+    // Whole-gallery adopt path; identity leaves use media.* keys below.
     windowPaths: ["media"], applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaRemoved", contractKey: "media.removed", label: "Removed photo",
+    scope: "base", section: "media", ownership: "shopify", valueType: "identity",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaAdded", contractKey: "media.added", label: "New photo",
+    scope: "base", section: "media", ownership: "shopify", valueType: "identity",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaMoved", contractKey: "media.moved", label: "Photo order",
+    scope: "base", section: "media", ownership: "shopify", valueType: "list",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
+  }),
+  field({
+    key: "mediaAlt", contractKey: "media.alt", label: "Photo alt",
+    scope: "base", section: "media", ownership: "shopify", valueType: "string",
+    normalizerId: "media-gallery-identity", windowPaths: [],
+    applyToSynarava: "scoped", applyToShopify: "scoped",
   }),
   field({
     key: "publications", label: "Publications", scope: "base", section: "essentials",
@@ -344,10 +369,22 @@ function longestMatchingField(
   return best;
 }
 
-/** Lookup the contract entry for a Shopify-shaped window path (product then collection). */
-export function lookupContractForPath(path: string): SyncFieldDef | null {
-  return longestMatchingField(PRODUCT_COMMERCE_FIELDS, path)
-    ?? longestMatchingField(COLLECTION_COMMERCE_FIELDS, path);
+/** Commerce window resource — product and collection registries are separate. */
+export type CommerceResourceType = "PRODUCT" | "COLLECTION";
+
+function commerceFieldsFor(resource: CommerceResourceType): readonly SyncFieldDef[] {
+  return resource === "COLLECTION" ? COLLECTION_COMMERCE_FIELDS : PRODUCT_COMMERCE_FIELDS;
+}
+
+/**
+ * Lookup the contract entry for a Shopify-shaped window path in the given
+ * resource registry only (SYNC-ADV-002 — never product-first fallback).
+ */
+export function lookupContractForPath(
+  path: string,
+  resource: CommerceResourceType,
+): SyncFieldDef | null {
+  return longestMatchingField(commerceFieldsFor(resource), path);
 }
 
 export function lookupContractByKey(contractKey: string): SyncFieldDef | null {
@@ -360,28 +397,77 @@ export function lookupContractByKey(contractKey: string): SyncFieldDef | null {
  * Human label for a window path. Returns null when the path is not in the
  * contract (callers must emit an Unmapped blocked leaf — no last-segment fallback).
  */
-export function labelForWindowPathOrNull(path: string): string | null {
-  return lookupContractForPath(path)?.label ?? null;
+export function labelForWindowPathOrNull(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string | null {
+  return lookupContractForPath(path, resource)?.label ?? null;
 }
 
 /**
  * Label for a registered path. Unmapped paths return a blocked-leaf title
  * (`Unmapped Shopify field <path>`) — never a friendly last-segment guess.
  */
-export function labelForWindowPath(path: string): string {
-  return labelForWindowPathOrNull(path) ?? `Unmapped Shopify field ${path}`;
+export function labelForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string {
+  return labelForWindowPathOrNull(path, resource) ?? `Unmapped Shopify field ${path}`;
 }
 
-export function sectionForWindowPath(path: string): SyncConflictSection {
-  return lookupContractForPath(path)?.section ?? "shopify";
+export function sectionForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): SyncConflictSection {
+  return lookupContractForPath(path, resource)?.section ?? "shopify";
 }
 
-export function contractKeyForWindowPath(path: string): string {
-  return lookupContractForPath(path)?.contractKey ?? UNMAPPED_CONTRACT_KEY;
+export function contractKeyForWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): string {
+  return lookupContractForPath(path, resource)?.contractKey ?? UNMAPPED_CONTRACT_KEY;
 }
 
-export function isUnmappedWindowPath(path: string): boolean {
-  return lookupContractForPath(path) == null;
+export function isUnmappedWindowPath(
+  path: string,
+  resource: CommerceResourceType = "PRODUCT",
+): boolean {
+  return lookupContractForPath(path, resource) == null;
+}
+
+/**
+ * Translation fieldKey → commerce registry key (same Shopify surface).
+ * Registry-driven metadata for SYNC-ADV-001 translation leaves.
+ */
+const TRANSLATION_FIELD_TO_COMMERCE_KEY: Readonly<Record<string, string>> = {
+  title: "title",
+  name: "title",
+  description: "descriptionHtml",
+  localizedHandle: "handle",
+  seoTitle: "seoTitle",
+  seoDescription: "seoDescription",
+};
+
+/**
+ * Contract metadata for a translation leaf. Prefer the matching commerce
+ * registry entry so section chips stay aligned; otherwise a stable
+ * `translation.<fieldKey>` key under essentials.
+ */
+export function lookupTranslationContractMeta(
+  fieldKey: string,
+  resourceType: "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY",
+): { contractKey: string; section: SyncConflictSection } {
+  const commerceKey = TRANSLATION_FIELD_TO_COMMERCE_KEY[fieldKey];
+  if (commerceKey) {
+    const fields =
+      resourceType === "COLLECTION" ? COLLECTION_COMMERCE_FIELDS : PRODUCT_COMMERCE_FIELDS;
+    const def = fields.find((field) => field.key === commerceKey);
+    if (def) {
+      return { contractKey: def.contractKey, section: def.section };
+    }
+  }
+  return { contractKey: `translation.${fieldKey}`, section: "essentials" };
 }
 
 /** Whole-item / leaf part payload carried on `commerce:whole-item` SyncLeaves. */

@@ -74,10 +74,17 @@ export function ourMediaNodes(windowOrExtras: unknown): unknown[] | null {
 export function retainedShopifyMediaIds(windowOrExtras: unknown): string[] | null {
   const media = ourMediaNodes(windowOrExtras);
   if (media == null) return null;
-  return media.flatMap((node) => {
-    if (!isPlainObject(node) || typeof node.id !== "string") return [];
-    return node.id.startsWith("gid://shopify/") ? [node.id] : [];
-  });
+  // Dedupe while preserving first-seen order (SYNC-ADV-004).
+  const seen = new Set<string>();
+  const ids: string[] = [];
+  for (const node of media) {
+    if (!isPlainObject(node) || typeof node.id !== "string") continue;
+    if (!node.id.startsWith("gid://shopify/")) continue;
+    if (seen.has(node.id)) continue;
+    seen.add(node.id);
+    ids.push(node.id);
+  }
+  return ids;
 }
 
 export type OurMediaFrame = {

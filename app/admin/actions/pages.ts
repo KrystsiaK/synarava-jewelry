@@ -91,6 +91,7 @@ const savedPageSelect = {
 } satisfies Prisma.PageSelect;
 
 export async function getSavedPagePayload(pageIdOrSlug: string): Promise<SavedPagePayload> {
+  await requireAdminSession("/admin/pages");
   const page = await db.page.findFirst({
     where: { OR: [{ id: pageIdOrSlug }, { slug: pageIdOrSlug }] },
     select: savedPageSelect,

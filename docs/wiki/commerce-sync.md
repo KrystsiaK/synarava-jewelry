@@ -160,23 +160,32 @@ own a second status/action mechanism.
 
 Gallery is part of the dual commerce windows — **not** a parallel ProductMedia world.
 
-**Compare identity:** `canonicalizeShopifyProjection` keys each image by
-**filename + alt + position** (not CDN url / width / height / Shopify media id).
-One part per image position — never separate filename/alt/position subfield lines.
+**Compare identity:** match frames by **frame id** (Shopify media gid, or
+`local:<assetId>` for pending uploads). CDN url / filename / size changes on a
+**matched** gid are **not** conflicts. Independent leaves (each selectable):
+
+| Leaf | Meaning | Take Shopify | Keep ours |
+| --- | --- | --- | --- |
+| `media.removed` | In Shopify, not in ours | Re-insert that Shopify frame into OUR gallery | Omit from `productSet.files` (Shopify deletes it) |
+| `media.added` | In ours, not in Shopify | Remove our frame | Upload on Push |
+| `media.moved` | Relative order of matched gids differs (one leaf) | Shopify order | Our order (Push) |
+| `media.alt` | Alt differs on a matched gid | Shopify alt | Our alt (Push) |
+
+ONE plan (`buildGalleryPlan` in `lib/shopify/gallery-plan.ts`) feeds Push
+`productSet.files`, identity compare, and Media tab reads. Preview URLs are
+display-only in ConflictResolver — never in fingerprints or counters.
 
 | Piece | Behavior |
 | --- | --- |
-| SoT for detect / Media UI | Derived OUR `media` from `Product.extras.media` (merged by `deriveProductWindow`) |
-| Local upload / reorder / remove | `ProductMedia` staging → Save/media actions patch `extras.media` (merge matches prior nodes by URL so Shopify media ids survive remove/reorder) |
-| After Pull with no local rows | Media tab shows OUR tree frames (CDN URLs from Shopify adopt into `extras.media`); **Remove** splices that index from `extras.media` and marks sync PENDING |
-| Delete → Shopify | Push builds `productSet.files` from local staging + retained OUR-tree Shopify GIDs only. Remote media omitted from that list are deleted by productSet list-field semantics. Windows without a `media` key keep the legacy “preserve all remote” behavior (no wipe). |
-| Alt text | Blur-saves via media actions (fields stay editable; no `router.refresh`); also in FormData as `media-alt-*` / `media-alt-tree-*` on product Save (Media-owned branch). Blur clears Media dirty synchronously so leave-guard does not false-positive. **Per-image alts stay distinct:** Push prefers local → OUR derived `media` → remote; never broadcasts the product title onto every image. Save merges local rows without wiping prior tree alts when staging alt is empty. |
-| Field Decisions | Media labels are choosable: Pull adopts whole `media` into columns/`extras`; Push runs product media pipeline |
-| Whole-record fallback | Status / tags still use inline **Pull from Shopify** / **Push to Shopify** in the same dialog (no “Go to Sync”) |
+| SoT for detect / Media UI | `Product.extras.media` via `lib/products/gallery.ts` (sole writer; frame id, never index) |
+| Local upload / reorder / remove | Gallery ops (`applyGalleryOp`) inside one locked tx |
+| Delete → Shopify | Push builds `productSet.files` **only** from the gallery plan (gid → `{id,alt}`; pending → upload). No URL-match `directImage` branch. Create with no frames may still seed from `product.imageUrl` once. |
+| Alt text | Gallery `setAlt` + FormData on Save; Push carries plan alts |
+| Field Decisions | Each identity leaf is choosable; mixed Take/Keep in one Apply: tree edits first, then one Push if needed |
+| Whole-record fallback | Status / tags still use inline **Pull from Shopify** / **Push to Shopify** in the same dialog |
 
-Code: `shopify-snapshot-media.ts`, media actions patching `extras.media`,
-`product-media-alt-form.ts`, `isMediaGalleryFieldLabel` in `catalog-conflict-policy.ts`,
-`applyCommerceField` media branch.
+Code: `lib/products/gallery.ts`, `lib/shopify/gallery-plan.ts`, `media-identity-apply.ts`,
+`product-media-alt-form.ts`, `isMediaGalleryFieldLabel` / `isMediaIdentityContractKey`.
 
 ---
 

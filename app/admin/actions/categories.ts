@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 
 export type SavedCategoryPayload = {
@@ -11,6 +12,7 @@ export type SavedCategoryPayload = {
 };
 
 export async function getSavedCategoryPayload(categoryId: string): Promise<SavedCategoryPayload> {
+  await requireAdminSession("/admin");
   const category = await db.productCategory.findUnique({
     where: { id: categoryId },
     select: {
