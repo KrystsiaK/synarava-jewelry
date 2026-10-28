@@ -1,15 +1,10 @@
 /**
- * Gallery alt FormData keys used by ProductMediaManager.
- * Local rows: `media-alt-{productMediaId}`
- * OUR tree frames (no local rows): `media-alt-tree-{index}`
- *
- * Distinct per-image alts are SoT in ProductMedia (staging) and/or
- * extras.media / derived OUR window. Never broadcast the product title
- * onto every image on Push/Save — that collapses unique alts (Soleil Lemon bug).
+ * Gallery alt helpers shared by Push / compare / storefront checklist.
+ * Media tab persistence lives in `lib/products/gallery.ts` (frame ops by id).
+ * Distinct per-image alts are SoT in extras.media (+ ProductMedia staging for
+ * pending `local:<assetId>` frames). Never broadcast the product title onto
+ * every image on Push/Save — that collapses unique alts (Soleil Lemon bug).
  */
-
-export type LocalMediaAltFormUpdate = { mediaId: string; alt: string };
-export type TreeMediaAltFormUpdate = { index: number; alt: string };
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
@@ -17,61 +12,6 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 function trimAlt(value: unknown): string {
   return typeof value === "string" ? value.trim() : "";
-}
-
-/** FormData / input names owned by the Media gallery alt editors. */
-export function isMediaAltFormField(name: string): boolean {
-  return name.startsWith("media-alt-");
-}
-
-export function mediaAltUpdatesFromForm(formData: FormData): {
-  local: LocalMediaAltFormUpdate[];
-  tree: TreeMediaAltFormUpdate[];
-} {
-  const local: LocalMediaAltFormUpdate[] = [];
-  const tree: TreeMediaAltFormUpdate[] = [];
-  const seenLocal = new Set<string>();
-  const seenTree = new Set<number>();
-
-  for (const [name, raw] of formData.entries()) {
-    if (typeof raw !== "string") continue;
-
-    if (name.startsWith("media-alt-tree-")) {
-      const index = Number(name.slice("media-alt-tree-".length));
-      if (!Number.isInteger(index) || index < 0 || seenTree.has(index)) continue;
-      seenTree.add(index);
-      tree.push({ index, alt: raw.trim() });
-      continue;
-    }
-
-    if (name.startsWith("media-alt-")) {
-      const mediaId = name.slice("media-alt-".length).trim();
-      if (!mediaId || seenLocal.has(mediaId)) continue;
-      seenLocal.add(mediaId);
-      local.push({ mediaId, alt: raw.trim() });
-    }
-  }
-
-  return { local, tree };
-}
-
-/** Apply tree-index alt edits onto a Shopify-shaped media array (clone). */
-export function applyTreeMediaAltUpdates(
-  media: unknown[],
-  updates: ReadonlyArray<TreeMediaAltFormUpdate>,
-): unknown[] {
-  if (updates.length === 0) return media;
-  const next = media.map((node) =>
-    node && typeof node === "object" && !Array.isArray(node)
-      ? { ...(node as Record<string, unknown>) }
-      : node,
-  );
-  for (const { index, alt } of updates) {
-    const node = next[index];
-    if (!node || typeof node !== "object" || Array.isArray(node)) continue;
-    next[index] = { ...node, alt };
-  }
-  return next;
 }
 
 /** Raw per-index alts from OUR window — empty string when missing (no `Image N` placeholder). */
@@ -102,14 +42,6 @@ export function resolveGalleryMediaAlt(input: {
   return trimAlt(input.remoteAlt);
 }
 
-export type LocalMediaRowForWorkingMerge = {
-  assetId: string;
-  alt: string | null;
-  url: string;
-  width: number | null;
-  height: number | null;
-};
-
 /** Preview / image URL from a Shopify-shaped media node. */
 export function mediaNodePreviewUrl(node: unknown): string | null {
   if (!isPlainObject(node)) return null;
@@ -121,20 +53,6 @@ export function mediaNodePreviewUrl(node: unknown): string | null {
   }
   if (image && typeof image.url === "string" && image.url) return image.url;
   return null;
-}
-
-/**
- * Remove one OUR-tree media frame by index (immutable).
- * Returns null when the index is out of range.
- */
-export function removeOurMediaAtIndex(
-  media: unknown[],
-  mediaIndex: number,
-): unknown[] | null {
-  if (!Number.isInteger(mediaIndex) || mediaIndex < 0 || mediaIndex >= media.length) {
-    return null;
-  }
-  return media.filter((_, index) => index !== mediaIndex);
 }
 
 /**
@@ -202,62 +120,5 @@ export function mediaFramesFromOurWindow(windowOrExtras: unknown): OurMediaFrame
   return media.flatMap((node, index) => {
     const frame = frameFromMediaNode(node, index);
     return frame ? [frame] : [];
-  });
-}
-
-function findPriorMediaIndex(input: {
-  baseMedia: unknown[];
-  url: string;
-  preferredIndex: number;
-  used: ReadonlySet<number>;
-}): number {
-  const byUrl = input.baseMedia.findIndex((node, index) => {
-    if (input.used.has(index)) return false;
-    return mediaNodePreviewUrl(node) === input.url;
-  });
-  if (byUrl >= 0) return byUrl;
-
-  if (
-    input.preferredIndex < input.baseMedia.length
-    && !input.used.has(input.preferredIndex)
-  ) {
-    return input.preferredIndex;
-  }
-
-  return input.baseMedia.findIndex((_, index) => !input.used.has(index));
-}
-
-/**
- * Build Shopify-shaped media for Save write-through.
- * Prefer non-empty local alts; otherwise keep the matched prior OUR-tree alt
- * so empty staging rows cannot wipe distinct tree edits.
- * Intentional: output length follows `localRows` (staging gallery is SoT when present);
- * extra `baseMedia` entries are dropped. Priors match by URL first so remove/reorder
- * keeps the correct Shopify media `id` (index-only match reassigned deleted slots).
- */
-export function mergeLocalMediaRowsIntoWorkingMedia(input: {
-  localRows: ReadonlyArray<LocalMediaRowForWorkingMerge>;
-  baseMedia: unknown[];
-}): unknown[] {
-  const usedPrior = new Set<number>();
-  return input.localRows.map((item, index) => {
-    const priorIndex = findPriorMediaIndex({
-      baseMedia: input.baseMedia,
-      url: item.url,
-      preferredIndex: index,
-      used: usedPrior,
-    });
-    if (priorIndex >= 0) usedPrior.add(priorIndex);
-    const prior = priorIndex >= 0 ? input.baseMedia[priorIndex] : undefined;
-    const priorAlt = isPlainObject(prior) ? trimAlt(prior.alt) : "";
-    const localAlt = trimAlt(item.alt);
-    const priorId = isPlainObject(prior) && typeof prior.id === "string" ? prior.id : null;
-    return {
-      id: priorId ?? `local:${item.assetId}`,
-      alt: localAlt || priorAlt,
-      mediaContentType: "IMAGE",
-      preview: { image: { url: item.url, width: item.width, height: item.height } },
-      image: { url: item.url, width: item.width, height: item.height },
-    };
   });
 }

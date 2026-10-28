@@ -18,13 +18,20 @@ import { slugify } from "@/lib/text/slug";
 import { recordLocalizedHandleRedirect } from "@/lib/content/handle-redirects";
 import { normalizeRichTextFields, normalizeRichTextForStorage, normalizeRichTextForEditor, sanitizeRichTextHtml } from "@/lib/content/rich-text";
 import { saveProductImageUpload } from "@/lib/media/local-upload";
-import { getS3Bucket, getS3PublicUrl } from "@/lib/s3";
+import { getS3PublicUrl } from "@/lib/s3";
 import {
   buildProductSearchDocument,
   isShopifyOwnedCharacteristicKey,
   parseCharacteristicsForm,
   readCharacteristicTextOverlayFromForm,
 } from "@/lib/products/characteristics";
+import {
+  applyGalleryOp,
+  commitGalleryUpload,
+  deleteStoredGalleryObject,
+  GalleryOpError,
+  validateGalleryUploadFile,
+} from "@/lib/products/gallery";
 import {
   characteristicProjectionsFromShopifySpecs,
   SHOPIFY_PRODUCT_SPEC_FIELDS,
@@ -38,13 +45,6 @@ import {
   parseCustomMetafieldsForm,
   parseCustomMetafieldTranslationsForm,
 } from "@/lib/shopify/product-metafields-shared";
-import {
-  applyTreeMediaAltUpdates,
-  mediaAltUpdatesFromForm,
-  mediaNodePreviewUrl,
-  mergeLocalMediaRowsIntoWorkingMedia,
-  removeOurMediaAtIndex,
-} from "@/lib/shopify/product-media-alt-form";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
 import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations";
@@ -318,289 +318,125 @@ export type ProductMediaActionState = {
   product?: SavedProductPayload;
 };
 
-async function finishProductMediaMutation(productId: string, success: string): Promise<ProductMediaActionState> {
-  const linked = await db.product.findUnique({
-    where: { id: productId },
-    select: {
-      shopifyProductId: true,
-      extras: true,
-      shopifySnapshot: true,
-      media: {
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        select: {
-          assetId: true,
-          alt: true,
-          asset: { select: { key: true, width: true, height: true } },
-        },
-      },
-    },
-  });
-
-  if (linked?.shopifyProductId) {
-    const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
-      ? { ...(linked.extras as Record<string, unknown>) }
-      : {};
-    const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
-      ? linked.shopifySnapshot as Record<string, unknown>
-      : null;
-    const baseMedia = Array.isArray(extrasRecord.media)
-      ? [...extrasRecord.media]
-      : Array.isArray(shopifyRecord?.media)
-        ? [...shopifyRecord.media]
-        : [];
-    const media = mergeLocalMediaRowsIntoWorkingMedia({
-      baseMedia,
-      localRows: linked.media.map((item) => ({
-        assetId: item.assetId,
-        alt: item.alt,
-        url: getS3PublicUrl(item.asset.key),
-        width: item.asset.width,
-        height: item.asset.height,
-      })),
-    });
-    await db.product.update({
-      where: { id: productId },
-      data: {
-        syncStatus: "PENDING",
-        syncError: null,
-        extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
-      },
-    });
-  } else {
-    await db.product.updateMany({
-      where: { id: productId, shopifyProductId: { not: null } },
-      data: { syncStatus: "PENDING", syncError: null },
-    });
-  }
-
+async function finishGalleryMutation(
+  productId: string,
+  success: string,
+): Promise<ProductMediaActionState> {
   revalidatePath("/admin/products");
   revalidateStorefront();
   return { success, product: await getSavedProductPayload(productId) };
 }
 
+function galleryActionError(error: unknown): ProductMediaActionState {
+  if (error instanceof GalleryOpError) return { error: error.message };
+  return { error: error instanceof Error ? error.message : "Gallery update failed." };
+}
+
 export async function uploadProductMediaAction(formData: FormData): Promise<ProductMediaActionState> {
   const currentUser = await requireAdminSession("/admin/products");
   const productId = formValue(formData, "productId");
-  const alt = formValue(formData, "alt");
   const file = formData.get("file");
-  if (!productId || !(file instanceof File) || file.size === 0) return { error: "Choose an image to upload." };
-  const existingProduct = await db.product.findUnique({ where: { id: productId }, select: { id: true, primaryAssetId: true } });
-  if (!existingProduct) return { error: "Save the product before adding gallery images." };
-  const mediaCount = await db.productMedia.count({ where: { productId } });
-  if (mediaCount >= 250) return { error: "Shopify supports up to 250 media items per product." };
+  if (!productId || !(file instanceof File)) return { error: "Choose an image to upload." };
+  const validationError = validateGalleryUploadFile(file);
+  if (validationError) return { error: validationError };
 
+  const existingProduct = await db.product.findUnique({
+    where: { id: productId },
+    select: { id: true },
+  });
+  if (!existingProduct) return { error: "Save the product before adding gallery images." };
+
+  let uploadedStorageKey: string | null = null;
   try {
     const uploaded = await saveProductImageUpload(file);
     if (!uploaded) return { error: "The image could not be uploaded." };
-    const last = await db.productMedia.findFirst({ where: { productId }, orderBy: { sortOrder: "desc" }, select: { sortOrder: true } });
-    await db.$transaction(async (tx) => {
-      const asset = await tx.mediaAsset.create({
-        data: {
-          key: uploaded.storageKey, filename: uploaded.filename, mimeType: uploaded.mimeType,
-          extension: uploaded.extension.replace(/^\./, ""), sizeBytes: uploaded.sizeBytes,
-          width: uploaded.width, height: uploaded.height, bucket: getS3Bucket(),
-          source: "UPLOAD", status: "READY", uploadedByUsername: currentUser?.username ?? null,
-        },
-        select: { id: true },
-      });
-      await tx.productMedia.create({
-        data: { productId, assetId: asset.id, kind: existingProduct.primaryAssetId ? "GALLERY" : "PRIMARY", alt: alt || null, sortOrder: (last?.sortOrder ?? -1) + 1 },
-      });
-      if (!existingProduct.primaryAssetId) {
-        await tx.product.update({ where: { id: productId }, data: { primaryAssetId: asset.id, imageUrl: uploaded.publicPath } });
-      }
+    uploadedStorageKey = uploaded.storageKey;
+
+    await commitGalleryUpload({
+      productId,
+      storageKey: uploaded.storageKey,
+      filename: uploaded.filename,
+      mimeType: uploaded.mimeType,
+      extension: uploaded.extension,
+      sizeBytes: uploaded.sizeBytes,
+      width: uploaded.width,
+      height: uploaded.height,
+      publicPath: uploaded.publicPath,
+      uploadedByUsername: currentUser?.username ?? null,
     });
-    return finishProductMediaMutation(productId, "Gallery image uploaded.");
+    uploadedStorageKey = null;
+    return finishGalleryMutation(productId, "Gallery image uploaded.");
   } catch (error) {
-    return { error: error instanceof Error ? error.message : "Gallery upload failed." };
+    if (uploadedStorageKey) {
+      try {
+        await deleteStoredGalleryObject(uploadedStorageKey);
+      } catch {
+        // Best-effort orphan cleanup — surface the original failure.
+      }
+    }
+    return galleryActionError(error);
   }
 }
 
-export async function setPrimaryProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
+/** Set cover by gallery frame id (Shopify gid or `local:<assetId>`). */
+export async function setPrimaryProductMediaAction(
+  productId: string,
+  frameId: string,
+): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { asset: true } });
-  if (!media) return { error: "Gallery image not found." };
-  await db.$transaction([
-    db.productMedia.updateMany({ where: { productId: media.productId }, data: { kind: "GALLERY" } }),
-    db.productMedia.updateMany({ where: { productId: media.productId, sortOrder: { lt: media.sortOrder } }, data: { sortOrder: { increment: 1 } } }),
-    db.productMedia.update({ where: { id: media.id }, data: { kind: "PRIMARY", sortOrder: 0 } }),
-    db.product.update({ where: { id: media.productId }, data: { primaryAssetId: media.assetId, imageUrl: getS3PublicUrl(media.asset.key) } }),
-  ]);
-  return finishProductMediaMutation(media.productId, "Primary image updated.");
-}
-
-export async function moveProductMediaAction(mediaId: string, direction: -1 | 1): Promise<ProductMediaActionState> {
-  await requireAdminSession("/admin/products");
-  const media = await db.productMedia.findUnique({ where: { id: mediaId } });
-  if (!media) return { error: "Gallery image not found." };
-  const neighbor = await db.productMedia.findFirst({
-    where: { productId: media.productId, sortOrder: direction < 0 ? { lt: media.sortOrder } : { gt: media.sortOrder } },
-    orderBy: { sortOrder: direction < 0 ? "desc" : "asc" },
-  });
-  if (!neighbor) return { product: await getSavedProductPayload(media.productId) };
-  await db.$transaction([
-    db.productMedia.update({ where: { id: media.id }, data: { sortOrder: neighbor.sortOrder } }),
-    db.productMedia.update({ where: { id: neighbor.id }, data: { sortOrder: media.sortOrder } }),
-  ]);
-  const first = await db.productMedia.findFirst({
-    where: { productId: media.productId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true },
-  });
-  if (first) {
-    await db.$transaction([
-      db.productMedia.updateMany({ where: { productId: media.productId }, data: { kind: "GALLERY" } }),
-      db.productMedia.update({ where: { id: first.id }, data: { kind: "PRIMARY" } }),
-      db.product.update({ where: { id: media.productId }, data: { primaryAssetId: first.assetId, imageUrl: getS3PublicUrl(first.asset.key) } }),
-    ]);
+  try {
+    await applyGalleryOp(productId, { type: "setCover", frameId });
+    return finishGalleryMutation(productId, "Primary image updated.");
+  } catch (error) {
+    return galleryActionError(error);
   }
-  return finishProductMediaMutation(media.productId, "Gallery order updated.");
 }
 
-export async function removeProductMediaAction(mediaId: string): Promise<ProductMediaActionState> {
+/** Move a gallery frame to an absolute index (identity is frame id, not UI index). */
+export async function moveProductMediaAction(
+  productId: string,
+  frameId: string,
+  toIndex: number,
+): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  const media = await db.productMedia.findUnique({ where: { id: mediaId }, include: { product: { select: { primaryAssetId: true } } } });
-  if (!media) return { error: "Gallery image not found." };
-  await db.productMedia.delete({ where: { id: media.id } });
-  if (media.product.primaryAssetId === media.assetId) {
-    const next = await db.productMedia.findFirst({ where: { productId: media.productId }, orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], include: { asset: true } });
-    await db.$transaction([
-      ...(next ? [db.productMedia.update({ where: { id: next.id }, data: { kind: "PRIMARY" } })] : []),
-      db.product.update({
-        where: { id: media.productId },
-        data: next ? { primaryAssetId: next.assetId, imageUrl: getS3PublicUrl(next.asset.key) } : { primaryAssetId: null, imageUrl: null },
-      }),
-    ]);
+  try {
+    await applyGalleryOp(productId, { type: "move", frameId, toIndex });
+    return finishGalleryMutation(productId, "Gallery order updated.");
+  } catch (error) {
+    return galleryActionError(error);
   }
-  return finishProductMediaMutation(media.productId, "Image removed from this product. The source asset was retained safely.");
 }
 
-/** Update gallery alt on a local ProductMedia row (writes through OUR commerce tree). */
+/** Remove a gallery frame by id from OUR extras.media (+ local ProductMedia staging when present). */
+export async function removeProductMediaAction(
+  productId: string,
+  frameId: string,
+): Promise<ProductMediaActionState> {
+  await requireAdminSession("/admin/products");
+  try {
+    await applyGalleryOp(productId, { type: "remove", frameId });
+    return finishGalleryMutation(
+      productId,
+      "Image removed from the gallery. Push to Shopify to delete it remotely.",
+    );
+  } catch (error) {
+    return galleryActionError(error);
+  }
+}
+
+/** Update alt on a gallery frame by id (sole persistence path for Media tab alts). */
 export async function updateProductMediaAltAction(
-  mediaId: string,
+  productId: string,
+  frameId: string,
   alt: string,
 ): Promise<ProductMediaActionState> {
   await requireAdminSession("/admin/products");
-  const media = await db.productMedia.findUnique({
-    where: { id: mediaId },
-    select: { id: true, productId: true, assetId: true },
-  });
-  if (!media) return { error: "Gallery image not found." };
-  const nextAlt = alt.trim() || null;
-  await db.$transaction([
-    db.productMedia.update({ where: { id: media.id }, data: { alt: nextAlt } }),
-    db.mediaAsset.update({ where: { id: media.assetId }, data: { alt: nextAlt } }),
-  ]);
-  return finishProductMediaMutation(media.productId, "Image alt text updated.");
-}
-
-/**
- * Update alt on OUR extras.media when local ProductMedia rows are empty
- * (typical after Pull). Index matches Media tab order.
- */
-export async function updateWorkingSnapshotMediaAltAction(
-  productId: string,
-  mediaIndex: number,
-  alt: string,
-): Promise<ProductMediaActionState> {
-  await requireAdminSession("/admin/products");
-  const product = await db.product.findUnique({
-    where: { id: productId },
-    select: { id: true, shopifyProductId: true, extras: true, shopifySnapshot: true },
-  });
-  if (!product) return { error: "Product not found." };
-
-  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
-    ? structuredClone(product.extras) as Record<string, unknown>
-    : {};
-  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
-    ? product.shopifySnapshot as Record<string, unknown>
-    : null;
-  const media = Array.isArray(extrasRecord.media)
-    ? [...extrasRecord.media]
-    : Array.isArray(shopifyRecord?.media)
-      ? [...shopifyRecord.media]
-      : [];
-  if (mediaIndex < 0 || mediaIndex >= media.length) {
-    return { error: "Gallery image not found in the commerce tree." };
+  try {
+    await applyGalleryOp(productId, { type: "setAlt", frameId, alt });
+    return finishGalleryMutation(productId, "Image alt text updated.");
+  } catch (error) {
+    return galleryActionError(error);
   }
-  const node = media[mediaIndex];
-  if (!node || typeof node !== "object" || Array.isArray(node)) {
-    return { error: "Gallery image not found in the commerce tree." };
-  }
-  media[mediaIndex] = { ...node, alt: alt.trim() };
-
-  await db.product.update({
-    where: { id: productId },
-    data: {
-      ...(product.shopifyProductId
-        ? { syncStatus: "PENDING" as const, syncError: null }
-        : {}),
-      extras: { ...extrasRecord, media } as Prisma.InputJsonValue,
-    },
-  });
-
-  revalidatePath("/admin/products");
-  revalidateStorefront();
-  return { success: "Image alt text updated.", product: await getSavedProductPayload(productId) };
-}
-
-/**
- * Remove a gallery frame from OUR extras.media (Media tab after Pull).
- * Marks sync PENDING; Push omits the Shopify media id so productSet deletes it remotely.
- */
-export async function removeWorkingSnapshotMediaAction(
-  productId: string,
-  mediaIndex: number,
-): Promise<ProductMediaActionState> {
-  await requireAdminSession("/admin/products");
-  const product = await db.product.findUnique({
-    where: { id: productId },
-    select: {
-      id: true,
-      shopifyProductId: true,
-      extras: true,
-      shopifySnapshot: true,
-      media: { select: { id: true }, take: 1 },
-    },
-  });
-  if (!product) return { error: "Product not found." };
-  if (product.media.length > 0) {
-    return { error: "Use Remove on the staging gallery row for this product." };
-  }
-
-  const extrasRecord = product.extras && typeof product.extras === "object" && !Array.isArray(product.extras)
-    ? structuredClone(product.extras) as Record<string, unknown>
-    : {};
-  const shopifyRecord = product.shopifySnapshot && typeof product.shopifySnapshot === "object" && !Array.isArray(product.shopifySnapshot)
-    ? product.shopifySnapshot as Record<string, unknown>
-    : null;
-  const currentMedia = Array.isArray(extrasRecord.media)
-    ? [...extrasRecord.media]
-    : Array.isArray(shopifyRecord?.media)
-      ? [...shopifyRecord.media]
-      : [];
-  const nextMedia = removeOurMediaAtIndex(currentMedia, mediaIndex);
-  if (!nextMedia) {
-    return { error: "Gallery image not found in the commerce tree." };
-  }
-  const coverUrl = nextMedia.length > 0 ? mediaNodePreviewUrl(nextMedia[0]) : null;
-
-  await db.product.update({
-    where: { id: productId },
-    data: {
-      ...(product.shopifyProductId
-        ? { syncStatus: "PENDING" as const, syncError: null }
-        : {}),
-      extras: { ...extrasRecord, media: nextMedia } as Prisma.InputJsonValue,
-      imageUrl: coverUrl,
-    },
-  });
-
-  revalidatePath("/admin/products");
-  revalidateStorefront();
-  return {
-    success: "Image removed from the gallery. Push to Shopify to delete it remotely.",
-    product: await getSavedProductPayload(productId),
-  };
 }
 
 async function uploadOptionalProductAsset(input: {
@@ -1197,23 +1033,9 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     });
   }
 
-  // Gallery alt fields live in the product form (`media-alt-*`). Persist them on
-  // Save so blur-only actions cannot race with remount and look like a reset.
-  const mediaAltUpdates = mediaAltUpdatesFromForm(formData);
-  for (const { mediaId, alt } of mediaAltUpdates.local) {
-    const row = await db.productMedia.findFirst({
-      where: { id: mediaId, productId: product.id },
-      select: { id: true, assetId: true },
-    });
-    if (!row) continue;
-    const nextAlt = alt || null;
-    await db.$transaction([
-      db.productMedia.update({ where: { id: row.id }, data: { alt: nextAlt } }),
-      db.mediaAsset.update({ where: { id: row.assetId }, data: { alt: nextAlt } }),
-    ]);
-  }
-
   // ADR-0009: Save updates columns + extras orphans; shopifySnapshot changes on refresh/pull.
+  // Gallery frames (extras.media) are owned solely by lib/products/gallery.ts applyGalleryOp —
+  // product Save must not rebuild or patch media from FormData / ProductMedia rows.
   if (before?.shopifyProductId) {
     const linked = await db.product.findUnique({
       where: { id: product.id },
@@ -1221,68 +1043,34 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
         shopifyProductId: true,
         extras: true,
         shopifySnapshot: true,
-        name: true,
-        slug: true,
-        vendor: true,
-        productType: true,
-        media: {
-          orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-          select: {
-            assetId: true,
-            alt: true,
-            asset: { select: { key: true, width: true, height: true } },
-          },
-        },
-        variants: {
-          orderBy: { createdAt: "asc" },
-          take: 1,
-          select: { shopifyVariantId: true, sku: true, priceCents: true, taxable: true, stockOnHand: true },
-        },
       },
     });
     if (linked?.shopifyProductId) {
-      // ADR-0009: columns already updated above; patch orphan keys into extras only.
       const extrasRecord = linked.extras && typeof linked.extras === "object" && !Array.isArray(linked.extras)
         ? { ...(linked.extras as Record<string, unknown>) }
         : {};
       const shopifyRecord = linked.shopifySnapshot && typeof linked.shopifySnapshot === "object" && !Array.isArray(linked.shopifySnapshot)
         ? linked.shopifySnapshot as Record<string, unknown>
         : null;
-      const baseMedia = Array.isArray(extrasRecord.media)
-        ? [...extrasRecord.media]
-        : Array.isArray(shopifyRecord?.media)
-          ? [...shopifyRecord.media]
-          : [];
-      let mediaPatch: unknown[] | undefined;
-      if (linked.media.length > 0) {
-        mediaPatch = mergeLocalMediaRowsIntoWorkingMedia({
-          baseMedia,
-          localRows: linked.media.map((item) => ({
-            assetId: item.assetId,
-            alt: item.alt,
-            url: getS3PublicUrl(item.asset.key),
-            width: item.asset.width,
-            height: item.asset.height,
-          })),
-        });
-      } else if (mediaAltUpdates.tree.length > 0) {
-        mediaPatch = applyTreeMediaAltUpdates(baseMedia, mediaAltUpdates.tree);
-      }
       const nextExtras: Record<string, unknown> = { ...extrasRecord };
-      if (mediaPatch !== undefined) nextExtras.media = mediaPatch;
+      let extrasChanged = false;
       if (customMetafields.length > 0) {
         nextExtras.metafields = mergeCustomMetafieldsIntoList(
           extrasRecord.metafields ?? shopifyRecord?.metafields ?? [],
           customMetafields,
         );
+        extrasChanged = true;
       }
       if (metafieldTranslations) {
         nextExtras.metafieldTranslations = metafieldTranslations;
+        extrasChanged = true;
       }
-      await db.product.update({
-        where: { id: product.id },
-        data: { extras: nextExtras as Prisma.InputJsonValue },
-      });
+      if (extrasChanged) {
+        await db.product.update({
+          where: { id: product.id },
+          data: { extras: nextExtras as Prisma.InputJsonValue },
+        });
+      }
     }
   }
 

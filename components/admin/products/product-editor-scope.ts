@@ -1,6 +1,5 @@
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import { isShopifyProductSpecFormField } from "@/lib/products/shopify-product-specs";
-import { isMediaAltFormField } from "@/lib/shopify/product-media-alt-form";
 import {
   customMetafieldFieldBelongsToLocale,
   isCustomMetafieldFormField,
@@ -144,9 +143,8 @@ export function fieldBelongsToBranch(
         || matchesPrefix(fieldName, DETAILS_SHARED_PREFIXES)
         || matchesLocalePrefix(fieldName, locale, DETAILS_LOCALE_PREFIXES);
     case "media":
-      // Gallery alt inputs (`media-alt-*` / `media-alt-tree-*`) are Media-owned —
-      // must ride scoped Media saves and full product Save FormData (#124).
-      return MEDIA_SHARED.includes(fieldName) || isMediaAltFormField(fieldName);
+      // Gallery alts persist via frame ops (lib/products/gallery), not product FormData.
+      return MEDIA_SHARED.includes(fieldName);
     case "metafields":
       // Jewelry specs owned by Product tab — avoid duplicate FormData ownership.
       if (isShopifyProductSpecFormField(fieldName, locale) || isShopifyProductSpecFormField(fieldName, "en")) {

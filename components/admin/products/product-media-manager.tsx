@@ -1,43 +1,73 @@
 "use client";
 
-import { useRef, useTransition } from "react";
-import Image from "next/image";
+import { useTransition } from "react";
 
 import {
   moveProductMediaAction,
   removeProductMediaAction,
-  removeWorkingSnapshotMediaAction,
   setPrimaryProductMediaAction,
   updateProductMediaAltAction,
-  updateWorkingSnapshotMediaAltAction,
   type ProductMediaActionState,
 } from "@/app/admin/actions/products";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import type { ProductRecord } from "@/components/admin/products/product-types";
-import { AdminButton, AdminTextField } from "@/components/synarava-cms";
-import { imageAltSoftWarning } from "@/lib/seo/image-alt-checklist";
-import { mediaFramesFromOurWindow } from "@/lib/shopify/product-media-alt-form";
+import {
+  AdminMediaGallery,
+  type AdminMediaGalleryItem,
+} from "@/components/synarava-cms";
+import {
+  galleryFrameId,
+  galleryFramePreviewUrl,
+  parseLocalAssetId,
+  readGalleryFrames,
+  seedFramesFromLocalRows,
+  validateGalleryUploadFile,
+} from "@/lib/products/gallery";
+
+function unifiedGalleryItems(product: ProductRecord): AdminMediaGalleryItem[] {
+  const tree = readGalleryFrames(product.extras, product.shopifySnapshot);
+  const frames =
+    tree.length > 0
+      ? tree
+      : seedFramesFromLocalRows(
+          (product.media ?? []).map((item) => ({
+            assetId: item.assetId,
+            alt: item.alt,
+            url: item.url,
+            width: item.width,
+            height: item.height,
+          })),
+        );
+
+  return frames.flatMap((node) => {
+    const id = galleryFrameId(node);
+    const url = galleryFramePreviewUrl(node);
+    if (!id || !url) return [];
+    const alt =
+      node && typeof node === "object" && !Array.isArray(node) && typeof (node as { alt?: unknown }).alt === "string"
+        ? (node as { alt: string }).alt
+        : "";
+    return [{
+      id,
+      url,
+      alt,
+      pendingUpload: Boolean(parseLocalAssetId(id)),
+    }];
+  });
+}
 
 export function ProductMediaManager({
   product,
   onChange,
   ensureProduct,
-  onAltPersistStart,
 }: {
   product: ProductRecord | null;
   onChange: (product: ProductRecord) => void;
   ensureProduct?: () => Promise<ProductRecord | null>;
-  /** Called synchronously when blur-save starts so leave-guard dirty can clear before click. */
-  onAltPersistStart?: () => void;
 }) {
   const [pending, startTransition] = useTransition();
-  const inputRef = useRef<HTMLInputElement>(null);
   const { pushToast } = useAdminToast();
-  const localMedia = product?.media ?? [];
-  const treeFrames = product ? mediaFramesFromOurWindow(product.extras) : [];
-  // OUR tree is SoT for display when local ProductMedia rows are empty (e.g. after Pull).
-  const showLocalEditor = localMedia.length > 0;
-  const showTreeFrames = !showLocalEditor && treeFrames.length > 0;
+  const items = product ? unifiedGalleryItems(product) : [];
 
   function apply(result: ProductMediaActionState) {
     if (result.error) pushToast({ message: result.error, tone: "error" });
@@ -54,18 +84,28 @@ export function ProductMediaManager({
         return;
       }
       for (const file of Array.from(files)) {
+        const clientError = validateGalleryUploadFile(file);
+        if (clientError) {
+          pushToast({ message: `${file.name}: ${clientError}`, tone: "error" });
+          continue;
+        }
         const formData = new FormData();
         formData.set("productId", targetProduct.id);
-        formData.set("alt", file.name.replace(/\.[^.]+$/, ""));
         formData.set("file", file);
         const response = await fetch("/admin/api/products/media", { method: "POST", body: formData });
         const result = await response.json() as ProductMediaActionState;
         if (!response.ok && !result.error) result.error = "Gallery upload failed.";
+        if (result.error) {
+          pushToast({ message: `${file.name}: ${result.error}`, tone: "error" });
+          if (result.product) {
+            onChange(result.product);
+            targetProduct = result.product;
+          }
+          continue;
+        }
         apply(result);
         if (result.product) targetProduct = result.product;
-        if (result.error) break;
       }
-      if (inputRef.current) inputRef.current.value = "";
     });
   }
 
@@ -73,131 +113,37 @@ export function ProductMediaManager({
     startTransition(async () => apply(await action()));
   }
 
-  function saveLocalAlt(mediaId: string, alt: string) {
-    onAltPersistStart?.();
-    mutate(() => updateProductMediaAltAction(mediaId, alt));
-  }
-
-  function saveTreeAlt(index: number, alt: string) {
-    if (!product) return;
-    onAltPersistStart?.();
-    mutate(() => updateWorkingSnapshotMediaAltAction(product.id, index, alt));
-  }
-
-  function removeTreeFrame(index: number) {
-    if (!product) return;
-    if (treeFrames.length <= 1) {
-      const confirmed = window.confirm(
-        "This is the last gallery image. Remove it? Push will delete all product media in Shopify.",
-      );
-      if (!confirmed) return;
-    }
-    mutate(() => removeWorkingSnapshotMediaAction(product.id, index));
-  }
-
   return (
-    <section
-      id="field-imageUrl"
-      data-component="ProductMediaManager"
-      className="grid gap-4 border border-[var(--adm-border)] p-4"
-      aria-label="Product gallery"
-    >
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="adm-label">Product gallery</p>
-          <p className="mt-1 text-xs text-[var(--adm-muted)]">
+    <div id="field-imageUrl" data-component="ProductMediaManager">
+      <AdminMediaGallery
+        items={items}
+        disabled={pending}
+        description={
+          <>
             Upload up to 250 images. Position 1 is the catalog cover. Gallery lives in the OUR commerce tree
             (`extras.media`); uploads and removes write through there for conflict detect. Remove drops
             a frame locally; Push omits it from Shopify so the remote media is deleted. Descriptive alt text is
             part of the publish checklist (Shopify <code className="text-[0.7rem]">MEDIA_IMAGE.alt</code>).
-          </p>
-        </div>
-        <label className={`adm-btn-ghost ${pending ? "pointer-events-none opacity-60" : "cursor-pointer"}`}>
-          {pending ? "Uploading…" : "Add images"}
-          <input ref={inputRef} type="file" accept="image/*" multiple className="sr-only" onChange={(event) => upload(event.target.files)} disabled={pending} />
-        </label>
-      </div>
-      {showLocalEditor ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {localMedia.map((item, index) => {
-            const primary = product!.primaryAssetId === item.assetId;
-            const altValue = item.alt ?? "";
-            return (
-              <article key={item.id} className="grid gap-3 border border-[var(--adm-border)] p-3">
-                <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-                  <Image src={item.url} alt={altValue || product!.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
-                  <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">{primary ? "01 · Cover" : String(index + 1).padStart(2, "0")}</span>
-                </div>
-                <AdminTextField
-                  label="Alt text"
-                  name={`media-alt-${item.id}`}
-                  defaultValue={altValue}
-                  owner="Shopify"
-                  help="Short description of what the image shows. Avoid filenames."
-                  warning={imageAltSoftWarning(altValue) ?? undefined}
-                  onBlur={(event) => {
-                    if (event.currentTarget.value.trim() === altValue.trim()) return;
-                    saveLocalAlt(item.id, event.currentTarget.value);
-                  }}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === 0} onClick={() => mutate(() => moveProductMediaAction(item.id, -1))}>←</AdminButton>
-                  <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending || index === localMedia.length - 1} onClick={() => mutate(() => moveProductMediaAction(item.id, 1))}>→</AdminButton>
-                  {!primary ? <AdminButton variant="ghost" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => setPrimaryProductMediaAction(item.id))}>Move to first</AdminButton> : null}
-                  <AdminButton variant="danger" className="min-h-9 px-3" disabled={pending} onClick={() => mutate(() => removeProductMediaAction(item.id))}>Remove</AdminButton>
-                </div>
-              </article>
-            );
-          })}
-        </div>
-      ) : showTreeFrames ? (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {treeFrames.map((frame, index) => (
-            <article key={frame.id ?? frame.url} className="grid gap-3 border border-[var(--adm-border)] p-3">
-              <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-                <Image src={frame.url} alt={frame.alt || product?.name || "Gallery image"} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
-                <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">
-                  {index === 0 ? "01 · Cover" : String(index + 1).padStart(2, "0")}
-                </span>
-              </div>
-              <AdminTextField
-                label="Alt text"
-                name={`media-alt-tree-${index}`}
-                defaultValue={frame.alt}
-                owner="Shopify"
-                help="Edits OUR commerce tree until Push. Prefer a product description over Image N."
-                warning={imageAltSoftWarning(frame.alt) ?? undefined}
-                onBlur={(event) => {
-                  if (event.currentTarget.value.trim() === frame.alt.trim()) return;
-                  saveTreeAlt(index, event.currentTarget.value);
-                }}
-              />
-              <div className="flex flex-wrap gap-2">
-                <AdminButton
-                  variant="danger"
-                  className="min-h-9 px-3"
-                  disabled={pending}
-                  onClick={() => removeTreeFrame(index)}
-                >
-                  Remove
-                </AdminButton>
-              </div>
-            </article>
-          ))}
-        </div>
-      ) : product?.imageUrl ? (
-        <article className="grid max-w-sm gap-3 border border-[var(--adm-border)] p-3">
-          <div className="relative aspect-square overflow-hidden bg-[var(--adm-bg-soft)]">
-            <Image src={product.imageUrl} alt={product.name} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
-            <span className="absolute left-2 top-2 bg-[var(--adm-ink)] px-2 py-1 text-[0.62rem] font-bold uppercase tracking-wider text-[var(--adm-bg)]">01 · Cover</span>
-          </div>
-          <p className="text-xs text-[var(--adm-muted)]">
-            Legacy cover image. Upload to the gallery to manage ordering and alt text, or keep this cover until the next gallery upload replaces it.
-          </p>
-        </article>
-      ) : (
-        <p className="text-sm text-[var(--adm-muted)]">No gallery images yet. Add images to build the product gallery.</p>
-      )}
-    </section>
+          </>
+        }
+        onAdd={(files) => upload(files)}
+        onMove={(frameId, toIndex) => {
+          if (!product) return;
+          mutate(() => moveProductMediaAction(product.id, frameId, toIndex));
+        }}
+        onRemove={(frameId) => {
+          if (!product) return;
+          mutate(() => removeProductMediaAction(product.id, frameId));
+        }}
+        onSetCover={(frameId) => {
+          if (!product) return;
+          mutate(() => setPrimaryProductMediaAction(product.id, frameId));
+        }}
+        onAlt={(frameId, alt) => {
+          if (!product) return;
+          mutate(() => updateProductMediaAltAction(product.id, frameId, alt));
+        }}
+      />
+    </div>
   );
 }
