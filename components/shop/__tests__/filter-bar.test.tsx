@@ -1,9 +1,13 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useRouter } from "next/navigation";
+
+import { resetListStateUrlPendingForTests } from "@/components/shared/list-state/use-list-state";
+
 import { FilterBar } from "../filter-bar";
 import { buildSearchParams, FILTERS_STORAGE_KEY, type ShopFilters } from "../types";
 
-const historyReplace = vi.spyOn(window.history, "replaceState");
+const routerReplace = vi.fn();
 
 const categories = [{ value: "bracelets", label: "Bracelets" }];
 const collections = [{ value: "heritage", label: "Heritage" }];
@@ -17,18 +21,30 @@ const defaultProps = {
 };
 
 function setShopUrl(basePath: string, filters: ShopFilters = {}) {
+  resetListStateUrlPendingForTests();
   const qs = buildSearchParams({ ...filters, sort: filters.sort ?? "featured" });
   const href = qs ? `/en${basePath}?${qs}` : `/en${basePath}`;
   window.history.replaceState(window.history.state, "", href);
-  historyReplace.mockClear();
+  routerReplace.mockClear();
 }
 
+/** Site adapter writes via `router.replace` only (no history.replaceState). */
 function expectHref(href: string) {
-  expect(historyReplace.mock.calls.some((call) => call[2] === href)).toBe(true);
+  expect(routerReplace.mock.calls.some((call) => call[0] === href)).toBe(true);
 }
 
 beforeEach(() => {
   sessionStorage.clear();
+  resetListStateUrlPendingForTests();
+  routerReplace.mockReset();
+  vi.mocked(useRouter).mockReturnValue({
+    push: vi.fn(),
+    replace: routerReplace,
+    prefetch: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  } as ReturnType<typeof useRouter>);
   setShopUrl("/shop");
   vi.useRealTimers();
 });
@@ -48,6 +64,7 @@ describe("FilterBar", () => {
       ),
     );
     expectHref("/en/shop?category=bracelets");
+    expect(routerReplace).toHaveBeenCalledWith("/en/shop?category=bracelets", { scroll: false });
   });
 
   it("keeps primary filters visible and progressively reveals contextual filters", async () => {
@@ -214,7 +231,7 @@ describe("FilterBar", () => {
     if (braceletOpt) await user.click(braceletOpt);
     await user.click(screen.getByRole("button", { name: /view products/i }));
     await waitFor(() =>
-      expect(historyReplace.mock.calls.some((call) => String(call[2]).includes("bracelets"))).toBe(true),
+      expect(routerReplace.mock.calls.some((call) => String(call[0]).includes("bracelets"))).toBe(true),
     );
   });
 
@@ -238,7 +255,7 @@ describe("FilterBar", () => {
     const allBtns = within(dialog).getAllByRole("button", { name: "All" });
     await user.click(allBtns[0]);
     await user.click(within(dialog).getByRole("button", { name: /view all products/i }));
-    await waitFor(() => expect(historyReplace).toHaveBeenCalled());
+    await waitFor(() => expect(routerReplace).toHaveBeenCalled());
   });
 
   it("includes the active filter count in the mobile Filters button", () => {
