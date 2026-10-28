@@ -11,6 +11,7 @@ import {
   diffGalleryByIdentity,
   productSetFileIdentityKeys,
   productSetFilesFromPlan,
+  reusePendingFramesByRemoteFilename,
   type GalleryPlanFrame,
 } from "@/lib/shopify/gallery-plan";
 
@@ -225,5 +226,32 @@ describe("gallery plan frame source", () => {
     expect(plan.frames).toHaveLength(1);
     expect(plan.frames[0]!.frameId).toBe("gid://shopify/MediaImage/1");
     expect(plan.frames[0]!.alt).toBe("From extras");
+  });
+
+  it("reusePendingFramesByRemoteFilename maps local→gid by exact staged filename", () => {
+    const plan = buildGalleryPlanFromNodes([
+      localNode("asset-uuid"),
+      shopifyNode("gid://shopify/MediaImage/keep"),
+    ]);
+    const remotes = new Map([
+      ["photo-asset-uuid.webp", { id: "gid://shopify/MediaImage/reused" }],
+    ]);
+    const reused = reusePendingFramesByRemoteFilename(
+      plan,
+      (frame) => (frame.frameId === "local:asset-uuid" ? "photo-asset-uuid.webp" : null),
+      remotes,
+    );
+    expect(reused.frames.map((frame) => frame.frameId)).toEqual([
+      "gid://shopify/MediaImage/reused",
+      "gid://shopify/MediaImage/keep",
+    ]);
+    expect(reused.frames[0]!.source).toBe("shopify-gid");
+    const files = productSetFilesFromPlan(reused, () => {
+      throw new Error("must not stage reused frame");
+    });
+    expect(files).toEqual([
+      { id: "gid://shopify/MediaImage/reused", alt: "" },
+      { id: "gid://shopify/MediaImage/keep", alt: "" },
+    ]);
   });
 });

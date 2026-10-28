@@ -55,6 +55,7 @@ import {
 import {
   buildGalleryPlanFromWindow,
   productSetFilesFromPlan,
+  reusePendingFramesByRemoteFilename,
 } from "@/lib/shopify/gallery-plan";
 import { parseLocalAssetId } from "@/lib/products/gallery";
 import { resolveGalleryMediaAlt } from "@/lib/shopify/product-media-alt-form";
@@ -1841,6 +1842,8 @@ export async function pushProductToShopify(
     // ONE gallery plan → productSet.files (gid frames keep id; pending upload).
     // DELETED: positional tree walk + directImage URL-match (CDN ?v= re-upload bug).
     // Create with no frames still uses product.imageUrl once (below).
+    // Pending frames reuse a remote gid when the staged UUID filename already
+    // exists (retry after partial failure must not duplicate).
     // https://shopify.dev/docs/api/admin-graphql/latest/mutations/productSet
     const galleryPlan = buildGalleryPlanFromWindow(ourWindow ?? product.extras);
     const localAssetsById = new Map<string, LocalProductAsset>();
@@ -1862,15 +1865,39 @@ export async function pushProductToShopify(
         alt: "",
       });
     }
-    const pendingAssetIds = galleryPlan.frames.flatMap((frame) => {
+    const remoteByFilename = new Map(
+      (currentRemote?.media.nodes ?? []).flatMap((item) => {
+        const filename = shopifyMediaFilename({
+          originalSourceUrl: item.originalSource?.url,
+          imageUrl: item.image?.url ?? item.preview?.image?.url,
+        });
+        return filename && item.status !== "FAILED"
+          ? [[filename, item] as const]
+          : [];
+      }),
+    );
+    const pendingAssets = galleryPlan.frames.flatMap((frame) => {
       const assetId = parseLocalAssetId(frame.frameId);
-      return assetId && localAssetsById.has(assetId) ? [assetId] : [];
+      const asset = assetId ? localAssetsById.get(assetId) : undefined;
+      return asset ? [asset] : [];
     });
-    const assetsToStage = pendingAssetIds.map((assetId) => localAssetsById.get(assetId)!);
+    const pushPlan = reusePendingFramesByRemoteFilename(
+      galleryPlan,
+      (frame) => {
+        const assetId = parseLocalAssetId(frame.frameId);
+        return assetId ? localAssetsById.get(assetId)?.filename ?? null : null;
+      },
+      remoteByFilename,
+    );
+    const assetsToStage = pushPlan.frames.flatMap((frame) => {
+      const assetId = parseLocalAssetId(frame.frameId);
+      const asset = assetId ? localAssetsById.get(assetId) : undefined;
+      return asset ? [asset] : [];
+    });
     beginStep();
     const stagedUrls = await uploadAssetsToShopifyStaging(assetsToStage);
     endStep("stagingUploadMs");
-    let files = productSetFilesFromPlan(galleryPlan, (frame) => {
+    let files = productSetFilesFromPlan(pushPlan, (frame) => {
       const assetId = parseLocalAssetId(frame.frameId);
       if (!assetId) return null;
       const asset = localAssetsById.get(assetId);
@@ -2125,7 +2152,9 @@ export async function pushProductToShopify(
     }
     endStep("variantInventoryMs");
     beginStep();
-    const mediaSettled = await waitForReadyProductMedia(remote, assetsToStage);
+    // Settle every pending local asset (newly staged OR reused by filename) so
+    // ProductMedia rows archive after READY match — not only this attempt's uploads.
+    const mediaSettled = await waitForReadyProductMedia(remote, pendingAssets);
     endStep("mediaSettlementMs");
     // Inventory SetQuantities can lag one fetch behind; wait so agreedProjectionWrite
     // does not freeze a stale quantity into OUR/Shopify and force a second Push cycle.

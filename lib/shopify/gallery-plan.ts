@@ -291,3 +291,32 @@ export function productSetFileIdentityKeys(files: readonly ProductSetFileInput[]
     return `alt:${file.alt}`;
   });
 }
+
+/**
+ * Before staging a pending frame, reuse a remote media gid when the staged
+ * filename already exists on Shopify (UUID filenames → exact match). Retried
+ * push after a partial failure must not upload a duplicate.
+ */
+export function reusePendingFramesByRemoteFilename(
+  plan: GalleryPlan,
+  filenameForPendingFrame: (frame: GalleryPlanFrame) => string | null,
+  remoteByFilename: ReadonlyMap<string, { id: string }>,
+): GalleryPlan {
+  const frames = plan.frames.map((frame, index) => {
+    if (frame.source !== "pending-upload") {
+      return { ...frame, position: index };
+    }
+    const filename = filenameForPendingFrame(frame);
+    const remote = filename ? remoteByFilename.get(filename) : undefined;
+    if (!remote) {
+      return { ...frame, position: index };
+    }
+    return {
+      ...frame,
+      frameId: remote.id,
+      source: "shopify-gid" as const,
+      position: index,
+    };
+  });
+  return { frames };
+}
