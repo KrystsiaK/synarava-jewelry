@@ -209,6 +209,7 @@ export type SavedProductMediaPayload = {
 };
 
 export async function getSavedProductPayload(productId: string): Promise<SavedProductPayload> {
+  await requireAdminSession("/admin/products");
   const product = await db.product.findUnique({
     where: { id: productId },
     select: {
