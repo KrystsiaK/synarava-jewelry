@@ -174,7 +174,7 @@ jobs:
     # Pin to @playwright/test in package.json/lockfile. Browsers + OS deps are
     # preinstalled — no apt / --with-deps (avoids intermittent dpkg lock / exit 137).
     container:
-      image: mcr.microsoft.com/playwright:v1.60.0-jammy
+      image: mcr.microsoft.com/playwright:v1.64.1-jammy
       options: --ipc=host
     services:
       postgres:
