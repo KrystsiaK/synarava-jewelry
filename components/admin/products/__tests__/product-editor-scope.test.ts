@@ -225,13 +225,13 @@ describe("product-editor-scope", () => {
     expect(scoped.get("name")).toBe("Saved Name");
   });
 
-  it("attributes gallery alt FormData keys to the Media branch", () => {
-    expect(fieldBelongsToBranch("media-alt-abc123", "media", "en")).toBe(true);
-    expect(fieldBelongsToBranch("media-alt-tree-0", "media", "pt")).toBe(true);
-    expect(fieldBelongsToBranch("media-alt-abc123", "essentials", "en")).toBe(false);
+  it("does not treat legacy media-alt FormData keys as Media branch fields", () => {
+    // Gallery alts persist via frame ops — not product Save FormData.
+    expect(fieldBelongsToBranch("media-alt-abc123", "media", "en")).toBe(false);
+    expect(fieldBelongsToBranch("media-alt-tree-0", "media", "pt")).toBe(false);
   });
 
-  it("writes media-alt keys from the current branch when saving Media", () => {
+  it("Media scoped save keeps shared product fields without media-alt FormData", () => {
     const baseline = new FormData();
     baseline.set("productId", "p1");
     baseline.set("name", "Saved Name");
@@ -240,7 +240,6 @@ describe("product-editor-scope", () => {
     baseline.set("price", "10");
     baseline.set("stockOnHand", "1");
     baseline.set("workflowState", "DRAFT");
-    baseline.set("media-alt-m1", "Old alt");
 
     const current = new FormData();
     current.set("productId", "p1");
@@ -250,8 +249,6 @@ describe("product-editor-scope", () => {
     current.set("price", "10");
     current.set("stockOnHand", "1");
     current.set("workflowState", "DRAFT");
-    current.set("media-alt-m1", "Lava ring, front view");
-    current.set("media-alt-tree-0", "Tree cover");
 
     const scoped = buildScopedProductFormData({
       baseline,
@@ -260,10 +257,9 @@ describe("product-editor-scope", () => {
       locale: "en",
     });
 
-    expect(scoped.get("media-alt-m1")).toBe("Lava ring, front view");
-    expect(scoped.get("media-alt-tree-0")).toBe("Tree cover");
     expect(scoped.get("name")).toBe("Saved Name");
     expect(scoped.get("saveScope")).toBe("en:media");
+    expect(scoped.get("media-alt-m1")).toBeNull();
   });
 
   it("writes price-tab fields from the current branch when saving price", () => {

@@ -29,6 +29,11 @@ export type CatalogConflictProductSignal = {
    */
   leafCount?: number;
   /**
+   * Difference count for banner copy: sum of whole-item `parts`, else 1 per leaf.
+   * Banner: "1 conflict (N differences)" when this exceeds leafCount.
+   */
+  differenceCount?: number;
+  /**
    * Editor sections that own at least one leaf/part (presence → `"shopify"`).
    * Tab dots read this — never invent presence-only or light every shared tab.
    */

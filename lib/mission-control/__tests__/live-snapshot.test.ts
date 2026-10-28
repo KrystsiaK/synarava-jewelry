@@ -36,12 +36,23 @@ vi.mock("@/lib/mission-control/providers/orders", () => ({
   })),
 }));
 
+const COLLECTOR_AT = new Date("2026-10-19T21:55:00.000Z");
+
+vi.mock("@/lib/mission-control/status", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/mission-control/status")>();
+  return {
+    ...actual,
+    readLatestCollectorCheckedAt: vi.fn(async () => COLLECTOR_AT),
+  };
+});
+
 import {
   LIVE_NODE_KEYS,
   loadMissionControlSnapshot,
   placeholderNodeStatusesFromFixtures,
 } from "@/lib/mission-control/live-snapshot";
 import { MISSION_CONTROL_NODE_STATUS_FIXTURES } from "@/lib/mission-control/fixtures";
+import { readLatestCollectorCheckedAt } from "@/lib/mission-control/status";
 
 describe("Mission Control Stage 4 live snapshot", () => {
   it("exposes exactly three live node keys", () => {
@@ -73,5 +84,7 @@ describe("Mission Control Stage 4 live snapshot", () => {
     expect(snapshot.placeholderNodeKeys).toEqual(
       expect.arrayContaining(["sentry", "db", "products"]),
     );
+    expect(snapshot.collectorCheckedAt).toEqual(COLLECTOR_AT);
+    expect(readLatestCollectorCheckedAt).toHaveBeenCalledWith(LIVE_NODE_KEYS);
   });
 });

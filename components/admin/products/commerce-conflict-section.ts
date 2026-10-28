@@ -23,7 +23,7 @@ export function productEditorSectionForConflictField(field: {
     if (field.section) return field.section;
     if (field.parts && field.parts.length > 0) return field.parts[0]!.section;
     if (field.path) {
-      const contract = lookupContractForPath(field.path);
+      const contract = lookupContractForPath(field.path, "PRODUCT");
       if (contract) return contract.section;
     }
     return "shopify";
@@ -67,7 +67,7 @@ export function productEditorSectionForCommerceDiff(diff: {
   if (diff.path === "_presence" || diff.field === "Presence") return "shopify";
   if (diff.path === "_adopt" || diff.field === "Adopt Shopify") return "shopify";
   if (diff.path) {
-    const contract = lookupContractForPath(diff.path);
+    const contract = lookupContractForPath(diff.path, "PRODUCT");
     if (contract) return contract.section;
   }
   return "shopify";

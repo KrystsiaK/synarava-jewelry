@@ -1,4 +1,8 @@
 import type { ShopFilters } from "@/lib/content/catalog";
+import {
+  decodeBase64UrlJsonCursor,
+  encodeBase64UrlJsonCursor,
+} from "@/lib/cursor/base64url-json-cursor";
 import type { Locale } from "@/lib/i18n/locales";
 
 export const CATALOG_DEFAULT_PAGE_SIZE = 24;
@@ -25,21 +29,15 @@ function fingerprint(filters: ShopFilters, locale: Locale): string {
   return `${locale}|${JSON.stringify(entries)}`;
 }
 
-type CursorPayload = { fp: string; id: string };
-
 export function encodeCatalogCursor(filters: ShopFilters, locale: Locale, lastId: string): string {
-  const payload: CursorPayload = { fp: fingerprint(filters, locale), id: lastId };
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return encodeBase64UrlJsonCursor({ fp: fingerprint(filters, locale), id: lastId });
 }
 
 /** Returns the last-seen product id, or null if the cursor is missing, malformed, or was minted for a different query. */
-export function decodeCatalogCursor(raw: string | null | undefined, filters: ShopFilters, locale: Locale): string | null {
-  if (!raw) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as Partial<CursorPayload>;
-    if (typeof payload.id !== "string" || payload.fp !== fingerprint(filters, locale)) return null;
-    return payload.id;
-  } catch {
-    return null;
-  }
+export function decodeCatalogCursor(
+  raw: string | null | undefined,
+  filters: ShopFilters,
+  locale: Locale,
+): string | null {
+  return decodeBase64UrlJsonCursor(raw, fingerprint(filters, locale));
 }

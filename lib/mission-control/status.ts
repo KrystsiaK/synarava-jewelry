@@ -66,6 +66,22 @@ export async function readServiceNodeStatus(
   };
 }
 
+/**
+ * Latest collector write time from persisted rows (not request-time probes).
+ * Null = collector has never written — treat as stale.
+ */
+export async function readLatestCollectorCheckedAt(
+  nodeKeys: readonly string[],
+): Promise<Date | null> {
+  if (nodeKeys.length === 0) return null;
+  const row = await db.serviceNodeStatus.findFirst({
+    where: { nodeKey: { in: [...nodeKeys] } },
+    orderBy: { checkedAt: "desc" },
+    select: { checkedAt: true },
+  });
+  return row?.checkedAt ?? null;
+}
+
 /** Upsert a node status row (collector write path). */
 export async function writeServiceNodeStatus(
   input: WriteServiceNodeStatusInput,

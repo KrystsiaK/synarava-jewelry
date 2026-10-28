@@ -2,6 +2,7 @@ import "server-only";
 
 import { db } from "@/lib/db";
 import {
+  convergenceApplyOutcome,
   findConflictLeaf,
   intendedAddressFromLeaf,
   leafMatchesExpectedFingerprints,
@@ -249,7 +250,7 @@ async function writeToShopify(productId: string, label: string, value: string, v
 }
 
 /**
- * Re-check SyncResult leaves after a successful field write (PR-8 convergence).
+ * Re-check SyncResult leaves after a successful field write (PR-8 / STEP 7).
  * Field leaf gone = converged. Does **not** write `syncStatus: SYNCED`
  * (conflict inventory is SyncResult leaves, not that column).
  */
@@ -257,6 +258,7 @@ async function verifyAfterWrite(
   productId: string,
   leaf: SyncLeaf,
   requestedBy: string,
+  leavesBefore: readonly SyncLeaf[],
 ): Promise<
   | { status: "resolved" }
   | { status: "still-conflicting"; message: string }
@@ -267,18 +269,9 @@ async function verifyAfterWrite(
     resourceId: productId,
     requestedBy,
     intended: [intendedAddressFromLeaf(leaf)],
+    leavesBefore,
   });
-  if (result.status === "converged" || result.status === "unrelated_new_leaves") {
-    // Intended address cleared; unrelated leaves are reported separately by callers later.
-    return { status: "resolved" };
-  }
-  if (result.status === "did_not_converge") {
-    return {
-      status: "still-conflicting",
-      message: `did not converge: ${result.remainingLabels.join(", ")}`,
-    };
-  }
-  return { status: "unverifiable", message: result.message };
+  return convergenceApplyOutcome(result);
 }
 
 /**
@@ -376,7 +369,7 @@ export async function applyCommerceField({
     return { ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This change could not be applied." };
   }
 
-  const refreshResult = await verifyAfterWrite(productId, leaf, requestedBy);
+  const refreshResult = await verifyAfterWrite(productId, leaf, requestedBy, leaves);
   if (refreshResult.status === "unverifiable") {
     return { ok: false, reason: "WRITE_FAILED", message: refreshResult.message };
   }

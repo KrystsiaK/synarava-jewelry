@@ -29,6 +29,16 @@ function sectionsFromLeaves(leaves: readonly SyncLeaf[]): SyncConflictSection[] 
   return [...sections].toSorted();
 }
 
+/** Whole-item parts count as differences; plain leaves count as one each. */
+function differenceCountFromLeaves(leaves: readonly SyncLeaf[]): number {
+  let total = 0;
+  for (const leaf of leaves) {
+    if (leaf.parts && leaf.parts.length > 0) total += leaf.parts.length;
+    else total += 1;
+  }
+  return total;
+}
+
 function localeSignal(
   code: string,
   count: number,
@@ -101,6 +111,7 @@ export function catalogConflictSignalsFromSyncResult(
       shared: sharedCount > 0 || Boolean(presence),
       sharedCount,
       leafCount,
+      differenceCount: differenceCountFromLeaves(leaves),
       sections: sectionsFromLeaves(leaves),
       locales,
       presence,

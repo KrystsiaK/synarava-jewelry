@@ -17,18 +17,23 @@ The section tab strip is visually split into two clusters: **Shopify** (commerce
 
 The Price tab (Shopify group) mirrors Shopify Admin’s Price card on the primary
 variant — editable `price` and `taxable`. **Compare-at** and **Cost** are
-Synarava read-only pull projections.
+read-only pull projections (Shopify-owned; linked Push omits `inventoryItem.cost`).
 
-The **Inventory** tab (Shopify group) mirrors Shopify’s Inventory + Shipping
-cards for the primary variant: editable `sku` and available quantity; location
-quantities, barcode, tracking, sell-when-out-of-stock, weight, country of origin,
-and HS code are Pull projections (edit in Shopify Admin for now). No separate
-Variants tab yet — multi-variant detail stays on Sync.
+The **Inventory** tab (Shopify group; Push gate copy says “Stock tab”) mirrors
+Shopify’s Inventory + Shipping cards for the primary variant: editable `sku`
+and available quantity; location quantities, barcode, tracking,
+sell-when-out-of-stock, weight, country of origin, and HS code are Pull
+projections (edit in Shopify Admin for now). PENDING-\* SKUs: **Family →
+Preview → Confirm assign** before Push (sku-api). No separate Variants tab yet —
+multi-variant detail stays on Sync; ConflictResolver blocks **Keep ours** for
+multi-variant whole-item commerce (Take Shopify still works).
+
+Gallery compare identity is **filename + alt + position** (not CDN url / media id).
 
 The synchronization boundary has three explicit layers:
 
-1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements, and other supported product/variant fields.
-2. **Shopify product metafields** — structured specifications, certificates, care information, fit, composition, provenance, and other reusable customer-facing facts are stored in the `synarava` namespace. Synarava provides the editing UI and mirrors these values bidirectionally.
+1. **Shopify standard fields** — Shopify owns identity, sellability, pricing, inventory/stock, variants, options, primary and gallery media, taxonomy, SEO, publication state, shipping measurements (weight), country of origin, unit cost, and other supported product/variant fields. **Unit cost is never pushed on linked products** (create may still seed cost).
+2. **Shopify product metafields** — merchant `custom.*` specs (material, care, finish, …) and Synarava passport mirrors (`synarava.*` on Push for chain lengths / compliance). Synarava provides the editing UI; commerce compare uses the derived OUR window + `shopifySnapshot`.
 3. **Synarava-only editorial content** — symbolism, material stories, craftsmanship narrative, editorial photography, lookbook composition, and storefront art direction remain local when Shopify cannot represent them without losing structure or editorial intent.
 
 Localized Shopify product title, description, and SEO copy are shared fields. Values for every

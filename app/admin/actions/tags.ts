@@ -1,3 +1,4 @@
+import { requireAdminSession } from "@/lib/auth/admin-session";
 import { db } from "@/lib/db";
 
 export type SavedTagPayload = {
@@ -9,6 +10,7 @@ export type SavedTagPayload = {
 };
 
 export async function getSavedTagPayload(tagId: string): Promise<SavedTagPayload> {
+  await requireAdminSession("/admin");
   const tag = await db.tag.findUnique({
     where: { id: tagId },
     select: {

@@ -256,7 +256,7 @@ See §7. Dropped `projection-merge` / `shopifyBaseSnapshot` / translation snapsh
 
 | Keep on Translations | Detail |
 | --- | --- |
-| Add / hide / restore / delete language | Registry + locale tabs everywhere ([languages-as-data](./languages-as-data.md)) |
+| Add / hide / restore / delete language | Registry + locale tabs everywhere ([languages-as-data](../proposals/languages-as-data.md), [ADR-0007](../adr/0007-languages-as-data.md)) |
 | Export / import bundle | `lib/i18n/language-bundle.ts` |
 | **Diff preview before import** | Dry-run: counts + sample field deltas; confirm before write |
 

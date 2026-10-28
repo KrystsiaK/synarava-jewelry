@@ -9,6 +9,8 @@ const mocks = vi.hoisted(() => ({
   scanAndSaveCatalogPresence: vi.fn(),
   applyShopifyProductToSynarava: vi.fn(),
   findUniqueProduct: vi.fn(),
+  recheckEntityConflictLeaves: vi.fn(),
+  gateWriteConvergence: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/catalog-conflict", async () => {
@@ -47,6 +49,14 @@ vi.mock("@/lib/db", () => ({
     },
   },
 }));
+vi.mock("@/lib/sync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/sync")>();
+  return {
+    ...actual,
+    recheckEntityConflictLeaves: mocks.recheckEntityConflictLeaves,
+    gateWriteConvergence: mocks.gateWriteConvergence,
+  };
+});
 
 import {
   applyCatalogConflictResolution,
@@ -156,6 +166,8 @@ function conflict(fields: CatalogConflictField[], productId = "product-1"): Prod
 
 beforeEach(() => {
   vi.clearAllMocks();
+  mocks.recheckEntityConflictLeaves.mockResolvedValue({ leaves: [] });
+  mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
 });
 
 describe("previewCatalogConflictResolution", () => {

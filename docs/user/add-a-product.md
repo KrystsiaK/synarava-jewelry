@@ -71,12 +71,14 @@ but keeps the direct link and cart access available.
 
 ### Assign SKU before Create (explicit family)
 
-When portable SKU assignment is configured, Inventory uses **Family → Preview →
-Confirm** (or **Resume** for a pending reservation). You must pick a **family**
-yourself — nothing is pre-selected, and Preview/Confirm stay disabled until you
-choose. The registry ledger is **immutable**: a wrong family permanently
-reserves that path, so Preview first. If assignment is not configured, type the
-SKU field manually. See [Shopify sync flow for catalog owners](/admin/help/sync-flow).
+When portable SKU assignment is configured, open the **Inventory** tab (Push
+error copy may say “Stock tab”) and run **Family → Preview → Confirm assign**
+(or **Resume** for a pending reservation). PENDING-\* placeholders must complete
+that path before Push (sku-api). You must pick a **family** yourself — nothing
+is pre-selected, and Preview/Confirm stay disabled until you choose. The
+registry ledger is **immutable**: a wrong family permanently reserves that path,
+so Preview first. If assignment is not configured, type the SKU field manually.
+See [Shopify sync flow for catalog owners](/admin/help/sync-flow).
 
 ### Create or reconcile the Shopify copy from the header
 

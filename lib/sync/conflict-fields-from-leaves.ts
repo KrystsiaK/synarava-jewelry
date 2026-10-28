@@ -108,6 +108,7 @@ export function catalogConflictFieldsFromLeaves(
       contractKey: leaf.contractKey ?? null,
       section: leaf.section ?? null,
       parts: leaf.parts ?? null,
+      previewUrl: leaf.previewUrl ?? null,
       ...(isPresence && presenceDifference ? { presenceDifference } : {}),
     };
   });

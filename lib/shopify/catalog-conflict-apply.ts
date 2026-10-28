@@ -3,6 +3,13 @@ import "server-only";
 import { db } from "@/lib/db";
 
 import {
+  gateWriteConvergence,
+  intendedAddressFromLeaf,
+  recheckEntityConflictLeaves,
+  treeNodeForLocale,
+  type IntendedConflictAddress,
+} from "@/lib/sync";
+import {
   isSelectableCommerceField,
   MAX_CONFLICT_APPLY_ENTRIES,
   PRODUCT_PRESENCE_UNSUPPORTED,
@@ -26,8 +33,13 @@ import {
   type ProductCatalogConflict,
 } from "./catalog-conflict";
 import { applyCommerceField } from "./commerce-field-apply";
-import { COMMERCE_UNSUPPORTED_REASON, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
+import {
+  COMMERCE_UNSUPPORTED_REASON,
+  isMediaIdentityContractKey,
+  isScopedCommerceFieldLabel,
+} from "./catalog-conflict-policy";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
+import { applyMediaIdentityBatch } from "./media-identity-apply";
 import { applyShopifyProductToSynarava } from "./product-sync";
 import { applyReconcileChoice } from "./reconciliation-apply";
 
@@ -292,7 +304,7 @@ export async function applyCatalogConflictResolution({
     else readyCommerce.push({ input: entry, field });
   }
 
-  for (const { input } of readyAdopt) {
+  for (const { input, field } of readyAdopt) {
     try {
       const product = await db.product.findUnique({
         where: { id: input.productId },
@@ -308,7 +320,38 @@ export async function applyCatalogConflictResolution({
         });
         continue;
       }
+      const { leaves: leavesBefore } = await recheckEntityConflictLeaves({
+        resourceType: "PRODUCT",
+        resourceId: input.productId,
+        requestedBy: actorUsername,
+      });
       const pulled = await applyShopifyProductToSynarava(product.shopifyProductId, undefined, true);
+      const intended: IntendedConflictAddress[] = leavesBefore.length > 0
+        ? leavesBefore.map(intendedAddressFromLeaf)
+        : [{
+            entityType: "PRODUCT",
+            entityId: input.productId,
+            node: "base",
+            fieldKey: input.fieldKey,
+            label: field.label,
+          }];
+      const gate = await gateWriteConvergence({
+        resourceType: "PRODUCT",
+        resourceId: pulled.productId,
+        requestedBy: actorUsername,
+        leavesBefore,
+        intended,
+      });
+      if (!gate.ok) {
+        results.push({
+          productId: input.productId,
+          fieldKey: input.fieldKey,
+          ok: false,
+          reason: "WRITE_FAILED",
+          message: gate.message,
+        });
+        continue;
+      }
       results.push({
         productId: input.productId,
         fieldKey: input.fieldKey,
@@ -333,10 +376,54 @@ export async function applyCatalogConflictResolution({
       continue;
     }
     try {
+      const linkedId = field.presenceDifference.localProductId ?? (
+        isVirtualPresenceProductId(input.productId) ? null : input.productId
+      );
+      const leavesBefore = linkedId
+        ? (await recheckEntityConflictLeaves({
+            resourceType: "PRODUCT",
+            resourceId: linkedId,
+            requestedBy: actorUsername,
+          })).leaves
+        : [];
       const outcome = await applyCatalogPresenceDifference({ difference: field.presenceDifference, direction: input.direction });
-      results.push(outcome.ok
-        ? { productId: input.productId, localProductId: outcome.localProductId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
-        : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: outcome.reason, message: outcome.message });
+      if (!outcome.ok) {
+        results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: outcome.reason, message: outcome.message });
+        continue;
+      }
+      const gateId = outcome.localProductId ?? linkedId;
+      if (gateId) {
+        const gate = await gateWriteConvergence({
+          resourceType: "PRODUCT",
+          resourceId: gateId,
+          requestedBy: actorUsername,
+          leavesBefore,
+          intended: [{
+            entityType: "PRODUCT",
+            entityId: gateId,
+            node: "base",
+            fieldKey: input.fieldKey,
+            label: field.label,
+          }],
+        });
+        if (!gate.ok) {
+          results.push({
+            productId: input.productId,
+            fieldKey: input.fieldKey,
+            ok: false,
+            reason: "WRITE_FAILED",
+            message: gate.message,
+          });
+          continue;
+        }
+      }
+      results.push({
+        productId: input.productId,
+        localProductId: outcome.localProductId,
+        fieldKey: input.fieldKey,
+        ok: true,
+        message: outcome.message,
+      });
     } catch (error) {
       results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: error instanceof Error ? error.message : "This product could not be synchronized." });
     }
@@ -355,6 +442,13 @@ export async function applyCatalogConflictResolution({
     // successfully earlier in this same loop — instead of reporting this
     // one field as failed and letting the rest of the batch stand.
     try {
+      const leavesBefore = isVirtualPresenceProductId(input.productId)
+        ? []
+        : (await recheckEntityConflictLeaves({
+            resourceType: "PRODUCT",
+            resourceId: input.productId,
+            requestedBy: actorUsername,
+          })).leaves;
       const outcome = await applyReconcileChoice({
         divergenceId: field.sourceId,
         choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
@@ -362,18 +456,94 @@ export async function applyCatalogConflictResolution({
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,
         actorUsername,
       });
-      results.push(
-        outcome.ok
-          ? { productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message }
-          : { productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
-      );
+      if (!outcome.ok) {
+        results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message });
+        continue;
+      }
+      if (!isVirtualPresenceProductId(input.productId)) {
+        const gate = await gateWriteConvergence({
+          resourceType: "PRODUCT",
+          resourceId: input.productId,
+          requestedBy: actorUsername,
+          leavesBefore,
+          intended: [{
+            entityType: "PRODUCT",
+            entityId: input.productId,
+            node: field.scope.kind === "LOCALE"
+              ? treeNodeForLocale(field.scope.code)
+              : "base",
+            fieldKey: input.fieldKey,
+            label: field.label,
+          }],
+        });
+        if (!gate.ok) {
+          results.push({
+            productId: input.productId,
+            fieldKey: input.fieldKey,
+            ok: false,
+            reason: "WRITE_FAILED",
+            message: gate.message,
+          });
+          continue;
+        }
+      }
+      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: true, message: outcome.message });
     } catch (error) {
       const message = error instanceof Error ? error.message : "This change could not be applied.";
       results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
     }
   }
 
-  for (const { input, field } of readyCommerce) {
+  // Media identity leaves: batch per product (Take-Shopify tree edits → one Push → one gate).
+  const mediaByProduct = new Map<string, Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }>>();
+  const otherCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
+  for (const item of readyCommerce) {
+    if (isMediaIdentityContractKey(item.field.contractKey)) {
+      const list = mediaByProduct.get(item.input.productId) ?? [];
+      list.push(item);
+      mediaByProduct.set(item.input.productId, list);
+    } else {
+      otherCommerce.push(item);
+    }
+  }
+
+  for (const [productId, batch] of mediaByProduct) {
+    try {
+      const { leaves: leavesBefore } = await recheckEntityConflictLeaves({
+        resourceType: "PRODUCT",
+        resourceId: productId,
+        requestedBy: actorUsername,
+      });
+      const outcome = await applyMediaIdentityBatch({
+        productId,
+        requestedBy: actorUsername,
+        leavesBefore,
+        entries: batch.map(({ input, field }) => ({
+          fieldKey: input.fieldKey,
+          label: field.label,
+          path: field.path ?? null,
+          contractKey: field.contractKey ?? null,
+          direction: input.direction,
+          expectedLocalFingerprint: input.expectedLocalFingerprint,
+          expectedShopifyFingerprint: input.expectedShopifyFingerprint,
+        })),
+      });
+      for (const { input } of batch) {
+        results.push(
+          outcome.ok
+            ? { productId, fieldKey: input.fieldKey, ok: true, message: "Media conflict applied." }
+            : { productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: outcome.message },
+        );
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "This change could not be applied.";
+      for (const { input } of batch) {
+        results.push({ productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message });
+      }
+    }
+  }
+
+  for (const { input, field } of otherCommerce) {
     // applyCommerceField re-validates against fresh SyncResult leaves
     // (refresh + compareSyncState) immediately before writing.
     try {

@@ -13,7 +13,15 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ refresh: mocks.refresh, push: vi.fn() }),
+  usePathname: () => "/admin/products",
+  useRouter: () => ({
+    refresh: mocks.refresh,
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
 }));
 
 vi.mock("next/link", () => ({
@@ -60,6 +68,7 @@ vi.mock("@/components/admin/products/product-conflict-adapter", () => ({
 }));
 
 import { ProductsCms } from "@/components/admin/products/products-cms";
+import { parseAdminProductsListState } from "@/lib/admin/products-list-state";
 
 function listItem(overrides: Partial<AdminProductListItem> = {}): AdminProductListItem {
   return {
@@ -134,6 +143,7 @@ describe("ProductsCms pull refresh", () => {
         categories={[]}
         tags={[]}
         collections={[]}
+        initialListState={parseAdminProductsListState({})}
         initialConflictSignals={{
           ...emptySignals,
           totalCount: 1,
