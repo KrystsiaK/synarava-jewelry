@@ -19,6 +19,10 @@ import {
   type AdminProductLocaleSignal,
   type AdminProductSortKey,
 } from "@/lib/admin/list-products-shared";
+import {
+  decodeBase64UrlJsonCursor,
+  encodeBase64UrlJsonCursor,
+} from "@/lib/cursor/base64url-json-cursor";
 
 export {
   ADMIN_PRODUCT_PAGE_SIZE,
@@ -35,8 +39,6 @@ export {
   type AdminProductSortKey,
 } from "@/lib/admin/list-products-shared";
 
-type CursorPayload = { fp: string; id: string };
-
 function fingerprint(filters: AdminProductListFilters): string {
   const entries = Object.entries(filters)
     .filter(([, value]) => value !== undefined && value !== "" && value !== "ALL")
@@ -45,22 +47,14 @@ function fingerprint(filters: AdminProductListFilters): string {
 }
 
 export function encodeAdminProductCursor(filters: AdminProductListFilters, lastId: string): string {
-  const payload: CursorPayload = { fp: fingerprint(filters), id: lastId };
-  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return encodeBase64UrlJsonCursor({ fp: fingerprint(filters), id: lastId });
 }
 
 export function decodeAdminProductCursor(
   raw: string | null | undefined,
   filters: AdminProductListFilters,
 ): string | null {
-  if (!raw) return null;
-  try {
-    const payload = JSON.parse(Buffer.from(raw, "base64url").toString("utf8")) as Partial<CursorPayload>;
-    if (typeof payload.id !== "string" || payload.fp !== fingerprint(filters)) return null;
-    return payload.id;
-  } catch {
-    return null;
-  }
+  return decodeBase64UrlJsonCursor(raw, fingerprint(filters));
 }
 
 function conflictScore(signal: CatalogConflictProductSignal | undefined): number {

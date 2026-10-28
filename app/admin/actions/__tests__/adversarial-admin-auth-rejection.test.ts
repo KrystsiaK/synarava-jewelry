@@ -1,6 +1,7 @@
 /**
  * Phase 2 — unauthenticated admin actions must reject (redirect).
  * Findings: docs/audits/2026-10-28-server-auth.md
+ * Staging follow-up: AUTH-ADV-001/002 fixed — gated actions redirect.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -54,30 +55,60 @@ describe("adversarial: authenticated actions reject without session", () => {
   });
 });
 
-describe("adversarial: missing-auth actions (documented findings)", () => {
-  /**
-   * AUTH-ADV-001 — saveSkuPolicyDraftAction does not call requireAdminSession.
-   * Unauthenticated call reaches SKU client gate instead of login redirect.
-   */
-  it("saveSkuPolicyDraftAction does not call requireAdminSession today (AUTH-ADV-001 evidence)", async () => {
+describe("adversarial: unauthenticated actions reject (AUTH-ADV-001/002)", () => {
+  it("saveSkuPolicyDraftAction", async () => {
     const { saveSkuPolicyDraftAction } = await import("@/app/admin/actions/sku-policy");
-    const result = await saveSkuPolicyDraftAction({
-      version: 1,
-      separator: "-",
-      suffixWidth: 3,
-      allowedCharacters: "A-Z0-9",
-      familiesJson: "{}",
-    });
-    expect(mocks.requireAdminSession).not.toHaveBeenCalled();
-    // Without SKU client configured, returns config error — not an auth redirect.
-    expect(result.ok).toBe(false);
-    expect(result.error).toMatch(/SKU/i);
+    await expect(
+      saveSkuPolicyDraftAction({
+        version: 1,
+        separator: "-",
+        suffixWidth: 3,
+        allowedCharacters: "A-Z0-9",
+        familiesJson: "{}",
+      }),
+    ).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
   });
 
-  it("publishSkuPolicyAction does not call requireAdminSession today (AUTH-ADV-001 evidence)", async () => {
+  it("publishSkuPolicyAction", async () => {
     const { publishSkuPolicyAction } = await import("@/app/admin/actions/sku-policy");
-    const result = await publishSkuPolicyAction(1);
-    expect(mocks.requireAdminSession).not.toHaveBeenCalled();
-    expect(result.ok).toBe(false);
+    await expect(publishSkuPolicyAction(1)).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("loadSkuPolicyEditorPayload", async () => {
+    const { loadSkuPolicyEditorPayload } = await import("@/app/admin/actions/sku-policy");
+    await expect(loadSkuPolicyEditorPayload()).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("getSavedProductPayload", async () => {
+    const { getSavedProductPayload } = await import("@/app/admin/actions/products");
+    await expect(getSavedProductPayload("p1")).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("getSavedCollectionPayload", async () => {
+    const { getSavedCollectionPayload } = await import("@/app/admin/actions/collections");
+    await expect(getSavedCollectionPayload("c1")).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("getSavedPagePayload", async () => {
+    const { getSavedPagePayload } = await import("@/app/admin/actions/pages");
+    await expect(getSavedPagePayload("about")).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("getSavedTagPayload", async () => {
+    const { getSavedTagPayload } = await import("@/app/admin/actions/tags");
+    await expect(getSavedTagPayload("t1")).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("getSavedCategoryPayload", async () => {
+    const { getSavedCategoryPayload } = await import("@/app/admin/actions/categories");
+    await expect(getSavedCategoryPayload("cat1")).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
   });
 });

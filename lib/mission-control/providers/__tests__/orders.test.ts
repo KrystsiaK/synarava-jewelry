@@ -37,6 +37,19 @@ describe("getOrdersStatus", () => {
     });
   });
 
+  it("queries REST topics stored by webhook routes (REL-008)", async () => {
+    mocks.count.mockResolvedValue(0);
+
+    await getOrdersStatus({ now });
+
+    expect(mocks.count).toHaveBeenCalledWith({
+      where: { topic: "orders/paid", status: "SUCCEEDED" },
+    });
+    expect(mocks.count).toHaveBeenCalledWith({
+      where: { topic: "orders/cancelled", status: "SUCCEEDED" },
+    });
+  });
+
   it("returns warn when some recent deliveries failed", async () => {
     mocks.count
       .mockResolvedValueOnce(10)

@@ -27,7 +27,8 @@ export async function generateMetadata(): Promise<Metadata> {
   const { description } = localizedPageMetadataCopy({
     page,
     fallbackTitle: t("home.metaTitle"),
-    fallbackDescription: "",
+    // SEO-ADV-001: Site SEO default description when page SEO/excerpt empty.
+    fallbackDescription: siteSeo.description,
   });
   // Prefer page SEO title (trailing brand OK); never bare H1 slogans.
   // https://nextjs.org/docs/app/api-reference/functions/generate-metadata#template

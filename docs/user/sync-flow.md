@@ -127,8 +127,13 @@ SKU field manually before Create in Shopify.
 
 **Cost** is Shopify-owned: linked Keep ours / Push never sends unit cost.
 **Multi-variant** products block Keep ours on the whole-item **Product data
-(N fields)** card — Take Shopify still works. Gallery compare uses
-filename + alt + position.
+(N fields)** card — Take Shopify still works.
+
+**Photos (Media):** each difference is its own row — removed photo, new photo,
+order change, or alt text. **Take Shopify** puts Shopify’s photo back / drops
+your new one / uses Shopify order or alt. **Keep ours** deletes the Shopify
+photo on Push / uploads your new one / keeps your order or alt. A CDN link
+change on the same Shopify photo is not a conflict.
 
 ### Remove an item with care
 

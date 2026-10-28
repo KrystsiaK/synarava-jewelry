@@ -80,7 +80,7 @@ describe("GraphQL selection → field contract coverage (PR-6)", () => {
       const normalized = normalizeWindowPath(path);
       if (technical.has(normalized.split(".").pop() ?? "")) continue;
       // Window alias: publications ← resourcePublicationsV2
-      if (lookupContractForPath(path) || lookupContractForPath(normalized)) continue;
+      if (lookupContractForPath(path, "PRODUCT") || lookupContractForPath(normalized, "PRODUCT")) continue;
       // synaravaOnly / non-window tops never appear as compare leaves.
       if (PRODUCT_COMMERCE_FIELDS.some((f) => f.windowPaths.includes(path))) continue;
       missing.push(path);

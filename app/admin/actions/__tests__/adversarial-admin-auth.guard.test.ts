@@ -1,6 +1,7 @@
 /**
  * Phase 2 — admin Server Action auth inventory guards.
  * Findings: docs/audits/2026-10-28-server-auth.md
+ * Staging follow-up: AUTH-ADV-001/002 fixed — MUST_REQUIRE_ADMIN is a hard lock.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -22,14 +23,14 @@ function listActionModules(): string[] {
 
 /** Exported async functions that must gate with requireAdminSession. */
 const MUST_REQUIRE_ADMIN = [
-  // Verified missing today — SYNC-AUTH findings (it.fails below until fixed)
   "saveSkuPolicyDraftAction",
   "publishSkuPolicyAction",
   "loadSkuPolicyEditorPayload",
   "getSavedProductPayload",
   "getSavedCollectionPayload",
   "getSavedPagePayload",
-  // High-value mutations that already gate (regression lock)
+  "getSavedTagPayload",
+  "getSavedCategoryPayload",
   "saveProductAction",
   "deleteProductAction",
   "saveCollectionAction",
@@ -42,10 +43,6 @@ const MUST_REQUIRE_ADMIN = [
   "assignProductSkuAction",
   "uploadProductMediaAction",
 ] as const;
-
-const INTENTIONALLY_PUBLIC = new Set([
-  // login lives outside actions/; listed for clarity only
-]);
 
 function exportedAsyncNames(source: string): string[] {
   const names: string[] = [];
@@ -97,61 +94,14 @@ describe("adversarial: admin action requireAdminSession inventory", () => {
   it("every listed high-value mutation exists as an exported async function", () => {
     const all = new Set(modules.flatMap((mod) => exportedAsyncNames(mod.source)));
     for (const name of MUST_REQUIRE_ADMIN) {
-      if (INTENTIONALLY_PUBLIC.has(name)) continue;
       expect(all.has(name), name).toBe(true);
     }
   });
 
-  it("save/delete/sync mutation actions call requireAdminSession in-body", () => {
-    const locked = [
-      "saveProductAction",
-      "deleteProductAction",
-      "saveCollectionAction",
-      "deleteCollectionAction",
-      "savePageAction",
-      "deletePageAction",
-      "applyCatalogConflictResolutionAction",
-      "pushSingleProductToShopifyAction",
-      "pullSingleProductFromShopifyAction",
-      "assignProductSkuAction",
-      "uploadProductMediaAction",
-    ] as const;
-    for (const name of locked) {
+  it("every MUST_REQUIRE_ADMIN action calls requireAdminSession in-body", () => {
+    for (const name of MUST_REQUIRE_ADMIN) {
       const mod = modules.find((item) => exportedAsyncNames(item.source).includes(name));
       expect(mod, name).toBeDefined();
-      const body = functionBody(mod!.source, name);
-      expect(body, name).toBeTruthy();
-      expect(body!, name).toMatch(/requireAdminSession\s*\(/);
-    }
-  });
-
-  /**
-   * AUTH-ADV-001 — SKU policy mutations lack requireAdminSession.
-   * @see docs/audits/2026-10-28-server-auth.md#AUTH-ADV-001
-   */
-  it.fails("sku-policy mutations requireAdminSession (AUTH-ADV-001)", () => {
-    const mod = modules.find((item) => item.path.endsWith("sku-policy.ts"));
-    expect(mod).toBeDefined();
-    for (const name of ["saveSkuPolicyDraftAction", "publishSkuPolicyAction", "loadSkuPolicyEditorPayload"] as const) {
-      const body = functionBody(mod!.source, name);
-      expect(body, name).toBeTruthy();
-      expect(body!, name).toMatch(/requireAdminSession\s*\(/);
-    }
-  });
-
-  /**
-   * AUTH-ADV-002 — getSaved*Payload refresh helpers lack requireAdminSession.
-   * @see docs/audits/2026-10-28-server-auth.md#AUTH-ADV-002
-   */
-  it.fails("getSaved*Payload helpers requireAdminSession (AUTH-ADV-002)", () => {
-    const pairs: Array<[string, string]> = [
-      ["products.ts", "getSavedProductPayload"],
-      ["collections.ts", "getSavedCollectionPayload"],
-      ["pages.ts", "getSavedPagePayload"],
-    ];
-    for (const [file, name] of pairs) {
-      const mod = modules.find((item) => item.path.endsWith(file));
-      expect(mod, file).toBeDefined();
       const body = functionBody(mod!.source, name);
       expect(body, name).toBeTruthy();
       expect(body!, name).toMatch(/requireAdminSession\s*\(/);
