@@ -161,11 +161,15 @@ function resolveState(input: SyncCompareInput, now: Date): SyncResultState {
   return "ready";
 }
 
-function partFromDiff(diff: ShopifyProjectionDiff): SyncLeafPart {
+function partFromDiff(
+  diff: ShopifyProjectionDiff,
+  resourceType: "PRODUCT" | "COLLECTION" = "PRODUCT",
+): SyncLeafPart {
   const path = diff.path ?? "";
-  const contract = path ? lookupContractForPath(path) : null;
+  const contract = path ? lookupContractForPath(path, resourceType) : null;
   return {
-    contractKey: contract?.contractKey ?? (path ? contractKeyForWindowPath(path) : UNMAPPED_CONTRACT_KEY),
+    contractKey: contract?.contractKey
+      ?? (path ? contractKeyForWindowPath(path, resourceType) : UNMAPPED_CONTRACT_KEY),
     path,
     label: contract?.label ?? diff.field,
     section: contract?.section ?? "shopify",
@@ -180,8 +184,8 @@ function commerceLeaf(
   diff: ShopifyProjectionDiff,
 ): SyncLeaf {
   const path = diff.path ?? "";
-  const unmapped = Boolean(path) && isUnmappedWindowPath(path);
-  const contract = path ? lookupContractForPath(path) : null;
+  const unmapped = Boolean(path) && isUnmappedWindowPath(path, resourceType);
+  const contract = path ? lookupContractForPath(path, resourceType) : null;
   const supported = !unmapped && isScopedCommerceFieldLabel(diff.field);
   const keySource = path.trim() || diff.field;
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
@@ -241,7 +245,7 @@ function wholeItemCommerceLeaf(
   // Group by contractKey for field count, but keep EVERY path/value — dropping
   // later diffs under the same key made the stale-preview fingerprint miss
   // second media/variant changes.
-  const parts = sorted.map(partFromDiff).toSorted(
+  const parts = sorted.map((diff) => partFromDiff(diff, "PRODUCT")).toSorted(
     (a, b) => a.contractKey.localeCompare(b.contractKey)
       || a.label.localeCompare(b.label)
       || a.path.localeCompare(b.path),
