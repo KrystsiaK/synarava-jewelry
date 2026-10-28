@@ -37,10 +37,10 @@ export async function getOrdersStatus(
   try {
     const [paid, cancelled, failedRecent] = await Promise.all([
       db.shopifyWebhookDelivery.count({
-        where: { topic: "ORDERS_PAID", status: "SUCCEEDED" },
+        where: { topic: "orders/paid", status: "SUCCEEDED" },
       }),
       db.shopifyWebhookDelivery.count({
-        where: { topic: "ORDERS_CANCELLED", status: "SUCCEEDED" },
+        where: { topic: "orders/cancelled", status: "SUCCEEDED" },
       }),
       db.shopifyWebhookDelivery.count({
         where: {
