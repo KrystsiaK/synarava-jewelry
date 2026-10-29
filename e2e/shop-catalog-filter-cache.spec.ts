@@ -82,10 +82,19 @@ test.describe("Shop catalog filter cache ownership", () => {
       }
     }
 
-    test.skip(
-      !best || best.count >= unfilteredCount,
-      "No product-type tile with a positive count strictly below the unfiltered shop total",
-    );
+    const hasSuitableTile = Boolean(best && best.count < unfilteredCount);
+    // Local: skip when the catalog has no mixed productType tiles.
+    // CI: must fail — silent skip would hide missing seed / empty fixture DB.
+    if (!process.env.CI) {
+      test.skip(
+        !hasSuitableTile,
+        "No product-type tile with a positive count strictly below the unfiltered shop total",
+      );
+    }
+    expect(
+      hasSuitableTile,
+      "CI requires a product-type tile with a positive count strictly below the unfiltered shop total (seed fixture missing?)",
+    ).toBe(true);
 
     const tileProductCount = best!.count;
     expect(best!.href).toMatch(/productType=/);
