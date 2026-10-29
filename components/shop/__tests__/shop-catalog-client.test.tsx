@@ -1,5 +1,11 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
-import { clearCatalogViewCacheForTests, saveView } from "@/lib/catalog/catalog-view-cache";
+import {
+  buildCatalogViewKey,
+  CATALOG_VIEW_SCHEMA_VERSION,
+  clearCatalogViewCacheForTests,
+  getMemoryView,
+  saveView,
+} from "@/lib/catalog/catalog-view-cache";
 import { ShopCatalogClient, type InitialCatalogPage } from "../shop-catalog-client";
 
 function product(id: string) {
@@ -47,6 +53,24 @@ function triggerSentinel() {
   act(() => lastResult?._cb([{ isIntersecting: true }]));
 }
 
+function ownedSnapshot(
+  fingerprint: string,
+  overrides: Partial<Parameters<typeof saveView>[0]> = {},
+) {
+  return {
+    viewKey: buildCatalogViewKey("en", fingerprint),
+    fingerprint,
+    schemaVersion: CATALOG_VIEW_SCHEMA_VERSION,
+    savedAt: Date.now(),
+    nodes: [product("a"), product("b"), product("c")],
+    endCursor: null,
+    hasNextPage: false,
+    totalCount: 3,
+    anchor: null,
+    ...overrides,
+  };
+}
+
 describe("ShopCatalogClient", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -74,7 +98,7 @@ describe("ShopCatalogClient", () => {
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
-        nodes: [product("b"), product("c")], // "b" overlaps the first page on purpose
+        nodes: [product("b"), product("c")],
         hasNextPage: false,
         endCursor: null,
         totalCount: 3,
@@ -101,7 +125,7 @@ describe("ShopCatalogClient", () => {
     expect((fetch as unknown as ReturnType<typeof vi.fn>).mock.calls[0][0]).toContain("cursor=cursor-1");
   });
 
-  it("resets to a fresh first page when filters change, discarding stale pages", async () => {
+  it("remounts for a new filter view and fetches a fresh page (no SSR seed)", async () => {
     (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
       ok: true,
       json: () => Promise.resolve({
@@ -113,8 +137,9 @@ describe("ShopCatalogClient", () => {
       }),
     });
 
-    const { rerender } = render(
+    const first = render(
       <ShopCatalogClient
+        key="en|"
         initialPage={initialPage()}
         filters={{}}
         onSelectFilters={vi.fn()}
@@ -124,9 +149,12 @@ describe("ShopCatalogClient", () => {
       />,
     );
 
-    rerender(
+    // Parent remounts with a new viewKey and null SSR seed.
+    first.unmount();
+    render(
       <ShopCatalogClient
-        initialPage={initialPage()}
+        key="en|q=ring"
+        initialPage={null}
         filters={{ q: "ring" }}
         onSelectFilters={vi.fn()}
         categories={[]}
@@ -138,6 +166,48 @@ describe("ShopCatalogClient", () => {
     await waitFor(() => expect(screen.getByRole("heading", { name: "z" })).toBeInTheDocument());
     expect(screen.queryByRole("heading", { name: "a" })).not.toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: "b" })).not.toBeInTheDocument();
+  });
+
+  it("aborts an in-flight fetch when the view remounts for another filter", async () => {
+    let resolveFirst: ((value: unknown) => void) | null = null;
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation((_url: string, init?: { signal?: AbortSignal }) => {
+      return new Promise((resolve, reject) => {
+        resolveFirst = resolve;
+        init?.signal?.addEventListener("abort", () => {
+          reject(new DOMException("Aborted", "AbortError"));
+        });
+      });
+    });
+
+    const { unmount } = render(
+      <ShopCatalogClient
+        key="en|q=slow"
+        initialPage={null}
+        filters={{ q: "slow" }}
+        onSelectFilters={vi.fn()}
+        categories={[]}
+        collections={[]}
+        tags={[]}
+      />,
+    );
+
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+
+    unmount();
+
+    // Completing the aborted request must not poison the next view's cache.
+    resolveFirst?.({
+      ok: true,
+      json: () => Promise.resolve({
+        nodes: [product("stale")],
+        hasNextPage: false,
+        endCursor: null,
+        totalCount: 1,
+        popularAvailable: true,
+      }),
+    });
+
+    expect(getMemoryView(buildCatalogViewKey("en", "q=slow"), "q=slow")).toBeNull();
   });
 
   it("shows a retry control and keeps existing cards when a next-page fetch fails", async () => {
@@ -178,19 +248,11 @@ describe("ShopCatalogClient", () => {
 
   describe("same-tab restore", () => {
     it("restores a deeper previously-loaded view from the memory cache instead of SSR's first page, with zero fetches", async () => {
-      saveView({
-        viewKey: "en|",
-        savedAt: Date.now(),
-        nodes: [product("a"), product("b"), product("c")],
-        endCursor: null,
-        hasNextPage: false,
-        totalCount: 3,
-        anchor: null,
-      });
+      saveView(ownedSnapshot(""));
 
       render(
         <ShopCatalogClient
-          initialPage={initialPage()} // SSR only knows about a/b — the cache knows about c too
+          initialPage={initialPage()}
           filters={{}}
           onSelectFilters={vi.fn()}
           categories={[]}
@@ -206,15 +268,15 @@ describe("ShopCatalogClient", () => {
     it("scrolls the restored anchor card back into view once the cached page has rendered", async () => {
       const scrollTo = vi.fn();
       vi.stubGlobal("scrollTo", scrollTo);
-      saveView({
-        viewKey: "en|",
-        savedAt: Date.now(),
-        nodes: [product("a"), product("b")],
-        endCursor: "cursor-1",
-        hasNextPage: true,
-        totalCount: 3,
-        anchor: { productId: "b", offsetPx: 40 },
-      });
+      saveView(
+        ownedSnapshot("", {
+          nodes: [product("a"), product("b")],
+          endCursor: "cursor-1",
+          hasNextPage: true,
+          totalCount: 3,
+          anchor: { productId: "b", offsetPx: 40 },
+        }),
+      );
 
       render(
         <ShopCatalogClient
@@ -231,15 +293,15 @@ describe("ShopCatalogClient", () => {
     });
 
     it("does not let the sentinel fire a page load while an anchor restore is pending", async () => {
-      saveView({
-        viewKey: "en|",
-        savedAt: Date.now(),
-        nodes: [product("a")],
-        endCursor: "cursor-1",
-        hasNextPage: true,
-        totalCount: 3,
-        anchor: { productId: "a", offsetPx: 0 },
-      });
+      saveView(
+        ownedSnapshot("", {
+          nodes: [product("a")],
+          endCursor: "cursor-1",
+          hasNextPage: true,
+          totalCount: 3,
+          anchor: { productId: "a", offsetPx: 0 },
+        }),
+      );
 
       render(
         <ShopCatalogClient
@@ -255,6 +317,50 @@ describe("ShopCatalogClient", () => {
       triggerSentinel();
       await new Promise((resolve) => setTimeout(resolve, 0));
       expect(fetch).not.toHaveBeenCalled();
+    });
+
+    it("scroll during a filter remount cannot write unfiltered nodes under the new key", async () => {
+      (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+        () => new Promise(() => {}), // never resolves — list not applied yet
+      );
+
+      const { unmount } = render(
+        <ShopCatalogClient
+          key="en|"
+          initialPage={initialPage()}
+          filters={{}}
+          onSelectFilters={vi.fn()}
+          categories={[]}
+          collections={[]}
+          tags={[]}
+        />,
+      );
+
+      // Unmount flushes persist for the OLD view (owned). Then mount Ring with no seed.
+      unmount();
+      render(
+        <ShopCatalogClient
+          key="en|productType=Ring"
+          initialPage={null}
+          filters={{ productType: "Ring" }}
+          onSelectFilters={vi.fn()}
+          categories={[]}
+          collections={[]}
+          tags={[]}
+        />,
+      );
+
+      act(() => {
+        window.dispatchEvent(new Event("scroll"));
+      });
+      await act(async () => {
+        await new Promise((resolve) => requestAnimationFrame(() => resolve(undefined)));
+      });
+
+      // Ring key must stay empty until a legitimate owned save lands.
+      expect(getMemoryView(buildCatalogViewKey("en", "productType=Ring"), "productType=Ring")).toBeNull();
+      // Unfiltered view may still be cached from the previous mount's flush.
+      expect(getMemoryView(buildCatalogViewKey("en", ""), "")?.nodes.map((n) => n.id)).toEqual(["a", "b"]);
     });
   });
 });

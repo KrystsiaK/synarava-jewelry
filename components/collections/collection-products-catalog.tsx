@@ -1,12 +1,13 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 
 import { DisplayHeading } from "@/components/ui/display-heading";
 import { FilterBar, type FilterBarProps } from "@/components/shop/filter-bar";
 import { ShopCatalogClient, type InitialCatalogPage } from "@/components/shop/shop-catalog-client";
 import { buildSearchParams, type ShopFilters } from "@/components/shop/types";
+import { buildCatalogViewKey } from "@/lib/catalog/catalog-view-cache";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 
@@ -39,6 +40,12 @@ export function CollectionProductsCatalog({
   const pinnedFilters = { collection: collectionSourceSlug } as const;
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const activeFingerprint = buildSearchParams(activeFilters);
+  const ssrFingerprint = buildSearchParams(filterProps.initialFilters);
+  const catalogViewKey = useMemo(
+    () => buildCatalogViewKey(locale, activeFingerprint),
+    [locale, activeFingerprint],
+  );
 
   const selectFilters = (filters: ShopFilters) => {
     const next = { ...filters, collection: collectionSourceSlug };
@@ -93,7 +100,8 @@ export function CollectionProductsCatalog({
 
         <div id="shop-products">
           <ShopCatalogClient
-            initialPage={initialPage}
+            key={catalogViewKey}
+            initialPage={activeFingerprint === ssrFingerprint ? initialPage : null}
             filters={activeFilters}
             onSelectFilters={selectFilters}
             categories={filterProps.categories}
