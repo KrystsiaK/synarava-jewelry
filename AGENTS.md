@@ -33,6 +33,13 @@ Rules:
 - Do not remove or flatten a rich interaction merely to make a device faster. Find an engineered alternative that retains the visual intent while reducing main-thread, paint, compositing, memory, network, or layout cost.
 - For mobile and iOS, validate the actual interaction path. Prefer progressive enhancement, targeted fallbacks, and rendering strategies that preserve the effect's perceptual result rather than replacing it with a generic opaque surface.
 
+## Visual and release guardrails
+
+- Decorative / `aria-hidden` elements (watermarks, background ornaments) are exempt from contrast rules: do not change their color, opacity, or size for a11y/audit.
+- Any visual change (CSS, colors, sizes, fonts, spacing) goes in a **separate PR** from logic/SEO/tests; the PR description must state before → after (measured values) and include a screenshot or computed style.
+- A new e2e spec counts as working only if it actually runs in CI (job log shows `Running N tests`, not skipped). If CI only runs `smoke.spec.ts`, either wire the spec in or state honestly that it does not run in CI.
+- One PR = one semantic task; do not pile unrelated fixes into large batches.
+
 ## Documentation hygiene
 
 - Map of all docs, sections (wiki / runbooks / testing / adr / proposals / strategy / audits / history) and where a new doc goes: [`docs/README.md`](docs/README.md). Deferred work goes to the single register [`docs/tech-debt.md`](docs/tech-debt.md); hard-to-reverse decisions go to [`docs/adr/`](docs/adr/README.md). Do not add docs to the repository root.
@@ -61,10 +68,10 @@ Rules:
 For bots (and humans) closing a `bug`-labeled issue:
 
 1. **Read the issue** end-to-end (where, steps, expected, actual, environment). Do not invent scope beyond it.
-2. **Write a failing test first** that reproduces the defect; then implement the **minimal fix** that makes it pass.
-3. Open a **PR into `staging`** (never `main`) whose body includes **`Closes #N`** for the issue number.
-4. **Never merge** the PR yourself; leave merge to a human or to the `automerge` label + required checks.
-5. **Never touch production data** (no prod DB writes, no prod Shopify mutations, no prod env secrets).
+2. **Find and describe the root cause first**; no symptom patches. **Write a failing test first** that would have failed before the fix and reproduces the defect; then implement the **minimal fix** that makes it pass.
+3. Open a **PR into `staging`** (never `main`) whose **title includes `(do not merge)`** and whose body includes **`Closes #N`** for the issue number.
+4. **Never merge** the PR yourself — bot never merges; leave merge to a human or to the `automerge` label + required checks.
+5. **Never touch production or real staging data** (no hit to `shop.synarava.com`, no prod/staging DB writes, no prod Shopify mutations, no reading secrets — see **Protected environment files**).
 6. Follow sync rules in [`docs/history/sync-unification.md`](docs/history/sync-unification.md) / [ADR-0008](docs/adr/0008-sync-two-state-owner-model.md): **no automatic writes to Synarava data** — fetch / compare / show only unless a human Apply path is explicitly in scope.
 
 ## Ship finished work (staging → main)
