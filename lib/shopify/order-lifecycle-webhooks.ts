@@ -109,7 +109,8 @@ export function logOrderLifecycleSignal(params: {
 }
 
 export async function claimOrderLifecycleDelivery(params: {
-  webhookId: string | null;
+  /** Required — routes must 400 when `x-shopify-webhook-id` is missing (REL-003). */
+  webhookId: string;
   topic: string;
   signal: OrderLifecycleSignal;
 }): Promise<{ id: string } | null> {
@@ -126,10 +127,7 @@ export async function claimOrderLifecycleDelivery(params: {
       },
     });
   } catch (error) {
-    if (
-      !(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") ||
-      !params.webhookId
-    ) {
+    if (!(error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")) {
       throw error;
     }
   }

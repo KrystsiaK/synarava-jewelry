@@ -1,6 +1,7 @@
 /**
- * Admin Server Action auth inventory guards (AUTH-ADV-001/002 fix lock).
- * Extends Phase 2 inventory: any listed action without requireAdminSession fails CI.
+ * Phase 2 — admin Server Action auth inventory guards.
+ * Findings: docs/audits/2026-10-28-server-auth.md
+ * Staging follow-up: AUTH-ADV-001/002 fixed — MUST_REQUIRE_ADMIN is a hard lock.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";

@@ -1,6 +1,7 @@
 /**
- * Unauthenticated admin actions must reject via requireAdminSession (redirect).
- * AUTH-ADV-001/002 fix — each gated action covered.
+ * Phase 2 — unauthenticated admin actions must reject (redirect).
+ * Findings: docs/audits/2026-10-28-server-auth.md
+ * Staging follow-up: AUTH-ADV-001/002 fixed — gated actions redirect.
  */
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -14,6 +15,7 @@ vi.mock("@/lib/auth/admin-session", () => ({
   getCurrentAdminSession: mocks.getCurrentAdminSession,
 }));
 
+// Keep heavy deps out of the rejection path.
 vi.mock("@/lib/db", () => ({ db: {} }));
 vi.mock("@/lib/sku/client", () => ({ tryCreateSkuClient: vi.fn(() => null) }));
 vi.mock("@/lib/sku/config", () => ({
@@ -29,6 +31,28 @@ beforeEach(() => {
     throw err;
   });
   mocks.getCurrentAdminSession.mockResolvedValue(null);
+});
+
+describe("adversarial: authenticated actions reject without session", () => {
+  it("deleteProductAction invokes requireAdminSession before work", async () => {
+    const { deleteProductAction } = await import("@/app/admin/actions/products");
+    await expect(deleteProductAction({ productId: "p1" } as never)).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("applyCatalogConflictResolutionAction invokes requireAdminSession", async () => {
+    const { applyCatalogConflictResolutionAction } = await import("@/app/admin/actions/sync");
+    await expect(
+      applyCatalogConflictResolutionAction({} as never),
+    ).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
+
+  it("assignProductSkuAction invokes requireAdminSession", async () => {
+    const { assignProductSkuAction } = await import("@/app/admin/actions/sku-assign");
+    await expect(assignProductSkuAction({} as never)).rejects.toThrow(/NEXT_REDIRECT/);
+    expect(mocks.requireAdminSession).toHaveBeenCalled();
+  });
 });
 
 describe("adversarial: unauthenticated actions reject (AUTH-ADV-001/002)", () => {

@@ -9,3 +9,13 @@ export function verifyShopifyWebhook(rawBody: string, signature: string | null, 
   const right = Buffer.from(expected);
   return left.length === right.length && timingSafeEqual(left, right);
 }
+
+/**
+ * Non-empty `x-shopify-webhook-id`, or null when missing/blank (REL-003).
+ * Callers must reject with 400 before claim — null ids skip unique reclaim
+ * and insert unbounded ProductSyncEvent / ShopifyWebhookDelivery rows.
+ */
+export function readShopifyWebhookId(header: string | null): string | null {
+  const trimmed = header?.trim();
+  return trimmed || null;
+}
