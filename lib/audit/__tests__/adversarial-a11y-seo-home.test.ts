@@ -9,7 +9,8 @@ const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("storefront a11y/seo audit locks (A11Y/SEO-ADV)", () => {
-  it("footer wordmark stays decorative via --color-wordmark-fade (not opaque hardcode)", () => {
+  it("footer wordmark is decorative (aria-hidden): faint fade, not opaque ≥3:1 hardcode", () => {
+    // WCAG contrast does not apply to pure decoration; lock against opaque 0.5/0.4.
     const css = read("app/globals.css");
     const block = css.match(
       /\.artifact-footer__wordmark\s*\{[^}]+\}/,

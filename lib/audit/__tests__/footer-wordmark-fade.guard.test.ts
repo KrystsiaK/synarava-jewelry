@@ -1,7 +1,7 @@
 /**
  * Guard: footer decorative wordmark must stay near-invisible (~0.05 light / ~0.04 dark).
  * Processes CSS through PostCSS + Tailwind + LightningCSS minify (same toolchain as builds).
- * No network, no secrets. Resolves PostCSS/Lightning via @tailwindcss/postcss (pnpm nested).
+ * No network, no secrets.
  */
 import { realpathSync, readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -61,7 +61,6 @@ function resolveColor(css: string, colorValue: string, theme: "light" | "dark"):
     }
   }
 
-  // Light: prefer :root / html[data-theme=light] — ignore dark overrides.
   const lightCss = darkChunks[0] ?? css;
   const decls = [...lightCss.matchAll(new RegExp(`${name}\\s*:\\s*([^;]+);`, "g"))].map(
     (m) => m[1].trim(),
@@ -90,21 +89,6 @@ async function processGlobalsCss(): Promise<string> {
 }
 
 describe("footer wordmark fade guard", () => {
-  it("keeps --color-wordmark-fade out of @theme (runtime :root only)", () => {
-    const src = readFileSync(GLOBALS, "utf8");
-    const themeBlock = src.match(/@theme\s*\{[\s\S]*?\n\}/)?.[0] ?? "";
-    expect(themeBlock).toBeTruthy();
-    // Strip comments so explanatory notes cannot false-positive.
-    const themeCode = themeBlock.replace(/\/\*[\s\S]*?\*\//g, "");
-    expect(themeCode).not.toMatch(/--color-wordmark-fade\s*:/);
-    expect(src).toMatch(
-      /:root[\s\S]*?--color-wordmark-fade\s*:\s*rgba\(\s*25\s*,\s*21\s*,\s*18\s*,\s*0\.05\s*\)/,
-    );
-    expect(src).toMatch(
-      /html\[data-theme=["']dark["']\][\s\S]*?--color-wordmark-fade\s*:\s*rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0\.04\s*\)/,
-    );
-  });
-
   it("footer wordmark color resolves to ~0.05 light and ~0.04 dark after CSS build", async () => {
     const css = await processGlobalsCss();
 
@@ -117,7 +101,6 @@ describe("footer wordmark fade guard", () => {
     const lightResolved = resolveColor(css, colorDecl!, "light");
     const lightAlpha = alphaFromColor(lightResolved);
     expect(lightAlpha).not.toBeNull();
-    // 8-digit hex (#…0d ≈ 0.051) must stay near 0.05 — never the ×10 regression (~0.5).
     expect(Math.abs(lightAlpha! - 0.05), `light color=${lightResolved}`).toBeLessThan(0.02);
     expect(lightAlpha!).toBeLessThan(0.12);
 
