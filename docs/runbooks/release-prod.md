@@ -63,8 +63,37 @@ curl -sS -o /dev/null -w "%{http_code}\n" "https://<prod-host>/"
 curl -sS -o /dev/null -w "%{http_code}\n" "https://<prod-host>/pt"
 ```
 
+### Automated post-release storefront check
+
+After the curls above, run the read-only Playwright smoke script (owner/architect laptop — **not CI**). It only GETs / navigates; it does not buy, login, or write commerce data.
+
+Requires local Chromium for Playwright (`pnpm exec playwright install chromium` once).
+
+```bash
+# Production (use the first 8 hex chars of the merge SHA for --expect-sha)
+node scripts/release/post-release-check.mjs \
+  --base-url https://shop.synarava.com \
+  --expect-sha <8-char-sha>
+
+# Staging (example host only — adjust to the live Railway staging URL)
+node scripts/release/post-release-check.mjs \
+  --base-url https://staging.synarava.com \
+  --expect-sha <8-char-sha>
+```
+
+`--base-url` is required (no default). `--expect-sha` is optional; when set it must be exactly 8 hex characters and the script asserts locale HTML contains `dpl=<sha>`.
+
+Checks covered:
+
+1. `GET /api/health` → 200
+2. `GET /en` and `/pt` → 200 (+ optional `dpl=` marker)
+3. `/en/shop`: clear IndexedDB `synarava-catalog-view`, then product-type tile filter / card count / reload / back
+4. Footer `.artifact-footer__wordmark` computed color alpha < 0.1
+5. PASS/FAIL table; exit 1 on any FAIL
+
 - [ ] Health JSON `ok: true` and **revision matches** the merge commit on `main`.
 - [ ] Home / locale home return **2xx** (not 5xx).
+- [ ] `post-release-check.mjs` PASS table against production (and staging if rehearsing).
 - [ ] Admin login works; top-bar Shopify check (Manual) completes; store binding matches expected shop.
 - [ ] One controlled **Apply** (or Pull) on a non-critical product; confirm no surprise wipe.
 - [ ] Optional: paste [`prod-readiness-check.sql`](../../scripts/db/prod-readiness-check.sql) sections in Railway Data tab (**SELECT only**).
