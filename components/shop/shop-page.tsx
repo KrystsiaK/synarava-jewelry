@@ -2,11 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { motion, useInView } from "motion/react";
 
 import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
+import { buildCatalogViewKey } from "@/lib/catalog/catalog-view-cache";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type ShopFilters } from "./types";
 import { ShopDiscovery, type ShopProductTypeTile } from "./shop-discovery";
@@ -233,6 +234,12 @@ export function ShopPage({
   const { t, locale } = useTranslations();
   const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
+  const activeFingerprint = buildSearchParams(activeFilters);
+  const ssrFingerprint = buildSearchParams(filterProps.initialFilters);
+  const catalogViewKey = useMemo(
+    () => buildCatalogViewKey(locale, activeFingerprint),
+    [locale, activeFingerprint],
+  );
   const selectDiscoveryFilters = (filters: ShopFilters) => {
     setActiveFilters(filters);
     const qs = buildSearchParams(filters);
@@ -285,7 +292,8 @@ export function ShopPage({
           />
 
           <ShopCatalogClient
-            initialPage={initialPage}
+            key={catalogViewKey}
+            initialPage={activeFingerprint === ssrFingerprint ? initialPage : null}
             filters={activeFilters}
             onSelectFilters={selectDiscoveryFilters}
             categories={filterProps.categories}
