@@ -258,7 +258,9 @@ jobs:
             sleep 0.25
           done
           pnpm prisma:push
+          # Disposable CI Postgres only (script refuses non-CI / remote hosts).
+          node scripts/ci/seed-shop-filter-fixture.mjs
           # Build before smoke so Playwright starts `next start` (fast, deterministic)
           # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
           pnpm build
-          pnpm exec playwright test e2e/smoke.spec.ts --project=chromium --project=mobile-webkit-smoke
+          pnpm exec playwright test e2e/smoke.spec.ts e2e/shop-catalog-filter-cache.spec.ts --project=chromium --project=mobile-webkit-smoke
