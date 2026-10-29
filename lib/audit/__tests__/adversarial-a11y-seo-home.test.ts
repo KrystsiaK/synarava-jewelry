@@ -9,15 +9,16 @@ const ROOT = process.cwd();
 const read = (rel: string) => readFileSync(join(ROOT, rel), "utf8");
 
 describe("storefront a11y/seo audit locks (A11Y/SEO-ADV)", () => {
-  it("footer wordmark uses stronger contrast than global wordmark-fade (A11Y-ADV-001)", () => {
+  it("footer wordmark is decorative (aria-hidden): faint fade, not opaque ≥3:1 hardcode", () => {
+    // WCAG contrast does not apply to pure decoration; lock against opaque 0.5/0.4.
     const css = read("app/globals.css");
     const block = css.match(
       /\.artifact-footer__wordmark\s*\{[^}]+\}/,
     )?.[0];
     expect(block).toBeTruthy();
-    expect(block!).not.toMatch(/color:\s*var\(--color-wordmark-fade\)/);
-    expect(block!).toMatch(/rgba\(\s*25\s*,\s*21\s*,\s*18\s*,\s*0\.5\s*\)/);
-    expect(css).toMatch(
+    expect(block!).toMatch(/color:\s*var\(--color-wordmark-fade\)/);
+    expect(block!).not.toMatch(/rgba\(\s*25\s*,\s*21\s*,\s*18\s*,\s*0\.5\s*\)/);
+    expect(css).not.toMatch(
       /html\[data-theme="dark"\]\s*\.artifact-footer__wordmark\s*\{[^}]*rgba\(\s*255\s*,\s*255\s*,\s*255\s*,\s*0\.4\s*\)/s,
     );
   });

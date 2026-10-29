@@ -1652,14 +1652,9 @@ html[data-theme="dark"] .final-sigil__edge {
   font-family: var(--font-serif);
   font-size: clamp(3.4rem, 14vw, 5.75rem);
   line-height: 0.74;
-  /* A11Y-ADV-001: large-text ≥3:1 vs footer linen; global --color-wordmark-fade is ~1.1:1. */
-  color: rgba(25, 21, 18, 0.5);
+  color: var(--color-wordmark-fade);
   letter-spacing: 0.03em;
   white-space: nowrap;
-}
-
-html[data-theme="dark"] .artifact-footer__wordmark {
-  color: rgba(255, 255, 255, 0.4);
 }
 
 .artifact-footer__brand {
