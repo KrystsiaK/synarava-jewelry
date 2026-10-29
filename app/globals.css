@@ -14,7 +14,6 @@
   --color-glass-strong: rgba(255, 255, 255, 0.42);
   --color-border-subtle: rgba(26, 26, 26, 0.1);
   --color-border-soft: rgba(26, 26, 26, 0.2);
-  --color-wordmark-fade: rgba(25, 21, 18, 0.05);
   --color-header-chrome: rgba(247, 247, 245, 0.68);
   --color-selection: rgba(166, 25, 46, 0.18);
 
@@ -202,6 +201,7 @@ html[data-theme="light"] {
   --color-glass-strong: rgba(255, 255, 255, 0.42);
   --color-border-subtle: rgba(26, 26, 26, 0.1);
   --color-border-soft: rgba(26, 26, 26, 0.2);
+  /* Decorative fade — runtime only (not in @theme) so consumers use var(). */
   --color-wordmark-fade: rgba(25, 21, 18, 0.05);
   --color-header-chrome: rgba(247, 247, 245, 0.68);
   --color-selection: rgba(166, 25, 46, 0.18);
@@ -1652,14 +1652,17 @@ html[data-theme="dark"] .final-sigil__edge {
   font-family: var(--font-serif);
   font-size: clamp(3.4rem, 14vw, 5.75rem);
   line-height: 0.74;
-  /* A11Y-ADV-001: large-text ≥3:1 vs footer linen; global --color-wordmark-fade is ~1.1:1. */
-  color: rgba(25, 21, 18, 0.5);
+  /* Decorative (aria-hidden): keep via CSS var so light/dark fade stays ~0.05/0.04. */
+  color: var(--color-wordmark-fade);
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
 
-html[data-theme="dark"] .artifact-footer__wordmark {
-  color: rgba(255, 255, 255, 0.4);
+@layer utilities {
+  /* Replaces former @theme-emitted text-wordmark-fade utility. */
+  .text-wordmark-fade {
+    color: var(--color-wordmark-fade);
+  }
 }
 
 .artifact-footer__brand {
