@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 /**
  * CI-only seed: minimal ACTIVE/PUBLIC products with distinct productType values
  * so Storefront smoke can exercise catalog filter-cache ownership (tile count
@@ -8,6 +7,8 @@
  * Never point this at prod, staging, or any remote host.
  *
  * Prisma is loaded only after the safety gate passes.
+ * Invoke with `node scripts/ci/seed-shop-filter-fixture.mjs` (no shebang — Vitest/Vite
+ * SSR-transform breaks on `#!/usr/bin/env node` when this module is imported by tests).
  */
 import { pathToFileURL } from "node:url";
 
