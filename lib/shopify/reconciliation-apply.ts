@@ -28,13 +28,22 @@ import {
 export type ReconcileChoice = "SYNARAVA" | "SHOPIFY";
 
 export type ReconcileEntityAddress = {
-  rootEntityType: "PRODUCT" | "COLLECTION"; rootEntityId: string; locale: string; fieldKey: string;
+  rootEntityType: "PRODUCT" | "COLLECTION";
+  rootEntityId: string;
+  locale: string;
+  fieldKey: string;
 };
 
 type ApplyRow = {
-  id: string; bindingId: string; locale: string; fieldKey: string;
-  localFingerprint: string; shopifyFingerprint: string;
-  bindingResourceType: TranslationResourceType; bindingEntityId: string; shopifyResourceId: string;
+  id: string;
+  bindingId: string;
+  locale: string;
+  fieldKey: string;
+  localFingerprint: string;
+  shopifyFingerprint: string;
+  bindingResourceType: TranslationResourceType;
+  bindingEntityId: string;
+  shopifyResourceId: string;
 };
 
 export type ReconcileApplyResult = {
@@ -151,6 +160,10 @@ function shopifyWireValue(value: unknown) {
 
 async function fetchRemoteValues(resourceId: string, locale: string) {
   if (await contentLocaleForShopify(locale) === "en") {
+    // translatableContent (the source/EN copy) comes back the same
+    // regardless of which locale we ask translations() for — the query
+    // just requires some valid, non-default one. Any currently-published
+    // registry locale works; there's nothing PT-specific about this read.
     const [anyTranslationLocale] = (await getPublishedStorefrontLocales()).filter((item) => !item.isDefault);
     if (!anyTranslationLocale) {
       throw new Error("No published translation locale is registered to read Shopify's source content through.");
@@ -276,6 +289,8 @@ export async function applyReconcileChoice({
       }
     }
 
+    // No common-ancestor snapshot write — two-way compare uses live Shopify vs
+    // Synarava only (legacy snapshot table/column stay until PR6).
     const event = await recordSyncEvent({
       bindingId: row.bindingId,
       locale: contentLocale,
@@ -330,7 +345,8 @@ export async function applyReconcileChoice({
         shopifyResponse: null,
       });
     } catch {
-      // Guard/result remains authoritative if audit enrichment is unavailable.
+      // Applying the guard/result remains authoritative even if the audit
+      // enrichment itself is temporarily unavailable.
     }
     return { divergenceId: row.id, ok: false, message };
   } finally {

@@ -178,9 +178,21 @@ export type CatalogConflictApplyEntryResult = ConflictApplyEntryResultBase & {
 export type CatalogConflictApplyOutcome = ConflictApplyOutcomeBase<CatalogConflictApplyEntryResult>;
 
 /**
- * Re-validate fingerprints, then apply. TRANSLATION → applyTranslationConflictChoice
- * (natural-key claim). Scoped COMMERCE → applyCommerceField; else UNSUPPORTED.
- * Re-submit after success is STALE (fingerprints moved).
+ * Re-validates every requested entry against the product's current
+ * conflict state right before writing anything — the client's expected
+ * fingerprints must still match, or the entry is reported STALE and
+ * skipped rather than overwritten.
+ *
+ * TRANSLATION-origin fields apply individually through
+ * applyTranslationConflictChoice (natural-key claim; already atomic,
+ * fingerprint-checked, and verified by a read-after-write). COMMERCE-origin
+ * fields apply through applyCommerceField only when their label is in
+ * SCOPED_COMMERCE_FIELD_LABELS; every other commerce field is reported
+ * UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON at the top of this file.
+ *
+ * A repeated submission of the same input is safe: once an entry has been
+ * applied, the underlying value/fingerprint has changed, so re-validation
+ * reports it STALE instead of writing it again.
  */
 export async function applyCatalogConflictResolution({
   entries,
