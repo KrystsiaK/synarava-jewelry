@@ -211,4 +211,45 @@ describe("applyReconcileChoice", () => {
     expect(result).toMatchObject({ ok: false, message: expect.stringContaining("already") });
     expect(mocks.loadSubject).not.toHaveBeenCalled();
   });
+
+  // claimDifference UPDATE…RETURNING is empty for three gates (same user message):
+  // (1) resolvedAt set — retired by persistDifferences or already applied
+  // (2) active resolutionToken within 5 minutes
+  // (3) missing / wrong id
+  it("DIAG: claimDifference null when the divergence row was already resolved/retired", async () => {
+    mocks.queryRaw.mockResolvedValueOnce([]);
+
+    const result = await applyReconcileChoice({
+      divergenceId: "retired-by-persistDifferences",
+      choice: "SHOPIFY",
+      expectedLocalFingerprint: "a".repeat(64),
+      expectedShopifyFingerprint: "b".repeat(64),
+      actorUsername: "admin",
+    });
+
+    expect(result).toEqual({
+      divergenceId: "retired-by-persistDifferences",
+      ok: false,
+      message: "This change is already being reviewed or has been resolved.",
+    });
+  });
+
+  it("DIAG: claimDifference null when another resolver holds resolutionToken (<5m)", async () => {
+    mocks.queryRaw.mockResolvedValueOnce([]);
+
+    const result = await applyReconcileChoice({
+      divergenceId: "held-by-concurrent-token",
+      choice: "SYNARAVA",
+      expectedLocalFingerprint: "a".repeat(64),
+      expectedShopifyFingerprint: "b".repeat(64),
+      actorUsername: "admin",
+    });
+
+    expect(result).toEqual({
+      divergenceId: "held-by-concurrent-token",
+      ok: false,
+      message: "This change is already being reviewed or has been resolved.",
+    });
+  });
 });
+
