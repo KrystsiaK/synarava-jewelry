@@ -15,10 +15,7 @@ import {
 } from "@/lib/shopify/reconciliation-source";
 import { sourceContentAsRemoteValues, updateShopifySourceField } from "@/lib/shopify/source-content";
 import { projectRemoteTranslationWithMetadata } from "@/lib/shopify/translation-reconciliation";
-import {
-  recordReconcileAuditDetails,
-  recordSyncEvent,
-} from "@/lib/shopify/translation-sync";
+import { recordReconcileAuditDetails, recordSyncEvent } from "@/lib/shopify/translation-sync";
 import {
   fetchResourceTranslation,
   fetchResourceTranslationState,
@@ -26,6 +23,13 @@ import {
 } from "@/lib/shopify/translations";
 
 export type ReconcileChoice = "SYNARAVA" | "SHOPIFY";
+
+export type ReconcileEntityAddress = {
+  rootEntityType: "PRODUCT" | "COLLECTION";
+  rootEntityId: string;
+  locale: string;
+  fieldKey: string;
+};
 
 type ApplyRow = {
   id: string;
@@ -40,12 +44,31 @@ type ApplyRow = {
 };
 
 export type ReconcileApplyResult = {
-  divergenceId: string;
+  divergenceId: string | null;
   ok: boolean;
   message: string;
 };
 
-async function claimDifference(divergenceId: string, token: string) {
+const MSG = {
+  held: "This change is currently being applied by another attempt.",
+  closed: "This change has already been resolved.",
+  missing: "This change is no longer present.",
+  already: "Already applied.",
+} as const;
+
+/** `translation:{shopifyLocale}:{registryFieldKey}` */
+export function parseTranslationConflictFieldKey(
+  conflictFieldKey: string,
+): { locale: string; fieldKey: string } | null {
+  if (!conflictFieldKey.startsWith("translation:")) return null;
+  const rest = conflictFieldKey.slice("translation:".length);
+  const sep = rest.lastIndexOf(":");
+  if (sep <= 0 || sep === rest.length - 1) return null;
+  return { locale: rest.slice(0, sep), fieldKey: rest.slice(sep + 1) };
+}
+
+/** Claim open divergence by entity+locale+fieldKey — never a frozen row id. */
+async function claimDifference(address: ReconcileEntityAddress, token: string) {
   const rows = await db.$queryRaw<ApplyRow[]>(Prisma.sql`
     UPDATE "ShopifyFieldDivergence" AS difference
     SET
@@ -54,8 +77,11 @@ async function claimDifference(divergenceId: string, token: string) {
       "updatedAt" = CURRENT_TIMESTAMP
     FROM "ShopifyTranslationBinding" AS binding
     WHERE
-      difference."id" = ${divergenceId}
-      AND difference."bindingId" = binding."id"
+      difference."bindingId" = binding."id"
+      AND difference."rootEntityType" = ${address.rootEntityType}
+      AND difference."rootEntityId" = ${address.rootEntityId}
+      AND difference."locale" = ${address.locale}
+      AND difference."fieldKey" = ${address.fieldKey}
       AND difference."resolvedAt" IS NULL
       AND (
         difference."resolutionToken" IS NULL
@@ -87,6 +113,69 @@ async function releaseClaim(divergenceId: string, token: string, resolved: boole
   `);
 }
 
+async function classifyFailedClaim(
+  address: ReconcileEntityAddress,
+  choice: ReconcileChoice,
+  expectedLocalFingerprint: string,
+  expectedShopifyFingerprint: string,
+): Promise<ReconcileApplyResult> {
+  const rows = await db.$queryRaw<Array<{
+    id: string;
+    localFingerprint: string;
+    shopifyFingerprint: string;
+    resolvedAt: Date | null;
+    resolutionToken: string | null;
+    resolutionStartedAt: Date | null;
+    selectedSide: string | null;
+  }>>(Prisma.sql`
+    SELECT
+      difference."id",
+      difference."localFingerprint",
+      difference."shopifyFingerprint",
+      difference."resolvedAt",
+      difference."resolutionToken",
+      difference."resolutionStartedAt",
+      (
+        SELECT event."selectedSide"
+        FROM "TranslationSyncEvent" AS event
+        WHERE event."bindingId" = difference."bindingId"
+          AND event."status" = 'SUCCEEDED'
+          AND event."selectedSide" IS NOT NULL
+          AND event."scope"->>'fieldKey' = difference."fieldKey"
+          AND event."scope"->>'locale' = difference."locale"
+        ORDER BY event."createdAt" DESC
+        LIMIT 1
+      ) AS "selectedSide"
+    FROM "ShopifyFieldDivergence" AS difference
+    WHERE
+      difference."rootEntityType" = ${address.rootEntityType}
+      AND difference."rootEntityId" = ${address.rootEntityId}
+      AND difference."locale" = ${address.locale}
+      AND difference."fieldKey" = ${address.fieldKey}
+    ORDER BY difference."createdAt" DESC
+    LIMIT 1
+  `);
+  const latest = rows[0];
+  if (!latest) return { divergenceId: null, ok: false, message: MSG.missing };
+  if (
+    latest.resolvedAt == null
+    && latest.resolutionToken
+    && latest.resolutionStartedAt
+    && Date.now() - latest.resolutionStartedAt.getTime() < 5 * 60 * 1000
+  ) {
+    return { divergenceId: latest.id, ok: false, message: MSG.held };
+  }
+  if (latest.resolvedAt != null) {
+    const sameReview = latest.localFingerprint === expectedLocalFingerprint
+      && latest.shopifyFingerprint === expectedShopifyFingerprint;
+    if (sameReview || latest.selectedSide === choice) {
+      return { divergenceId: latest.id, ok: true, message: MSG.already };
+    }
+    return { divergenceId: latest.id, ok: false, message: MSG.closed };
+  }
+  return { divergenceId: latest.id, ok: false, message: MSG.missing };
+}
+
 function bindingFrom(row: ApplyRow): ReconcileBindingSource {
   return {
     id: row.bindingId,
@@ -105,10 +194,6 @@ function shopifyWireValue(value: unknown) {
 
 async function fetchRemoteValues(resourceId: string, locale: string) {
   if (await contentLocaleForShopify(locale) === "en") {
-    // translatableContent (the source/EN copy) comes back the same
-    // regardless of which locale we ask translations() for — the query
-    // just requires some valid, non-default one. Any currently-published
-    // registry locale works; there's nothing PT-specific about this read.
     const [anyTranslationLocale] = (await getPublishedStorefrontLocales()).filter((item) => !item.isDefault);
     if (!anyTranslationLocale) {
       throw new Error("No published translation locale is registered to read Shopify's source content through.");
@@ -120,27 +205,38 @@ async function fetchRemoteValues(resourceId: string, locale: string) {
   return fetchResourceTranslation(resourceId, locale);
 }
 
+/** Apply one translation choice addressed by entity + locale + fieldKey. */
 export async function applyReconcileChoice({
-  divergenceId,
+  rootEntityType,
+  rootEntityId,
+  locale,
+  fieldKey,
   choice,
   expectedLocalFingerprint,
   expectedShopifyFingerprint,
   actorUsername,
-}: {
-  divergenceId: string;
+}: ReconcileEntityAddress & {
   choice: ReconcileChoice;
   expectedLocalFingerprint: string;
   expectedShopifyFingerprint: string;
   actorUsername: string;
 }): Promise<ReconcileApplyResult> {
+  const address: ReconcileEntityAddress = { rootEntityType, rootEntityId, locale, fieldKey };
   const token = randomUUID();
-  const row = await claimDifference(divergenceId, token);
+  const row = await claimDifference(address, token);
   if (!row) {
-    return { divergenceId, ok: false, message: "This change is already being reviewed or has been resolved." };
+    return classifyFailedClaim(address, choice, expectedLocalFingerprint, expectedShopifyFingerprint);
   }
 
   const binding = bindingFrom(row);
   const direction: "PUSH" | "PULL" = choice === "SYNARAVA" ? "PUSH" : "PULL";
+  let released = false;
+  const release = async (resolved: boolean) => {
+    if (released) return;
+    await releaseClaim(row.id, token, resolved);
+    released = true;
+  };
+
   try {
     if (row.localFingerprint !== expectedLocalFingerprint || row.shopifyFingerprint !== expectedShopifyFingerprint) {
       throw new Error("The review is stale. Check Shopify again before applying changes.");
@@ -225,8 +321,6 @@ export async function applyReconcileChoice({
       }
     }
 
-    // No common-ancestor snapshot write — two-way compare uses live Shopify vs
-    // Synarava only (legacy snapshot table/column stay until PR6).
     const event = await recordSyncEvent({
       bindingId: row.bindingId,
       locale: contentLocale,
@@ -237,7 +331,7 @@ export async function applyReconcileChoice({
     await recordReconcileAuditDetails({
       eventId: event.id,
       scope: {
-        divergenceId,
+        divergenceId: row.id,
         bindingId: row.bindingId,
         fieldKey: row.fieldKey,
         locale: row.locale,
@@ -248,15 +342,15 @@ export async function applyReconcileChoice({
       resultFingerprint: fingerprintSyncValue(field, appliedValue),
       shopifyResponse,
     });
-    await releaseClaim(divergenceId, token, true);
+    await release(true);
     return {
-      divergenceId,
+      divergenceId: row.id,
       ok: true,
       message: choice === "SYNARAVA" ? "Synarava was applied to Shopify." : "Shopify was applied to Synarava.",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "This change could not be applied.";
-    await releaseClaim(divergenceId, token, false).catch(() => undefined);
+    await release(false).catch(() => undefined);
     try {
       const event = await recordSyncEvent({
         bindingId: row.bindingId,
@@ -269,7 +363,7 @@ export async function applyReconcileChoice({
       await recordReconcileAuditDetails({
         eventId: event.id,
         scope: {
-          divergenceId,
+          divergenceId: row.id,
           bindingId: row.bindingId,
           fieldKey: row.fieldKey,
           locale: row.locale,
@@ -281,9 +375,27 @@ export async function applyReconcileChoice({
         shopifyResponse: null,
       });
     } catch {
-      // Applying the guard/result remains authoritative even if the audit
-      // enrichment itself is temporarily unavailable.
+      // Guard/result remains authoritative if audit enrichment is unavailable.
     }
-    return { divergenceId, ok: false, message };
+    return { divergenceId: row.id, ok: false, message };
+  } finally {
+    await release(false).catch(() => undefined);
   }
+}
+
+/** Shared product/collection apply entry — both conflict-apply modules use this. */
+export async function applyTranslationConflictChoice(input: {
+  rootEntityType: "PRODUCT" | "COLLECTION";
+  rootEntityId: string;
+  conflictFieldKey: string;
+  choice: ReconcileChoice;
+  expectedLocalFingerprint: string;
+  expectedShopifyFingerprint: string;
+  actorUsername: string;
+}): Promise<ReconcileApplyResult> {
+  const parsed = parseTranslationConflictFieldKey(input.conflictFieldKey);
+  if (!parsed) {
+    return { divergenceId: null, ok: false, message: "This translated field address is invalid." };
+  }
+  return applyReconcileChoice({ ...input, ...parsed });
 }

@@ -62,7 +62,6 @@ describe("catalogConflictFieldsFromLeaves", () => {
         fieldKey: "translation:pt-PT:title",
         label: "Title",
         locale: "pt",
-        sourceId: "div-1",
         targetKind: "METAFIELD",
       }),
     ], locales);
@@ -71,8 +70,8 @@ describe("catalogConflictFieldsFromLeaves", () => {
       origin: "TRANSLATION",
       scope: { kind: "LOCALE", code: "pt", name: "Portuguese", nativeName: "Português" },
       targetKind: "METAFIELD",
-      sourceId: "div-1",
     });
+    expect(fields[0]).not.toHaveProperty("sourceId");
   });
 
   it("attaches presenceDifference and uses presenceSide values, not label matching", () => {

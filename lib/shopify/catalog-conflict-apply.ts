@@ -41,7 +41,7 @@ import {
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 import { applyMediaIdentityBatch } from "./media-identity-apply";
 import { applyShopifyProductToSynarava } from "./product-sync";
-import { applyReconcileChoice } from "./reconciliation-apply";
+import { applyTranslationConflictChoice } from "./reconciliation-apply";
 
 function isVirtualPresenceProductId(productId: string): boolean {
   return productId.startsWith("shopify:");
@@ -207,21 +207,10 @@ export type CatalogConflictApplyEntryResult = ConflictApplyEntryResultBase & {
 export type CatalogConflictApplyOutcome = ConflictApplyOutcomeBase<CatalogConflictApplyEntryResult>;
 
 /**
- * Re-validates every requested entry against the product's current
- * conflict state right before writing anything — the client's expected
- * fingerprints must still match, or the entry is reported STALE and
- * skipped rather than overwritten.
- *
- * TRANSLATION-origin fields apply individually through the existing
- * per-field applyReconcileChoice (already atomic, fingerprint-checked, and
- * verified by a read-after-write). COMMERCE-origin fields apply through
- * applyCommerceField only when their label is in
- * SCOPED_COMMERCE_FIELD_LABELS; every other commerce field is reported
- * UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON at the top of this file.
- *
- * A repeated submission of the same input is safe: once an entry has been
- * applied, the underlying value/fingerprint has changed, so re-validation
- * reports it STALE instead of writing it again.
+ * Re-validate fingerprints, then apply. TRANSLATION uses
+ * applyTranslationConflictChoice (natural-key claim). Scoped COMMERCE uses
+ * applyCommerceField; other commerce → UNSUPPORTED. Re-submit after success
+ * is STALE (fingerprints moved).
  */
 export async function applyCatalogConflictResolution({
   entries,
@@ -430,17 +419,6 @@ export async function applyCatalogConflictResolution({
   }
 
   for (const { input, field } of readyTranslation) {
-    if (!field.sourceId) {
-      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This translated field is missing its source record." });
-      continue;
-    }
-    // applyReconcileChoice can throw before it even reaches its own internal
-    // try (claimDifference runs outside it — a DB hiccup there throws
-    // straight out). Without a try/catch here, one such failure mid-batch
-    // would reject applyCatalogConflictResolution entirely, discarding every
-    // already-computed result — including fields already applied
-    // successfully earlier in this same loop — instead of reporting this
-    // one field as failed and letting the rest of the batch stand.
     try {
       const leavesBefore = isVirtualPresenceProductId(input.productId)
         ? []
@@ -449,8 +427,10 @@ export async function applyCatalogConflictResolution({
             resourceId: input.productId,
             requestedBy: actorUsername,
           })).leaves;
-      const outcome = await applyReconcileChoice({
-        divergenceId: field.sourceId,
+      const outcome = await applyTranslationConflictChoice({
+        rootEntityType: "PRODUCT",
+        rootEntityId: input.productId,
+        conflictFieldKey: field.fieldKey,
         choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,

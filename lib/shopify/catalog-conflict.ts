@@ -30,8 +30,6 @@ export type CatalogConflictField = {
   shopifyFingerprint: string;
   allowedDirections: CatalogConflictDirection[];
   blockedReason: string | null;
-  /** The underlying ShopifyFieldDivergence row id for a TRANSLATION field (what applyReconcileChoice needs); null for COMMERCE, which applies as a whole-product write instead of one row per field. */
-  sourceId: string | null;
   /** Shopify projection path for COMMERCE rows. */
   path?: string | null;
   /** Field-contract key from SyncLeaf. */

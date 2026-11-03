@@ -38,7 +38,6 @@ const field = {
   shopifyFingerprint: "shopify",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"] as const,
   blockedReason: null,
-  sourceId: "difference-1",
 };
 
 function renderWorkspace(
@@ -149,7 +148,6 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
           origin: "COMMERCE" as const,
           allowedDirections: [] as const,
           blockedReason: "No safe field-by-field write yet",
-          sourceId: null,
         }],
       },
     });
@@ -189,7 +187,6 @@ describe("CatalogConflictWorkspace (ConflictResolver adapter)", () => {
           origin: "COMMERCE" as const,
           allowedDirections: [] as const,
           blockedReason: "No safe field-by-field write yet",
-          sourceId: null,
         }],
       },
     });

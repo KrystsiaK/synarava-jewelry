@@ -25,7 +25,6 @@ function baseField(overrides: Partial<CatalogConflictField> = {}): CatalogConfli
     shopifyFingerprint: "shopify",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
-    sourceId: null,
     ...overrides,
   };
 }

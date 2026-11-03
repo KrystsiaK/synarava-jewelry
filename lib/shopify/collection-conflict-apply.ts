@@ -34,7 +34,7 @@ import {
   applyShopifyCollectionToSynarava,
   scanAndSaveCollectionPresence,
 } from "./collection-presence-server";
-import { applyReconcileChoice } from "./reconciliation-apply";
+import { applyTranslationConflictChoice } from "./reconciliation-apply";
 
 const MAX_BULK_COLLECTIONS = 50;
 
@@ -220,7 +220,7 @@ export async function applyCollectionConflictResolution({
       continue;
     }
     if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
-    else if (field.origin === "TRANSLATION" && field.sourceId) readyTranslation.push({ input: entry, field });
+    else if (field.origin === "TRANSLATION") readyTranslation.push({ input: entry, field });
     else if (isAdoptShopifyConflictField(field)) readyAdopt.push({ input: entry, field });
     else if (field.origin === "COMMERCE") readyCommerce.push({ input: entry, field });
     else {
@@ -313,8 +313,10 @@ export async function applyCollectionConflictResolution({
 
   for (const { input, field } of readyTranslation) {
     try {
-      const outcome = await applyReconcileChoice({
-        divergenceId: field.sourceId!,
+      const outcome = await applyTranslationConflictChoice({
+        rootEntityType: "COLLECTION",
+        rootEntityId: input.collectionId,
+        conflictFieldKey: field.fieldKey,
         choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,

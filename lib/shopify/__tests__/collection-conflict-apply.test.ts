@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   loadCollectionConflictFromSyncResult: vi.fn(),
   listConflictedCollectionIds: vi.fn(),
-  applyReconcileChoice: vi.fn(),
+  applyTranslationConflictChoice: vi.fn(),
   applyCollectionPresenceDifference: vi.fn(),
   scanAndSaveCollectionPresence: vi.fn(),
   applyCollectionCommerceField: vi.fn(),
@@ -17,7 +17,7 @@ vi.mock("@/lib/shopify/collection-conflict", () => ({
 }));
 
 vi.mock("@/lib/shopify/reconciliation-apply", () => ({
-  applyReconcileChoice: mocks.applyReconcileChoice,
+  applyTranslationConflictChoice: mocks.applyTranslationConflictChoice,
 }));
 
 vi.mock("@/lib/shopify/collection-presence-server", () => ({
@@ -55,7 +55,6 @@ function field(overrides: Partial<CatalogConflictField> = {}): CatalogConflictFi
     shopifyFingerprint: "shopify-fp",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
-    sourceId: "div-1",
     ...overrides,
   };
 }
@@ -71,7 +70,6 @@ function presenceField(overrides: Partial<CatalogConflictField> = {}): CatalogCo
     localFingerprint: "missing",
     shopifyFingerprint: "remote",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
-    sourceId: null,
     presenceDifference: {
       id: "shopify-collection:42",
       kind: "SHOPIFY_ONLY",
@@ -102,7 +100,6 @@ function commerceField(overrides: Partial<CatalogConflictField> = {}): CatalogCo
     localFingerprint: "commerce-local-fp",
     shopifyFingerprint: "commerce-shopify-fp",
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
-    sourceId: null,
     path: "title",
     ...overrides,
   });
@@ -210,7 +207,7 @@ describe("previewCollectionConflictResolution", () => {
 describe("applyCollectionConflictResolution", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.applyReconcileChoice.mockResolvedValue({ ok: true, message: "Applied" });
+    mocks.applyTranslationConflictChoice.mockResolvedValue({ ok: true, message: "Applied" });
   });
 
   it("applies translation fields through reconcile choice", async () => {
@@ -227,8 +224,10 @@ describe("applyCollectionConflictResolution", () => {
       }],
     });
     expect(outcome.appliedCount).toBe(1);
-    expect(mocks.applyReconcileChoice).toHaveBeenCalledWith({
-      divergenceId: "div-1",
+    expect(mocks.applyTranslationConflictChoice).toHaveBeenCalledWith({
+      rootEntityType: "COLLECTION",
+      rootEntityId: "collection-1",
+      conflictFieldKey: "translation:pt-PT:title",
       choice: "SHOPIFY",
       expectedLocalFingerprint: "local-fp",
       expectedShopifyFingerprint: "shopify-fp",
@@ -251,7 +250,7 @@ describe("applyCollectionConflictResolution", () => {
     });
     expect(outcome.appliedCount).toBe(0);
     expect(outcome.results[0]?.reason).toBe("STALE");
-    expect(mocks.applyReconcileChoice).not.toHaveBeenCalled();
+    expect(mocks.applyTranslationConflictChoice).not.toHaveBeenCalled();
   });
 
   it("refreshes collection presence and applies a one-sided collection through the presence resolver", async () => {
@@ -354,5 +353,36 @@ describe("applyCollectionConflictResolution", () => {
       appliedCount: 1,
       results: [{ ok: true, localCollectionId: "collection-1" }],
     });
+  });
+
+  it("surfaces already-applied and stale from natural-key apply", async () => {
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([field()]));
+    mocks.applyTranslationConflictChoice.mockResolvedValueOnce({ ok: true, message: "Already applied." });
+    await expect(applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "collection-1",
+        fieldKey: "translation:pt-PT:title",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "local-fp",
+        expectedShopifyFingerprint: "shopify-fp",
+      }],
+    })).resolves.toMatchObject({ results: [{ ok: true, message: "Already applied." }] });
+
+    mocks.applyTranslationConflictChoice.mockResolvedValueOnce({
+      ok: false, message: "The review is stale. Check Shopify again before applying changes.",
+    });
+    await expect(applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "collection-1",
+        fieldKey: "translation:pt-PT:title",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "local-fp",
+        expectedShopifyFingerprint: "shopify-fp",
+      }],
+    })).resolves.toMatchObject({ results: [{ ok: false, message: expect.stringContaining("stale") }] });
   });
 });
