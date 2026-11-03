@@ -103,7 +103,6 @@ export function catalogConflictFieldsFromLeaves(
           : fingerprint(leaf.shopifyValue)),
       allowedDirections: [...leaf.allowedDirections],
       blockedReason: leaf.blockedReason,
-      sourceId: leaf.sourceId,
       path: leaf.path,
       contractKey: leaf.contractKey ?? null,
       section: leaf.section ?? null,

@@ -34,7 +34,7 @@ import {
   applyShopifyCollectionToSynarava,
   scanAndSaveCollectionPresence,
 } from "./collection-presence-server";
-import { applyReconcileChoice } from "./reconciliation-apply";
+import { applyTranslationConflictChoice } from "./reconciliation-apply";
 
 const MAX_BULK_COLLECTIONS = 50;
 
@@ -83,16 +83,12 @@ function isCollectionScoped(field: CatalogConflictField): boolean {
   return isScopedCollectionCommerceFieldLabel(field.label);
 }
 
-/**
- * Same preview contract as catalog products, scoped to collections:
- * COMMERCE + TRANSLATION + PRESENCE fields from the collection conflict read model.
- */
+/** Collection conflict preview — same contract as catalog products. */
 async function loadCollectionConflictForApply(
   collectionId: string,
   requestedBy: string,
 ): Promise<CollectionCatalogConflict> {
-  // Refresh Shopify for this collection, then map SyncResult leaves
-  // (same compare as the list — no inspect.differences second compare).
+  // Refresh Shopify, then SyncResult leaves (same compare as the list).
   return loadCollectionConflictFromSyncResult(collectionId, {
     requestedBy,
     skipRefresh: false,
@@ -220,7 +216,7 @@ export async function applyCollectionConflictResolution({
       continue;
     }
     if (field.origin === "PRESENCE") readyPresence.push({ input: entry, field });
-    else if (field.origin === "TRANSLATION" && field.sourceId) readyTranslation.push({ input: entry, field });
+    else if (field.origin === "TRANSLATION") readyTranslation.push({ input: entry, field });
     else if (isAdoptShopifyConflictField(field)) readyAdopt.push({ input: entry, field });
     else if (field.origin === "COMMERCE") readyCommerce.push({ input: entry, field });
     else {
@@ -313,8 +309,10 @@ export async function applyCollectionConflictResolution({
 
   for (const { input, field } of readyTranslation) {
     try {
-      const outcome = await applyReconcileChoice({
-        divergenceId: field.sourceId!,
+      const outcome = await applyTranslationConflictChoice({
+        rootEntityType: "COLLECTION",
+        rootEntityId: input.collectionId,
+        conflictFieldKey: field.fieldKey,
         choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,

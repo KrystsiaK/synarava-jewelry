@@ -41,17 +41,13 @@ import {
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 import { applyMediaIdentityBatch } from "./media-identity-apply";
 import { applyShopifyProductToSynarava } from "./product-sync";
-import { applyReconcileChoice } from "./reconciliation-apply";
+import { applyTranslationConflictChoice } from "./reconciliation-apply";
 
 function isVirtualPresenceProductId(productId: string): boolean {
   return productId.startsWith("shopify:");
 }
 
-/**
- * Re-read conflict fields for apply/preview safety.
- * Linked products: refresh Shopify for this entity then map SyncResult leaves
- * (same compare as the list). Virtual `shopify:*` presence rows skip network.
- */
+/** Refresh Shopify + SyncResult leaves for apply/preview (virtual presence skips network). */
 async function loadProductConflictForApply(
   productId: string,
   requestedBy: string,
@@ -62,7 +58,6 @@ async function loadProductConflictForApply(
       skipRefresh: true,
     });
   }
-  // skipRefresh: false → refreshShopifyProductState + compareSyncState leaves.
   return loadProductConflictFromSyncResult(productId, {
     requestedBy,
     skipRefresh: false,
@@ -99,26 +94,10 @@ export async function assertWholeRecordFingerprintsFresh(input: {
   return { ok: true };
 }
 
-// A bulk scope resolves every currently conflicted product — capped so one
-// request can't try to preview/apply an unbounded catalog in one go. A
-// product with many conflicting fields still contributes all of them; this
-// only bounds how many *products* a single bulk operation touches.
+/** Caps how many *products* one bulk preview/apply touches (not fields/product). */
 const MAX_BULK_PRODUCTS = 50;
 
-// Most commerce fields still have no safe scoped write: pushProductToShopify
-// and applyShopifyProductToSynarava are whole-product — a forced push/pull rewrites
-// every commerce field *and* every published locale's translation (see their
-// own per-locale loops in product-sync.ts), using a conflict check
-// (decideProductTranslationPull / push's inline per-locale fetch+compare)
-// that is a *separate* code path from the reconcile system this module's
-// read model (SyncResult leaves) is built on. That combination is why those
-// two functions stay off-limits here for structural fields except Media
-// (adopt `media` / push pipeline via applyCommerceField). A narrow slice of
-// plain scalar fields (SCOPED_COMMERCE_FIELD_LABELS — Name, Handle, Vendor,
-// Product type, Variant SKU, Price, Compare-at, Charge tax) plus Media
-// gallery labels instead has its own writer. Status, tags, collections,
-// category stay UNSUPPORTED; Field Decisions offers inline whole-record
-// Pull/Push for those.
+/** Scoped commerce labels only — see SCOPED_COMMERCE_FIELD_LABELS / COMMERCE_UNSUPPORTED_REASON. */
 function isScopedCommerceField(field: CatalogConflictField): boolean {
   return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
 }
@@ -145,15 +124,7 @@ export type ExcludedCatalogConflictEntry = {
 
 export type CatalogConflictPreview = ConflictPreviewBase<ResolvedCatalogConflictEntry, ExcludedCatalogConflictEntry>;
 
-/**
- * Resolves a scope into the concrete fields it would touch — the same
- * function backs a bulk direction, a single product's direction, and a
- * hand-picked manual field list, so preview and apply always agree on what
- * "this scope" means. Fields whose direction isn't allowed, that are no
- * longer conflicting, or that are COMMERCE-origin outside
- * SCOPED_COMMERCE_FIELD_LABELS (see COMMERCE_UNSUPPORTED_REASON above) are
- * reported in `excluded`, never silently dropped.
- */
+/** Resolve scope → concrete fields; disallowed/stale/unsupported go to `excluded`. */
 export async function previewCatalogConflictResolution(
   scope: CatalogConflictApplyScope,
   options?: { requestedBy?: string },
@@ -212,10 +183,10 @@ export type CatalogConflictApplyOutcome = ConflictApplyOutcomeBase<CatalogConfli
  * fingerprints must still match, or the entry is reported STALE and
  * skipped rather than overwritten.
  *
- * TRANSLATION-origin fields apply individually through the existing
- * per-field applyReconcileChoice (already atomic, fingerprint-checked, and
- * verified by a read-after-write). COMMERCE-origin fields apply through
- * applyCommerceField only when their label is in
+ * TRANSLATION-origin fields apply individually through
+ * applyTranslationConflictChoice (natural-key claim; already atomic,
+ * fingerprint-checked, and verified by a read-after-write). COMMERCE-origin
+ * fields apply through applyCommerceField only when their label is in
  * SCOPED_COMMERCE_FIELD_LABELS; every other commerce field is reported
  * UNSUPPORTED — see COMMERCE_UNSUPPORTED_REASON at the top of this file.
  *
@@ -263,11 +234,7 @@ export async function applyCatalogConflictResolution({
       results.push(sharedStaleResult(entry, "productId", "This conflict no longer exists — it may already have been resolved."));
       continue;
     }
-    // Presence Pull (SHOPIFY_ONLY): re-scan may rematch SKU/handle and change
-    // hashes without invalidating Pull — skip fingerprint match there.
-    // Presence Remove (SYNARAVA_ONLY → Synarava→Shopify): refuse when the
-    // identity fingerprint (id + handle + shopify id) changed since preview.
-    // Commerce/translation always require fingerprint match.
+    // Presence Pull skips fingerprint match; Remove refuses on identity drift.
     const isPresenceRemove = field.origin === "PRESENCE"
       && field.presenceDifference?.kind === "SYNARAVA_ONLY"
       && entry.direction === "SYNARAVA_TO_SHOPIFY";
@@ -430,17 +397,7 @@ export async function applyCatalogConflictResolution({
   }
 
   for (const { input, field } of readyTranslation) {
-    if (!field.sourceId) {
-      results.push({ productId: input.productId, fieldKey: input.fieldKey, ok: false, reason: "WRITE_FAILED", message: "This translated field is missing its source record." });
-      continue;
-    }
-    // applyReconcileChoice can throw before it even reaches its own internal
-    // try (claimDifference runs outside it — a DB hiccup there throws
-    // straight out). Without a try/catch here, one such failure mid-batch
-    // would reject applyCatalogConflictResolution entirely, discarding every
-    // already-computed result — including fields already applied
-    // successfully earlier in this same loop — instead of reporting this
-    // one field as failed and letting the rest of the batch stand.
+    // claimDifference sits outside apply's try — catch so one DB failure does not drop the batch.
     try {
       const leavesBefore = isVirtualPresenceProductId(input.productId)
         ? []
@@ -449,8 +406,10 @@ export async function applyCatalogConflictResolution({
             resourceId: input.productId,
             requestedBy: actorUsername,
           })).leaves;
-      const outcome = await applyReconcileChoice({
-        divergenceId: field.sourceId,
+      const outcome = await applyTranslationConflictChoice({
+        rootEntityType: "PRODUCT",
+        rootEntityId: input.productId,
+        conflictFieldKey: field.fieldKey,
         choice: input.direction === "SYNARAVA_TO_SHOPIFY" ? "SYNARAVA" : "SHOPIFY",
         expectedLocalFingerprint: input.expectedLocalFingerprint,
         expectedShopifyFingerprint: input.expectedShopifyFingerprint,
@@ -494,7 +453,6 @@ export async function applyCatalogConflictResolution({
     }
   }
 
-  // Media identity leaves: batch per product (Take-Shopify tree edits → one Push → one gate).
   const mediaByProduct = new Map<string, Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }>>();
   const otherCommerce: Array<{ input: CatalogConflictApplyEntryInput; field: CatalogConflictField }> = [];
   for (const item of readyCommerce) {
@@ -544,8 +502,6 @@ export async function applyCatalogConflictResolution({
   }
 
   for (const { input, field } of otherCommerce) {
-    // applyCommerceField re-validates against fresh SyncResult leaves
-    // (refresh + compareSyncState) immediately before writing.
     try {
       const outcome = await applyCommerceField({
         productId: input.productId,
