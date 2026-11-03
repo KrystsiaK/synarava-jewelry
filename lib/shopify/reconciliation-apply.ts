@@ -15,7 +15,10 @@ import {
 } from "@/lib/shopify/reconciliation-source";
 import { sourceContentAsRemoteValues, updateShopifySourceField } from "@/lib/shopify/source-content";
 import { projectRemoteTranslationWithMetadata } from "@/lib/shopify/translation-reconciliation";
-import { recordReconcileAuditDetails, recordSyncEvent } from "@/lib/shopify/translation-sync";
+import {
+  recordReconcileAuditDetails,
+  recordSyncEvent,
+} from "@/lib/shopify/translation-sync";
 import {
   fetchResourceTranslation,
   fetchResourceTranslationState,
@@ -25,22 +28,13 @@ import {
 export type ReconcileChoice = "SYNARAVA" | "SHOPIFY";
 
 export type ReconcileEntityAddress = {
-  rootEntityType: "PRODUCT" | "COLLECTION";
-  rootEntityId: string;
-  locale: string;
-  fieldKey: string;
+  rootEntityType: "PRODUCT" | "COLLECTION"; rootEntityId: string; locale: string; fieldKey: string;
 };
 
 type ApplyRow = {
-  id: string;
-  bindingId: string;
-  locale: string;
-  fieldKey: string;
-  localFingerprint: string;
-  shopifyFingerprint: string;
-  bindingResourceType: TranslationResourceType;
-  bindingEntityId: string;
-  shopifyResourceId: string;
+  id: string; bindingId: string; locale: string; fieldKey: string;
+  localFingerprint: string; shopifyFingerprint: string;
+  bindingResourceType: TranslationResourceType; bindingEntityId: string; shopifyResourceId: string;
 };
 
 export type ReconcileApplyResult = {
@@ -52,22 +46,21 @@ export type ReconcileApplyResult = {
 const MSG = {
   held: "This change is currently being applied by another attempt.",
   closed: "This change has already been resolved.",
-  missing: "This change is no longer present.",
-  already: "Already applied.",
+  missing: "This change is no longer present.", already: "Already applied.",
 } as const;
 
-/** `translation:{shopifyLocale}:{registryFieldKey}` */
+/** `translation:{shopifyLocale}:{registryFieldKey}` — fieldKey may contain `:`. */
 export function parseTranslationConflictFieldKey(
   conflictFieldKey: string,
 ): { locale: string; fieldKey: string } | null {
   if (!conflictFieldKey.startsWith("translation:")) return null;
   const rest = conflictFieldKey.slice("translation:".length);
-  const sep = rest.lastIndexOf(":");
+  const sep = rest.indexOf(":");
   if (sep <= 0 || sep === rest.length - 1) return null;
   return { locale: rest.slice(0, sep), fieldKey: rest.slice(sep + 1) };
 }
 
-/** Claim open divergence by entity+locale+fieldKey — never a frozen row id. */
+/** Newest open row for entity+locale+fieldKey (LIMIT 1). Never a frozen random id. */
 async function claimDifference(address: ReconcileEntityAddress, token: string) {
   const rows = await db.$queryRaw<ApplyRow[]>(Prisma.sql`
     UPDATE "ShopifyFieldDivergence" AS difference
@@ -77,101 +70,65 @@ async function claimDifference(address: ReconcileEntityAddress, token: string) {
       "updatedAt" = CURRENT_TIMESTAMP
     FROM "ShopifyTranslationBinding" AS binding
     WHERE
-      difference."bindingId" = binding."id"
-      AND difference."rootEntityType" = ${address.rootEntityType}
-      AND difference."rootEntityId" = ${address.rootEntityId}
-      AND difference."locale" = ${address.locale}
-      AND difference."fieldKey" = ${address.fieldKey}
-      AND difference."resolvedAt" IS NULL
-      AND (
-        difference."resolutionToken" IS NULL
-        OR difference."resolutionStartedAt" < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+      difference."id" = (
+        SELECT candidate."id"
+        FROM "ShopifyFieldDivergence" AS candidate
+        WHERE
+          candidate."rootEntityType" = ${address.rootEntityType}
+          AND candidate."rootEntityId" = ${address.rootEntityId}
+          AND candidate."locale" = ${address.locale}
+          AND candidate."fieldKey" = ${address.fieldKey}
+          AND candidate."resolvedAt" IS NULL
+          AND (
+            candidate."resolutionToken" IS NULL
+            OR candidate."resolutionStartedAt" < CURRENT_TIMESTAMP - INTERVAL '5 minutes'
+          )
+        ORDER BY candidate."createdAt" DESC
+        LIMIT 1
       )
+      AND difference."bindingId" = binding."id"
     RETURNING
-      difference."id",
-      difference."bindingId",
-      difference."locale",
-      difference."fieldKey",
-      difference."localFingerprint",
-      difference."shopifyFingerprint",
+      difference."id", difference."bindingId", difference."locale", difference."fieldKey",
+      difference."localFingerprint", difference."shopifyFingerprint",
       binding."resourceType" AS "bindingResourceType",
-      binding."entityId" AS "bindingEntityId",
-      binding."shopifyResourceId"
+      binding."entityId" AS "bindingEntityId", binding."shopifyResourceId"
   `);
   return rows[0] ?? null;
 }
 
 async function releaseClaim(divergenceId: string, token: string, resolved: boolean) {
-  await db.$executeRaw(Prisma.sql`
-    UPDATE "ShopifyFieldDivergence"
-    SET
-      "resolutionToken" = NULL,
-      "resolutionStartedAt" = NULL,
-      "resolvedAt" = CASE WHEN ${resolved} THEN CURRENT_TIMESTAMP ELSE "resolvedAt" END,
-      "updatedAt" = CURRENT_TIMESTAMP
-    WHERE "id" = ${divergenceId} AND "resolutionToken" = ${token}
-  `);
+  await db.shopifyFieldDivergence.updateMany({
+    where: { id: divergenceId, resolutionToken: token },
+    data: { resolutionToken: null, resolutionStartedAt: null, ...(resolved ? { resolvedAt: new Date() } : {}) },
+  });
 }
 
 async function classifyFailedClaim(
   address: ReconcileEntityAddress,
-  choice: ReconcileChoice,
   expectedLocalFingerprint: string,
   expectedShopifyFingerprint: string,
 ): Promise<ReconcileApplyResult> {
-  const rows = await db.$queryRaw<Array<{
-    id: string;
-    localFingerprint: string;
-    shopifyFingerprint: string;
-    resolvedAt: Date | null;
-    resolutionToken: string | null;
-    resolutionStartedAt: Date | null;
-    selectedSide: string | null;
-  }>>(Prisma.sql`
-    SELECT
-      difference."id",
-      difference."localFingerprint",
-      difference."shopifyFingerprint",
-      difference."resolvedAt",
-      difference."resolutionToken",
-      difference."resolutionStartedAt",
-      (
-        SELECT event."selectedSide"
-        FROM "TranslationSyncEvent" AS event
-        WHERE event."bindingId" = difference."bindingId"
-          AND event."status" = 'SUCCEEDED'
-          AND event."selectedSide" IS NOT NULL
-          AND event."scope"->>'fieldKey' = difference."fieldKey"
-          AND event."scope"->>'locale' = difference."locale"
-        ORDER BY event."createdAt" DESC
-        LIMIT 1
-      ) AS "selectedSide"
-    FROM "ShopifyFieldDivergence" AS difference
-    WHERE
-      difference."rootEntityType" = ${address.rootEntityType}
-      AND difference."rootEntityId" = ${address.rootEntityId}
-      AND difference."locale" = ${address.locale}
-      AND difference."fieldKey" = ${address.fieldKey}
-    ORDER BY difference."createdAt" DESC
-    LIMIT 1
-  `);
-  const latest = rows[0];
+  const latest = await db.shopifyFieldDivergence.findFirst({
+    where: {
+      rootEntityType: address.rootEntityType,
+      rootEntityId: address.rootEntityId,
+      locale: address.locale,
+      fieldKey: address.fieldKey,
+    },
+    orderBy: { createdAt: "desc" },
+    select: {
+      id: true, localFingerprint: true, shopifyFingerprint: true,
+      resolvedAt: true, resolutionToken: true, resolutionStartedAt: true,
+    },
+  });
   if (!latest) return { divergenceId: null, ok: false, message: MSG.missing };
-  if (
-    latest.resolvedAt == null
-    && latest.resolutionToken
-    && latest.resolutionStartedAt
-    && Date.now() - latest.resolutionStartedAt.getTime() < 5 * 60 * 1000
-  ) {
-    return { divergenceId: latest.id, ok: false, message: MSG.held };
-  }
+  const held = latest.resolvedAt == null && latest.resolutionToken && latest.resolutionStartedAt
+    && Date.now() - latest.resolutionStartedAt.getTime() < 5 * 60 * 1000;
+  if (held) return { divergenceId: latest.id, ok: false, message: MSG.held };
   if (latest.resolvedAt != null) {
-    const sameReview = latest.localFingerprint === expectedLocalFingerprint
+    const same = latest.localFingerprint === expectedLocalFingerprint
       && latest.shopifyFingerprint === expectedShopifyFingerprint;
-    if (sameReview || latest.selectedSide === choice) {
-      return { divergenceId: latest.id, ok: true, message: MSG.already };
-    }
-    return { divergenceId: latest.id, ok: false, message: MSG.closed };
+    return { divergenceId: latest.id, ok: same, message: same ? MSG.already : MSG.closed };
   }
   return { divergenceId: latest.id, ok: false, message: MSG.missing };
 }
@@ -205,7 +162,6 @@ async function fetchRemoteValues(resourceId: string, locale: string) {
   return fetchResourceTranslation(resourceId, locale);
 }
 
-/** Apply one translation choice addressed by entity + locale + fieldKey. */
 export async function applyReconcileChoice({
   rootEntityType,
   rootEntityId,
@@ -225,7 +181,7 @@ export async function applyReconcileChoice({
   const token = randomUUID();
   const row = await claimDifference(address, token);
   if (!row) {
-    return classifyFailedClaim(address, choice, expectedLocalFingerprint, expectedShopifyFingerprint);
+    return classifyFailedClaim(address, expectedLocalFingerprint, expectedShopifyFingerprint);
   }
 
   const binding = bindingFrom(row);
@@ -236,7 +192,6 @@ export async function applyReconcileChoice({
     await releaseClaim(row.id, token, resolved);
     released = true;
   };
-
   try {
     if (row.localFingerprint !== expectedLocalFingerprint || row.shopifyFingerprint !== expectedShopifyFingerprint) {
       throw new Error("The review is stale. Check Shopify again before applying changes.");
@@ -383,19 +338,13 @@ export async function applyReconcileChoice({
   }
 }
 
-/** Shared product/collection apply entry — both conflict-apply modules use this. */
+/** Shared product/collection entry — claims by natural key, not sourceId. */
 export async function applyTranslationConflictChoice(input: {
-  rootEntityType: "PRODUCT" | "COLLECTION";
-  rootEntityId: string;
-  conflictFieldKey: string;
-  choice: ReconcileChoice;
-  expectedLocalFingerprint: string;
-  expectedShopifyFingerprint: string;
+  rootEntityType: "PRODUCT" | "COLLECTION"; rootEntityId: string; conflictFieldKey: string;
+  choice: ReconcileChoice; expectedLocalFingerprint: string; expectedShopifyFingerprint: string;
   actorUsername: string;
 }): Promise<ReconcileApplyResult> {
   const parsed = parseTranslationConflictFieldKey(input.conflictFieldKey);
-  if (!parsed) {
-    return { divergenceId: null, ok: false, message: "This translated field address is invalid." };
-  }
+  if (!parsed) return { divergenceId: null, ok: false, message: "This translated field address is invalid." };
   return applyReconcileChoice({ ...input, ...parsed });
 }

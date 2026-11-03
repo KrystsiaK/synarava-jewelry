@@ -83,16 +83,12 @@ function isCollectionScoped(field: CatalogConflictField): boolean {
   return isScopedCollectionCommerceFieldLabel(field.label);
 }
 
-/**
- * Same preview contract as catalog products, scoped to collections:
- * COMMERCE + TRANSLATION + PRESENCE fields from the collection conflict read model.
- */
+/** Collection conflict preview — same contract as catalog products. */
 async function loadCollectionConflictForApply(
   collectionId: string,
   requestedBy: string,
 ): Promise<CollectionCatalogConflict> {
-  // Refresh Shopify for this collection, then map SyncResult leaves
-  // (same compare as the list — no inspect.differences second compare).
+  // Refresh Shopify, then SyncResult leaves (same compare as the list).
   return loadCollectionConflictFromSyncResult(collectionId, {
     requestedBy,
     skipRefresh: false,
