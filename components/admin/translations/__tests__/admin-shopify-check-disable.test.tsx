@@ -26,7 +26,6 @@ const field: CatalogConflictField = {
   shopifyFingerprint: "shopify",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
   blockedReason: null,
-  sourceId: "d1",
 };
 
 function createAdapter(): ConflictResolverAdapter {

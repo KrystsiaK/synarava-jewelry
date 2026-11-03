@@ -66,7 +66,6 @@ function leaf(label: string, local: string, shopify: string, overrides: Partial<
     shopifyValue: shopify,
     allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
     blockedReason: null,
-    sourceId: null,
     path: label === "Vendor" ? "vendor" : label.toLowerCase(),
     localFingerprint: commerceFingerprint(local),
     shopifyFingerprint: commerceFingerprint(shopify),

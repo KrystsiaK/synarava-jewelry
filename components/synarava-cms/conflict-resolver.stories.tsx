@@ -16,7 +16,6 @@ const titleField: CatalogConflictField = {
   shopifyFingerprint: "shopify-title",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
   blockedReason: null,
-  sourceId: "d1",
 };
 
 const priceField: CatalogConflictField = {
@@ -31,7 +30,6 @@ const priceField: CatalogConflictField = {
   shopifyFingerprint: "shopify-price",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
   blockedReason: null,
-  sourceId: null,
 };
 
 const createField: CatalogConflictField = {
@@ -46,7 +44,6 @@ const createField: CatalogConflictField = {
   shopifyFingerprint: "shopify-presence",
   allowedDirections: ["SYNARAVA_TO_SHOPIFY"],
   blockedReason: null,
-  sourceId: null,
   presenceDifference: {
     id: "c-pets",
     kind: "SYNARAVA_ONLY",

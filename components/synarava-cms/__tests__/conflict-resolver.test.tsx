@@ -20,7 +20,6 @@ const field: CatalogConflictField = {
   shopifyFingerprint: "shopify",
   allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
   blockedReason: null,
-  sourceId: "d1",
 };
 
 const fieldB: CatalogConflictField = {
@@ -31,7 +30,6 @@ const fieldB: CatalogConflictField = {
   shopifyValue: "Shopify desc",
   localFingerprint: "local-b",
   shopifyFingerprint: "shopify-b",
-  sourceId: "d2",
 };
 
 function createAdapter(overrides: Partial<ConflictResolverAdapter> = {}): ConflictResolverAdapter {
@@ -213,7 +211,6 @@ describe("ConflictResolver", () => {
       shopifyValue: "12",
       allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
       blockedReason: null,
-      sourceId: null,
     };
     const adapter = createAdapter({
       supportsWholeRecord: true,
@@ -250,7 +247,6 @@ describe("ConflictResolver", () => {
       shopifyValue: "Status: DRAFT\nTags: b",
       allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
       blockedReason: multiVariantReason,
-      sourceId: null,
     };
     const adapter = createAdapter({
       supportsWholeRecord: true,
@@ -285,7 +281,6 @@ describe("ConflictResolver", () => {
       shopifyValue: "Price: 12\nStatus: DRAFT\nTags: b",
       allowedDirections: [],
       blockedReason: "No safe field-by-field write yet",
-      sourceId: null,
     };
     const applyWholeRecord = vi.fn(async () => ({ ok: true, success: "Whole item synced." }));
     const adapter = createAdapter({
@@ -350,7 +345,6 @@ describe("ConflictResolver", () => {
             origin: "COMMERCE" as const,
             allowedDirections: [] as CatalogConflictField["allowedDirections"],
             blockedReason: "No safe field-by-field write yet",
-            sourceId: null,
           },
         ],
       })),
@@ -412,7 +406,6 @@ describe("ConflictResolver", () => {
       origin: "COMMERCE",
       allowedDirections: [],
       blockedReason: "No safe field-by-field write yet for this collection field.",
-      sourceId: null,
     };
     const adapter = createAdapter({
       supportsWholeRecord: false,
@@ -444,7 +437,6 @@ describe("ConflictResolver", () => {
       synaravaValue: "Pets · /pets",
       shopifyValue: "— Collection is missing —",
       allowedDirections: ["SYNARAVA_TO_SHOPIFY"],
-      sourceId: null,
       presenceDifference: {
         id: "c-pets",
         kind: "SYNARAVA_ONLY",
@@ -469,7 +461,6 @@ describe("ConflictResolver", () => {
       origin: "COMMERCE",
       synaravaValue: "120.00 EUR",
       shopifyValue: "110.00 EUR",
-      sourceId: null,
     };
     const adapter = createAdapter({
       entityNoun: "collection",
@@ -529,7 +520,6 @@ describe("ConflictResolver", () => {
       synaravaValue: "— Collection is missing —",
       shopifyValue: "Home page · /frontpage",
       allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
-      sourceId: null,
       presenceDifference: {
         id: shopifyOnlyId,
         kind: "SHOPIFY_ONLY",
