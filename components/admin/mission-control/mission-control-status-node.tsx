@@ -5,6 +5,7 @@ import { BaseWidget } from "@synarava/shell-kit";
 import "@synarava/shell-kit/styles.css";
 import { CircleDashed, ExternalLink, Info, RadioTower } from "lucide-react";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
+import { ANALYTICS_NOT_CONNECTED_MESSAGE } from "@/lib/mission-control/analytics/types";
 import type { MissionControlCanvasNode } from "@/lib/mission-control/canvas-model";
 import { formatAdminDateTime } from "@/lib/format/admin-date";
 
@@ -49,7 +50,11 @@ export function MissionControlStatusNode({
           <h3>{data.label}</h3>
         </div>
         <div className="mc-node__status-row">
-          <MissionControlStatusMark level={data.level} compact />
+          <MissionControlStatusMark
+            level={data.level}
+            compact
+            notConnected={data.message === ANALYTICS_NOT_CONNECTED_MESSAGE}
+          />
           {data.href ? (
             <a
               href={data.href}

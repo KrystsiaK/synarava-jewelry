@@ -8,6 +8,7 @@ import { useEphemeralToast } from "@/components/ui/ephemeral-toast";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
+import { clarityEvent } from "@/lib/telemetry/clarity";
 import { cn } from "@/lib/ui";
 
 function signInHref(locale: Locale) {
@@ -85,6 +86,7 @@ export function WishlistHeartButton({
         return;
       }
       setSaved(Boolean(payload.isSaved));
+      if (payload.isSaved) clarityEvent("add_to_wishlist");
     } catch {
       setSaved(!next);
       pushToast({ message: t("product.wishlistSaveFailed"), tone: "error" });

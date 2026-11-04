@@ -12,6 +12,7 @@ import {
 } from "@/app/[locale]/cart/actions";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { clarityEvent } from "@/lib/telemetry/clarity";
 import { Tooltip } from "@/components/ui/tooltip";
 
 const initialActionState: CartItemActionState = { ok: true };
@@ -105,7 +106,13 @@ export function CartItemRow({ item }: CartItemRowProps) {
             </form>
           )}
 
-          <form action={removeAction} className="ml-2">
+          <form
+            action={removeAction}
+            className="ml-2"
+            onSubmit={() => {
+              clarityEvent("remove_from_cart");
+            }}
+          >
             <input type="hidden" name="itemId" value={item.id} />
             <button type="submit" disabled={isBusy} className="label-caps text-muted transition-colors hover:text-accent disabled:cursor-not-allowed disabled:opacity-50">
               {t("cart.remove")}

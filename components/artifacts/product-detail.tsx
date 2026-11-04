@@ -18,6 +18,7 @@ import { ProductMediaGallery } from "@/components/artifacts/product-media-galler
 import { ProductHeroDescription } from "@/components/artifacts/product-hero-description";
 import { RichText } from "@/components/content/rich-text";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
+import { clarityTag } from "@/lib/telemetry/clarity";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { DisplayHeading, PrimaryCtaButton, ProductGalleryMedia } from "@/components/ui";
 import {
@@ -995,7 +996,11 @@ export function ProductDetail({
         available: product.stockOnHand > 0,
       },
     });
-  }, [product.categorySlug, product.collectionSlug, product.currency, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
+    clarityTag("page_type", "product");
+    clarityTag("locale", locale);
+    if (product.categorySlug) clarityTag("category", product.categorySlug);
+    if (product.collectionSlug) clarityTag("collection", product.collectionSlug);
+  }, [locale, product.categorySlug, product.collectionSlug, product.currency, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 
   return (
     <main data-component="ProductDetail"

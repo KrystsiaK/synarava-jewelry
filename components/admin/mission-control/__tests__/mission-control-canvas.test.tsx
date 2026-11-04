@@ -82,7 +82,9 @@ describe("MissionControlCanvas render", () => {
     expect(warn).toHaveAttribute("data-accent", statusLevelColor("warn"));
 
     expect(screen.getByTestId("mc-node-group:monitoring")).toBeInTheDocument();
-    expect(screen.queryByTestId("mc-node-sentry")).not.toBeInTheDocument();
+    // monitoring has live `analytics` → group stays expanded (not collapsed)
+    expect(screen.getByTestId("mc-node-analytics")).toBeInTheDocument();
+    expect(screen.getByTestId("mc-node-sentry")).toBeInTheDocument();
   });
 
   it("marks fresh edges animated and stale edges idle", () => {
@@ -98,8 +100,8 @@ describe("MissionControlCanvas render", () => {
       screen.getByTestId("mc-edge-site_to_monitoring:site-health->sentry"),
     ).toHaveAttribute("data-animated", "false");
     expect(
-      screen.getByTestId("rf-edge-summary:site-health->group:monitoring:site_to_monitoring"),
-    ).toBeInTheDocument();
+      screen.getByTestId("mc-edge-site_to_monitoring:site-health->analytics"),
+    ).toHaveAttribute("data-animated", "false");
   });
 
   it("renders the same services as a mobile list without a canvas", () => {
