@@ -189,7 +189,15 @@ current deployment. ADR-0006 records the owner-approved read-only boundary.
 
 - [2026-10-19T22:16:00Z] CI green on `892189bb` (6/6). PR #200 marked ready for review (not merged).
 
-**Stage 4 status:** **partial on staging** — three live providers (`site-health`, `shopify-sync`, `orders`); sentry remains placeholder (see gap table).
+**Stage 4 status:** **partial on staging** — live providers (`site-health`, `shopify-sync`, `orders`, `analytics`); sentry remains placeholder (see gap table).
+
+### Analytics live node (2026-11-04)
+
+Owner yeses recorded in plan §0: GA + Clarity live via combined `analytics`
+node; complexity OK for the triage job. Collector persists detection into
+`ServiceNodeStatus`; hub reads stored state only. Env:
+`CLARITY_API_TOKEN`, `GA_PROPERTY_ID`, `GA_SERVICE_ACCOUNT_JSON` (never
+`NEXT_PUBLIC_*`). Missing env → **not connected**.
 
 ---
 

@@ -112,8 +112,10 @@ Breadth without complexity: вселенная может быть сколь у
     `synarava-jewelry` (реестр/токен, workspace, peer-deps: `framer-motion`,
     `lucide-react`, `clsx`, `tailwind-merge`, `zustand`).
   - Граф на мобиле читается хуже сетки карточек — нужен сворачиваемый список.
-  - Часть сервисов (Clarity, Meta, TikTok) не даёт статуса по API — такие узлы
-    будут «ссылка + дата последнего просмотра», а не живые.
+  - Часть сервисов (Meta, TikTok) не даёт статуса по API — такие узлы
+    будут «ссылка + дата последнего просмотра», а не живые. Clarity has a
+    Data Export API (owner yes 2026-11-04: live via combined `analytics` node
+    with GA Data API; hub reads stored status only).
 - **Risks**:
   - **Усложнение** — главный риск. Снимается «Контрактом простоты» в
     [runbook-плане](../runbooks/mission-control-hub-plan.md) и активным ponytail:

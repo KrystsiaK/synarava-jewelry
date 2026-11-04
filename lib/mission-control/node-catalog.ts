@@ -5,6 +5,7 @@ const LIVE_STATUS_LABELS: Record<string, string> = {
   "site-health": "Site health",
   "shopify-sync": "Shopify sync",
   orders: "Orders",
+  analytics: "Analytics",
 };
 
 export const MISSION_CONTROL_NODE_CATALOG: readonly WidgetPortManifest[] = getMissionControlWiringConfig().nodes.map((node) => ({

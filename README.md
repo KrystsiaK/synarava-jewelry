@@ -71,6 +71,18 @@ Fill in local/production variables as needed:
 - `S3_ENDPOINT` if using an S3-compatible provider
 - `S3_PUBLIC_URL` public bucket/CDN origin used for optimized media URLs
 
+Mission Control Analytics node (collector service only — never `NEXT_PUBLIC_*`,
+never log or commit values):
+
+- `CLARITY_API_TOKEN` — Clarity Data Export API bearer token
+- `GA_PROPERTY_ID` — GA4 property id (numeric, no `properties/` prefix)
+- `GA_SERVICE_ACCOUNT_JSON` — full service-account JSON string (Viewer on the property)
+
+Missing Analytics env → hub shows **not connected** (not ok, not error). GA auth
+uses `node:crypto` JWT + `fetch` only (no `googleapis`). See
+`docs/runbooks/mission-control-hub-plan.md` and
+`docs/runbooks/mission-control-collector-railway.md`.
+
 For local development, `docker compose up -d` also starts a private MinIO staging
 bucket on port `59000` (console: `59001`). When no `S3_*` variables are set in a
 non-production process, the app uses that bucket automatically and serves images
