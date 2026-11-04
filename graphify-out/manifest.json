@@ -13698,9 +13698,9 @@
     "semantic_hash": ""
   },
   "components/admin/mission-control/mission-control-node-modal.tsx": {
-    "mtime": 1793830032.7300909,
-    "seen": 1793830323.594547,
-    "ast_hash": "a07ebe2b05162115da343e50a4e483e2",
+    "mtime": 1793830949.8191698,
+    "seen": 1793831223.6836495,
+    "ast_hash": "091b3e0757df79f127c05b03dda7dbba",
     "semantic_hash": ""
   },
   "components/admin/mission-control/mission-control-node-widgets.tsx": {
@@ -13866,9 +13866,9 @@
     "semantic_hash": ""
   },
   "lib/mission-control/wiring-config.json": {
-    "mtime": 1793830237.6284432,
-    "seen": 1793830323.5953155,
-    "ast_hash": "e756aae601f794c0bc5eb568880dd6fe",
+    "mtime": 1793830355.4356024,
+    "seen": 1793831223.7006197,
+    "ast_hash": "a735b4c976b135d9d48d947b41802d00",
     "semantic_hash": ""
   },
   "lib/mission-control/wiring.ts": {
@@ -15858,9 +15858,9 @@
     "semantic_hash": ""
   },
   "lib/mission-control/analytics/clarity-client.ts": {
-    "mtime": 1793829936.9348059,
-    "seen": 1793830323.5952878,
-    "ast_hash": "9d77aea77762d91d30af43cb9d60ed9d",
+    "mtime": 1793831016.3306875,
+    "seen": 1793831223.700072,
+    "ast_hash": "23966ce0d7f4a10ba14606b7b2dee1d3",
     "semantic_hash": ""
   },
   "lib/mission-control/analytics/detect.ts": {
@@ -15870,15 +15870,15 @@
     "semantic_hash": ""
   },
   "lib/mission-control/analytics/ga-client.ts": {
-    "mtime": 1793829897.4512517,
-    "seen": 1793830323.5952897,
-    "ast_hash": "60efcd8081e097c9de0b3cd57579f2e0",
+    "mtime": 1793831016.3746874,
+    "seen": 1793831223.7000983,
+    "ast_hash": "9904a9fa0c612dfdd45c3b0fb4236681",
     "semantic_hash": ""
   },
   "lib/mission-control/analytics/ga-jwt.ts": {
-    "mtime": 1793829866.931731,
-    "seen": 1793830323.5952907,
-    "ast_hash": "c9f100e5f4b8240efbbf310f1c24f0ec",
+    "mtime": 1793831016.2506883,
+    "seen": 1793831223.7001002,
+    "ast_hash": "5a07fc96bc70da9eef38a1e49e9b3757",
     "semantic_hash": ""
   },
   "lib/mission-control/analytics/report.ts": {
@@ -15906,9 +15906,21 @@
     "semantic_hash": ""
   },
   "lib/mission-control/providers/analytics.ts": {
-    "mtime": 1793829936.8588066,
-    "seen": 1793830323.5953097,
-    "ast_hash": "104cf3211bf89c71b02bbca2c6d7c46f",
+    "mtime": 1793831016.3986871,
+    "seen": 1793831223.7005048,
+    "ast_hash": "b915d93a7108a11ee9ace495abc27ea7",
+    "semantic_hash": ""
+  },
+  "lib/mission-control/analytics/__tests__/client-boundary.test.ts": {
+    "mtime": 1793831043.026498,
+    "seen": 1793831223.6999927,
+    "ast_hash": "00fcb34e68fd22586802cdec0558e38f",
+    "semantic_hash": ""
+  },
+  "lib/mission-control/analytics/payload.ts": {
+    "mtime": 1793830949.6271713,
+    "seen": 1793831223.7001016,
+    "ast_hash": "2712646378590d564c2286e796d11f25",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {
