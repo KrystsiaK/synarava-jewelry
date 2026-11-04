@@ -5,6 +5,7 @@ import {
   type CommerceItem,
 } from "@/lib/analytics/commerce";
 import { hasAnalyticsConsent } from "@/lib/privacy/consent";
+import { clarityEvent, clarityUpgrade } from "@/lib/telemetry/clarity";
 
 type DataLayerEntry = Record<string, unknown>;
 
@@ -156,6 +157,11 @@ function forwardCommerceEvent(event: Event) {
         ),
       },
     });
+    // Clarity funnel mirror: event name only (no ecommerce/PII payload).
+    clarityEvent(event.detail.event);
+    if (event.detail.event === "add_to_cart" || event.detail.event === "begin_checkout") {
+      clarityUpgrade(event.detail.event);
+    }
     return;
   }
 

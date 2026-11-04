@@ -25,6 +25,7 @@ import {
   createSiteListStateAdapter,
   useListState,
 } from "@/components/shared/list-state";
+import { clarityEvent, clarityTag } from "@/lib/telemetry/clarity";
 import { shopComplianceOptions } from "./compliance-options";
 import { FilterDropdown } from "./filter-dropdown";
 import { FilterChips } from "./filter-chips";
@@ -34,6 +35,18 @@ import {
   countActiveFilters,
   filtersWithoutSort,
 } from "./types";
+
+const CATALOG_FACET_KEYS = [
+  "availability",
+  "category",
+  "productType",
+  "collection",
+  "tag",
+  "material",
+  "finish",
+  "origin",
+  "certified",
+] as const satisfies ReadonlyArray<keyof ShopListState>;
 
 const siteListAdapter = createSiteListStateAdapter<ShopListState>();
 
@@ -114,14 +127,34 @@ export function FilterBar({
   const search = draft.q ?? "";
   const searchRef = useRef<HTMLInputElement>(null);
   const skipNotifyRef = useRef(true);
+  const previousFiltersRef = useRef(filters);
 
   useEffect(() => {
     if (skipNotifyRef.current) {
       skipNotifyRef.current = false;
+      previousFiltersRef.current = filters;
+      clarityTag("page_type", "shop");
+      clarityTag("locale", locale);
+      if (filters.category) clarityTag("category", filters.category);
+      const collectionHandle = filters.collection || pinnedCollection;
+      if (collectionHandle) clarityTag("collection", collectionHandle);
       return;
     }
+
+    const previous = previousFiltersRef.current;
+    previousFiltersRef.current = filters;
     onFiltersChange?.(filters);
-  }, [filters, onFiltersChange]);
+
+    if ((filters.q ?? "") !== (previous.q ?? "") && Boolean(filters.q)) {
+      clarityEvent("shop_search");
+    }
+    if (CATALOG_FACET_KEYS.some((key) => (filters[key] ?? "") !== (previous[key] ?? ""))) {
+      clarityEvent("apply_catalog_filter");
+    }
+    if (filters.category) clarityTag("category", filters.category);
+    const collectionHandle = filters.collection || pinnedCollection;
+    if (collectionHandle) clarityTag("collection", collectionHandle);
+  }, [filters, locale, onFiltersChange, pinnedCollection]);
 
   // Drop legacy session key once (site adapter is URL-only).
   useEffect(() => {
