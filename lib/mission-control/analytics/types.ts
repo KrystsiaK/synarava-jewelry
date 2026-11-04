@@ -28,6 +28,14 @@ export type AnalyticsIssue = {
   period: string;
 };
 
+/** Informational only — does not affect ServiceStatusLevel. */
+export type AnalyticsNotice = {
+  id: string;
+  tone: "info";
+  title: string;
+  detail: string;
+};
+
 export type AnalyticsConnectionState = "connected" | "not_connected";
 
 export type AnalyticsSnapshotPayload = {
@@ -35,7 +43,11 @@ export type AnalyticsSnapshotPayload = {
   level: ServiceStatusLevel;
   message: string;
   issues: AnalyticsIssue[];
+  /** Config gaps / caveats that are not warn/error/ok. */
+  notices: AnalyticsNotice[];
   checkedAt: string;
+  /** ISO of last successful Clarity fetch reused in this snapshot (if any). */
+  clarityDataAsOf: string | null;
   /** GA figures = consented visitors only. */
   gaConsentNote: string;
   /** Clarity includes bots; subtract totalBotSessionCount when comparing. */

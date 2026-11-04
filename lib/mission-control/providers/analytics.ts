@@ -3,16 +3,22 @@ import "server-only";
 import {
   canCallClarity,
   readClarityBudgetFromCounters,
+  readClarityLastSuccessFromCounters,
   recordClarityCall,
+  recordClaritySuccess,
+  type ClarityLastSuccessCache,
 } from "@/lib/mission-control/analytics/clarity-budget";
 import { fetchClarityFrictionRows } from "@/lib/mission-control/analytics/clarity-client";
+import { clarityFormatUnrecognizedIssue } from "@/lib/mission-control/analytics/clarity-parse";
 import { detectAnalyticsIssues } from "@/lib/mission-control/analytics/detect";
 import {
   fetchGaEventCounts,
   fetchGaTelemetryCounts,
 } from "@/lib/mission-control/analytics/ga-client";
 import { parseGaServiceAccountJson } from "@/lib/mission-control/analytics/ga-jwt";
+import { safeHttpFailureReason } from "@/lib/mission-control/analytics/http-reason";
 import { formatAnalyticsMarkdownReport } from "@/lib/mission-control/analytics/report";
+import { buildTelemetryNotConfiguredNotice } from "@/lib/mission-control/analytics/telemetry-notice";
 import { ANALYTICS_THRESHOLDS } from "@/lib/mission-control/analytics/thresholds";
 import {
   ANALYTICS_NODE_KEY,
@@ -20,6 +26,8 @@ import {
   CLARITY_BOT_NOTE,
   GA_CONSENT_NOTE,
   worstLevelFromIssues,
+  type AnalyticsIssue,
+  type AnalyticsNotice,
   type AnalyticsSnapshotPayload,
 } from "@/lib/mission-control/analytics/types";
 import {
@@ -66,10 +74,15 @@ function hasClarity(env: AnalyticsEnv): boolean {
 function basePayload(
   now: Date,
   partial: Partial<AnalyticsSnapshotPayload> &
-    Pick<AnalyticsSnapshotPayload, "connection" | "level" | "message" | "sources">,
+    Pick<
+      AnalyticsSnapshotPayload,
+      "connection" | "level" | "message" | "sources"
+    >,
 ): AnalyticsSnapshotPayload {
   return {
     issues: [],
+    notices: [],
+    clarityDataAsOf: null,
     checkedAt: now.toISOString(),
     gaConsentNote: GA_CONSENT_NOTE,
     clarityBotNote: CLARITY_BOT_NOTE,
@@ -89,12 +102,16 @@ function toRecord(
   payload: AnalyticsSnapshotPayload,
   now: Date,
   budgetDay: string,
+  lastSuccessAt: string | null,
+  lastSuccess: ClarityLastSuccessCache | null,
 ): ServiceNodeStatusRecord {
   const counters = {
     analytics: payload,
     reportMarkdown: formatAnalyticsMarkdownReport(payload),
     clarityBudgetDay: budgetDay,
     clarityCallsUsedToday: payload.limits.clarityCallsUsedToday,
+    clarityLastSuccessAt: lastSuccessAt,
+    ...(lastSuccess ? { clarityLastSuccess: lastSuccess } : {}),
   } satisfies Record<string, unknown>;
 
   return {
@@ -105,6 +122,29 @@ function toRecord(
     href: HREF,
     checkedAt: now,
     updatedAt: now,
+  };
+}
+
+function sourceUnavailableIssue(
+  id: string,
+  source: "ga" | "clarity",
+  title: string,
+  reason: string,
+  now: Date,
+  whereToLook: string,
+  fixHint: string,
+): AnalyticsIssue {
+  return {
+    id,
+    kind: "source_unavailable",
+    severity: "warning",
+    title,
+    since: now.toISOString().slice(0, 10),
+    numbers: { reason },
+    whereToLook,
+    fixHint,
+    source,
+    period: "this collector run",
   };
 }
 
@@ -129,6 +169,7 @@ export async function getAnalyticsStatus(
   }
 
   const budget = readClarityBudgetFromCounters(previousCounters, now);
+  let lastSuccess = readClarityLastSuccessFromCounters(previousCounters);
 
   if (!gaOk && !clarityOk) {
     const payload = basePayload(now, {
@@ -136,6 +177,7 @@ export async function getAnalyticsStatus(
       level: "unknown",
       message: ANALYTICS_NOT_CONNECTED_MESSAGE,
       sources: { ga: "not_connected", clarity: "not_connected" },
+      clarityDataAsOf: lastSuccess?.fetchedAt ?? null,
       limits: {
         clarityCallsUsedToday: budget.callsUsed,
         clarityBudgetPerDay: ANALYTICS_THRESHOLDS.clarityApiBudgetPerDay,
@@ -144,17 +186,28 @@ export async function getAnalyticsStatus(
         clarityNumOfDays: ANALYTICS_THRESHOLDS.clarityNumOfDays,
       },
     });
-    return toRecord(payload, now, budget.day);
+    return toRecord(
+      payload,
+      now,
+      budget.day,
+      budget.lastSuccessAt,
+      lastSuccess,
+    );
   }
 
   const sa = parseGaServiceAccountJson(env.GA_SERVICE_ACCOUNT_JSON ?? undefined);
-  let gaEvents = undefined as Awaited<ReturnType<typeof fetchGaEventCounts>> | undefined;
-  let gaTelemetry = undefined as Awaited<ReturnType<typeof fetchGaTelemetryCounts>> | undefined;
-  let clarityRows = undefined as Awaited<
-    ReturnType<typeof fetchClarityFrictionRows>
-  >["rows"] | undefined;
+  let gaEvents = undefined as
+    | Awaited<ReturnType<typeof fetchGaEventCounts>>
+    | undefined;
+  let gaTelemetry = undefined as
+    | Awaited<ReturnType<typeof fetchGaTelemetryCounts>>
+    | undefined;
+  let clarityRows = undefined as
+    | Awaited<ReturnType<typeof fetchClarityFrictionRows>>["rows"]
+    | undefined;
   let totalBotSessionCount = 0;
   let totalSessionCount = 0;
+  let clarityDataAsOf: string | null = null;
   let claritySource: AnalyticsSnapshotPayload["sources"]["clarity"] = clarityOk
     ? "connected"
     : "not_connected";
@@ -162,41 +215,79 @@ export async function getAnalyticsStatus(
     ? "connected"
     : "not_connected";
   let nextBudget = budget;
-  const sourceIssues: AnalyticsSnapshotPayload["issues"] = [];
+  const sourceIssues: AnalyticsIssue[] = [];
+  const notices: AnalyticsNotice[] = [];
 
   if (gaOk && sa && env.GA_PROPERTY_ID) {
-    try {
-      const gaDeps = {
-        propertyId: env.GA_PROPERTY_ID,
-        serviceAccount: sa,
-        fetchFn,
-        now,
-      };
-      [gaEvents, gaTelemetry] = await Promise.all([
-        fetchGaEventCounts(gaDeps),
-        fetchGaTelemetryCounts(gaDeps),
-      ]);
-    } catch {
+    const gaDeps = {
+      propertyId: env.GA_PROPERTY_ID,
+      serviceAccount: sa,
+      fetchFn,
+      now,
+    };
+
+    // Telemetry query needs custom dims + GTM; gated so empty config does not 400.
+    const telemetryEnabled = ANALYTICS_THRESHOLDS.gaTelemetryQueryEnabled;
+    if (!telemetryEnabled) {
+      notices.push(buildTelemetryNotConfiguredNotice());
+    }
+
+    const settled = await Promise.allSettled([
+      fetchGaEventCounts(gaDeps),
+      telemetryEnabled
+        ? fetchGaTelemetryCounts(gaDeps)
+        : Promise.resolve([] as Awaited<ReturnType<typeof fetchGaTelemetryCounts>>),
+    ]);
+
+    const eventsResult = settled[0];
+    const telemetryResult = settled[1];
+
+    if (eventsResult.status === "fulfilled") {
+      gaEvents = eventsResult.value;
+    } else {
       gaSource = "skipped";
-      sourceIssues.push({
-        id: "source:ga",
-        kind: "source_unavailable",
-        severity: "warning",
-        title: "Google Analytics Data API unavailable this run",
-        since: now.toISOString().slice(0, 10),
-        numbers: {},
-        whereToLook: "GA4 property access + Analytics Data API enablement",
-        fixHint:
+      sourceIssues.push(
+        sourceUnavailableIssue(
+          "source:ga",
+          "ga",
+          "Google Analytics Data API unavailable this run",
+          safeHttpFailureReason(eventsResult.reason),
+          now,
+          "GA4 property access + Analytics Data API enablement",
           "Confirm GA_PROPERTY_ID, service-account Viewer access, and Analytics Data API is enabled. Do not log the JSON key.",
-        source: "ga",
-        period: "this collector run",
-      });
+        ),
+      );
+    }
+
+    if (telemetryEnabled) {
+      if (telemetryResult.status === "fulfilled") {
+        gaTelemetry = telemetryResult.value;
+      } else if (eventsResult.status === "fulfilled") {
+        // Events ok but telemetry failed — keep GA connected, note the gap safely.
+        sourceIssues.push(
+          sourceUnavailableIssue(
+            "source:ga_telemetry",
+            "ga",
+            "GA synarava_telemetry query unavailable this run",
+            safeHttpFailureReason(telemetryResult.reason),
+            now,
+            "GA4 custom dimensions telemetry_kind / rating + GTM",
+            "Enable gaTelemetryQueryEnabled only after custom dims exist; otherwise leave gated.",
+          ),
+        );
+      }
     }
   }
 
   if (clarityOk && env.CLARITY_API_TOKEN) {
-    if (!canCallClarity(budget)) {
+    if (!canCallClarity(nextBudget, now)) {
       claritySource = "budget_held";
+      if (lastSuccess) {
+        clarityRows = lastSuccess.rows;
+        totalBotSessionCount = lastSuccess.totalBotSessionCount;
+        totalSessionCount = lastSuccess.totalSessionCount;
+        clarityDataAsOf = lastSuccess.fetchedAt;
+      }
     } else {
       try {
         const clarity = await fetchClarityFrictionRows({
@@ -206,23 +297,42 @@ export async function getAnalyticsStatus(
         clarityRows = clarity.rows;
         totalBotSessionCount = clarity.totalBotSessionCount;
         totalSessionCount = clarity.totalSessionCount;
-        nextBudget = recordClarityCall(budget, 1);
-      } catch {
+        clarityDataAsOf = now.toISOString();
+        nextBudget = recordClaritySuccess(
+          recordClarityCall(nextBudget, 1),
+          now,
+        );
+        lastSuccess = {
+          fetchedAt: clarityDataAsOf,
+          rows: clarity.rows,
+          totalBotSessionCount,
+          totalSessionCount,
+        };
+        if (clarity.formatUnrecognized) {
+          sourceIssues.push(
+            clarityFormatUnrecognizedIssue(now.toISOString().slice(0, 10)),
+          );
+        }
+      } catch (error) {
         claritySource = "skipped";
-        nextBudget = recordClarityCall(budget, 1);
-        sourceIssues.push({
-          id: "source:clarity",
-          kind: "source_unavailable",
-          severity: "warning",
-          title: "Clarity Data Export API unavailable this run",
-          since: now.toISOString().slice(0, 10),
-          numbers: {},
-          whereToLook: "Clarity → Settings → Data Export",
-          fixHint:
-            "Confirm CLARITY_API_TOKEN is valid and under the 10/day project limit. Hub budget is 4/day.",
-          source: "clarity",
-          period: "this collector run",
-        });
+        nextBudget = recordClarityCall(nextBudget, 1);
+        sourceIssues.push(
+          sourceUnavailableIssue(
+            "source:clarity",
+            "clarity",
+            "Clarity Data Export API unavailable this run",
+            safeHttpFailureReason(error),
+            now,
+            "Clarity → Settings → Data Export",
+            "Confirm CLARITY_API_TOKEN is valid and under the 10/day project limit. Hub budget is 4/day with ≥6h between successes.",
+          ),
+        );
+        if (lastSuccess) {
+          clarityRows = lastSuccess.rows;
+          totalBotSessionCount = lastSuccess.totalBotSessionCount;
+          totalSessionCount = lastSuccess.totalSessionCount;
+          clarityDataAsOf = lastSuccess.fetchedAt;
+        }
       }
     }
   }
@@ -257,7 +367,10 @@ export async function getAnalyticsStatus(
       source: "ga",
     });
   }
-  if (claritySource === "connected") {
+  if (
+    (claritySource === "connected" || claritySource === "budget_held") &&
+    clarityDataAsOf
+  ) {
     figures.push({
       label: "Clarity sessions (includes bots)",
       value: totalSessionCount,
@@ -277,6 +390,8 @@ export async function getAnalyticsStatus(
     level,
     message,
     issues,
+    notices,
+    clarityDataAsOf,
     sources: { ga: gaSource, clarity: claritySource },
     limits: {
       clarityCallsUsedToday: nextBudget.callsUsed,
@@ -288,6 +403,11 @@ export async function getAnalyticsStatus(
     figures,
   });
 
-  return toRecord(payload, now, nextBudget.day);
+  return toRecord(
+    payload,
+    now,
+    nextBudget.day,
+    nextBudget.lastSuccessAt,
+    lastSuccess,
+  );
 }
-

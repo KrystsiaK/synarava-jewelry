@@ -22,10 +22,13 @@ export function formatAnalyticsMarkdownReport(
     `- GA lookback: ${payload.limits.gaLookbackDays} days`,
     `- Clarity window: ${payload.limits.clarityNumOfDays} days`,
     `- Sources: GA=${payload.sources.ga}, Clarity=${payload.sources.clarity}`,
-    "",
-    "## Figures",
-    "",
   ];
+
+  if (payload.clarityDataAsOf) {
+    lines.push(`- Clarity data as of ${payload.clarityDataAsOf}`);
+  }
+
+  lines.push("", "## Figures", "");
 
   if (payload.figures.length === 0) {
     lines.push("_No figures in this snapshot._", "");
@@ -34,6 +37,15 @@ export function formatAnalyticsMarkdownReport(
       lines.push(
         `- ${figure.label}: **${figure.value}** · period: ${figure.period} · source: ${figure.source}`,
       );
+    }
+    lines.push("");
+  }
+
+  if (payload.notices.length > 0) {
+    lines.push("## Notices (informational)", "");
+    for (const notice of payload.notices) {
+      lines.push(`- [${notice.tone}] ${notice.title}`);
+      lines.push(`  ${notice.detail}`);
     }
     lines.push("");
   }

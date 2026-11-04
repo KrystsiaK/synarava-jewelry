@@ -1,6 +1,7 @@
 import {
   ANALYTICS_THRESHOLDS,
   type AnalyticsThresholds,
+  type FunnelStepKey,
 } from "@/lib/mission-control/analytics/thresholds";
 import type { AnalyticsIssue } from "@/lib/mission-control/analytics/types";
 
@@ -56,7 +57,15 @@ function countByName(
   return new Map(events.map((row) => [row.eventName, row]));
 }
 
-/** Funnel view_item → add_to_cart → begin_checkout → purchase dropoffs. */
+function funnelStepKey(prev: string, next: string): FunnelStepKey {
+  return `${prev}->${next}` as FunnelStepKey;
+}
+
+/**
+ * Funnel view_item → add_to_cart → begin_checkout → purchase.
+ * - next=0 with prior ≥ N → error (broken step, e.g. #397 begin_checkout).
+ * - else warning only when conversion falls below per-step floor.
+ */
 export function detectFunnelDropoffs(
   input: DetectAnalyticsInput,
 ): AnalyticsIssue[] {
@@ -76,32 +85,59 @@ export function detectFunnelDropoffs(
     const nextCount = byName.get(next)?.eventCount ?? 0;
     if (prevCount < t.funnelMinPriorEvents) continue;
 
-    const dropRatio = 1 - nextCount / prevCount;
-    if (dropRatio < t.funnelDropWarnRatio) continue;
+    const stepKey = funnelStepKey(prev, next);
+    const minConversion = t.funnelStepWarnMinConversion[stepKey];
+    const conversion = nextCount / prevCount;
+    const dropPct = Math.round((1 - conversion) * 100);
 
-    const severity =
-      dropRatio >= t.funnelDropErrorRatio ? "error" : "warning";
-    const dropPct = Math.round(dropRatio * 100);
+    if (nextCount === 0) {
+      issues.push({
+        id: `funnel:${prev}->${next}`,
+        kind: "funnel_dropoff",
+        severity: "error",
+        title: `Funnel break ${prev} → ${next} (0 events)`,
+        since,
+        numbers: {
+          fromEvent: prev,
+          toEvent: next,
+          fromCount: prevCount,
+          toCount: nextCount,
+          dropPercent: 100,
+        },
+        whereToLook: "GA4 → Explore / funnel or Events report",
+        fixHint:
+          next === "begin_checkout"
+            ? "Checkout CTA may not fire begin_checkout (see #397). Verify cart CTA + consent + GTM mapping."
+            : "Lower funnel step is silent while the prior step has volume — check tags/consent/CTA.",
+        source: "ga",
+        period,
+      });
+      continue;
+    }
 
-    issues.push({
-      id: `funnel:${prev}->${next}`,
-      kind: "funnel_dropoff",
-      severity,
-      title: `Funnel drop ${prev} → ${next} (${dropPct}% lost)`,
-      since,
-      numbers: {
-        fromEvent: prev,
-        toEvent: next,
-        fromCount: prevCount,
-        toCount: nextCount,
-        dropPercent: dropPct,
-      },
-      whereToLook: "GA4 → Explore / funnel or Events report",
-      fixHint:
-        "Check storefront tracking for the lower step (consent gate, GTM tag, broken CTA). Compare consented sessions vs Clarity for the same pages.",
-      source: "ga",
-      period,
-    });
+    if (conversion < minConversion) {
+      issues.push({
+        id: `funnel:${prev}->${next}`,
+        kind: "funnel_dropoff",
+        severity: "warning",
+        title: `Funnel weak ${prev} → ${next} (${dropPct}% lost; conversion ${(conversion * 100).toFixed(1)}%)`,
+        since,
+        numbers: {
+          fromEvent: prev,
+          toEvent: next,
+          fromCount: prevCount,
+          toCount: nextCount,
+          dropPercent: dropPct,
+          conversionPercent: Number((conversion * 100).toFixed(1)),
+          minConversionPercent: Math.round(minConversion * 100),
+        },
+        whereToLook: "GA4 → Explore / funnel or Events report",
+        fixHint:
+          "Conversion is below the configured per-step floor. Check storefront tracking, consent gate, and CTA — compare with Clarity for the same pages.",
+        source: "ga",
+        period,
+      });
+    }
   }
 
   return issues;
@@ -157,7 +193,8 @@ export function detectTelemetryBreakages(
           eventCount: row.eventCount,
           poorCount: poor,
         },
-        whereToLook: "GA4 → Events → synarava_telemetry (web_vital) · CrUX / Lighthouse",
+        whereToLook:
+          "GA4 → Events → synarava_telemetry (web_vital) · CrUX / Lighthouse",
         fixHint:
           "Identify the slow route from telemetry params, reduce main-thread / LCP cost, re-check vitals after deploy.",
         source: "ga",
@@ -167,6 +204,27 @@ export function detectTelemetryBreakages(
   }
 
   return issues;
+}
+
+function silentSeverity(
+  eventName: string,
+  silentDays: number,
+  t: AnalyticsThresholds,
+): "warning" | "error" | null {
+  if (silentDays < t.silentEventDaysWarn) return null;
+  // purchase: never escalate by age (no orders OR Shopify purchase not in GA).
+  if (eventName === "purchase") return "warning";
+  return silentDays >= t.silentEventDaysError ? "error" : "warning";
+}
+
+function silentFixHint(eventName: string): string {
+  if (eventName === "begin_checkout") {
+    return "Checkout CTA may not fire begin_checkout (see #397). Verify cart CTA + consent + GTM mapping.";
+  }
+  if (eventName === "purchase") {
+    return "No orders OR Shopify purchase event not reaching GA — check Shopify custom pixel / GTM purchase tag and consent.";
+  }
+  return `Confirm the ${eventName} tag still fires with consent; check GTM preview and dataLayer.`;
 }
 
 /** Expected commerce events absent for N days. */
@@ -188,9 +246,8 @@ export function detectSilentEvents(
 
     if (lastSeen) {
       const silentDays = daysBetween(lastSeen, input.now);
-      if (silentDays < t.silentEventDaysWarn) continue;
-      const severity =
-        silentDays >= t.silentEventDaysError ? "error" : "warning";
+      const severity = silentSeverity(eventName, silentDays, t);
+      if (!severity) continue;
       issues.push({
         id: `silent:${eventName}`,
         kind: "silent_event",
@@ -203,21 +260,16 @@ export function detectSilentEvents(
           eventCountInWindow: row?.eventCount ?? 0,
         },
         whereToLook: `GA4 → Events → ${eventName}`,
-        fixHint:
-          eventName === "begin_checkout"
-            ? "Checkout CTA may not fire begin_checkout (see #397). Verify cart CTA + consent + GTM mapping."
-            : `Confirm the ${eventName} tag still fires with consent; check GTM preview and dataLayer.`,
+        fixHint: silentFixHint(eventName),
         source: "ga",
         period,
       });
       continue;
     }
 
-    // Never seen in window → treat as silent for full lookback.
     const silentDays = t.gaLookbackDays;
-    if (silentDays < t.silentEventDaysWarn) continue;
-    const severity =
-      silentDays >= t.silentEventDaysError ? "error" : "warning";
+    const severity = silentSeverity(eventName, silentDays, t);
+    if (!severity) continue;
     issues.push({
       id: `silent:${eventName}`,
       kind: "silent_event",
@@ -228,10 +280,7 @@ export function detectSilentEvents(
       ),
       numbers: { eventName, silentDays, eventCountInWindow: 0 },
       whereToLook: `GA4 → Events → ${eventName}`,
-      fixHint:
-        eventName === "begin_checkout"
-          ? "Checkout CTA may not fire begin_checkout (see #397). Verify cart CTA + consent + GTM mapping."
-          : `Confirm the ${eventName} tag still fires with consent; check GTM preview and dataLayer.`,
+      fixHint: silentFixHint(eventName),
       source: "ga",
       period,
     });

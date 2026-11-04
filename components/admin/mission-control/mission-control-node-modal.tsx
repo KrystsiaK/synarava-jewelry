@@ -117,6 +117,15 @@ function AnalyticsDetails({
           {payload.limits.clarityBudgetPerDay} today (hard{" "}
           {payload.limits.clarityHardLimitPerDay}/day).
         </p>
+        {payload.clarityDataAsOf ? (
+          <p>Clarity data as of {payload.clarityDataAsOf}</p>
+        ) : null}
+        {payload.notices?.map((notice) => (
+          <p key={notice.id} data-tone={notice.tone}>
+            {notice.title}
+            {notice.detail ? ` — ${notice.detail}` : ""}
+          </p>
+        ))}
       </div>
       {report ? (
         <div className="mc-node-detail__fix">

@@ -11,6 +11,8 @@ const FAKE: AnalyticsSnapshotPayload = {
   level: "warn",
   message: "2 issue(s); worst=warn",
   checkedAt: "2026-11-04T12:00:00.000Z",
+  notices: [],
+  clarityDataAsOf: "2026-11-04T06:00:00.000Z",
   gaConsentNote: GA_CONSENT_NOTE,
   clarityBotNote: CLARITY_BOT_NOTE,
   limits: {
@@ -80,6 +82,7 @@ describe("formatAnalyticsMarkdownReport", () => {
       - GA lookback: 28 days
       - Clarity window: 3 days
       - Sources: GA=connected, Clarity=connected
+      - Clarity data as of 2026-11-04T06:00:00.000Z
 
       ## Figures
 

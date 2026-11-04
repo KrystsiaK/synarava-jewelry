@@ -13,28 +13,28 @@ const NOW = new Date("2026-11-04T12:00:00.000Z");
 describe("analytics detection rules", () => {
   it.each([
     {
-      name: "funnel warn drop",
+      name: "funnel warn below per-step conversion floor",
       input: {
         now: NOW,
         gaEvents: [
-          { eventName: "view_item", eventCount: 100 },
+          { eventName: "view_item", eventCount: 1000 },
           { eventName: "add_to_cart", eventCount: 10 },
           { eventName: "begin_checkout", eventCount: 8 },
-          { eventName: "purchase", eventCount: 6 },
+          { eventName: "purchase", eventCount: 4 },
         ],
       },
       expectIds: ["funnel:view_item->add_to_cart"],
       expectSeverity: "warning" as const,
     },
     {
-      name: "funnel error drop",
+      name: "funnel error when next step is zero",
       input: {
         now: NOW,
         gaEvents: [
           { eventName: "view_item", eventCount: 100 },
-          { eventName: "add_to_cart", eventCount: 2 },
-          { eventName: "begin_checkout", eventCount: 2 },
-          { eventName: "purchase", eventCount: 1 },
+          { eventName: "add_to_cart", eventCount: 0 },
+          { eventName: "begin_checkout", eventCount: 0 },
+          { eventName: "purchase", eventCount: 0 },
         ],
       },
       expectIds: ["funnel:view_item->add_to_cart"],

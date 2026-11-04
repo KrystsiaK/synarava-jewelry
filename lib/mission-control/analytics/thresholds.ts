@@ -3,12 +3,20 @@
  * Plain language; every rule maps to a fix hint in detect.ts.
  */
 export const ANALYTICS_THRESHOLDS = {
-  /** Funnel: drop from previous step above this ratio → warning. */
-  funnelDropWarnRatio: 0.85,
-  /** Funnel: drop from previous step above this ratio → error. */
-  funnelDropErrorRatio: 0.95,
-  /** Minimum prior-step events before a dropoff counts (avoids noise). */
+  /** Minimum prior-step events before a funnel check counts (avoids noise). */
   funnelMinPriorEvents: 20,
+  /**
+   * Per-step minimum conversion (next/prev). Below → warning only.
+   * Floors are conservative ecommerce baselines (PDP→ATC often ~3–8%;
+   * ATC→checkout and checkout→purchase higher once intent exists).
+   * Sources: Synarava ops notes + typical headless checkout funnels —
+   * not a single global 0.85/0.95 drop ratio (that false-alarms healthy funnels).
+   */
+  funnelStepWarnMinConversion: {
+    "view_item->add_to_cart": 0.02,
+    "add_to_cart->begin_checkout": 0.15,
+    "begin_checkout->purchase": 0.2,
+  } as const,
   /** synarava_telemetry client_error / unhandled_rejection count → warn. */
   telemetryErrorWarn: 5,
   /** synarava_telemetry client_error / unhandled_rejection count → error. */
@@ -17,9 +25,19 @@ export const ANALYTICS_THRESHOLDS = {
   webVitalPoorWarn: 10,
   /** web_vital “poor” samples in period → error. */
   webVitalPoorError: 40,
+  /**
+   * Query GA for synarava_telemetry only when GA4 has event-scoped custom
+   * dimensions `telemetry_kind` (+ optional `rating`) and GTM maps the
+   * dataLayer event. Default false — otherwise every run would 400/empty.
+   */
+  gaTelemetryQueryEnabled: false,
   /** Expected GA event silent for this many days → warning. */
   silentEventDaysWarn: 7,
-  /** Expected GA event silent for this many days → error. */
+  /**
+   * Silent days → error for non-purchase expected events.
+   * `purchase` is warning-only forever (no orders OR Shopify purchase pixel
+   * may not reach GA).
+   */
   silentEventDaysError: 28,
   /** Events that must appear regularly (e.g. begin_checkout from #397). */
   expectedEvents: [
@@ -43,6 +61,8 @@ export const ANALYTICS_THRESHOLDS = {
   clarityApiHardLimitPerDay: 10,
   /** Hub budget — stay under the hard limit. */
   clarityApiBudgetPerDay: 4,
+  /** Min hours between successful Clarity calls (4/day ⇒ ≥6h). */
+  clarityMinIntervalHours: 6,
   /** Clarity lookback for project-live-insights. */
   clarityNumOfDays: 3 as 1 | 2 | 3,
   /** Default GA lookback for funnel / telemetry / silence checks. */
@@ -50,3 +70,5 @@ export const ANALYTICS_THRESHOLDS = {
 } as const;
 
 export type AnalyticsThresholds = typeof ANALYTICS_THRESHOLDS;
+
+export type FunnelStepKey = keyof typeof ANALYTICS_THRESHOLDS.funnelStepWarnMinConversion;
