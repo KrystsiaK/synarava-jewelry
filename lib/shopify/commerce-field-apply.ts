@@ -19,9 +19,11 @@ import {
   pushProductToShopify,
 } from "./product-sync";
 import {
+  PENDING_SKU_BLOCKED_REASON,
   isMediaGalleryFieldLabel,
   isScopedCommerceFieldLabel,
 } from "./catalog-conflict-policy";
+import { needsSkuAssignment } from "@/lib/sku/pending-sku";
 
 export { SCOPED_COMMERCE_FIELD_LABELS, isMediaGalleryFieldLabel, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
 
@@ -207,11 +209,19 @@ async function writeToShopify(productId: string, label: string, value: string, v
 
   if (label === "Variant SKU" || label === "Price" || label === "Compare-at price" || label === "Charge tax") {
     if (!variant) throw new Error("This product's variant could not be determined.");
+    // Sole stub write guard (all Shopify SKU writes go through here).
+    // Empty clears Shopify SKU on purpose — only non-empty PENDING-/SHOPIFY-/legacy drafts are refused.
+    if (label === "Variant SKU") {
+      const sku = value.trim() === "—" ? "" : value.trim();
+      if (sku && needsSkuAssignment(sku)) {
+        throw new Error(PENDING_SKU_BLOCKED_REASON);
+      }
+    }
     const input: Record<string, unknown> = { id: variant.shopifyVariantId };
     if (label === "Price") input.price = moneyToShopifyAmount(value);
     else if (label === "Compare-at price") input.compareAtPrice = value.trim() ? moneyToShopifyAmount(value) : null;
     else if (label === "Charge tax") input.taxable = value === "Yes" || value === "true";
-    else input.inventoryItem = { sku: value };
+    else input.inventoryItem = { sku: value.trim() === "—" ? "" : value };
 
     const result = await shopifyAdminRequest<{
       productVariantsBulkUpdate: {

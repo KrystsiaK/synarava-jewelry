@@ -151,11 +151,13 @@ export async function previewCatalogConflictResolution(
       if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isScopedCommerceField)) {
         return { kind: "exclude", reason: COMMERCE_UNSUPPORTED_REASON };
       }
+      // allowedDirections is authoritative; blockedReason is the human message only.
       if (!field.allowedDirections.includes(direction)) {
-        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED) };
-      }
-      if (field.blockedReason) {
-        return { kind: "exclude", reason: field.blockedReason };
+        return {
+          kind: "exclude",
+          reason: field.blockedReason
+            ?? sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED),
+        };
       }
       return { kind: "include", willClearNonEmptyValue: willClear(field, direction) };
     },
@@ -251,7 +253,9 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
-    if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
+    // allowedDirections is the sole apply gate; blockedReason is human copy only.
+    // Stub SKU refusal lives in writeToShopify (commerce-field-apply) — one write path.
+    if (!field.allowedDirections.includes(entry.direction)) {
       results.push({
         productId: entry.productId,
         fieldKey: entry.fieldKey,

@@ -7,6 +7,7 @@
  */
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import Link from "next/link";
 import { ArrowRight, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
@@ -24,6 +25,7 @@ import {
 } from "@/components/synarava-cms/conflict-resolver-confirm";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
+import { isScopedCommerceFieldLabel } from "@/lib/shopify/catalog-conflict-policy";
 
 export const CONFLICT_DIRECTIONS = {
   SHOPIFY_TO_SYNARAVA: "SHOPIFY_TO_SYNARAVA",
@@ -124,9 +126,15 @@ export type ConflictResolverAdapter = {
   ) => Promise<{ ok: boolean; success?: string; error?: string }>;
 };
 
-/** Commerce fields with no scoped writer — resolved only via whole-record pull/push. */
+/**
+ * Commerce fields with no scoped writer — resolved only via whole-record pull/push.
+ * Scoped leaves (e.g. Variant SKU with a PENDING stub) keep field-by-field apply;
+ * `blockedReason` there only narrows `allowedDirections` and shows copy.
+ */
 export function isWholeRecordField(field: CatalogConflictField): boolean {
-  return field.origin === "COMMERCE" && Boolean(field.blockedReason);
+  if (field.origin !== "COMMERCE" || !field.blockedReason) return false;
+  if (isScopedCommerceFieldLabel(field.label)) return false;
+  return true;
 }
 
 function pluralFields(count: number, singular: string, pluralWord: string) {
@@ -170,7 +178,7 @@ function effectiveDirections(
     }
     return [...wholeRecordDirections];
   }
-  if (field.blockedReason) return [];
+  // Field-by-field: allowedDirections is authoritative (blockedReason is copy only).
   return field.allowedDirections;
 }
 
@@ -327,18 +335,25 @@ export function ConflictRow({
   selectedDirection,
   busy,
   supportsWholeRecord,
+  entityId,
+  entityNoun,
   onToggle,
 }: {
   field: CatalogConflictField;
   selectedDirection: CatalogConflictDirection | undefined;
   busy: boolean;
   supportsWholeRecord: boolean;
+  entityId?: string;
+  entityNoun?: string;
   onToggle: (direction: CatalogConflictDirection) => void;
 }) {
   const directions = effectiveDirections(field, supportsWholeRecord);
   const canTakeShopify = directions.includes(CONFLICT_DIRECTIONS.SHOPIFY_TO_SYNARAVA);
   const canKeepOurs = directions.includes(CONFLICT_DIRECTIONS.SYNARAVA_TO_SHOPIFY);
   const wholeRecord = supportsWholeRecord && isWholeRecordField(field);
+  const productHref = entityNoun === "product" && entityId && !entityId.startsWith("shopify:")
+    ? `/admin/products/${entityId}`
+    : null;
 
   return (
     <section className="rounded-xl border border-[var(--adm-border)] p-4">
@@ -387,11 +402,28 @@ export function ConflictRow({
       </div>
       {wholeRecord || field.blockedReason ? (
         <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
-          {wholeRecord && !canKeepOurs && field.blockedReason
-            ? field.blockedReason
-            : wholeRecord
-              ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
-              : `Cannot choose here: ${field.blockedReason}`}
+          {wholeRecord && canKeepOurs && canTakeShopify
+            ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
+            : field.blockedReason
+              ? (
+                <>
+                  {directions.length === 0 && !wholeRecord
+                    ? `Cannot choose here: ${field.blockedReason}`
+                    : field.blockedReason}
+                  {productHref ? (
+                    <>
+                      {" "}
+                      <Link
+                        href={productHref}
+                        className="font-semibold text-[var(--adm-fg)] underline underline-offset-2"
+                      >
+                        Open product
+                      </Link>
+                    </>
+                  ) : null}
+                </>
+              )
+              : "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."}
         </p>
       ) : null}
     </section>
@@ -1073,6 +1105,8 @@ function ConflictResolverSession({
                   selectedDirection={selections[selectionKey(entityId, field.fieldKey)]}
                   busy={busy}
                   supportsWholeRecord={supportsWholeRecord}
+                  entityId={entityId}
+                  entityNoun={adapter.entityNoun}
                   onToggle={(direction) => toggleSelection(entityId, field, direction)}
                 />
               ))}
