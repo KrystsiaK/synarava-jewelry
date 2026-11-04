@@ -1,3 +1,5 @@
+import "server-only";
+
 import { ANALYTICS_THRESHOLDS } from "@/lib/mission-control/analytics/thresholds";
 import type { ClarityFrictionRow } from "@/lib/mission-control/analytics/detect";
 

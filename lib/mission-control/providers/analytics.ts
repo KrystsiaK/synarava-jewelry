@@ -1,3 +1,5 @@
+import "server-only";
+
 import {
   canCallClarity,
   readClarityBudgetFromCounters,
@@ -289,24 +291,3 @@ export async function getAnalyticsStatus(
   return toRecord(payload, now, nextBudget.day);
 }
 
-/** Read stored analytics payload from counters (hub path). */
-export function readAnalyticsPayloadFromCounters(
-  counters: unknown,
-): AnalyticsSnapshotPayload | null {
-  if (!counters || typeof counters !== "object" || Array.isArray(counters)) {
-    return null;
-  }
-  const analytics = (counters as Record<string, unknown>).analytics;
-  if (!analytics || typeof analytics !== "object" || Array.isArray(analytics)) {
-    return null;
-  }
-  return analytics as AnalyticsSnapshotPayload;
-}
-
-export function readAnalyticsReportMarkdown(counters: unknown): string | null {
-  if (!counters || typeof counters !== "object" || Array.isArray(counters)) {
-    return null;
-  }
-  const value = (counters as Record<string, unknown>).reportMarkdown;
-  return typeof value === "string" ? value : null;
-}

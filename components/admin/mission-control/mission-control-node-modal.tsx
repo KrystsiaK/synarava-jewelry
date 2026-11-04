@@ -14,7 +14,7 @@ import {
 import {
   readAnalyticsPayloadFromCounters,
   readAnalyticsReportMarkdown,
-} from "@/lib/mission-control/providers/analytics";
+} from "@/lib/mission-control/analytics/payload";
 import type { ServiceNodeStatusRecord } from "@/lib/mission-control/status";
 import type {
   MissionControlEnvironment,
