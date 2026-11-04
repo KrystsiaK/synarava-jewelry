@@ -528,10 +528,9 @@ describe("applyCatalogConflictResolution", () => {
     expect(mocks.applyCommerceField).not.toHaveBeenCalled();
   });
 
-  it("never writes a PENDING stub Variant SKU to Shopify even if the client sends a forbidden direction", async () => {
+  it("rejects PENDING stub Keep ours when allowedDirections forbids that direction", async () => {
     const pendingReason =
       "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
-    // Spoofed client payload: direction allowed list empty, but entry still asks SYNARAVA_TO_SHOPIFY.
     const field = scopedCommerceField({
       fieldKey: "commerce:variants-0-sku",
       label: "Variant SKU",
@@ -557,20 +556,18 @@ describe("applyCatalogConflictResolution", () => {
     expect(mocks.applyCommerceField).not.toHaveBeenCalled();
   });
 
-  it("defensively rejects PENDING stub SKU push even when allowedDirections were spoofed open", async () => {
-    const pendingReason =
-      "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
+  it("empty ours + real Shopify SKU Keep ours is accepted when allowed (clear path; stub guard is writeToShopify only)", async () => {
     const field = scopedCommerceField({
       fieldKey: "commerce:variants-0-sku",
       label: "Variant SKU",
-      synaravaValue: "PENDING-p1-v2",
+      synaravaValue: "—",
       shopifyValue: "JW-NECK-042",
-      // Spoof: pretend Keep ours is allowed.
       allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
-      blockedReason: pendingReason,
+      blockedReason: null,
       path: "variants[0].sku",
     });
     mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
+    mocks.applyCommerceField.mockResolvedValue({ ok: true, message: "Synarava was applied to Shopify." });
 
     const outcome = await applyCatalogConflictResolution({
       entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
@@ -578,12 +575,11 @@ describe("applyCatalogConflictResolution", () => {
       actorUsername: "admin",
     });
 
-    expect(outcome.results[0]).toMatchObject({
-      ok: false,
-      reason: "UNSUPPORTED",
-      message: pendingReason,
-    });
-    expect(mocks.applyCommerceField).not.toHaveBeenCalled();
+    expect(mocks.applyCommerceField).toHaveBeenCalledWith(expect.objectContaining({
+      label: "Variant SKU",
+      direction: "SYNARAVA_TO_SHOPIFY",
+    }));
+    expect(outcome.results[0]).toMatchObject({ ok: true });
   });
 
   it("applies a scoped commerce field (Vendor) through applyCommerceField", async () => {

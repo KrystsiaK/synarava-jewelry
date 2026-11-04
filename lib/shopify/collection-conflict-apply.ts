@@ -125,8 +125,13 @@ export async function previewCollectionConflictResolution(
           reason: field.blockedReason ?? "This collection commerce field cannot be applied field-by-field.",
         };
       }
-      if (!field.allowedDirections.includes(direction) || field.blockedReason) {
-        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED) };
+      // allowedDirections is authoritative; blockedReason is the human message only.
+      if (!field.allowedDirections.includes(direction)) {
+        return {
+          kind: "exclude",
+          reason: field.blockedReason
+            ?? sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED),
+        };
       }
       return {
         kind: "include",
@@ -195,13 +200,15 @@ export async function applyCollectionConflictResolution({
       });
       continue;
     }
-    if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
+    // allowedDirections is the sole apply gate; blockedReason is human copy only.
+    if (!field.allowedDirections.includes(entry.direction)) {
       results.push({
         collectionId: entry.collectionId,
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
-        message: sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED),
+        message: field.blockedReason
+          ?? sharedUnsupportedDirectionReason(field, COLLECTION_PRESENCE_UNSUPPORTED),
       });
       continue;
     }

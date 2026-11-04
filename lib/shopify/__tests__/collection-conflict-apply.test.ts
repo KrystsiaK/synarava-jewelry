@@ -286,6 +286,38 @@ describe("applyCollectionConflictResolution", () => {
     });
   });
 
+  it("treats allowedDirections as sole gate — blockedReason alone does not reject an allowed direction", async () => {
+    const commerce = commerceField({
+      blockedReason: "Assign a handle in the collection editor first.",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+    });
+    mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([commerce]));
+    mocks.applyCollectionCommerceField.mockResolvedValue({ ok: true, message: "Name applied from Shopify." });
+
+    const preview = await previewCollectionConflictResolution({
+      kind: "COLLECTION",
+      collectionId: "collection-1",
+      direction: "SHOPIFY_TO_SYNARAVA",
+    });
+    expect(preview.entries).toHaveLength(1);
+    expect(preview.excluded).toHaveLength(0);
+
+    const outcome = await applyCollectionConflictResolution({
+      acknowledgeClears: false,
+      actorUsername: "admin",
+      entries: [{
+        collectionId: "collection-1",
+        fieldKey: "commerce:name",
+        direction: "SHOPIFY_TO_SYNARAVA",
+        expectedLocalFingerprint: "commerce-local-fp",
+        expectedShopifyFingerprint: "commerce-shopify-fp",
+      }],
+    });
+
+    expect(mocks.applyCollectionCommerceField).toHaveBeenCalled();
+    expect(outcome.results[0]).toMatchObject({ ok: true });
+  });
+
   it("previews and applies scoped commerce Name via applyCollectionCommerceField", async () => {
     const commerce = commerceField();
     mocks.loadCollectionConflictFromSyncResult.mockResolvedValue(conflict([commerce]));

@@ -262,6 +262,15 @@ describe("adversarial: PENDING stub SKU stays visible with blockedReason", () =>
     expect(leaf!.allowedDirections).toEqual([]);
     expect(leaf!.blockedReason).toBe(PENDING_SKU_BLOCKED_REASON);
   });
+
+  it("empty ours + real Shopify SKU → Keep ours still allowed (clear path, not stub)", () => {
+    const leaf = skuLeaf("", "JW-NECK-042");
+    expect(leaf).toBeDefined();
+    expect(leaf!.synaravaValue).toBe("—");
+    expect(leaf!.shopifyValue).toBe("JW-NECK-042");
+    expect(leaf!.allowedDirections).toEqual(["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"]);
+    expect(leaf!.blockedReason).toBeNull();
+  });
 });
 
 describe("adversarial: every leaf carries contract metadata", () => {

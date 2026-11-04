@@ -201,13 +201,20 @@ function isVariantSkuDiff(diff: ShopifyProjectionDiff): boolean {
 /**
  * PENDING-/SHOPIFY-/legacy draft on OUR side stays visible as a conflict, but
  * never pushes to Shopify. Take Shopify only when Shopify already has a real SKU.
+ *
+ * Empty OUR SKU (blank / "—") is intentionally NOT a stub: `needsSkuAssignment("")`
+ * is true for UI assign prompts, but Keep ours vs a real Shopify SKU stays the
+ * previous clear-SKU path (willClear confirmation). Only non-empty placeholders
+ * get blockedReason.
  */
 function pendingSkuDirections(diff: ShopifyProjectionDiff): {
   allowedDirections: SyncDirection[];
   blockedReason: string;
 } | null {
   if (!isVariantSkuDiff(diff)) return null;
-  if (isEmptyConflictSkuDisplay(diff.local) || !needsSkuAssignment(diff.local)) return null;
+  // Empty ours ≠ stub placeholder — leave default commerce directions.
+  if (isEmptyConflictSkuDisplay(diff.local)) return null;
+  if (!needsSkuAssignment(diff.local)) return null;
   const shopifyHasRealSku = !isEmptyConflictSkuDisplay(diff.shopify)
     && !needsSkuAssignment(diff.shopify);
   return {
