@@ -12,6 +12,9 @@ import { ThemeScript } from "@/components/theme/theme-script";
 import { WebVitalsReporter } from "@/components/telemetry/web-vitals-reporter";
 import { PrivacyConsentManager } from "@/components/privacy/privacy-consent-manager";
 import { EphemeralToastProvider } from "@/components/ui/ephemeral-toast";
+import { resolveOptionalAnalyticsIds } from "@/lib/analytics/optional-analytics-ids";
+import { ADMIN_SESSION_COOKIE } from "@/lib/auth/admin-session";
+import { REQUEST_PATHNAME_HEADER } from "@/lib/auth/admin-return-path";
 import { PRIVACY_CONSENT_COOKIE } from "@/lib/privacy/consent";
 import { TranslationProvider } from "@/lib/i18n/context";
 import { getStorefrontCartCount } from "@/lib/commerce/storefront-cart";
@@ -137,6 +140,7 @@ export default async function RootLayout({
     name: locale.nativeName,
   }));
   const nonce = requestHeaders.get("x-nonce") ?? undefined;
+  const pathname = requestHeaders.get(REQUEST_PATHNAME_HEADER);
   const rawPreference = cookieStore.get("synarava-theme")?.value;
   const themePreference = isThemePreference(rawPreference) ? rawPreference : "system";
   const shopifyPrivacyConfig = {
@@ -146,6 +150,14 @@ export default async function RootLayout({
   };
   const shopifyPrivacyEnabled = Object.values(shopifyPrivacyConfig).every(Boolean);
   const optionalAnalyticsEnabled = allowNonProductionAnalytics();
+  const { gtmId, metaPixelId, claritySiteId } = resolveOptionalAnalyticsIds({
+    optionalAnalyticsEnabled,
+    pathname,
+    adminSessionCookie: cookieStore.get(ADMIN_SESSION_COOKIE)?.value,
+    gtmId: process.env.NEXT_PUBLIC_GTM_ID,
+    metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
+    claritySiteId: process.env.NEXT_PUBLIC_CLARITY_SITE_ID,
+  });
   const [cartCount, isLoggedIn, storefrontCopy, commerceCopy, headerNavRaw, footerLinksRaw, contactEmails] =
     await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
@@ -193,9 +205,9 @@ export default async function RootLayout({
               checkoutRootDomain: shopifyPrivacyConfig.checkoutRootDomain!,
               storefrontRootDomain: shopifyPrivacyConfig.storefrontRootDomain!,
             } : undefined}
-            gtmId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_GTM_ID : undefined}
-            metaPixelId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_META_PIXEL_ID : undefined}
-            claritySiteId={optionalAnalyticsEnabled ? process.env.NEXT_PUBLIC_CLARITY_SITE_ID : undefined}
+            gtmId={gtmId}
+            metaPixelId={metaPixelId}
+            claritySiteId={claritySiteId}
             nonce={nonce}
           />
           <WebVitalsReporter />

@@ -882,9 +882,9 @@
     "semantic_hash": ""
   },
   "app/layout.tsx": {
-    "mtime": 1793785919.3122268,
-    "seen": 1793817537.1969638,
-    "ast_hash": "263631f24dec2734961cc87d7a645e46",
+    "mtime": 1793818323.38707,
+    "seen": 1793818416.9926987,
+    "ast_hash": "557adc58789ce44b7c416f9c20aa10e2",
     "semantic_hash": ""
   },
   "app/media/[...key]/route.ts": {
@@ -2328,8 +2328,8 @@
     "semantic_hash": ""
   },
   "components/commerce/__tests__/cart-summary-panel.test.tsx": {
-    "mtime": 1793817499.9387796,
-    "seen": 1793817537.1972857,
+    "mtime": 1793818168.3453577,
+    "seen": 1793818416.9999228,
     "ast_hash": "a1f952b5dc489c69d9a2ddf0f2c4df84",
     "semantic_hash": ""
   },
@@ -3054,8 +3054,8 @@
     "semantic_hash": ""
   },
   "components/ui/magnetic-button.tsx": {
-    "mtime": 1793817453.6583798,
-    "seen": 1793817537.1974032,
+    "mtime": 1793818168.3453577,
+    "seen": 1793818417.0029955,
     "ast_hash": "35908fbf8268cadcc6e2f56e1371405c",
     "semantic_hash": ""
   },
@@ -15540,14 +15540,14 @@
     "semantic_hash": ""
   },
   "components/ui/__tests__/magnetic-button.test.tsx": {
-    "mtime": 1793817499.9547796,
-    "seen": 1793817537.197373,
+    "mtime": 1793818168.3453577,
+    "seen": 1793818417.0022595,
     "ast_hash": "22749500f4af6305bcc217d12f46c1a0",
     "semantic_hash": ""
   },
   "components/ui/__tests__/primary-cta-button.test.tsx": {
-    "mtime": 1793817499.9587796,
-    "seen": 1793817537.1973763,
+    "mtime": 1793818168.3453577,
+    "seen": 1793818417.002333,
     "ast_hash": "050320510a6ec5d38b51e6f85a847ca3",
     "semantic_hash": ""
   },
@@ -15813,6 +15813,18 @@
     "mtime": 1793785919.3082263,
     "seen": 1793817537.1987598,
     "ast_hash": "540884c8edac036269e26ae6669f5129",
+    "semantic_hash": ""
+  },
+  "lib/analytics/__tests__/optional-analytics-ids.test.ts": {
+    "mtime": 1793818256.1263676,
+    "seen": 1793818417.0049753,
+    "ast_hash": "7c4bcb13df4ed1199c9aa49d7beb3e19",
+    "semantic_hash": ""
+  },
+  "lib/analytics/optional-analytics-ids.ts": {
+    "mtime": 1793818311.4710155,
+    "seen": 1793818417.0049999,
+    "ast_hash": "411168343da8fdb79e9effbaafc284fa",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {
