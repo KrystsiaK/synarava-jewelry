@@ -45,6 +45,9 @@ Set on the collector service (reference the web/Postgres vars where possible). *
 | `APP_URL` | Public site origin (no trailing slash). Used for `site-health` ping and the Telegram link to `/admin/mission-control`. |
 | `TELEGRAM_BOT_TOKEN` | Bot token for alerts. **Runtime only — never log.** |
 | `TELEGRAM_CHAT_ID` | Destination chat/channel id. **Runtime only — never log.** |
+| `CLARITY_API_TOKEN` | Clarity Data Export API token (Settings → Data Export). **Runtime only — never log / never `NEXT_PUBLIC_*`.** |
+| `GA_PROPERTY_ID` | GA4 property id (numeric). |
+| `GA_SERVICE_ACCOUNT_JSON` | Full service-account JSON string with Viewer on the property. **Runtime only — never log.** |
 | `NODE_AUTH_TOKEN` | Required for the install step: `@synarava/*` come from GitHub Packages (same token as the web service, `read:packages`). See [deploy.md](deploy.md). |
 | `RAILPACK_INSTALL_CMD` | `node scripts/pnpm-install-with-github-packages.mjs`. Required: pnpm ignores a token in the project config, and without this helper the install fails with 401. |
 
@@ -52,11 +55,16 @@ Optional: `NODE_ENV=production`.
 
 If `TELEGRAM_BOT_TOKEN` or `TELEGRAM_CHAT_ID` is missing, the run still upserts statuses and **skips** Telegram (no crash).
 
+If Analytics secrets are missing, the `analytics` node is persisted as
+**not connected** (`unknown` level) — not ok, not error. Clarity is capped at
+**≤4 calls/day** in code (Microsoft hard limit 10/project/day).
+
 ---
 
 ## Behaviour (for operators)
 
-1. Probes live providers: `site-health`, `shopify-sync`, `orders`.
+1. Probes live providers: `site-health`, `shopify-sync`, `orders`, `analytics`
+   (GA Data API + Clarity Export; hub page never calls those APIs).
 2. Upserts `ServiceNodeStatus` and derives `ServiceFlowStatus` from WiringConfig sources.
 3. Telegram **only** when a node’s level **changes into** `warn` or `down` (reads previous level first — no same-level spam).
 4. Message: node name, level, short static hint, link `{APP_URL}/admin/mission-control`.

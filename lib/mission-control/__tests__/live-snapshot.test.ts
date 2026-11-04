@@ -43,10 +43,23 @@ vi.mock("@/lib/mission-control/status", async (importOriginal) => {
   return {
     ...actual,
     readLatestCollectorCheckedAt: vi.fn(async () => COLLECTOR_AT),
+    readServiceNodeStatus: vi.fn(async (nodeKey: string) => {
+      if (nodeKey !== "analytics") return null;
+      return {
+        nodeKey: "analytics",
+        level: "ok",
+        message: "No analytics issues above threshold",
+        counters: { clarityCallsUsedToday: 1 },
+        href: "/admin/mission-control",
+        checkedAt: new Date("2026-10-19T21:50:00.000Z"),
+        updatedAt: new Date("2026-10-19T21:50:00.000Z"),
+      };
+    }),
   };
 });
 
 import {
+  COLLECTOR_ONLY_LIVE_KEYS,
   LIVE_NODE_KEYS,
   loadMissionControlSnapshot,
   placeholderNodeStatusesFromFixtures,
@@ -55,10 +68,11 @@ import { MISSION_CONTROL_NODE_STATUS_FIXTURES } from "@/lib/mission-control/fixt
 import { readLatestCollectorCheckedAt } from "@/lib/mission-control/status";
 
 describe("Mission Control Stage 4 live snapshot", () => {
-  it("exposes exactly three live node keys", () => {
+  it("exposes four live node keys including collector-only analytics", () => {
     expect([...LIVE_NODE_KEYS].sort()).toEqual(
-      ["orders", "shopify-sync", "site-health"].sort(),
+      ["analytics", "orders", "shopify-sync", "site-health"].sort(),
     );
+    expect([...COLLECTOR_ONLY_LIVE_KEYS]).toEqual(["analytics"]);
   });
 
   it("keeps fixture statuses only for non-live placeholders", () => {
@@ -79,6 +93,7 @@ describe("Mission Control Stage 4 live snapshot", () => {
     expect(keys).toContain("site-health");
     expect(keys).toContain("shopify-sync");
     expect(keys).toContain("orders");
+    expect(keys).toContain("analytics");
     expect(keys).toContain("sentry");
     expect(snapshot.showPlaceholderNotice).toBe(true);
     expect(snapshot.placeholderNodeKeys).toEqual(
