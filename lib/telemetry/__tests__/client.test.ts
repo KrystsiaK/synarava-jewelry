@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { COMMERCE_EVENT_NAME } from "@/lib/analytics/commerce";
 import {
@@ -14,6 +14,7 @@ import {
 type TestWindow = Window & {
   dataLayer?: Array<Record<string, unknown>>;
   __synaravaTelemetryInitialized?: boolean;
+  clarity?: ReturnType<typeof vi.fn>;
 };
 
 describe("client telemetry", () => {
@@ -21,6 +22,7 @@ describe("client telemetry", () => {
     const target = window as TestWindow;
     target.dataLayer = [];
     target.__synaravaTelemetryInitialized = false;
+    delete target.clarity;
     document.cookie = `${PRIVACY_CONSENT_COOKIE}=; Path=/; Max-Age=0`;
   });
 
@@ -119,5 +121,55 @@ describe("client telemetry", () => {
     }));
 
     expect((window as TestWindow).dataLayer).toEqual([]);
+  });
+
+  it("mirrors GA ecommerce events to Clarity event/upgrade without payloads", () => {
+    allowAnalytics();
+    const clarity = vi.fn();
+    (window as TestWindow).clarity = clarity;
+    initializeClientTelemetry();
+
+    window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
+      detail: {
+        event: "add_to_cart",
+        schemaVersion: 1,
+        properties: {
+          ecommerce: {
+            currency: "EUR",
+            value: 120,
+            items: [{ item_id: "RING-1", item_name: "Silver ring", price: 120, quantity: 1 }],
+          },
+          metadata: { productSlug: "silver-ring", email: "hidden@example.com" },
+        },
+      },
+    }));
+
+    expect(clarity).toHaveBeenCalledWith("event", "add_to_cart");
+    expect(clarity).toHaveBeenCalledWith("upgrade", "add_to_cart");
+    for (const call of clarity.mock.calls) {
+      expect(JSON.stringify(call)).not.toMatch(/email|EUR|120|Silver|ecommerce/i);
+    }
+  });
+
+  it("does not call Clarity for commerce events without analytics consent", () => {
+    const clarity = vi.fn();
+    (window as TestWindow).clarity = clarity;
+    initializeClientTelemetry();
+
+    window.dispatchEvent(new CustomEvent(COMMERCE_EVENT_NAME, {
+      detail: {
+        event: "begin_checkout",
+        schemaVersion: 1,
+        properties: {
+          ecommerce: {
+            currency: "EUR",
+            value: 50,
+            items: [{ item_id: "RING-1", quantity: 1 }],
+          },
+        },
+      },
+    }));
+
+    expect(clarity).not.toHaveBeenCalled();
   });
 });

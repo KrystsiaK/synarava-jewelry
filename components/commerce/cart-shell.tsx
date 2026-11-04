@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { motion } from "motion/react";
 import Link from "next/link";
 
@@ -9,6 +9,7 @@ import { CartItemRow } from "./cart-item-row";
 import { CartSummaryPanel } from "./cart-summary-panel";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
+import { clarityEvent, clarityTag } from "@/lib/telemetry/clarity";
 
 const ease = [0.22, 1, 0.36, 1] as const;
 
@@ -98,6 +99,17 @@ export function CartShell({
   notice,
 }: CartShellProps) {
   const { t, locale } = useTranslations();
+
+  useEffect(() => {
+    clarityEvent("view_cart");
+    clarityTag("page_type", "cart");
+    clarityTag("locale", locale);
+  }, [locale]);
+
+  useEffect(() => {
+    clarityTag("cart_has_items", items.length > 0 ? "true" : "false");
+  }, [items.length]);
+
   return (
     <main data-component="CartShell"
       className="cart-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
