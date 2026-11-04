@@ -79,3 +79,10 @@ export const COMMERCE_UNSUPPORTED_REASON =
  */
 export const MULTI_VARIANT_PUSH_BLOCKED_REASON =
   "This product has more than one variant. Keep ours / Push to Shopify is blocked until multi-variant push exists — Take Shopify still works.";
+
+/**
+ * Local PENDING-/SHOPIFY-/legacy draft SKU is not a commerce SKU — never push it.
+ * Take Shopify stays open only when Shopify already has a real assigned SKU.
+ */
+export const PENDING_SKU_BLOCKED_REASON =
+  "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";

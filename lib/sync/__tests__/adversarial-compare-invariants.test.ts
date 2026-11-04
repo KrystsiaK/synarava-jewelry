@@ -4,7 +4,10 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { MULTI_VARIANT_PUSH_BLOCKED_REASON } from "@/lib/shopify/catalog-conflict-policy";
+import {
+  MULTI_VARIANT_PUSH_BLOCKED_REASON,
+  PENDING_SKU_BLOCKED_REASON,
+} from "@/lib/shopify/catalog-conflict-policy";
 import { canonicalizeShopifyProjection } from "@/lib/shopify/shopify-projection-diff";
 import { compareSyncState } from "@/lib/sync/compare";
 import { selectSyncCounts, slice } from "@/lib/sync/select";
@@ -216,6 +219,48 @@ describe("adversarial: multi-variant Keep ours blocked at compare", () => {
     expect(leaf!.allowedDirections).toEqual(["SHOPIFY_TO_SYNARAVA"]);
     expect(leaf!.blockedReason).toBe(MULTI_VARIANT_PUSH_BLOCKED_REASON);
     expect(leaf!.allowedDirections).not.toContain("SYNARAVA_TO_SHOPIFY");
+  });
+});
+
+describe("adversarial: PENDING stub SKU stays visible with blockedReason", () => {
+  const STUB = "PENDING-p16079211397451-v58824796668235";
+
+  function skuLeaf(ourSku: string, shopifySku: string | null) {
+    const result = compare({
+      commerceWindows: [{
+        resourceType: "PRODUCT",
+        resourceId: "p1",
+        ourWindow: { variants: [{ id: "gid://shopify/ProductVariant/1", sku: ourSku, price: "10.00" }] },
+        shopifySnapshot: {
+          variants: [{ id: "gid://shopify/ProductVariant/1", sku: shopifySku, price: "10.00" }],
+        },
+      }],
+    });
+    return result.leaves.find((item) => item.label === "Variant SKU" || item.path?.endsWith(".sku"));
+  }
+
+  it("Shopify empty + ours stub → conflict visible, both directions closed", () => {
+    const leaf = skuLeaf(STUB, null);
+    expect(leaf).toBeDefined();
+    expect(leaf!.synaravaValue).toBe(STUB);
+    expect(leaf!.shopifyValue).toBe("—");
+    expect(leaf!.allowedDirections).toEqual([]);
+    expect(leaf!.blockedReason).toBe(PENDING_SKU_BLOCKED_REASON);
+  });
+
+  it("Shopify real SKU + ours stub → Take Shopify only", () => {
+    const leaf = skuLeaf(STUB, "JW-NECK-042");
+    expect(leaf).toBeDefined();
+    expect(leaf!.allowedDirections).toEqual(["SHOPIFY_TO_SYNARAVA"]);
+    expect(leaf!.allowedDirections).not.toContain("SYNARAVA_TO_SHOPIFY");
+    expect(leaf!.blockedReason).toBe(PENDING_SKU_BLOCKED_REASON);
+  });
+
+  it("stub on both sides → both directions closed", () => {
+    const leaf = skuLeaf(STUB, "PENDING-p999-v888");
+    expect(leaf).toBeDefined();
+    expect(leaf!.allowedDirections).toEqual([]);
+    expect(leaf!.blockedReason).toBe(PENDING_SKU_BLOCKED_REASON);
   });
 });
 

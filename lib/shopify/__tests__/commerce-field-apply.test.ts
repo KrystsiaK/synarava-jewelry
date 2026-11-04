@@ -293,6 +293,25 @@ describe("applyCommerceField — variant matching for SKU/Price/Compare-at price
     const [, variables] = mocks.request.mock.calls[0];
     expect(variables).toMatchObject({ variants: [{ id: "gid://shopify/ProductVariant/live-9", inventoryItem: { sku: "SKU-OLD" } }] });
   });
+
+  it("never writes a PENDING stub SKU to Shopify", async () => {
+    const stub = "PENDING-p16079211397451-v58824796668235";
+    mocks.recheckEntityConflictLeaves.mockResolvedValueOnce(leaves(leaf("Variant SKU", stub, "—")));
+    mocks.findManyVariant.mockResolvedValue([{ id: "variant-local-1" }]);
+    mocks.fetchShopifyProduct.mockResolvedValue({ variants: { nodes: [{ id: "gid://shopify/ProductVariant/9" }] } });
+    mocks.findUniqueProduct.mockResolvedValue({ shopifyProductId: "gid://shopify/Product/1" });
+
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Variant SKU",
+      direction: "SYNARAVA_TO_SHOPIFY",
+      ...fingerprintsFor(stub, "—"),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "WRITE_FAILED" });
+    expect(result.message).toMatch(/SKU is not assigned yet/);
+    expect(mocks.request).not.toHaveBeenCalled();
+  });
 });
 
 describe("applyCommerceField — read-after-write verification", () => {

@@ -35,9 +35,11 @@ import {
 import { applyCommerceField } from "./commerce-field-apply";
 import {
   COMMERCE_UNSUPPORTED_REASON,
+  PENDING_SKU_BLOCKED_REASON,
   isMediaIdentityContractKey,
   isScopedCommerceFieldLabel,
 } from "./catalog-conflict-policy";
+import { needsSkuAssignment } from "@/lib/sku/pending-sku";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 import { applyMediaIdentityBatch } from "./media-identity-apply";
 import { applyShopifyProductToSynarava } from "./product-sync";
@@ -151,11 +153,13 @@ export async function previewCatalogConflictResolution(
       if (field.origin === "COMMERCE" && !isSelectableCommerceField(field, isScopedCommerceField)) {
         return { kind: "exclude", reason: COMMERCE_UNSUPPORTED_REASON };
       }
+      // allowedDirections is authoritative; blockedReason is the human message only.
       if (!field.allowedDirections.includes(direction)) {
-        return { kind: "exclude", reason: sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED) };
-      }
-      if (field.blockedReason) {
-        return { kind: "exclude", reason: field.blockedReason };
+        return {
+          kind: "exclude",
+          reason: field.blockedReason
+            ?? sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED),
+        };
       }
       return { kind: "include", willClearNonEmptyValue: willClear(field, direction) };
     },
@@ -251,13 +255,28 @@ export async function applyCatalogConflictResolution({
       results.push({ productId: entry.productId, fieldKey: entry.fieldKey, ok: false, reason: "UNSUPPORTED", message: COMMERCE_UNSUPPORTED_REASON });
       continue;
     }
-    if (!field.allowedDirections.includes(entry.direction) || field.blockedReason) {
+    if (!field.allowedDirections.includes(entry.direction)) {
       results.push({
         productId: entry.productId,
         fieldKey: entry.fieldKey,
         ok: false,
         reason: "UNSUPPORTED",
         message: field.blockedReason ?? sharedUnsupportedDirectionReason(field, PRODUCT_PRESENCE_UNSUPPORTED),
+      });
+      continue;
+    }
+    // Defense: never write a PENDING-*/SHOPIFY-*/legacy draft SKU to Shopify.
+    if (
+      entry.direction === "SYNARAVA_TO_SHOPIFY"
+      && field.label === "Variant SKU"
+      && needsSkuAssignment(field.synaravaValue.trim() === "—" ? "" : field.synaravaValue)
+    ) {
+      results.push({
+        productId: entry.productId,
+        fieldKey: entry.fieldKey,
+        ok: false,
+        reason: "UNSUPPORTED",
+        message: PENDING_SKU_BLOCKED_REASON,
       });
       continue;
     }

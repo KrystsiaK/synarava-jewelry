@@ -528,6 +528,64 @@ describe("applyCatalogConflictResolution", () => {
     expect(mocks.applyCommerceField).not.toHaveBeenCalled();
   });
 
+  it("never writes a PENDING stub Variant SKU to Shopify even if the client sends a forbidden direction", async () => {
+    const pendingReason =
+      "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
+    // Spoofed client payload: direction allowed list empty, but entry still asks SYNARAVA_TO_SHOPIFY.
+    const field = scopedCommerceField({
+      fieldKey: "commerce:variants-0-sku",
+      label: "Variant SKU",
+      synaravaValue: "PENDING-p16079211397451-v58824796668235",
+      shopifyValue: "—",
+      allowedDirections: [],
+      blockedReason: pendingReason,
+      path: "variants[0].sku",
+    });
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
+      acknowledgeClears: true,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results[0]).toMatchObject({
+      ok: false,
+      reason: "UNSUPPORTED",
+      message: pendingReason,
+    });
+    expect(mocks.applyCommerceField).not.toHaveBeenCalled();
+  });
+
+  it("defensively rejects PENDING stub SKU push even when allowedDirections were spoofed open", async () => {
+    const pendingReason =
+      "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
+    const field = scopedCommerceField({
+      fieldKey: "commerce:variants-0-sku",
+      label: "Variant SKU",
+      synaravaValue: "PENDING-p1-v2",
+      shopifyValue: "JW-NECK-042",
+      // Spoof: pretend Keep ours is allowed.
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA", "SYNARAVA_TO_SHOPIFY"],
+      blockedReason: pendingReason,
+      path: "variants[0].sku",
+    });
+    mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));
+
+    const outcome = await applyCatalogConflictResolution({
+      entries: [entryFor(field, "SYNARAVA_TO_SHOPIFY")],
+      acknowledgeClears: true,
+      actorUsername: "admin",
+    });
+
+    expect(outcome.results[0]).toMatchObject({
+      ok: false,
+      reason: "UNSUPPORTED",
+      message: pendingReason,
+    });
+    expect(mocks.applyCommerceField).not.toHaveBeenCalled();
+  });
+
   it("applies a scoped commerce field (Vendor) through applyCommerceField", async () => {
     const field = scopedCommerceField();
     mocks.loadProductConflictFromSyncResult.mockResolvedValue(conflict([field]));

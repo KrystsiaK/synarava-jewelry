@@ -14,6 +14,7 @@ import {
   ADOPT_SHOPIFY_FIELD_PATH,
   COMMERCE_UNSUPPORTED_REASON,
   MULTI_VARIANT_PUSH_BLOCKED_REASON,
+  PENDING_SKU_BLOCKED_REASON,
   isScopedCommerceFieldLabel,
 } from "@/lib/shopify/catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
@@ -28,6 +29,7 @@ import {
   type ShopifyProjectionDiff,
 } from "@/lib/shopify/shopify-projection-diff";
 import type { ReconcileDifferenceView } from "@/lib/shopify/reconciliation-run";
+import { needsSkuAssignment } from "@/lib/sku/pending-sku";
 
 import {
   ADOPT_CONTRACT_KEY,
@@ -185,6 +187,35 @@ function partFromDiff(
   };
 }
 
+/** Display empty ("—"/blank) is not a real commerce SKU. */
+function isEmptyConflictSkuDisplay(value: string): boolean {
+  const trimmed = value.trim();
+  return !trimmed || trimmed === "—";
+}
+
+function isVariantSkuDiff(diff: ShopifyProjectionDiff): boolean {
+  if (diff.field === "Variant SKU") return true;
+  return /(^|\.|\[\d+\])sku$/.test(diff.path);
+}
+
+/**
+ * PENDING-/SHOPIFY-/legacy draft on OUR side stays visible as a conflict, but
+ * never pushes to Shopify. Take Shopify only when Shopify already has a real SKU.
+ */
+function pendingSkuDirections(diff: ShopifyProjectionDiff): {
+  allowedDirections: SyncDirection[];
+  blockedReason: string;
+} | null {
+  if (!isVariantSkuDiff(diff)) return null;
+  if (isEmptyConflictSkuDisplay(diff.local) || !needsSkuAssignment(diff.local)) return null;
+  const shopifyHasRealSku = !isEmptyConflictSkuDisplay(diff.shopify)
+    && !needsSkuAssignment(diff.shopify);
+  return {
+    allowedDirections: shopifyHasRealSku ? ["SHOPIFY_TO_SYNARAVA"] : [],
+    blockedReason: PENDING_SKU_BLOCKED_REASON,
+  };
+}
+
 function commerceLeaf(
   resourceType: "PRODUCT" | "COLLECTION",
   resourceId: string,
@@ -198,6 +229,7 @@ function commerceLeaf(
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
   const section: SyncConflictSection = unmapped ? "shopify" : (contract?.section ?? "shopify");
   const contractKey = unmapped ? UNMAPPED_CONTRACT_KEY : (contract?.contractKey ?? slugFieldKey(keySource));
+  const pendingSku = !unmapped && supported ? pendingSkuDirections(diff) : null;
   // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
     id: `${resourceType}:${resourceId}:commerce:${slugFieldKey(keySource)}`,
@@ -209,12 +241,13 @@ function commerceLeaf(
     label,
     synaravaValue: diff.local,
     shopifyValue: diff.shopify,
-    allowedDirections: allowedDirectionsForLeaf({
+    allowedDirections: pendingSku?.allowedDirections ?? allowedDirectionsForLeaf({
       kind: "commerce",
       resourceType,
       commerceSupported: supported && !unmapped,
     }),
-    blockedReason: unmapped || !supported ? COMMERCE_UNSUPPORTED_REASON : null,
+    blockedReason: pendingSku?.blockedReason
+      ?? (unmapped || !supported ? COMMERCE_UNSUPPORTED_REASON : null),
     sourceId: null,
     path: path || null,
     contractKey,

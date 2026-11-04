@@ -270,6 +270,83 @@ describe("ConflictResolver", () => {
     expect(within(groupSection).getByRole("button", { name: /Shopify/i })).toBeInTheDocument();
   });
 
+  it("shows PENDING SKU blockedReason with product link; Take Shopify only when Shopify has a real SKU", async () => {
+    const pendingReason =
+      "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
+    const pendingSku: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:variants-0-sku",
+      label: "Variant SKU",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "PENDING-p16079211397451-v58824796668235",
+      shopifyValue: "JW-NECK-042",
+      allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
+      blockedReason: pendingReason,
+      path: "variants[0].sku",
+    };
+    const adapter = createAdapter({
+      supportsWholeRecord: true,
+      applyWholeRecord: vi.fn(async () => ({ ok: true, success: "Pulled." })),
+      loadEntityFields: vi.fn(async () => ({ fields: [pendingSku] })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "Lava Ring" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+    const groupSection = (await screen.findByText("Variant SKU")).closest("section") as HTMLElement;
+    expect(within(groupSection).getByText(pendingReason)).toBeInTheDocument();
+    expect(within(groupSection).getByRole("link", { name: "Open product" })).toHaveAttribute(
+      "href",
+      "/admin/products/p1",
+    );
+    expect(within(groupSection).queryByRole("button", { name: /Keep ours|Synarava|Ours/i })).toBeNull();
+    expect(within(groupSection).getByRole("button", { name: /Shopify/i })).toBeInTheDocument();
+  });
+
+  it("closes both directions for PENDING SKU when Shopify SKU is empty", async () => {
+    const pendingReason =
+      "SKU is not assigned yet. A temporary placeholder is set, which does not meet the SKU policy. Assign a SKU in the product's inventory section.";
+    const pendingSku: CatalogConflictField = {
+      ...field,
+      fieldKey: "commerce:variants-0-sku",
+      label: "Variant SKU",
+      scope: { kind: "SHARED" },
+      origin: "COMMERCE",
+      synaravaValue: "PENDING-p1-v2",
+      shopifyValue: "—",
+      allowedDirections: [],
+      blockedReason: pendingReason,
+      path: "variants[0].sku",
+    };
+    const adapter = createAdapter({
+      loadEntityFields: vi.fn(async () => ({ fields: [pendingSku] })),
+    });
+    render(
+      <ConflictResolver
+        open
+        onClose={vi.fn()}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "Lava Ring" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+    const groupSection = (await screen.findByText("Variant SKU")).closest("section") as HTMLElement;
+    expect(within(groupSection).getByText((text) => text.includes("Cannot choose here:") && text.includes(pendingReason))).toBeInTheDocument();
+    expect(within(groupSection).getByRole("link", { name: "Open product" })).toBeInTheDocument();
+    expect(within(groupSection).queryByRole("button", { name: /Shopify/i })).toBeNull();
+    expect(within(groupSection).queryByRole("button", { name: /Keep ours|Synarava|Ours/i })).toBeNull();
+  });
+
   it("makes whole-item aggregate selectable when whole-record is supported", async () => {
     const blocked: CatalogConflictField = {
       ...field,
