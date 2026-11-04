@@ -1,7 +1,7 @@
 # Mission Control — план постройки и контракт простоты
 
-**Status:** proposed — Stages 1–5 on staging; Stage 6 (fix hints) in PR → staging
-**Last updated:** 2026-10-20 (Europe/Lisbon)
+**Status:** proposed — Stages 1–6 on staging; Analytics live node in PR → staging
+**Last updated:** 2026-11-04 (Europe/Lisbon)
 
 **Решение:** [ADR-0005](../adr/0005-mission-control-hub.md)
 **Связанные:** [ADR-0004 (SKU-сервис)](../adr/0004-portable-sku-service-boundary.md), [runbook SKU](portable-sku-current-status.md)
@@ -47,6 +47,22 @@
 **Если возникает соблазн добавить слой/абстракцию/зависимость:** остановись,
 допиши в этот файл строку «хотел добавить X ради Y», и спроси владельца. Не
 добавляй молча.
+
+### Owner yeses (2026-11-04)
+
+1. **GA and Clarity become live hub nodes** — one combined live node
+   `analytics` (“Analytics”) on the map; collector probes GA Data API + Clarity
+   Data Export API and persists into existing `ServiceNodeStatus`.
+2. **Complexity OK when needed for the job** — detection rules, report markdown,
+   and Clarity call-budget bookkeeping are allowed when they serve the read-only
+   triage job. Still: no new tables, no new npm deps, no new process, no fix/
+   restart buttons. Anything else outside §0 budget must be listed explicitly in
+   the PR (“out of budget: X for Y”), never silent.
+
+**Obsolete (do not follow):** “Clarity without API — don't pull.” Clarity has a
+Data Export API:
+https://learn.microsoft.com/en-us/clarity/setup-and-installation/clarity-data-export-api
+(project-live-insights; max **10 requests/project/day** — hub budget ≤**4**/day).
 
 **Каждый PR этапа обязан пройти `/ponytail-review`** (или объяснить в описании,
 почему диф минимален). Нетривиальная логика оставляет один запускаемый тест.
@@ -154,8 +170,11 @@ provider/status. Directed flows are explicitly `continuous` or `event`.
 - **Готово =** каждый узел — это `defineWidget` c `status_out` + строка в
   `WiringConfig`; статусы реально меняют цвет; видно связи `site→db`,
   `shopify→products`, `sentry←site`.
-- **Запрещено:** тянуть в v1 узлы без готового API (Clarity, Meta, TikTok) —
+- **Запрещено:** тянуть в v1 узлы без готового API (Meta, TikTok) —
   рисуем их серыми заглушками «подключим позже», без кода.
+  Clarity + Google Analytics: **live via `analytics` node** (owner yes
+  2026-11-04); hub reads only stored `ServiceNodeStatus`, never calls the
+  external APIs from the page.
 
 ### Этап 5 — Коллектор + супербот (крон-воркер на Railway)
 - **Цель:** состояние обновляется само, проблемы прилетают в Telegram.
@@ -181,9 +200,22 @@ provider/status. Directed flows are explicitly `continuous` or `event`.
 - **Финансовый трекер фактур** (авансовая→финальная, таблица + PDF в S3, ручной
   ввод; портал = юр.источник). Самостоятельная фича; хабу отдаст узел «Финансы».
 - **CRM-узел** (клиенты/сделки).
-- **Реклама** (Meta/TikTok), **Google Analytics/Workspace** как живые узлы.
+- **Реклама** (Meta/TikTok), **Google Workspace** как живые узлы.
+  (Google Analytics + Clarity: live `analytics` node — owner yes 2026-11-04.)
 - **Редактор конфига в админке**, drag-to-edit графа, ИИ-авторазводка связей,
   ИИ-генерация виджетов через `widget-generator`.
+
+### Analytics node env (collector only; never `NEXT_PUBLIC_*`)
+
+| Variable | Purpose |
+| --- | --- |
+| `CLARITY_API_TOKEN` | Clarity Data Export API bearer token (Settings → Data Export). |
+| `GA_PROPERTY_ID` | GA4 property id (numeric, without `properties/` prefix). |
+| `GA_SERVICE_ACCOUNT_JSON` | Full service-account JSON string (Viewer on the property). |
+
+Missing env → node level `unknown`, message `not connected` (not ok, not error).
+GA JWT via `node:crypto` + `fetch` only — **no `googleapis`**. See README
+Environment and [mission-control-collector-railway.md](mission-control-collector-railway.md).
 
 Добавление любого из них = новый `defineWidget` + строка конфига, **без правок
 движка и хаба**. Это и есть проверка, что архитектура осталась простой.

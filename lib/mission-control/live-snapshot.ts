@@ -1,4 +1,8 @@
 import {
+  ANALYTICS_NODE_KEY,
+  ANALYTICS_NOT_CONNECTED_MESSAGE,
+} from "@/lib/mission-control/analytics/types";
+import {
   MISSION_CONTROL_FLOW_STATUS_FIXTURES,
   MISSION_CONTROL_NODE_STATUS_FIXTURES,
 } from "@/lib/mission-control/fixtures";
@@ -7,15 +11,34 @@ import { getShopifySyncStatus } from "@/lib/mission-control/providers/shopify-sy
 import { getSiteHealthStatus } from "@/lib/mission-control/providers/site-health";
 import {
   readLatestCollectorCheckedAt,
+  readServiceNodeStatus,
   type ServiceFlowStatusRecord,
   type ServiceNodeStatusRecord,
 } from "@/lib/mission-control/status";
 import { getMissionControlWiringConfig } from "@/lib/mission-control/wiring";
 
-/** Live provider keys — Stage 4 request-time; Stage 5 collector also persists these. */
-export const LIVE_NODE_KEYS = ["site-health", "shopify-sync", "orders"] as const;
+/**
+ * Live provider keys. Request-time probes still cover site/shopify/orders;
+ * `analytics` is collector-persisted only (never call GA/Clarity from the hub).
+ */
+export const LIVE_NODE_KEYS = [
+  "site-health",
+  "shopify-sync",
+  "orders",
+  ANALYTICS_NODE_KEY,
+] as const;
 
 export type LiveNodeKey = (typeof LIVE_NODE_KEYS)[number];
+
+/** Live keys probed at request time (local DB / own health). */
+export const REQUEST_TIME_LIVE_KEYS = [
+  "site-health",
+  "shopify-sync",
+  "orders",
+] as const;
+
+/** Live keys that the hub reads only from ServiceNodeStatus. */
+export const COLLECTOR_ONLY_LIVE_KEYS = [ANALYTICS_NODE_KEY] as const;
 
 /**
  * Intentional placeholders (no provider yet). Drift check ignores these;
@@ -52,25 +75,46 @@ export function placeholderNodeStatusesFromFixtures(
   return fixtures.filter((row) => PLACEHOLDER_KEY_SET.has(row.nodeKey));
 }
 
+function awaitingAnalyticsCollector(now: Date): ServiceNodeStatusRecord {
+  return {
+    nodeKey: ANALYTICS_NODE_KEY,
+    level: "unknown",
+    message: ANALYTICS_NOT_CONNECTED_MESSAGE,
+    counters: null,
+    href: "/admin/mission-control",
+    checkedAt: now,
+    updatedAt: now,
+  };
+}
+
 /**
- * Merge request-time live providers with fixture placeholders.
- * Does not read/write `ServiceNodeStatus` / `ServiceFlowStatus` tables.
+ * Merge request-time live providers, collector-persisted analytics, and
+ * fixture placeholders. Hub never calls GA/Clarity from this path.
  */
 export async function loadMissionControlSnapshot(
   now: Date = new Date(),
 ): Promise<MissionControlSnapshot> {
-  const [siteHealth, shopifySync, orders, collectorCheckedAt] = await Promise.all([
-    getSiteHealthStatus({ now }),
-    getShopifySyncStatus({ now }),
-    getOrdersStatus({ now }),
-    readLatestCollectorCheckedAt(LIVE_NODE_KEYS),
-  ]);
+  const [siteHealth, shopifySync, orders, analyticsStored, collectorCheckedAt] =
+    await Promise.all([
+      getSiteHealthStatus({ now }),
+      getShopifySyncStatus({ now }),
+      getOrdersStatus({ now }),
+      readServiceNodeStatus(ANALYTICS_NODE_KEY),
+      readLatestCollectorCheckedAt(LIVE_NODE_KEYS),
+    ]);
 
+  const analytics = analyticsStored ?? awaitingAnalyticsCollector(now);
   const placeholders = placeholderNodeStatusesFromFixtures();
   const placeholderNodeKeys = placeholders.map((row) => row.nodeKey);
 
   return {
-    nodeStatuses: [siteHealth, shopifySync, orders, ...placeholders],
+    nodeStatuses: [
+      siteHealth,
+      shopifySync,
+      orders,
+      analytics,
+      ...placeholders,
+    ],
     flowStatuses: MISSION_CONTROL_FLOW_STATUS_FIXTURES,
     nowMs: now.getTime(),
     collectorCheckedAt,

@@ -12,6 +12,7 @@ import {
   PLACEHOLDER_NODE_KEYS,
 } from "@/lib/mission-control/live-snapshot";
 import { MISSION_CONTROL_NODE_CATALOG } from "@/lib/mission-control/node-catalog";
+import { getAnalyticsStatus } from "@/lib/mission-control/providers/analytics";
 import { getOrdersStatus } from "@/lib/mission-control/providers/orders";
 import { getShopifySyncStatus } from "@/lib/mission-control/providers/shopify-sync";
 import { getSiteHealthStatus } from "@/lib/mission-control/providers/site-health";
@@ -47,6 +48,9 @@ export type CollectorEnv = {
   APP_URL?: string | null;
   TELEGRAM_BOT_TOKEN?: string | null;
   TELEGRAM_CHAT_ID?: string | null;
+  CLARITY_API_TOKEN?: string | null;
+  GA_PROPERTY_ID?: string | null;
+  GA_SERVICE_ACCOUNT_JSON?: string | null;
 };
 
 export type CollectorDeps = {
@@ -56,6 +60,7 @@ export type CollectorDeps = {
   getSiteHealthStatus?: typeof getSiteHealthStatus;
   getShopifySyncStatus?: typeof getShopifySyncStatus;
   getOrdersStatus?: typeof getOrdersStatus;
+  getAnalyticsStatus?: typeof getAnalyticsStatus;
   readServiceNodeStatus?: typeof readServiceNodeStatus;
   writeServiceNodeStatus?: typeof writeServiceNodeStatus;
   readServiceFlowStatus?: typeof readServiceFlowStatus;
@@ -94,11 +99,15 @@ export async function runCollectorOnce(
     APP_URL: process.env.APP_URL ?? null,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN ?? null,
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID ?? null,
+    CLARITY_API_TOKEN: process.env.CLARITY_API_TOKEN ?? null,
+    GA_PROPERTY_ID: process.env.GA_PROPERTY_ID ?? null,
+    GA_SERVICE_ACCOUNT_JSON: process.env.GA_SERVICE_ACCOUNT_JSON ?? null,
   };
   const log = deps.log ?? ((message: string) => console.info(message));
   const probeSite = deps.getSiteHealthStatus ?? getSiteHealthStatus;
   const probeShopify = deps.getShopifySyncStatus ?? getShopifySyncStatus;
   const probeOrders = deps.getOrdersStatus ?? getOrdersStatus;
+  const probeAnalytics = deps.getAnalyticsStatus ?? getAnalyticsStatus;
   const readNode = deps.readServiceNodeStatus ?? readServiceNodeStatus;
   const writeNode = deps.writeServiceNodeStatus ?? writeServiceNodeStatus;
   const readFlow = deps.readServiceFlowStatus ?? readServiceFlowStatus;
@@ -106,16 +115,27 @@ export async function runCollectorOnce(
   const sendAlert = deps.sendTelegramAlert ?? sendTelegramAlert;
   const fetchFn = deps.fetchFn ?? fetch;
 
-  const [siteHealth, shopifySync, orders] = await Promise.all([
+  const [siteHealth, shopifySync, orders, analytics] = await Promise.all([
     probeSite({ now, fetchFn }),
     probeShopify({ now }),
     probeOrders({ now }),
+    probeAnalytics({
+      now,
+      fetchFn,
+      env: {
+        CLARITY_API_TOKEN: env.CLARITY_API_TOKEN,
+        GA_PROPERTY_ID: env.GA_PROPERTY_ID,
+        GA_SERVICE_ACCOUNT_JSON: env.GA_SERVICE_ACCOUNT_JSON,
+      },
+      readPrevious: readNode,
+    }),
   ]);
 
   const liveNodes: ServiceNodeStatusRecord[] = [
     siteHealth,
     shopifySync,
     orders,
+    analytics,
   ];
   const nodesUpserted: string[] = [];
   const alertsSent: string[] = [];

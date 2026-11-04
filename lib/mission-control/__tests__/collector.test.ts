@@ -153,14 +153,17 @@ describe("runCollectorOnce", () => {
         node({ nodeKey: "shopify-sync", level: "ok", message: "fresh" }),
       getOrdersStatus: async () =>
         node({ nodeKey: "orders", level: "ok", message: "ok" }),
+      getAnalyticsStatus: async () =>
+        node({ nodeKey: "analytics", level: "unknown", message: "not connected" }),
       sendTelegramAlert: sendTelegram,
     });
 
-    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(3);
+    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(4);
     expect(result.nodesUpserted).toEqual([
       "site-health",
       "shopify-sync",
       "orders",
+      "analytics",
     ]);
     expect(result.alertsSent).toEqual(["site-health"]);
     expect(sendTelegram).toHaveBeenCalledOnce();
@@ -197,12 +200,14 @@ describe("runCollectorOnce", () => {
       getShopifySyncStatus: async () =>
         node({ nodeKey: "shopify-sync", level: "down" }),
       getOrdersStatus: async () => node({ nodeKey: "orders", level: "down" }),
+      getAnalyticsStatus: async () =>
+        node({ nodeKey: "analytics", level: "down" }),
       sendTelegramAlert: sendTelegram,
     });
 
     expect(result.alertsSent).toEqual([]);
     expect(sendTelegram).not.toHaveBeenCalled();
-    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(3);
+    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(4);
   });
 
   it("ok→ok does not alert", async () => {
@@ -223,6 +228,8 @@ describe("runCollectorOnce", () => {
       getShopifySyncStatus: async () =>
         node({ nodeKey: "shopify-sync", level: "ok" }),
       getOrdersStatus: async () => node({ nodeKey: "orders", level: "ok" }),
+      getAnalyticsStatus: async () =>
+        node({ nodeKey: "analytics", level: "ok" }),
       sendTelegramAlert: sendTelegram,
     });
 
@@ -252,11 +259,13 @@ describe("runCollectorOnce", () => {
       getShopifySyncStatus: async () =>
         node({ nodeKey: "shopify-sync", level: "ok" }),
       getOrdersStatus: async () => node({ nodeKey: "orders", level: "ok" }),
+      getAnalyticsStatus: async () =>
+        node({ nodeKey: "analytics", level: "ok" }),
       sendTelegramAlert: sendTelegram,
       log,
     });
 
-    expect(result.nodesUpserted).toHaveLength(3);
+    expect(result.nodesUpserted).toHaveLength(4);
     expect(result.alertsFailed).toEqual(["site-health"]);
     expect(result.alertsSent).toEqual([]);
     expect(log).toHaveBeenCalledWith(
@@ -275,10 +284,12 @@ describe("runCollectorOnce", () => {
       getShopifySyncStatus: async () =>
         node({ nodeKey: "shopify-sync", level: "ok" }),
       getOrdersStatus: async () => node({ nodeKey: "orders", level: "ok" }),
+      getAnalyticsStatus: async () =>
+        node({ nodeKey: "analytics", level: "ok" }),
       sendTelegramAlert: vi.fn(),
     });
 
-    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(3);
+    expect(mocks.nodeUpsert).toHaveBeenCalledTimes(4);
     expect(mocks.flowUpsert.mock.calls.length).toBeGreaterThan(0);
     const busKeys = mocks.flowUpsert.mock.calls.map(
       (call: [{ where: { busKey: string } }]) => call[0].where.busKey,
@@ -288,6 +299,7 @@ describe("runCollectorOnce", () => {
         "site_to_db",
         "shopify_to_products",
         "orders_pulse",
+        "analytics_pulse",
       ]),
     );
   });
