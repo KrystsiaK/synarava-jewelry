@@ -53,7 +53,7 @@ export function MagneticButton({
 
   if (href) {
     return (
-      <MotionLink href={href} {...shared}>
+      <MotionLink href={href} onClick={onClick} {...shared}>
         {children}
       </MotionLink>
     );
