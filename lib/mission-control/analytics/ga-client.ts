@@ -1,5 +1,3 @@
-import "server-only";
-
 import { ANALYTICS_THRESHOLDS } from "@/lib/mission-control/analytics/thresholds";
 import type {
   GaEventCount,
