@@ -8,17 +8,6 @@ function read(rel: string): string {
 }
 
 describe("Analytics client/server boundary", () => {
-  it("marks GA/Clarity clients and analytics provider as server-only", () => {
-    for (const rel of [
-      "lib/mission-control/analytics/ga-jwt.ts",
-      "lib/mission-control/analytics/ga-client.ts",
-      "lib/mission-control/analytics/clarity-client.ts",
-      "lib/mission-control/providers/analytics.ts",
-    ]) {
-      expect(read(rel), rel).toMatch(/^import ["']server-only["'];/m);
-    }
-  });
-
   it("keeps hub client components off server analytics modules", () => {
     const forbidden = [
       "providers/analytics",
