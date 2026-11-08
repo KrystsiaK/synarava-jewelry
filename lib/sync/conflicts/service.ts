@@ -30,6 +30,7 @@ import {
   type CollectionConflictPreview,
 } from "@/lib/shopify/collection-conflict-apply";
 import { loadCollectionConflictFromSyncResult } from "@/lib/shopify/collection-conflict";
+import { getCatalogCheckConflictWriteBlock } from "@/lib/shopify/reconciliation-run";
 
 export type ConflictEntity = "product" | "collection";
 
@@ -210,6 +211,8 @@ export async function previewResolution(
 ): Promise<ConflictPreviewResult<CatalogConflictPreview | CollectionConflictPreview>> {
   if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
   try {
+    const blocked = await getCatalogCheckConflictWriteBlock();
+    if (blocked) return { error: blocked };
     if (entity === "product") {
       const productScope = scope as CatalogConflictApplyScope;
       if (productScope.kind === "PRODUCT" && !productScope.productId.startsWith("shopify:")) {
@@ -252,6 +255,8 @@ export async function applyResolution(
 ): Promise<ConflictApplyResult<CatalogConflictApplyOutcome | CollectionConflictApplyOutcome>> {
   if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
   try {
+    const blocked = await getCatalogCheckConflictWriteBlock();
+    if (blocked) return { error: blocked };
     if (entity === "product") {
       const productInput = input as { entries: CatalogConflictApplyEntryInput[]; acknowledgeClears: boolean };
       const outcome = await applyCatalogConflictResolution({ ...productInput, actorUsername: username });
