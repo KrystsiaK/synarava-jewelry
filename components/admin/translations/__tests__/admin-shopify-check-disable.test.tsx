@@ -86,6 +86,8 @@ describe("disable Save / Take / Keep while catalog check runs", () => {
     expect(screen.getByRole("button", { name: "Keep ours for all" })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Take Shopify$/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Keep ours$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+    expect(screen.getByText("A Shopify check is running, choices are paused")).toBeInTheDocument();
 
     rerender(renderResolver(false));
 
@@ -95,6 +97,7 @@ describe("disable Save / Take / Keep while catalog check runs", () => {
     });
     expect(screen.getByRole("button", { name: /Take Shopify$/i })).not.toBeDisabled();
     expect(screen.getByRole("button", { name: /Keep ours$/i })).not.toBeDisabled();
+    expect(screen.queryByText("A Shopify check is running, choices are paused")).not.toBeInTheDocument();
   });
 
   it("re-enables Take / Keep after failure path (checkRunning false again)", async () => {

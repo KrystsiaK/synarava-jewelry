@@ -778,6 +778,7 @@ function ConflictResolverSession({
     [allRows, supportsWholeRecord],
   );
   const selectedCount = Object.keys(selections).length;
+  // Selection/Apply pause on load, preview, or catalog check. Close/Esc only while writing.
   const busy = applying || loading || previewLoading || checkRunning;
 
   useEffect(() => {
@@ -1035,7 +1036,7 @@ function ConflictResolverSession({
     <>
       <AnimatedModal
         open={!preview}
-        onClose={busy ? () => undefined : closeAll}
+        onClose={applying ? () => undefined : closeAll}
         ariaLabel={adapter.ariaLabel}
         portalClassName="admin-modal-root"
         zIndexClassName="z-[200]"
@@ -1052,12 +1053,17 @@ function ConflictResolverSession({
               Click Shopify (left) or Synarava (right) to choose a side for that conflict. Click again to clear.
               Unchosen conflicts stay as conflicts. Nothing is written until you Apply and confirm the preview.
             </p>
+            {checkRunning ? (
+              <p className="mt-2 text-xs text-[var(--adm-muted)]" role="status">
+                A Shopify check is running, choices are paused
+              </p>
+            ) : null}
           </div>
           <AdminButton
             variant="ghost"
             className="grid size-11 place-items-center p-0"
             onClick={closeAll}
-            disabled={busy}
+            disabled={applying}
             aria-label="Close conflicts"
           >
             <X className="size-4" aria-hidden="true" />
@@ -1115,7 +1121,7 @@ function ConflictResolverSession({
           })}
         </div>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-          <AdminButton variant="ghost" onClick={closeAll} disabled={busy}>
+          <AdminButton variant="ghost" onClick={closeAll} disabled={applying}>
             Close
           </AdminButton>
           <div className="flex flex-wrap items-center gap-2">
