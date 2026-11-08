@@ -111,6 +111,44 @@ export function shopifyProductSpecValuesFromSnapshot(snapshot: unknown): Record<
   return out;
 }
 
+/**
+ * EN Product-tab specs: prefer OUR working rows when that identity was saved,
+ * otherwise fall back to last Shopify pull (extras often lacks metafields until
+ * the first Save on this tab).
+ */
+export function shopifyProductSpecValuesFromWindows(
+  workingSnapshot: unknown,
+  shopifySnapshot: unknown,
+): Record<string, string> {
+  const fromShopify = shopifyProductSpecValuesFromSnapshot(shopifySnapshot);
+  const fromWorking = shopifyProductSpecValuesFromSnapshot(workingSnapshot);
+  const workingKeys = new Set(
+    metafieldsArrayFromSnapshot(workingSnapshot)
+      .filter((row) => row.namespace === "custom" && SPEC_CUSTOM_KEYS.has(row.key))
+      .map((row) => row.key),
+  );
+  const out: Record<string, string> = { ...fromShopify };
+  for (const spec of SHOPIFY_PRODUCT_SPEC_FIELDS) {
+    if (workingKeys.has(spec.key)) out[spec.key] = fromWorking[spec.key] ?? "";
+  }
+  return out;
+}
+
+/**
+ * Spec keys with no `custom.*` row on the last Shopify pull.
+ * PT/RU Markets translations need a Metafield GID — missing rows cannot be pushed.
+ */
+export function shopifyProductSpecKeysMissingInShopify(shopifySnapshot: unknown): string[] {
+  const present = new Set(
+    metafieldsArrayFromSnapshot(shopifySnapshot)
+      .filter((row) => row.namespace === "custom")
+      .map((row) => row.key),
+  );
+  return SHOPIFY_PRODUCT_SPEC_FIELDS
+    .filter((spec) => !present.has(spec.key))
+    .map((spec) => spec.key);
+}
+
 /** Locale overlays for Product-tab specs from workingSnapshot.metafieldTranslations. */
 export function shopifyProductSpecOverlaysFromTranslations(
   translations: MetafieldTranslations | undefined,

@@ -2019,13 +2019,13 @@ export async function pushProductToShopify(
         "@/lib/shopify/product-metafield-translations"
       );
       const pushLocales = (await getPublishedStorefrontLocales()).filter((locale) => !locale.isDefault);
-      const desiredIdentities = new Set(metafields.filter((item) => item.value.trim())
-        .map((item) => `${item.namespace}:${item.key}`));
+      // Include remote + set GIDs for every metafield — translation overlays may
+      // target specs that exist on Shopify but are not in extras.metafields yet.
       const refs = [
         ...metafieldRefsFromNodes(currentRemote?.metafields.nodes ?? []),
         ...metafieldRefsFromNodes(remote.metafields.nodes),
         ...setMetafieldRefs,
-      ].filter((item) => desiredIdentities.has(`${item.namespace}:${item.key}`));
+      ];
       await pushCustomMetafieldTranslations({
         metafieldRefs: refs,
         workingSnapshot: ourWindow ?? product.extras,

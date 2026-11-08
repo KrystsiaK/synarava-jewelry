@@ -80,6 +80,16 @@ describe("Shopify product specs ownership UI", () => {
               },
             ],
           }}
+          shopifySnapshot={{
+            metafields: [
+              {
+                namespace: "custom",
+                key: "finish",
+                type: "single_line_text_field",
+                value: "18K Gold PVD",
+              },
+            ],
+          }}
           activeLocale="pt"
           translationLocales={[{ code: "pt" }, { code: "ru" }]}
         />
@@ -100,5 +110,59 @@ describe("Shopify product specs ownership UI", () => {
     expect(parseCustomMetafieldTranslationsForm(formData)).toMatchObject({
       pt: { "custom::finish": "PVD dourado" },
     });
+  });
+
+  it("reads Golden Wheat EN specs from Shopify pull when extras has overlays only", () => {
+    const { container } = render(
+      <ShopifyProductSpecsFields
+        workingSnapshot={{
+          metafieldTranslations: {
+            pt: { "custom::finish": "Acabamento dourado" },
+          },
+        }}
+        shopifySnapshot={{
+          metafields: [
+            { namespace: "custom", key: "material", type: "single_line_text_field", value: "316L steel" },
+            { namespace: "custom", key: "care_instructions", type: "multi_line_text_field", value: "Keep dry" },
+            { namespace: "custom", key: "finish", type: "single_line_text_field", value: "18K Gold PVD" },
+            { namespace: "custom", key: "wrist_fit", type: "single_line_text_field", value: "16–18 cm" },
+            { namespace: "custom", key: "color", type: "single_line_text_field", value: "Gold" },
+            { namespace: "custom", key: "metal", type: "single_line_text_field", value: "Steel" },
+            { namespace: "custom", key: "stone", type: "single_line_text_field", value: "None" },
+            { namespace: "custom", key: "plating", type: "single_line_text_field", value: "18K Gold PVD" },
+            { namespace: "custom", key: "size", type: "single_line_text_field", value: "One size" },
+          ],
+        }}
+        activeLocale="pt"
+        translationLocales={[{ code: "pt" }, { code: "ru" }]}
+      />,
+    );
+
+    expect(screen.getByPlaceholderText("16–18 cm")).toBeInTheDocument();
+    const finishOverlay = container.querySelector(
+      'input[placeholder="18K Gold PVD"]',
+    ) as HTMLInputElement | null;
+    expect(finishOverlay?.value).toBe("Acabamento dourado");
+    expect(
+      container.querySelector('input[name="ptCustomMetafieldValue:custom:finish"]'),
+    ).toHaveValue("Acabamento dourado");
+    expect(screen.queryByTestId("shopify-specs-missing-metafields")).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-missing-shopify-metafield="true"]')).toHaveLength(0);
+  });
+
+  it("states explicitly when a Product-tab spec metafield is missing in Shopify", () => {
+    render(
+      <ShopifyProductSpecsFields
+        workingSnapshot={{ metafields: [] }}
+        shopifySnapshot={{ metafields: [] }}
+        activeLocale="pt"
+        translationLocales={[{ code: "pt" }]}
+      />,
+    );
+
+    expect(screen.getByTestId("shopify-specs-missing-metafields")).toHaveTextContent(
+      /missing in Shopify/i,
+    );
+    expect(screen.getByText(/no Metafield GID/i)).toBeInTheDocument();
   });
 });
