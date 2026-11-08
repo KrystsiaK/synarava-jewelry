@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   revalidateStorefront: vi.fn(),
   gateWriteConvergence: vi.fn(),
   findUniqueProduct: vi.fn(),
+  getCatalogCheckConflictWriteBlock: vi.fn(async (): Promise<string | null> => null),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -61,6 +62,10 @@ vi.mock("@/lib/shopify/product-metafields-admin", () => ({
 vi.mock("@/lib/shopify/catalog-conflict-review", () => ({
   markIncomingProductUpdateViewed: vi.fn(),
 }));
+vi.mock("@/lib/shopify/reconciliation-run", () => ({
+  CATALOG_CHECK_RUNNING_WRITE_ERROR: "A Shopify check is running, try again when it finishes",
+  getCatalogCheckConflictWriteBlock: mocks.getCatalogCheckConflictWriteBlock,
+}));
 vi.mock("@/lib/sync/conflicts/service", () => ({
   applyResolution: vi.fn(),
   loadEntityConflict: vi.fn(),
@@ -102,6 +107,7 @@ beforeEach(() => {
   mocks.getSavedProductPayload.mockResolvedValue({ id: "product-1", name: "Ring" });
   mocks.runAfterSaveCatalogConflictCheck.mockResolvedValue(undefined);
   mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
+  mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(null);
 });
 
 describe("pullSingleProductFromShopifyAction convergence", () => {
@@ -146,5 +152,27 @@ describe("pullSingleProductFromShopifyAction convergence", () => {
 
     expect(result.error).toBeUndefined();
     expect(mocks.gateWriteConvergence).not.toHaveBeenCalled();
+  });
+
+  it("rejects whole-record pull while a FULL catalog check is active", async () => {
+    mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(
+      "A Shopify check is running, try again when it finishes",
+    );
+
+    const result = await pullSingleProductFromShopifyAction("product-1", true, fingerprints);
+
+    expect(result).toEqual({
+      error: "A Shopify check is running, try again when it finishes",
+    });
+    expect(mocks.applyShopifyProductToSynarava).not.toHaveBeenCalled();
+  });
+
+  it("allows whole-record pull after FAILED / expired (not blocking)", async () => {
+    mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(null);
+
+    const result = await pullSingleProductFromShopifyAction("product-1", true, fingerprints);
+
+    expect(result.error).toBeUndefined();
+    expect(mocks.applyShopifyProductToSynarava).toHaveBeenCalled();
   });
 });

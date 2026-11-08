@@ -249,16 +249,20 @@ export function isReconcileRunActivelyChecking(run: ReconcileRunSummary | null):
   }, Date.now());
 }
 
-/** Clear error when conflict preview/apply must wait for an in-flight catalog check. */
+/** Clear error when conflict writes must wait for an in-flight FULL catalog check. */
 export const CATALOG_CHECK_RUNNING_WRITE_ERROR =
   "A Shopify check is running, try again when it finishes";
 
 /**
- * Latest FULL catalog run after expire-on-read, still QUEUED/RUNNING within lease.
- * Conflict writes pause; dismiss UI must not.
+ * ONE write gate for conflict preview / apply / whole-record push-pull.
+ * Uses getLatestReconcileRun (FULL catalog only, expire-on-read) — scoped
+ * after-save LOCALE/ENTITY runs never block the next conflict write.
+ * Returns the refuse message, or null when writes may proceed.
  */
-export async function isCatalogCheckBlockingWrites(): Promise<boolean> {
-  return isReconcileRunActivelyChecking(await getLatestReconcileRun());
+export async function getCatalogCheckConflictWriteBlock(): Promise<string | null> {
+  return isReconcileRunActivelyChecking(await getLatestReconcileRun())
+    ? CATALOG_CHECK_RUNNING_WRITE_ERROR
+    : null;
 }
 
 async function createOrReuseRun({

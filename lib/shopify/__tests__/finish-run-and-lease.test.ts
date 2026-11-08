@@ -22,7 +22,9 @@ vi.mock("@/lib/db", () => ({
 import {
   beginCatalogCheckRun,
   CATALOG_CHECK_LEASE_MS,
+  CATALOG_CHECK_RUNNING_WRITE_ERROR,
   finishCatalogCheckRun,
+  getCatalogCheckConflictWriteBlock,
   heartbeatCatalogCheckRun,
   isReconcileRunActivelyChecking,
 } from "@/lib/shopify/reconciliation-run";
@@ -129,5 +131,42 @@ describe("heartbeat and lease by updatedAt", () => {
       status: "already_running",
       run: { id: "active-run" },
     });
+  });
+});
+
+describe("getCatalogCheckConflictWriteBlock", () => {
+  it("returns the refuse message while the latest FULL run is RUNNING within lease", async () => {
+    mocks.queryRaw.mockResolvedValueOnce([runRow({ status: "RUNNING" })]);
+    await expect(getCatalogCheckConflictWriteBlock()).resolves.toBe(CATALOG_CHECK_RUNNING_WRITE_ERROR);
+  });
+
+  it("returns null when the latest FULL run is FAILED (scoped after-save cannot be latest FULL)", async () => {
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "FAILED",
+      error: "boom",
+      completedAt: new Date(),
+    })]);
+    await expect(getCatalogCheckConflictWriteBlock()).resolves.toBeNull();
+  });
+
+  it("returns null when the latest FULL run is past the lease (expired)", async () => {
+    const stale = new Date(Date.now() - CATALOG_CHECK_LEASE_MS - 1000);
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "RUNNING",
+      startedAt: stale,
+      createdAt: stale,
+      updatedAt: stale,
+    })]);
+    // expireStaleActiveRunIfNeeded marks FAILED then re-reads.
+    mocks.executeRaw.mockResolvedValue(undefined);
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "FAILED",
+      error: "Check timed out (lease expired after 10 minutes).",
+      startedAt: stale,
+      createdAt: stale,
+      updatedAt: new Date(),
+      completedAt: new Date(),
+    })]);
+    await expect(getCatalogCheckConflictWriteBlock()).resolves.toBeNull();
   });
 });
