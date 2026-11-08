@@ -18,6 +18,10 @@ import {
   type PrivacyConsentChoices,
 } from "@/lib/privacy/consent";
 import {
+  revokeClarityConsent,
+  signalClarityConsentV2,
+} from "@/lib/privacy/clarity-consent";
+import {
   DEFAULT_PRIVACY_CHOICES,
   persistPrivacyConsent,
   writeConsentCookie,
@@ -82,11 +86,33 @@ function ConsentDestinations({
   claritySiteId?: string;
   nonce?: string;
 }) {
+  const hadAnalyticsClarity = useRef(false);
+
   useEffect(() => {
     if (!consent?.analytics || !gtmId) return;
     window.dataLayer ??= [];
     window.dataLayer.push({ "gtm.start": Date.now(), event: "gtm.js" });
   }, [consent?.analytics, gtmId]);
+
+  // Clarity Consent API v2: EEA/UK/CH need an explicit signal after script load.
+  // Source = existing banner consent; script still loads only with analytics.
+  useEffect(() => {
+    if (!claritySiteId) return;
+
+    if (consent?.analytics) {
+      signalClarityConsentV2({
+        analytics: consent.analytics,
+        marketing: consent.marketing,
+      });
+      hadAnalyticsClarity.current = true;
+      return;
+    }
+
+    if (hadAnalyticsClarity.current) {
+      revokeClarityConsent();
+      hadAnalyticsClarity.current = false;
+    }
+  }, [claritySiteId, consent?.analytics, consent?.marketing]);
 
   return (
     <>
@@ -103,6 +129,13 @@ function ConsentDestinations({
           id="consent-aware-clarity"
           strategy="afterInteractive"
           nonce={nonce}
+          onReady={() => {
+            if (!consent) return;
+            signalClarityConsentV2({
+              analytics: consent.analytics,
+              marketing: consent.marketing,
+            });
+          }}
           dangerouslySetInnerHTML={{
             __html: `(function(c,l,a,r,i,t,y){c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y)})(window,document,"clarity","script",${JSON.stringify(claritySiteId)});`,
           }}
