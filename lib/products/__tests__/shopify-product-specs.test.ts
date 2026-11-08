@@ -6,7 +6,9 @@ import {
   isShopifyProductSpecFormField,
   SHOPIFY_OWNED_CHARACTERISTIC_KEYS,
   SHOPIFY_PRODUCT_SPEC_FIELDS,
+  shopifyProductSpecKeysMissingInShopify,
   shopifyProductSpecValuesFromSnapshot,
+  shopifyProductSpecValuesFromWindows,
 } from "@/lib/products/shopify-product-specs";
 
 describe("shopify product specs ownership", () => {
@@ -58,6 +60,36 @@ describe("shopify product specs ownership", () => {
       finish: "PVD gold",
       care_instructions: "",
     });
+  });
+
+  it("falls back to Shopify pull when OUR extras has no metafields (Golden Wheat shape)", () => {
+    const shopifySnapshot = {
+      metafields: [
+        { namespace: "custom", key: "finish", type: "single_line_text_field", value: "18K Gold PVD" },
+        { namespace: "custom", key: "wrist_fit", type: "single_line_text_field", value: "16–18 cm" },
+        { namespace: "custom", key: "color", type: "single_line_text_field", value: "Gold" },
+        { namespace: "custom", key: "metal", type: "single_line_text_field", value: "316L steel" },
+        { namespace: "custom", key: "stone", type: "single_line_text_field", value: "None" },
+        { namespace: "custom", key: "plating", type: "single_line_text_field", value: "18K Gold PVD" },
+        { namespace: "custom", key: "size", type: "single_line_text_field", value: "One size" },
+      ],
+    };
+    expect(shopifyProductSpecValuesFromWindows(
+      { metafieldTranslations: { pt: { "custom::finish": "Acabamento" } } },
+      shopifySnapshot,
+    )).toMatchObject({
+      finish: "18K Gold PVD",
+      wrist_fit: "16–18 cm",
+      color: "Gold",
+      metal: "316L steel",
+      stone: "None",
+      plating: "18K Gold PVD",
+      size: "One size",
+    });
+    expect(shopifyProductSpecKeysMissingInShopify(shopifySnapshot)).not.toContain("finish");
+    expect(shopifyProductSpecKeysMissingInShopify({})).toEqual(
+      expect.arrayContaining(["finish", "wrist_fit", "color", "metal", "stone", "plating", "size"]),
+    );
   });
 
   it("projects custom.* specs into ProductCharacteristic rows for PDP", () => {
