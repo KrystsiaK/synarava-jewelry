@@ -8,7 +8,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { ArrowRight, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
@@ -778,6 +778,7 @@ function ConflictResolverSession({
     [allRows, supportsWholeRecord],
   );
   const selectedCount = Object.keys(selections).length;
+  // Selection/Apply pause on load, preview, or catalog check. Close/Esc only while writing.
   const busy = applying || loading || previewLoading || checkRunning;
 
   useEffect(() => {
@@ -1035,7 +1036,7 @@ function ConflictResolverSession({
     <>
       <AnimatedModal
         open={!preview}
-        onClose={busy ? () => undefined : closeAll}
+        onClose={applying ? () => undefined : closeAll}
         ariaLabel={adapter.ariaLabel}
         portalClassName="admin-modal-root"
         zIndexClassName="z-[200]"
@@ -1057,65 +1058,80 @@ function ConflictResolverSession({
             variant="ghost"
             className="grid size-11 place-items-center p-0"
             onClick={closeAll}
-            disabled={busy}
+            disabled={applying}
             aria-label="Close conflicts"
           >
             <X className="size-4" aria-hidden="true" />
           </AdminButton>
         </header>
-        <div className="min-h-0 space-y-6 overflow-y-auto p-5">
-          {loading && allRows.length === 0 ? (
-            <p className="inline-flex items-center gap-2 text-sm text-[var(--adm-muted)]" role="status">
-              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
-              Loading live comparison…
-            </p>
-          ) : null}
-          {!loading && entityIds.length === 0 ? (
-            <p className="adm-copy py-8 text-center">
-              Nothing differs right now. Use the Shopify button in the top bar to refresh.
-            </p>
-          ) : null}
-          {truncatedLoad ? (
-            <Notice tone="warning">
-              Showing the first {MAX_LOAD_ENTITIES} of {entityIds.length} items. Resolve these, then open again for the rest.
-            </Notice>
-          ) : null}
-          {grouped.map(({ entityId, entity, fields }) => {
-            const summary = resolveConflictEntitySummary({
-              id: entityId,
-              entityNoun: adapter.entityNoun,
-              entity,
-              fields,
-            });
-            return (
-            <article
-              key={entityId}
-              ref={entityId === focusedEntityId ? focusedRef : undefined}
-              tabIndex={entityId === focusedEntityId ? -1 : undefined}
-              className="space-y-3 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)]"
+        <div className="flex min-h-0 flex-col">
+          {checkRunning ? (
+            <div
+              role="status"
+              className="mx-5 mt-5 flex shrink-0 items-start gap-2 rounded-lg border border-[var(--adm-warning)] p-3 text-sm"
+              style={{
+                background: "color-mix(in srgb, var(--adm-warning) 10%, var(--adm-panel))",
+                color: "var(--adm-warning)",
+              }}
             >
-              <ConflictEntityHeader summary={summary} entityNoun={adapter.entityNoun} />
-              {fields.length === 0 && !loading ? (
-                <Notice>Nothing differs for this item in the current view.</Notice>
-              ) : null}
-              {fields.map((field) => (
-                <ConflictRow
-                  key={`${entityId}:${field.fieldKey}`}
-                  field={field}
-                  selectedDirection={selections[selectionKey(entityId, field.fieldKey)]}
-                  busy={busy}
-                  supportsWholeRecord={supportsWholeRecord}
-                  entityId={entityId}
-                  entityNoun={adapter.entityNoun}
-                  onToggle={(direction) => toggleSelection(entityId, field, direction)}
-                />
-              ))}
-            </article>
-            );
-          })}
+              <AlertTriangle size={14} strokeWidth={1.8} className="mt-0.5 shrink-0" aria-hidden="true" />
+              <span>A Shopify check is running. Choices are paused until it finishes.</span>
+            </div>
+          ) : null}
+          <div className="min-h-0 flex-1 space-y-6 overflow-y-auto p-5">
+            {loading && allRows.length === 0 ? (
+              <p className="inline-flex items-center gap-2 text-sm text-[var(--adm-muted)]" role="status">
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+                Loading live comparison…
+              </p>
+            ) : null}
+            {!loading && entityIds.length === 0 ? (
+              <p className="adm-copy py-8 text-center">
+                Nothing differs right now. Use the Shopify button in the top bar to refresh.
+              </p>
+            ) : null}
+            {truncatedLoad ? (
+              <Notice tone="warning">
+                Showing the first {MAX_LOAD_ENTITIES} of {entityIds.length} items. Resolve these, then open again for the rest.
+              </Notice>
+            ) : null}
+            {grouped.map(({ entityId, entity, fields }) => {
+              const summary = resolveConflictEntitySummary({
+                id: entityId,
+                entityNoun: adapter.entityNoun,
+                entity,
+                fields,
+              });
+              return (
+              <article
+                key={entityId}
+                ref={entityId === focusedEntityId ? focusedRef : undefined}
+                tabIndex={entityId === focusedEntityId ? -1 : undefined}
+                className="space-y-3 focus-visible:outline-2 focus-visible:outline-[var(--adm-warning)]"
+              >
+                <ConflictEntityHeader summary={summary} entityNoun={adapter.entityNoun} />
+                {fields.length === 0 && !loading ? (
+                  <Notice>Nothing differs for this item in the current view.</Notice>
+                ) : null}
+                {fields.map((field) => (
+                  <ConflictRow
+                    key={`${entityId}:${field.fieldKey}`}
+                    field={field}
+                    selectedDirection={selections[selectionKey(entityId, field.fieldKey)]}
+                    busy={busy}
+                    supportsWholeRecord={supportsWholeRecord}
+                    entityId={entityId}
+                    entityNoun={adapter.entityNoun}
+                    onToggle={(direction) => toggleSelection(entityId, field, direction)}
+                  />
+                ))}
+              </article>
+              );
+            })}
+          </div>
         </div>
         <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-[var(--adm-border)] bg-[var(--adm-panel)] p-4">
-          <AdminButton variant="ghost" onClick={closeAll} disabled={busy}>
+          <AdminButton variant="ghost" onClick={closeAll} disabled={applying}>
             Close
           </AdminButton>
           <div className="flex flex-wrap items-center gap-2">

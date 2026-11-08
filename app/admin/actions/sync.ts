@@ -38,6 +38,7 @@ import {
   type CollectionConflictApplyScope,
 } from "@/lib/shopify/collection-conflict-apply";
 import { markIncomingProductUpdateViewed } from "@/lib/shopify/catalog-conflict-review";
+import { getCatalogCheckConflictWriteBlock } from "@/lib/shopify/reconciliation-run";
 import {
   gateWriteConvergence,
   type IntendedConflictAddress,
@@ -185,6 +186,8 @@ export async function pushSingleProductToShopifyAction(
   const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    const blocked = await getCatalogCheckConflictWriteBlock();
+    if (blocked) return { error: blocked };
     await assertConfiguredShopifyStore();
     if (expectedFingerprints && expectedFingerprints.length > 0) {
       const fresh = await assertWholeRecordFingerprintsFresh({
@@ -260,6 +263,8 @@ export async function pullSingleProductFromShopifyAction(
   const session = await requireAdminSession("/admin/products");
   if (!hasShopifyAdminConfig()) return { error: "Shopify Admin API credentials are not configured." };
   try {
+    const blocked = await getCatalogCheckConflictWriteBlock();
+    if (blocked) return { error: blocked };
     await assertConfiguredShopifyStore();
     if (expectedFingerprints && expectedFingerprints.length > 0) {
       const fresh = await assertWholeRecordFingerprintsFresh({

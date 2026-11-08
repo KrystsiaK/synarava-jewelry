@@ -1,6 +1,7 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { AdminShopifyCheckProvider } from "@/components/admin/translations/admin-shopify-check-context";
 import {
   ConflictResolver,
   type ConflictPreviewModel,
@@ -636,5 +637,130 @@ describe("ConflictResolver", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText(shopifyOnlyId)).not.toBeInTheDocument();
     expect(screen.getByText("All languages")).toBeInTheDocument();
+  });
+
+  it("keeps Close/Esc available when checkRunning and loading are true", async () => {
+    const onClose = vi.fn();
+    const adapter = createAdapter({
+      loadEntityFields: vi.fn(() => new Promise(() => undefined)),
+    });
+
+    render(
+      <AdminShopifyCheckProvider initialRunning>
+        <ConflictResolver
+          open
+          onClose={onClose}
+          adapter={adapter}
+          entityIds={["p1"]}
+          entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+          focusedEntityId={null}
+          onToast={vi.fn()}
+        />
+      </AdminShopifyCheckProvider>,
+    );
+
+    expect(screen.getByRole("button", { name: "Close conflicts" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+    expect(
+      screen.getByText("A Shopify check is running. Choices are paused until it finishes."),
+    ).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the check-running banner only while checkRunning, with Close still enabled", async () => {
+    const adapter = createAdapter();
+    const { rerender } = render(
+      <AdminShopifyCheckProvider initialRunning>
+        <ConflictResolver
+          open
+          onClose={vi.fn()}
+          adapter={adapter}
+          entityIds={["p1"]}
+          entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+          focusedEntityId={null}
+          onToast={vi.fn()}
+        />
+      </AdminShopifyCheckProvider>,
+    );
+
+    expect(await screen.findByText("Title")).toBeInTheDocument();
+    expect(
+      screen.getByText("A Shopify check is running. Choices are paused until it finishes."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+
+    rerender(
+      <AdminShopifyCheckProvider initialRunning={false}>
+        <ConflictResolver
+          open
+          onClose={vi.fn()}
+          adapter={adapter}
+          entityIds={["p1"]}
+          entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+          focusedEntityId={null}
+          onToast={vi.fn()}
+        />
+      </AdminShopifyCheckProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("A Shopify check is running. Choices are paused until it finishes."),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+  });
+
+  it("does not close on Esc while applying", async () => {
+    let resolveApply: ((value: Awaited<ReturnType<ConflictResolverAdapter["applySelections"]>>) => void) | undefined;
+    const onClose = vi.fn();
+    const adapter = createAdapter({
+      applySelections: vi.fn(
+        () =>
+          new Promise((resolve) => {
+            resolveApply = resolve;
+          }),
+      ),
+    });
+
+    render(
+      <ConflictResolver
+        open
+        onClose={onClose}
+        adapter={adapter}
+        entityIds={["p1"]}
+        entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+        focusedEntityId={null}
+        onToast={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText("Title")).toBeInTheDocument();
+    const titleSection = screen.getByText("Title").closest("section") as HTMLElement;
+    fireEvent.click(within(titleSection).getByRole("button", { name: /Shopify/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Apply (1)" }));
+    const preview = await screen.findByRole("dialog", { name: "Confirm changes before writing" });
+    fireEvent.click(within(preview).getByRole("button", { name: "Confirm changes" }));
+
+    await waitFor(() => {
+      expect(within(preview).getByRole("button", { name: "Close preview" })).toBeDisabled();
+    });
+    expect(within(preview).getByRole("button", { name: "Cancel" })).toBeDisabled();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByRole("dialog", { name: "Confirm changes before writing" })).toBeInTheDocument();
+
+    await waitFor(() => {
+      resolveApply?.({
+        outcome: {
+          appliedCount: 1,
+          failedCount: 0,
+          results: [{ entityId: "p1", ok: true }],
+        },
+        success: "1 change applied.",
+      });
+      expect(onClose).toHaveBeenCalled();
+    });
   });
 });

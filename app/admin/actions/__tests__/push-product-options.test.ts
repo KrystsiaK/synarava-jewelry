@@ -19,6 +19,7 @@ const mocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
   revalidateStorefront: vi.fn(),
   gateWriteConvergence: vi.fn(),
+  getCatalogCheckConflictWriteBlock: vi.fn(async (): Promise<string | null> => null),
 }));
 
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
@@ -61,6 +62,10 @@ vi.mock("@/lib/shopify/product-metafields-admin", () => ({
 vi.mock("@/lib/shopify/catalog-conflict-review", () => ({
   markIncomingProductUpdateViewed: vi.fn(),
 }));
+vi.mock("@/lib/shopify/reconciliation-run", () => ({
+  CATALOG_CHECK_RUNNING_WRITE_ERROR: "A Shopify check is running, try again when it finishes",
+  getCatalogCheckConflictWriteBlock: mocks.getCatalogCheckConflictWriteBlock,
+}));
 vi.mock("@/lib/sync/conflicts/service", () => ({
   applyResolution: vi.fn(),
   loadEntityConflict: vi.fn(),
@@ -97,6 +102,7 @@ beforeEach(() => {
   mocks.runAfterSaveCatalogConflictCheck.mockResolvedValue(undefined);
   mocks.inspectProductSyncState.mockResolvedValue({ state: "CONFLICT" });
   mocks.gateWriteConvergence.mockResolvedValue({ ok: true });
+  mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(null);
 });
 
 describe("pushSingleProductToShopifyAction options", () => {
@@ -199,5 +205,33 @@ describe("pushSingleProductToShopifyAction options", () => {
       error: "Shopify has newer changes. Review the conflict before pushing.",
     });
     expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
+  });
+
+  it("rejects whole-record push while a FULL catalog check is active", async () => {
+    mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(
+      "A Shopify check is running, try again when it finishes",
+    );
+
+    const result = await pushSingleProductToShopifyAction("product-1", {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: false,
+    }, fingerprints);
+
+    expect(result).toEqual({
+      error: "A Shopify check is running, try again when it finishes",
+    });
+    expect(mocks.pushProductToShopify).not.toHaveBeenCalled();
+  });
+
+  it("allows whole-record push after FAILED / expired (not blocking)", async () => {
+    mocks.getCatalogCheckConflictWriteBlock.mockResolvedValue(null);
+
+    const result = await pushSingleProductToShopifyAction("product-1", {
+      authorizeCommerceConflictOverwrite: true,
+      pushRegisteredTranslations: false,
+    }, fingerprints);
+
+    expect(result.error).toBeUndefined();
+    expect(mocks.pushProductToShopify).toHaveBeenCalled();
   });
 });
