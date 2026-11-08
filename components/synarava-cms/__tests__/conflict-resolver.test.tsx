@@ -662,10 +662,54 @@ describe("ConflictResolver", () => {
     expect(screen.getByRole("button", { name: "Close conflicts" })).toBeEnabled();
     expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
     expect(
-      screen.getByText("A Shopify check is running, choices are paused"),
+      screen.getByText("A Shopify check is running. Choices are paused until it finishes."),
     ).toBeInTheDocument();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the check-running banner only while checkRunning, with Close still enabled", async () => {
+    const adapter = createAdapter();
+    const { rerender } = render(
+      <AdminShopifyCheckProvider initialRunning>
+        <ConflictResolver
+          open
+          onClose={vi.fn()}
+          adapter={adapter}
+          entityIds={["p1"]}
+          entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+          focusedEntityId={null}
+          onToast={vi.fn()}
+        />
+      </AdminShopifyCheckProvider>,
+    );
+
+    expect(await screen.findByText("Title")).toBeInTheDocument();
+    expect(
+      screen.getByText("A Shopify check is running. Choices are paused until it finishes."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
+
+    rerender(
+      <AdminShopifyCheckProvider initialRunning={false}>
+        <ConflictResolver
+          open
+          onClose={vi.fn()}
+          adapter={adapter}
+          entityIds={["p1"]}
+          entities={[{ id: "p1", name: "PENDING-SKU Untitled product" }]}
+          focusedEntityId={null}
+          onToast={vi.fn()}
+        />
+      </AdminShopifyCheckProvider>,
+    );
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("A Shopify check is running. Choices are paused until it finishes."),
+      ).not.toBeInTheDocument();
+    });
+    expect(screen.getByRole("button", { name: "Close" })).toBeEnabled();
   });
 
   it("does not close on Esc while applying", async () => {

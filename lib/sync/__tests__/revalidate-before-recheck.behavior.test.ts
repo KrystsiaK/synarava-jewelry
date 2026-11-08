@@ -49,6 +49,10 @@ vi.mock("@/lib/shopify/catalog-conflict-signals-server", () => ({
   getCollectionConflictSignals: vi.fn(),
   runProductConflictCheck: vi.fn(),
 }));
+vi.mock("@/lib/shopify/reconciliation-run", () => ({
+  CATALOG_CHECK_RUNNING_WRITE_ERROR: "A Shopify check is running, try again when it finishes",
+  isCatalogCheckBlockingWrites: vi.fn(async () => false),
+}));
 
 import { applyResolution } from "@/lib/sync/conflicts/service";
 

@@ -30,6 +30,10 @@ import {
   type CollectionConflictPreview,
 } from "@/lib/shopify/collection-conflict-apply";
 import { loadCollectionConflictFromSyncResult } from "@/lib/shopify/collection-conflict";
+import {
+  CATALOG_CHECK_RUNNING_WRITE_ERROR,
+  isCatalogCheckBlockingWrites,
+} from "@/lib/shopify/reconciliation-run";
 
 export type ConflictEntity = "product" | "collection";
 
@@ -40,6 +44,7 @@ const ERRORS = {
   signalsFailed: "Could not load conflict status.",
   productConflictFailed: "Could not load this product's conflict details.",
   collectionConflictFailed: "Could not load this collection's conflict details.",
+  catalogCheckRunning: CATALOG_CHECK_RUNNING_WRITE_ERROR,
 } as const;
 
 function applyMessages(appliedCount: number, failedCount: number) {
@@ -209,6 +214,7 @@ export async function previewResolution(
   username: string,
 ): Promise<ConflictPreviewResult<CatalogConflictPreview | CollectionConflictPreview>> {
   if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
+  if (await isCatalogCheckBlockingWrites()) return { error: ERRORS.catalogCheckRunning };
   try {
     if (entity === "product") {
       const productScope = scope as CatalogConflictApplyScope;
@@ -251,6 +257,7 @@ export async function applyResolution(
   username: string,
 ): Promise<ConflictApplyResult<CatalogConflictApplyOutcome | CollectionConflictApplyOutcome>> {
   if (!hasShopifyAdminConfig()) return { error: ERRORS.shopifyNotConfigured };
+  if (await isCatalogCheckBlockingWrites()) return { error: ERRORS.catalogCheckRunning };
   try {
     if (entity === "product") {
       const productInput = input as { entries: CatalogConflictApplyEntryInput[]; acknowledgeClears: boolean };

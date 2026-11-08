@@ -249,6 +249,18 @@ export function isReconcileRunActivelyChecking(run: ReconcileRunSummary | null):
   }, Date.now());
 }
 
+/** Clear error when conflict preview/apply must wait for an in-flight catalog check. */
+export const CATALOG_CHECK_RUNNING_WRITE_ERROR =
+  "A Shopify check is running, try again when it finishes";
+
+/**
+ * Latest FULL catalog run after expire-on-read, still QUEUED/RUNNING within lease.
+ * Conflict writes pause; dismiss UI must not.
+ */
+export async function isCatalogCheckBlockingWrites(): Promise<boolean> {
+  return isReconcileRunActivelyChecking(await getLatestReconcileRun());
+}
+
 async function createOrReuseRun({
   trigger,
   scope,
