@@ -39,10 +39,12 @@ export function translationOverlayIdentities(translations: MetafieldTranslations
 /**
  * Push PT/RU text overlays to Shopify Metafield translations (`key: value`).
  *
- * Targets are the union of translatable EN custom metafields in OUR window and
- * identities present in `metafieldTranslations`. Overlay-only products (EN specs
- * already on Shopify, overlays saved locally) must still register — do not
- * require EN rows in extras. Missing Metafield GIDs fail explicitly.
+ * Targets need a Metafield GID only when there is a **non-empty EN** value in OUR
+ * window or a **non-empty** locale overlay. Empty EN rows (common after Save of
+ * blank Product-tab specs) never get `metafieldsSet` GIDs — they are neither
+ * translation targets nor missing-GID errors. Overlay-only products (EN on
+ * Shopify, overlays in extras) still register. Real overlays / non-empty EN
+ * without a GID fail explicitly.
  *
  * @see https://shopify.dev/docs/apps/build/markets/manage-translated-content
  */
@@ -73,7 +75,10 @@ export async function pushCustomMetafieldTranslations({
   const identities = new Set<string>();
 
   for (const [identity, item] of byIdentity) {
-    if (isTranslatableMetafieldType(item.type)) identities.add(identity);
+    if (!isTranslatableMetafieldType(item.type)) continue;
+    // Empty EN never creates a Shopify metafield on Push — skip as a target.
+    if (!item.value.trim()) continue;
+    identities.add(identity);
   }
   for (const identity of overlayIdentities) {
     const type = byIdentity.get(identity)?.type
@@ -85,10 +90,7 @@ export async function pushCustomMetafieldTranslations({
   if (identities.size === 0 || locales.length === 0) return;
 
   const missingGids = [...identities]
-    .filter((identity) => {
-      const needsPush = byIdentity.has(identity) || overlayIdentities.has(identity);
-      return needsPush && !idByIdentity.has(identity);
-    })
+    .filter((identity) => !idByIdentity.has(identity))
     .map(metafieldDotIdentity)
     .toSorted();
 
@@ -102,11 +104,11 @@ export async function pushCustomMetafieldTranslations({
   for (const locale of locales) {
     const bucket = translations[locale.code] ?? {};
     for (const identity of identities) {
-      const hasEnTarget = byIdentity.has(identity);
+      const hasNonEmptyEn = Boolean(byIdentity.get(identity)?.value.trim());
       const overlay = bucket[identity];
-      // Overlay-only identities: skip blank (do not clear unknown remote state).
-      // EN window targets keep clear-on-blank semantics.
-      if (!hasEnTarget && !(overlay?.trim())) continue;
+      // Overlay-only: skip blank locales (do not clear unknown remote state).
+      // Non-empty EN keeps clear-on-blank semantics for that locale.
+      if (!hasNonEmptyEn && !(overlay?.trim())) continue;
       const resourceId = idByIdentity.get(identity);
       if (!resourceId) continue;
       await registerTranslations({

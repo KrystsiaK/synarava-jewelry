@@ -102,4 +102,66 @@ describe("pushCustomMetafieldTranslations — product specs overlays", () => {
 
     expect(registerTranslations).not.toHaveBeenCalled();
   });
+
+  it("ignores empty EN custom.* without GID and still registers overlays that have GIDs", async () => {
+    // pushProductMetafields skips empty values → custom.stone never gets a GID.
+    // Empty EN + no overlay must not throw; finish overlay with GID must register.
+    await pushCustomMetafieldTranslations({
+      metafieldRefs: [
+        {
+          id: "gid://shopify/Metafield/finish",
+          namespace: "custom",
+          key: "finish",
+          type: "single_line_text_field",
+        },
+      ],
+      workingSnapshot: {
+        metafields: [
+          { namespace: "custom", key: "finish", type: "single_line_text_field", value: "18K Gold PVD" },
+          { namespace: "custom", key: "stone", type: "single_line_text_field", value: "" },
+        ],
+        metafieldTranslations: {
+          pt: { "custom::finish": "Acabamento dourado" },
+        },
+      },
+      locales: [{ code: "pt", shopifyLocale: "pt-PT" }],
+    });
+
+    expect(registerTranslations).toHaveBeenCalledTimes(1);
+    expect(registerTranslations).toHaveBeenCalledWith({
+      resourceId: "gid://shopify/Metafield/finish",
+      locale: "pt-PT",
+      values: { value: "Acabamento dourado" },
+    });
+  });
+
+  it("throws naming custom.stone when an overlay has no Metafield GID", async () => {
+    await expect(
+      pushCustomMetafieldTranslations({
+        metafieldRefs: [
+          {
+            id: "gid://shopify/Metafield/finish",
+            namespace: "custom",
+            key: "finish",
+            type: "single_line_text_field",
+          },
+        ],
+        workingSnapshot: {
+          metafields: [
+            { namespace: "custom", key: "finish", type: "single_line_text_field", value: "18K Gold PVD" },
+            { namespace: "custom", key: "stone", type: "single_line_text_field", value: "" },
+          ],
+          metafieldTranslations: {
+            pt: {
+              "custom::finish": "Acabamento dourado",
+              "custom::stone": "Sem pedra",
+            },
+          },
+        },
+        locales: [{ code: "pt", shopifyLocale: "pt-PT" }],
+      }),
+    ).rejects.toThrow(/custom\.stone/);
+
+    expect(registerTranslations).not.toHaveBeenCalled();
+  });
 });
