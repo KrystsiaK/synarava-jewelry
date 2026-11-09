@@ -10,14 +10,18 @@ import {
 import { SOURCE_LOCALE } from "@/components/admin/products/product-editor-scope";
 import {
   SHOPIFY_PRODUCT_SPEC_FIELDS,
+  shopifyProductSpecKeysMissingInShopify,
   shopifyProductSpecOverlaysFromTranslations,
-  shopifyProductSpecValuesFromSnapshot,
+  shopifyProductSpecValuesFromWindows,
 } from "@/lib/products/shopify-product-specs";
 import {
   customMetafieldTypeFieldName,
   customMetafieldValueFieldName,
   metafieldTranslationsFromSnapshot,
 } from "@/lib/shopify/product-metafields-shared";
+
+const MISSING_SHOPIFY_METAFIELD_WARNING =
+  "Missing in Shopify — Save the English value and Push first so this metafield exists. PT/RU Markets translations need a Metafield GID.";
 
 function HiddenSpecOverlayFields({
   overlaysByLocale,
@@ -60,8 +64,8 @@ export function ShopifyProductSpecsFields({
   activeLocale?: string;
   translationLocales?: Array<{ code: string }>;
 }) {
-  const snapshot = workingSnapshot ?? shopifySnapshot;
-  const enValues = shopifyProductSpecValuesFromSnapshot(snapshot);
+  const enValues = shopifyProductSpecValuesFromWindows(workingSnapshot, shopifySnapshot);
+  const missingInShopify = new Set(shopifyProductSpecKeysMissingInShopify(shopifySnapshot));
   const allTranslations = metafieldTranslationsFromSnapshot(workingSnapshot ?? shopifySnapshot);
   const [overlaysByLocale, setOverlaysByLocale] = useState<Record<string, Record<string, string>>>(() => {
     const initial: Record<string, Record<string, string>> = {};
@@ -74,6 +78,7 @@ export function ShopifyProductSpecsFields({
 
   const isEn = activeLocale === SOURCE_LOCALE;
   const overlay = overlaysByLocale[activeLocale] ?? {};
+  const missingCount = missingInShopify.size;
 
   function updateOverlay(key: string, value: string) {
     if (isEn) return;
@@ -109,6 +114,17 @@ export function ShopifyProductSpecsFields({
             ? "Edit English values here. Vendor, product type, and category are above."
             : "Optional translation overlays for this language. Blank falls back to English / Shopify Markets translations."}
         </p>
+        {!isEn && missingCount > 0 ? (
+          <p
+            className="mt-2 text-xs leading-5 text-[var(--adm-warning)]"
+            role="status"
+            data-testid="shopify-specs-missing-metafields"
+          >
+            {missingCount} spec{missingCount === 1 ? "" : "s"} missing in Shopify (no Metafield
+            GID). Save English values and Push first — PT/RU Markets translations cannot register
+            without the metafield on the product.
+          </p>
+        ) : null}
       </div>
 
       <HiddenSpecOverlayFields overlaysByLocale={overlaysForSubmit} />
@@ -119,11 +135,14 @@ export function ShopifyProductSpecsFields({
           const typeName = customMetafieldTypeFieldName("custom", spec.key);
           const enValue = enValues[spec.key] ?? "";
           const overlayValue = overlay[spec.key] ?? "";
+          const missing = missingInShopify.has(spec.key);
+          const localeWarning = !isEn && missing ? MISSING_SHOPIFY_METAFIELD_WARNING : undefined;
 
           return (
             <div
               key={spec.key}
               className={spec.multiline ? "min-w-0 md:col-span-2" : "min-w-0"}
+              data-missing-shopify-metafield={missing ? "true" : "false"}
             >
               <input type="hidden" name={typeName} value={spec.type} readOnly />
               <div hidden={!isEn} aria-hidden={!isEn || undefined}>
@@ -154,6 +173,7 @@ export function ShopifyProductSpecsFields({
                     onChange={(value) => updateOverlay(spec.key, value)}
                     placeholder={enValue || undefined}
                     help={`custom.${spec.key} · ${activeLocale.toUpperCase()}`}
+                    warning={localeWarning}
                   />
                 ) : (
                   <AdminTextField
@@ -163,6 +183,7 @@ export function ShopifyProductSpecsFields({
                     onChange={(event) => updateOverlay(spec.key, event.target.value)}
                     placeholder={enValue || undefined}
                     help={`custom.${spec.key} · ${activeLocale.toUpperCase()}`}
+                    warning={localeWarning}
                   />
                 )
               ) : null}
