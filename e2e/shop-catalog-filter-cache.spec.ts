@@ -156,14 +156,34 @@ async function selectSortNewest(page: Page) {
   await expect(page).toHaveURL(/sort=newest/);
 }
 
-async function clickLoadMore(page: Page) {
-  const loadMore = page.getByRole("button", { name: /load more products|показать ещё|carregar mais/i });
-  await expect(loadMore).toBeVisible({ timeout: 15_000 });
-  await loadMore.click();
-  await expect(loadMore).toBeHidden({ timeout: 15_000 }).catch(async () => {
-    // Still visible when more pages remain — wait until card count grows instead.
-    await expect.poll(async () => productCards(page).count()).toBeGreaterThan(2);
-  });
+/**
+ * Drive catalog pagination until `expectedCount` cards are mounted.
+ * With tiny SSR pages the intersection sentinel often auto-loads before a
+ * manual Load more click; prefer card-count convergence over the button.
+ */
+async function ensureAllCatalogPagesLoaded(page: Page, expectedCount: number) {
+  await expect(productCards(page).first()).toBeVisible({ timeout: 15_000 });
+  await expect
+    .poll(
+      async () => {
+        const count = await productCards(page).count();
+        if (count >= expectedCount) return count;
+        const loadMore = page.getByRole("button", {
+          name: /load more products|показать ещё|carregar mais/i,
+        });
+        if (await loadMore.isVisible().catch(() => false)) {
+          await loadMore.click();
+        } else {
+          await page.evaluate(() => {
+            document.getElementById("shop-products")?.scrollIntoView({ block: "end" });
+            window.scrollBy(0, 480);
+          });
+        }
+        return productCards(page).count();
+      },
+      { timeout: 20_000 },
+    )
+    .toBe(expectedCount);
 }
 
 test.describe("Shop catalog filter cache ownership", () => {
@@ -216,9 +236,7 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(showingCounter(page)).toHaveText(productCountLabel(best.count), { timeout: 15_000 });
     await expect(productCards(page).first()).toBeVisible({ timeout: 15_000 });
 
-    // First fetch is limit=2 → Load more should appear while total is 3+.
-    await clickLoadMore(page);
-    await expect(productCards(page)).toHaveCount(best.count, { timeout: 15_000 });
+    await ensureAllCatalogPagesLoaded(page, best.count);
 
     await page.locator("#shop-products").scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => window.scrollY);
@@ -283,8 +301,7 @@ test.describe("Shop catalog filter cache ownership", () => {
     const filteredTotal = await readShowingCount(page);
     expect(filteredTotal).toBeLessThanOrEqual(totalInCollection);
 
-    await clickLoadMore(page);
-    await expect(productCards(page)).toHaveCount(filteredTotal, { timeout: 15_000 });
+    await ensureAllCatalogPagesLoaded(page, filteredTotal);
 
     await catalog.locator("#shop-products").scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => window.scrollY);
