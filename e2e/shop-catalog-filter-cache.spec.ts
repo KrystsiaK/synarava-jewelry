@@ -141,8 +141,11 @@ async function pickPaginatedProductTypeTile(page: Page, unfilteredCount: number)
 }
 
 async function selectSortNewest(page: Page) {
-  // Inactive sort shows "Featured" (inactiveLabel), not "Sort" — use the dropdown test id.
-  const sortDropdown = page.getByTestId("filter-dropdown-sort").first();
+  // Sort FilterDropdown keeps role=button; inactive accessible name is "Featured"
+  // (inactiveLabel), not "Sort" — /^sort$/i never matches. Desktop + mobile both
+  // mount filter-dropdown-sort; pick the visible instance after filter remount.
+  // https://playwright.dev/docs/locators#filtering-locators
+  const sortDropdown = page.getByTestId("filter-dropdown-sort").filter({ visible: true });
   await expect(sortDropdown).toBeVisible({ timeout: 10_000 });
   await sortDropdown.getByRole("button").click();
   await page.getByRole("option", { name: /newest/i }).click();
