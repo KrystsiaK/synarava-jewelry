@@ -15,7 +15,7 @@ URL is the source of truth. Invalid / unknown values whitelist-drop to defaults.
 URL writes are adapter-owned (never both):
 
 - **Admin** → `history.replaceState` only (no Next soft-navigation).
-- **Site** → `router.replace({ scroll: false })` only.
+- **Site** → `router.push({ scroll: false })` only (Back undoes a filter; App Router owns the entry).
 
 ## Adapters
 
@@ -38,9 +38,11 @@ When a new admin list gains search/status/sort controls, add a domain schema nex
 
 ## Storefront
 
-Shop and collection filter bars use the same core with the **site** adapter (`lib/catalog/shop-list-state.ts` + `useListState`).
+Shop and collection catalogs (`ShopPage`, `CollectionProductsCatalog`) and their filter bars share one URL writer: `useListState` + the **site** adapter (`lib/catalog/shop-list-state.ts`). No bare `history.pushState` and no local filter `useState` mirror.
 
-- URL-only (no session restore); legacy `synarava:shop-filters` is cleared on mount.
+- URL-only (no session/localStorage restore); legacy `synarava:shop-filters` is cleared on mount.
+- Site writes via `router.push` so Back undoes a filter (stays on the catalog) and App Router owns the history entry for product → Back.
 - Pinned collection on `/collections/[slug]` stays out of the query string via hook `pinned`.
+- Scroll / loaded pages stay in `lib/catalog/catalog-view-cache.ts` (not list-state).
 - URL snapshot tests in `lib/catalog/__tests__/shop-list-state.test.ts` lock shareable query identity.
 - Catalog queries / SEO (canonical, robots, hreflang) are unchanged.

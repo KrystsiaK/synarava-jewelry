@@ -17,7 +17,7 @@ import type { ListStateAdapter } from "./adapters";
 const URL_EVENT = "list-state:url";
 const DEFAULT_DEBOUNCE_MS = 280;
 
-/** Optimistic search after site `router.replace` — avoids a second history write. */
+/** Optimistic search after site `router.push` — avoids a second history write. */
 let pendingRouterSearch: string | null = null;
 
 export type UseListStateOptions<TState extends Record<string, unknown>> = {
@@ -108,8 +108,10 @@ function paramsFromSearch(search: string): URLSearchParams {
 
 /**
  * Shared list-state hook. URL is the source of truth.
- * Write path is adapter-owned: admin → `history.replaceState` only; site → `router.replace` only.
+ * Write path is adapter-owned: admin → `history.replaceState` only; site → `router.push` only.
  * Never both (no double URL write). Admin may restore the last session when the URL is bare.
+ * Site uses push so Back after a filter change undoes that filter instead of leaving the page,
+ * and so App Router owns the history entry (unlike bare `history.pushState`).
  * Committed state is derived with useSyncExternalStore — no local mirror, no render storms.
  */
 export function useListState<TState extends Record<string, unknown>>(
@@ -201,9 +203,11 @@ export function useListState<TState extends Record<string, unknown>>(
           window.dispatchEvent(new Event(URL_EVENT));
         }
       } else {
-        // Site: router.replace only — never history.replaceState (no double write).
+        // Site: router.push only — never history.replaceState (no double write).
+        // Push keeps filter changes on the history stack so Back undoes a filter
+        // instead of leaving the catalog, and Next owns the entry for PDP → Back.
         pendingRouterSearch = query ? `?${query}` : "";
-        router.replace(href, { scroll: false });
+        router.push(href, { scroll: false });
         if (typeof window !== "undefined") {
           window.dispatchEvent(new Event(URL_EVENT));
         }
