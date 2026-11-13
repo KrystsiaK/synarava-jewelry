@@ -160,6 +160,7 @@
       "other": "{count} в наличии"
     },
     "optionUnavailable": "Этот вариант недоступен",
+    "restockNotice": "Снова в наличии примерно через 10 дней",
     "shopifyUnavailable": "Недоступно",
     "selectOption": "Выберите вариант",
     "currentlyUnavailable": "Сейчас недоступно",

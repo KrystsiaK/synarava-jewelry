@@ -3,12 +3,29 @@ import { vi } from "vitest";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import type { ProductSummary } from "@/lib/content/catalog";
+import { TranslationProvider } from "@/lib/i18n/context";
 
 vi.mock("@/components/commerce/add-to-cart-button", () => ({
   AddToCartButton: ({ merchandiseId, disabled }: { merchandiseId?: string; disabled?: boolean }) => (
     <button type="button" disabled={disabled} data-merchandise-id={merchandiseId}>Add</button>
   ),
 }));
+
+const RESTOCK_NOTICE = "Back in stock in about 10 days";
+
+function renderPanel(
+  panelProduct: ProductSummary,
+  overrides?: Record<string, string>,
+) {
+  return render(
+    <TranslationProvider
+      initialLocale="en"
+      initialOverrides={{ en: { "product.restockNotice": RESTOCK_NOTICE, ...overrides } }}
+    >
+      <ProductPurchasePanel product={panelProduct} />
+    </TranslationProvider>,
+  );
+}
 
 const product = {
   slug: "woven-collar",
@@ -85,6 +102,57 @@ describe("ProductPurchasePanel", () => {
 
     expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
+  });
+
+  it("shows the restock notice when the selected variant is sold out", () => {
+    const soldOut = {
+      ...product,
+      variantDetails: product.variantDetails.map((variant) => ({
+        ...variant,
+        stockOnHand: 0,
+        available: false,
+      })),
+    };
+
+    renderPanel(soldOut);
+
+    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.getByText(RESTOCK_NOTICE)).toBeInTheDocument();
+  });
+
+  it("hides the restock notice when the selected variant is in stock", () => {
+    renderPanel(product);
+
+    expect(screen.getByText("2 in stock")).toBeInTheDocument();
+    expect(screen.queryByText(RESTOCK_NOTICE)).not.toBeInTheDocument();
+  });
+
+  it("hides the restock notice when the admin override is empty", () => {
+    const soldOut = {
+      ...product,
+      variantDetails: product.variantDetails.map((variant) => ({
+        ...variant,
+        stockOnHand: 0,
+        available: false,
+      })),
+    };
+
+    renderPanel(soldOut, { "product.restockNotice": "" });
+
+    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(RESTOCK_NOTICE)).not.toBeInTheDocument();
+  });
+
+  it("does not show the restock notice for choose-an-option or Shopify-unavailable states", () => {
+    const needsOption = {
+      ...product,
+      options: [{ name: "Size", values: ["Small", "Large"] }],
+      variantDetails: [],
+    } as ProductSummary;
+
+    renderPanel(needsOption);
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.queryByText(RESTOCK_NOTICE)).not.toBeInTheDocument();
   });
 
   it("shows only the selected variant's own discount, not a sibling variant's compare-at (REV-06)", () => {

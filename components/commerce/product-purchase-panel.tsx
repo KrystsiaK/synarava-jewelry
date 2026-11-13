@@ -45,6 +45,11 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
       variant.selectedOptions.every((option) => selection[option.name] === option.value),
     ) ?? (product.options.length === 0 ? initialVariant : undefined);
   const isAvailable = Boolean(selectedVariant?.merchandiseId && selectedVariant.available);
+  // Sold-out only — not “choose an option” or Shopify-unlinked variants.
+  const restockNotice =
+    selectedVariant && !selectedVariant.available
+      ? t("product.restockNotice").trim()
+      : "";
   // A selected variant's own price/compare-at is authoritative, including when it
   // has none — falling back to product.compareAtPrice (the first variant's) here
   // used to show a different variant's discount on the selected one (REV-06).
@@ -85,16 +90,23 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
             </span>
           ) : null}
         </div>
-        <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
-          <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-emerald-600" : "bg-couture-red"}`} aria-hidden="true" />
-          {selectedVariant
-            ? isAvailable
-              ? plural("product.stock", selectedVariant.stockOnHand)
-              : t("product.optionUnavailable")
-            : purchasableVariants.length === 0
-              ? t("product.shopifyUnavailable")
-              : t("product.selectOption")}
-        </p>
+        <div className="space-y-1">
+          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
+            <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-emerald-600" : "bg-couture-red"}`} aria-hidden="true" />
+            {selectedVariant
+              ? isAvailable
+                ? plural("product.stock", selectedVariant.stockOnHand)
+                : t("product.optionUnavailable")
+              : purchasableVariants.length === 0
+                ? t("product.shopifyUnavailable")
+                : t("product.selectOption")}
+          </p>
+          {restockNotice ? (
+            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
+              {restockNotice}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className={compact ? "space-y-4" : "space-y-5"}>
