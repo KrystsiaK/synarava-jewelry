@@ -21,6 +21,17 @@ export function clampPageSize(raw: string | null): number {
   return Math.min(Math.trunc(parsed), CATALOG_MAX_PAGE_SIZE);
 }
 
+/**
+ * SSR first-page size for shop / collection catalogs.
+ * `SHOP_CATALOG_PAGE_SIZE` overrides the default (Playwright webServer sets `2`
+ * so Load more still appears after URL-owned filter remounts use SSR `initialPage`).
+ */
+export function resolveShopCatalogPageSize(
+  env: NodeJS.ProcessEnv = process.env,
+): number {
+  return clampPageSize(env.SHOP_CATALOG_PAGE_SIZE ?? null);
+}
+
 /** Stable string identifying one locale + filter/sort combination. */
 function fingerprint(filters: ShopFilters, locale: Locale): string {
   const entries = Object.entries(filters)

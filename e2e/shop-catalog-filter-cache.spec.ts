@@ -65,7 +65,11 @@ async function expectFilteredEqualsTile(page: Page, tileCount: number) {
   await expect(showingCounter(page)).toHaveText(productCountLabel(tileCount), { timeout: 15_000 });
 }
 
-/** Force a tiny page size so Load more appears with the CI seed (3 Rings). */
+/**
+ * Client appends omit `limit`; rewrite them to 2 so Load more stays paginated.
+ * SSR first page uses `SHOP_CATALOG_PAGE_SIZE` from Playwright webServer (also 2):
+ * URL-owned filter remounts hydrate `initialPage` and skip this route until append.
+ */
 async function forceTinyCatalogPages(page: Page) {
   await page.route("**/api/catalog/products*", async (route) => {
     const url = new URL(route.request().url());
