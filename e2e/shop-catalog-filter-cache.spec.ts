@@ -276,8 +276,11 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(page).toHaveURL(/productType=Ring/);
     await expect(page).toHaveURL(/sort=newest/);
 
+    // Counter can flash 0 during URL remount — wait for the filtered total.
+    await expect
+      .poll(async () => readShowingCount(page), { timeout: 15_000 })
+      .toBeGreaterThan(2);
     const filteredTotal = await readShowingCount(page);
-    expect(filteredTotal).toBeGreaterThan(2);
     expect(filteredTotal).toBeLessThanOrEqual(totalInCollection);
 
     await clickLoadMore(page);

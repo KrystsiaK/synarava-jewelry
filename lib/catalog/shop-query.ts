@@ -23,13 +23,16 @@ export function clampPageSize(raw: string | null): number {
 
 /**
  * SSR first-page size for shop / collection catalogs.
- * `SHOP_CATALOG_PAGE_SIZE` overrides the default (Playwright webServer sets `2`
- * so Load more still appears after URL-owned filter remounts use SSR `initialPage`).
+ * `SHOP_CATALOG_PAGE_SIZE` overrides the default (Playwright webServer / CI smoke
+ * set `2` so Load more still appears after URL-owned filter remounts use SSR
+ * `initialPage`). Bracket access keeps the value runtime-dynamic under `next start`
+ * (static `process.env.FOO` can be inlined at build when unset).
+ * https://nextjs.org/docs/app/guides/environment-variables
  */
 export function resolveShopCatalogPageSize(
   env: NodeJS.ProcessEnv = process.env,
 ): number {
-  return clampPageSize(env.SHOP_CATALOG_PAGE_SIZE ?? null);
+  return clampPageSize(env["SHOP_CATALOG_PAGE_SIZE"] ?? null);
 }
 
 /** Stable string identifying one locale + filter/sort combination. */

@@ -262,5 +262,6 @@ jobs:
           node scripts/ci/seed-shop-filter-fixture.mjs
           # Build before smoke so Playwright starts `next start` (fast, deterministic)
           # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
-          pnpm build
+          # Tiny SSR page size so filter remounts still expose Load more (CI seed ≈3 Rings).
+          SHOP_CATALOG_PAGE_SIZE=2 pnpm build
           pnpm exec playwright test e2e/smoke.spec.ts e2e/shop-catalog-filter-cache.spec.ts --project=chromium --project=mobile-webkit-smoke
