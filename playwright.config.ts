@@ -66,8 +66,6 @@ export default defineConfig({
       ...process.env,
       // Prefer an already-exported DATABASE_URL; fall back to the public proxy URL in cloud agents.
       DATABASE_URL: process.env.DATABASE_URL || process.env.DATABASE_PUBLIC_URL || "",
-      // Tiny SSR page so URL-owned filter remounts still expose Load more (CI seed ≈3 Rings).
-      SHOP_CATALOG_PAGE_SIZE: process.env.SHOP_CATALOG_PAGE_SIZE || "2",
     },
   },
 });

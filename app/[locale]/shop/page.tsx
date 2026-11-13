@@ -7,7 +7,6 @@ import { storefrontMedia } from "@/lib/content/media-fallbacks";
 import { ShopPage } from "@/components/shop/shop-page";
 import type { ShopProductTypeTile } from "@/components/shop/shop-discovery";
 import { parseShopListState } from "@/lib/catalog/shop-list-state";
-import { resolveShopCatalogPageSize } from "@/lib/catalog/shop-query";
 import { getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { buildAlternates } from "@/lib/seo/alternates";
@@ -91,7 +90,7 @@ export default async function Page({ searchParams }: Props) {
     page,
   ] = await Promise.all([
     getShopFilterData(locale),
-    listShopCatalogPage({ filters, locale, limit: resolveShopCatalogPageSize() }),
+    listShopCatalogPage({ filters, locale, limit: 24 }),
     listShopCatalogPage({ filters: { sort: "newest" }, locale, limit: 8 }),
     listShopCatalogPage({ filters: { sort: "popular" }, locale, limit: 8 }),
     db.product.count({ where: { status: "ACTIVE", visibility: "PUBLIC" } }),

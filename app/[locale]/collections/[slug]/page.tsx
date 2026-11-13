@@ -4,7 +4,6 @@ import { notFound, redirect } from "next/navigation";
 import { getCollectionBySlug, getPageBySlug, getShopFilterData } from "@/lib/content/catalog";
 import { listShopCatalogPage } from "@/lib/content/shop-listing";
 import { parseShopListState } from "@/lib/catalog/shop-list-state";
-import { resolveShopCatalogPageSize } from "@/lib/catalog/shop-query";
 import { getRequestLocale, getServerTranslations } from "@/lib/i18n/server";
 import { localePath } from "@/lib/i18n/routing";
 import { getPublicSiteUrl } from "@/lib/seo/site-url";
@@ -95,7 +94,7 @@ export default async function Page({ params, searchParams }: Props) {
 
   const [filterData, firstPage, collectionsPage] = await Promise.all([
     getShopFilterData(locale),
-    listShopCatalogPage({ filters, locale, limit: resolveShopCatalogPageSize() }),
+    listShopCatalogPage({ filters, locale, limit: 24 }),
     getPageBySlug("collections", locale),
   ]);
   const { categories, productTypes, tags, collections, materials, finishes, origins } = filterData;

@@ -1,10 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  clampPageSize,
-  decodeCatalogCursor,
-  encodeCatalogCursor,
-  resolveShopCatalogPageSize,
-} from "../shop-query";
+import { clampPageSize, decodeCatalogCursor, encodeCatalogCursor } from "../shop-query";
 
 describe("catalog cursor", () => {
   it("round-trips to the id it was minted for", () => {
@@ -41,13 +36,5 @@ describe("clampPageSize", () => {
 
   it("passes through a valid in-range size", () => {
     expect(clampPageSize("12")).toBe(12);
-  });
-});
-
-describe("resolveShopCatalogPageSize", () => {
-  it("defaults to 24 and honors SHOP_CATALOG_PAGE_SIZE", () => {
-    expect(resolveShopCatalogPageSize({})).toBe(24);
-    expect(resolveShopCatalogPageSize({ SHOP_CATALOG_PAGE_SIZE: "2" })).toBe(2);
-    expect(resolveShopCatalogPageSize({ SHOP_CATALOG_PAGE_SIZE: "99" })).toBe(48);
   });
 });
