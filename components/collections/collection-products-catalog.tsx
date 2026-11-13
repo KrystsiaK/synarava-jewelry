@@ -7,11 +7,36 @@ import { DisplayHeading } from "@/components/ui/display-heading";
 import { FilterBar, type FilterBarProps } from "@/components/shop/filter-bar";
 import { ShopCatalogClient, type InitialCatalogPage } from "@/components/shop/shop-catalog-client";
 import { buildSearchParams, type ShopFilters } from "@/components/shop/types";
+import {
+  createSiteListStateAdapter,
+  useListState,
+} from "@/components/shared/list-state";
+import {
+  shopListStateSchema,
+  type ShopListState,
+} from "@/lib/catalog/shop-list-state";
 import { buildCatalogViewKey } from "@/lib/catalog/catalog-view-cache";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const siteListAdapter = createSiteListStateAdapter<ShopListState>();
+
+function toListState(filters: ShopFilters): ShopListState {
+  return {
+    q: filters.q,
+    availability: filters.availability,
+    category: filters.category,
+    productType: filters.productType,
+    collection: filters.collection,
+    tag: filters.tag,
+    material: filters.material,
+    finish: filters.finish,
+    origin: filters.origin,
+    certified: filters.certified,
+    sort: filters.sort ?? "featured",
+  };
+}
 
 export type CollectionProductsCatalogProps = {
   collectionName: string;
@@ -38,7 +63,12 @@ export function CollectionProductsCatalog({
   const headerRef = useRef<HTMLDivElement>(null);
   const isInView = useInView(headerRef, { once: true, margin: "-8%" });
   const pinnedFilters = { collection: collectionSourceSlug } as const;
-  const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
+  const listPathname = localePath(locale, collectionPath);
+  const { state: activeFilters, setState } = useListState(shopListStateSchema, siteListAdapter, {
+    initialState: toListState(filterProps.initialFilters),
+    pathname: listPathname,
+    pinned: pinnedFilters,
+  });
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
   const activeFingerprint = buildSearchParams(activeFilters);
   const ssrFingerprint = buildSearchParams(filterProps.initialFilters);
@@ -48,15 +78,7 @@ export function CollectionProductsCatalog({
   );
 
   const selectFilters = (filters: ShopFilters) => {
-    const next = { ...filters, collection: collectionSourceSlug };
-    setActiveFilters(next);
-    const forUrl = { ...next, collection: undefined };
-    const qs = buildSearchParams(forUrl);
-    window.history.pushState(
-      null,
-      "",
-      localePath(locale, qs ? `${collectionPath}?${qs}` : collectionPath),
-    );
+    setState(toListState({ ...filters, collection: collectionSourceSlug }));
   };
 
   return (
@@ -92,7 +114,6 @@ export function CollectionProductsCatalog({
             {...filterProps}
             initialFilters={activeFilters}
             totalCount={totalCount}
-            onFiltersChange={setActiveFilters}
             basePath={collectionPath}
             pinnedFilters={pinnedFilters}
           />

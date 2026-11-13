@@ -5,7 +5,7 @@ import { createListStateStorage, type ListStateStorage } from "./storage";
 /**
  * How the hook writes the list-state query string into the address bar.
  * Admin: `history.replaceState` only (no Next soft-navigation).
- * Site: `router.replace` only (shareable SEO URLs stay in the App Router).
+ * Site: `router.push` only (App Router history; Back undoes a filter).
  */
 export type ListStateUrlWriteMode = "history" | "router";
 
