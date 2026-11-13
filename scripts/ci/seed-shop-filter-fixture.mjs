@@ -25,6 +25,13 @@ export const FIXTURE_PRODUCTS = [
   { productType: "Bracelet", slug: "ci-filter-bracelet-1", sku: "CI-FILTER-BRAC-1", name: "CI Filter Bracelet 1" },
 ];
 
+/** ACTIVE/PUBLIC collection for `/collections/[slug]` Back-restore e2e. */
+export const FIXTURE_COLLECTION = {
+  slug: "ci-filter",
+  name: "CI Filter Collection",
+  code: "CI-FILTER",
+};
+
 /**
  * @param {string | undefined} databaseUrl
  * @returns {string | null} hostname, or null if unparseable / missing
@@ -59,8 +66,9 @@ export function assertSafeCiSeedEnv(env) {
 /** @param {object} prisma PrismaClient instance */
 async function seed(prisma) {
   const publishedAt = new Date();
+  const products = [];
   for (const row of FIXTURE_PRODUCTS) {
-    await prisma.product.upsert({
+    const product = await prisma.product.upsert({
       where: { slug: row.slug },
       create: {
         slug: row.slug,
@@ -83,8 +91,49 @@ async function seed(prisma) {
         publishedAt,
       },
     });
+    products.push(product);
   }
-  return FIXTURE_PRODUCTS.length;
+
+  const collection = await prisma.collection.upsert({
+    where: { slug: FIXTURE_COLLECTION.slug },
+    create: {
+      slug: FIXTURE_COLLECTION.slug,
+      name: FIXTURE_COLLECTION.name,
+      code: FIXTURE_COLLECTION.code,
+      status: "ACTIVE",
+      visibility: "PUBLIC",
+      publishedAt,
+      sortOrder: 0,
+      isStorefrontDefault: false,
+    },
+    update: {
+      name: FIXTURE_COLLECTION.name,
+      code: FIXTURE_COLLECTION.code,
+      status: "ACTIVE",
+      visibility: "PUBLIC",
+      publishedAt,
+      isStorefrontDefault: false,
+    },
+  });
+
+  for (const [index, product] of products.entries()) {
+    await prisma.productCollection.upsert({
+      where: {
+        productId_collectionId: {
+          productId: product.id,
+          collectionId: collection.id,
+        },
+      },
+      create: {
+        productId: product.id,
+        collectionId: collection.id,
+        sortOrder: index,
+      },
+      update: { sortOrder: index },
+    });
+  }
+
+  return { productCount: FIXTURE_PRODUCTS.length, collectionSlug: collection.slug };
 }
 
 async function main() {
@@ -102,8 +151,10 @@ async function main() {
   const { PrismaClient } = await import(prismaModuleId);
   const prisma = new PrismaClient();
   try {
-    const count = await seed(prisma);
-    console.log(`seed-shop-filter-fixture: upserted ${count} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1)`);
+    const result = await seed(prisma);
+    console.log(
+      `seed-shop-filter-fixture: upserted ${result.productCount} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1) + collection /${result.collectionSlug}`,
+    );
   } finally {
     await prisma.$disconnect();
   }
