@@ -3,6 +3,7 @@ import {
   ALLOWED_DB_HOSTS,
   assertSafeCiSeedEnv,
   databaseUrlHost,
+  FIXTURE_COLLECTION,
   FIXTURE_PRODUCTS,
 } from "../seed-shop-filter-fixture.mjs";
 
@@ -53,5 +54,10 @@ describe("seed-shop-filter-fixture safety", () => {
     expect(byType.get("Ring")).toBe(3);
     expect(byType.get("Earrings")).toBe(2);
     expect(byType.get("Bracelet")).toBe(1);
+  });
+
+  it("exposes an ACTIVE/PUBLIC collection slug for collection Back e2e", () => {
+    expect(FIXTURE_COLLECTION.slug).toBe("ci-filter");
+    expect(FIXTURE_COLLECTION.slug.length).toBeGreaterThan(0);
   });
 });

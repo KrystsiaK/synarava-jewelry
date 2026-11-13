@@ -8,6 +8,14 @@ import { motion, useInView } from "motion/react";
 import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
 import { buildCatalogViewKey } from "@/lib/catalog/catalog-view-cache";
+import {
+  shopListStateSchema,
+  type ShopListState,
+} from "@/lib/catalog/shop-list-state";
+import {
+  createSiteListStateAdapter,
+  useListState,
+} from "@/components/shared/list-state";
 import { FilterBar, type FilterBarProps } from "./filter-bar";
 import { buildSearchParams, type ShopFilters } from "./types";
 import { ShopDiscovery, type ShopProductTypeTile } from "./shop-discovery";
@@ -19,6 +27,23 @@ import { plainTextFromRichText } from "@/lib/content/rich-text";
 import type { ResolvedShopStorefrontCopy } from "@/lib/content/shop-page-copy";
 
 const ease = [0.22, 1, 0.36, 1] as const;
+const siteListAdapter = createSiteListStateAdapter<ShopListState>();
+
+function toListState(filters: ShopFilters): ShopListState {
+  return {
+    q: filters.q,
+    availability: filters.availability,
+    category: filters.category,
+    productType: filters.productType,
+    collection: filters.collection,
+    tag: filters.tag,
+    material: filters.material,
+    finish: filters.finish,
+    origin: filters.origin,
+    certified: filters.certified,
+    sort: filters.sort ?? "featured",
+  };
+}
 
 export function ShopHero({
   heroImage,
@@ -232,7 +257,11 @@ export function ShopPage({
   copy,
 }: ShopPageProps) {
   const { t, locale } = useTranslations();
-  const [activeFilters, setActiveFilters] = useState<ShopFilters>(filterProps.initialFilters);
+  const listPathname = localePath(locale, "/shop");
+  const { state: activeFilters, setState } = useListState(shopListStateSchema, siteListAdapter, {
+    initialState: toListState(filterProps.initialFilters),
+    pathname: listPathname,
+  });
   const [totalCount, setTotalCount] = useState(initialPage.totalCount);
   const activeFingerprint = buildSearchParams(activeFilters);
   const ssrFingerprint = buildSearchParams(filterProps.initialFilters);
@@ -241,9 +270,7 @@ export function ShopPage({
     [locale, activeFingerprint],
   );
   const selectDiscoveryFilters = (filters: ShopFilters) => {
-    setActiveFilters(filters);
-    const qs = buildSearchParams(filters);
-    window.history.pushState(null, "", `${localePath(locale, qs ? `/shop?${qs}` : "/shop")}#shop-products`);
+    setState(toListState(filters));
     window.requestAnimationFrame(() => {
       document.getElementById("shop-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
     });
@@ -285,7 +312,6 @@ export function ShopPage({
             filterProps={{
               ...filterProps,
               initialFilters: activeFilters,
-              onFiltersChange: setActiveFilters,
             }}
             totalCount={totalCount}
             labels={copy?.filters}

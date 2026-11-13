@@ -80,13 +80,13 @@ describe("useListState", () => {
     expect(replace).not.toHaveBeenCalled();
   });
 
-  it("site adapter writes via router.replace only (no history double-write)", async () => {
+  it("site adapter writes via router.push only (no history double-write)", async () => {
     const adapter = createSiteListStateAdapter<{ q: string; sort: "published" | "updated" | "name-asc" }>();
-    const replace = vi.fn();
+    const push = vi.fn();
     const replaceStateSpy = vi.spyOn(window.history, "replaceState");
     vi.mocked(useRouter).mockReturnValue({
-      push: vi.fn(),
-      replace,
+      push,
+      replace: vi.fn(),
       prefetch: vi.fn(),
       refresh: vi.fn(),
       back: vi.fn(),
@@ -101,7 +101,7 @@ describe("useListState", () => {
       result.current.setField("q", "gold");
     });
 
-    expect(replace).toHaveBeenCalledWith("/?q=gold", { scroll: false });
+    expect(push).toHaveBeenCalledWith("/?q=gold", { scroll: false });
     expect(replaceStateSpy.mock.calls.length).toBe(historyCallsBefore);
     replaceStateSpy.mockRestore();
   });
@@ -152,10 +152,10 @@ describe("useListState", () => {
   it("debounces text search commits", async () => {
     vi.useFakeTimers();
     const adapter = createSiteListStateAdapter<{ q: string; sort: "published" | "updated" | "name-asc" }>();
-    const replace = vi.fn();
+    const push = vi.fn();
     vi.mocked(useRouter).mockReturnValue({
-      push: vi.fn(),
-      replace,
+      push,
+      replace: vi.fn(),
       prefetch: vi.fn(),
       refresh: vi.fn(),
       back: vi.fn(),
@@ -180,7 +180,7 @@ describe("useListState", () => {
     });
 
     expect(result.current.state.q).toBe("gold");
-    expect(replace).toHaveBeenCalled();
+    expect(push).toHaveBeenCalled();
     vi.useRealTimers();
   });
 
