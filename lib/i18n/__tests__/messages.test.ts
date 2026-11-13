@@ -1,9 +1,21 @@
+import de from "@/messages/de.json";
 import en from "@/messages/en.json";
+import fr from "@/messages/fr.json";
+import pl from "@/messages/pl.json";
 import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "@/lib/i18n/utils";
 
+const ALL_MESSAGE_FILES = { de, en, fr, pl, pt, ru } as const;
+
 describe("storefront message dictionaries", () => {
+  it("includes product.restockNotice in every locale catalog", () => {
+    for (const [locale, catalog] of Object.entries(ALL_MESSAGE_FILES)) {
+      const flat = flattenMessages(catalog as Record<string, unknown>);
+      expect(flat["product.restockNotice"]?.trim().length, locale).toBeGreaterThan(0);
+    }
+  });
+
   it("keeps the EN and PT key sets identical", () => {
     const enKeys = Object.keys(flattenMessages(en as Record<string, unknown>)).sort();
     const ptKeys = Object.keys(flattenMessages(pt as Record<string, unknown>)).sort();

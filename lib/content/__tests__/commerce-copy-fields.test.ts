@@ -15,6 +15,7 @@ describe("commerce copy fields", () => {
     expect(COMMERCE_COPY_KEYS.filter((key) => synced.has(key))).toEqual([]);
     expect(COMMERCE_COPY_KEYS).toContain("nav.cart");
     expect(COMMERCE_COPY_KEYS).toContain("loginPage.submit");
+    expect(COMMERCE_COPY_KEYS).toContain("product.restockNotice");
     expect(STOREFRONT_COPY_KEYS).not.toContain("nav.cart");
   });
 
