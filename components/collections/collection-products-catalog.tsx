@@ -119,21 +119,20 @@ export function CollectionProductsCatalog({
           />
         </motion.div>
 
-        <div id="shop-products">
-          <ShopCatalogClient
-            key={catalogViewKey}
-            initialPage={activeFingerprint === ssrFingerprint ? initialPage : null}
-            filters={activeFilters}
-            onSelectFilters={selectFilters}
-            categories={filterProps.categories}
-            productTypes={filterProps.productTypes}
-            collections={filterProps.collections}
-            tags={filterProps.tags}
-            onTotalCountChange={setTotalCount}
-            basePath={collectionPath}
-            pinnedFilters={pinnedFilters}
-          />
-        </div>
+        {/* ShopCatalogClient owns `#shop-products` — do not wrap with a second id. */}
+        <ShopCatalogClient
+          key={catalogViewKey}
+          initialPage={activeFingerprint === ssrFingerprint ? initialPage : null}
+          filters={activeFilters}
+          onSelectFilters={selectFilters}
+          categories={filterProps.categories}
+          productTypes={filterProps.productTypes}
+          collections={filterProps.collections}
+          tags={filterProps.tags}
+          onTotalCountChange={setTotalCount}
+          basePath={collectionPath}
+          pinnedFilters={pinnedFilters}
+        />
       </div>
     </section>
   );

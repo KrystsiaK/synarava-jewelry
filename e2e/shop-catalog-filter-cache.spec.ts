@@ -74,20 +74,27 @@ async function forceTinyCatalogPages(page: Page) {
   });
 }
 
-async function pickNarrowestProductTypeTile(page: Page, unfilteredCount: number) {
+type ProductTypeTilePick = { locator: Locator; count: number; href: string };
+
+async function scanProductTypeTiles(page: Page): Promise<ProductTypeTilePick[]> {
   const tiles = productTypeTiles(page);
   await expect(tiles.first()).toBeVisible();
   const tileCount = await tiles.count();
-
-  let best: { locator: Locator; count: number; href: string } | null = null;
+  const found: ProductTypeTilePick[] = [];
   for (let i = 0; i < tileCount; i += 1) {
     const tile = tiles.nth(i);
     const count = parseProductCount(await tile.innerText());
     if (count === null || count <= 0) continue;
-    if (!best || count < best.count) {
-      const href = (await tile.getAttribute("href")) ?? "";
-      best = { locator: tile, count, href };
-    }
+    found.push({ locator: tile, count, href: (await tile.getAttribute("href")) ?? "" });
+  }
+  return found;
+}
+
+async function pickNarrowestProductTypeTile(page: Page, unfilteredCount: number) {
+  const found = await scanProductTypeTiles(page);
+  let best: ProductTypeTilePick | null = null;
+  for (const tile of found) {
+    if (!best || tile.count < best.count) best = tile;
   }
 
   const hasSuitableTile = Boolean(best && best.count < unfilteredCount);
@@ -100,6 +107,34 @@ async function pickNarrowestProductTypeTile(page: Page, unfilteredCount: number)
   expect(
     hasSuitableTile,
     "CI requires a product-type tile with a positive count strictly below the unfiltered shop total (seed fixture missing?)",
+  ).toBe(true);
+
+  return best!;
+}
+
+/**
+ * Tile large enough that a limit=2 catalog page still has a next page (Load more),
+ * but still narrower than the unfiltered shop total.
+ */
+async function pickPaginatedProductTypeTile(page: Page, unfilteredCount: number) {
+  const found = await scanProductTypeTiles(page);
+  // Prefer the smallest count that still paginates under limit=2.
+  let best: ProductTypeTilePick | null = null;
+  for (const tile of found) {
+    if (tile.count <= 2 || tile.count >= unfilteredCount) continue;
+    if (!best || tile.count < best.count) best = tile;
+  }
+
+  const hasSuitableTile = Boolean(best);
+  if (!process.env.CI) {
+    test.skip(
+      !hasSuitableTile,
+      "No product-type tile with count > 2 and strictly below the unfiltered shop total",
+    );
+  }
+  expect(
+    hasSuitableTile,
+    "CI requires a product-type tile with count > 2 and strictly below the unfiltered shop total (seed fixture missing?)",
   ).toBe(true);
 
   return best!;
@@ -160,7 +195,8 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(page.locator("#shop-products")).toBeVisible();
 
     const unfilteredCount = await readShowingCount(page);
-    const best = await pickNarrowestProductTypeTile(page, unfilteredCount);
+    // Narrowest tile is often Bracelet (1) — need count > 2 so limit=2 still Load-mores.
+    const best = await pickPaginatedProductTypeTile(page, unfilteredCount);
     expect(best.count).toBeGreaterThan(2);
 
     await best.locator.click();
@@ -212,13 +248,16 @@ test.describe("Shop catalog filter cache ownership", () => {
 
     await forceTinyCatalogPages(page);
     await page.goto(`/en/collections/${CI_COLLECTION_SLUG}`);
-    await expect(page.locator("#shop-products")).toBeVisible({ timeout: 20_000 });
+    const catalog = page.locator('[data-component="CollectionProductsCatalog"]');
+    await expect(catalog).toBeVisible({ timeout: 20_000 });
+    await expect(catalog.locator("#shop-products")).toHaveCount(1);
+    await expect(catalog.locator("#shop-products")).toBeVisible();
 
     const totalInCollection = await readShowingCount(page);
     expect(totalInCollection).toBeGreaterThan(2);
 
     // Filter 1: product type Ring (3 of 6 in the CI collection).
-    const typeButton = page.getByRole("button", { name: /^product type$/i }).first();
+    const typeButton = catalog.getByRole("button", { name: /^product type$/i }).first();
     await expect(typeButton).toBeVisible({ timeout: 10_000 });
     await typeButton.click();
     await page.getByRole("option", { name: /^ring$/i }).click();
@@ -236,7 +275,7 @@ test.describe("Shop catalog filter cache ownership", () => {
     await clickLoadMore(page);
     await expect(productCards(page)).toHaveCount(filteredTotal, { timeout: 15_000 });
 
-    await page.locator("#shop-products").scrollIntoViewIfNeeded();
+    await catalog.locator("#shop-products").scrollIntoViewIfNeeded();
     const scrollBefore = await page.evaluate(() => window.scrollY);
     expect(scrollBefore).toBeGreaterThan(0);
 
