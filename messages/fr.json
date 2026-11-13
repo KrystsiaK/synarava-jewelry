@@ -103,5 +103,8 @@
   },
   "language": {
     "select": "Choisir la langue"
+  },
+  "product": {
+    "restockNotice": "De retour en stock dans environ 10 jours"
   }
 }

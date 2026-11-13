@@ -2,7 +2,10 @@ import "server-only";
 
 import { cache } from "react";
 
-import { COMMERCE_COPY_KEY } from "@/lib/content/commerce-copy-fields";
+import {
+  COMMERCE_COPY_ALLOW_EMPTY_KEYS,
+  COMMERCE_COPY_KEY,
+} from "@/lib/content/commerce-copy-fields";
 import type { LocaleCopy } from "@/lib/content/commerce-copy-fields";
 import { db } from "@/lib/db";
 
@@ -10,11 +13,14 @@ export { COMMERCE_COPY_KEY };
 
 function strings(value: unknown): Record<string, string> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  return Object.fromEntries(
-    Object.entries(value).filter((entry): entry is [string, string] =>
-      typeof entry[1] === "string" && entry[1].trim().length > 0,
-    ),
-  );
+  const next: Record<string, string> = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "string") continue;
+    const trimmed = raw.trim();
+    if (trimmed) next[key] = trimmed;
+    else if (COMMERCE_COPY_ALLOW_EMPTY_KEYS.has(key)) next[key] = "";
+  }
+  return next;
 }
 
 function allLocales(value: unknown): LocaleCopy {
@@ -28,6 +34,7 @@ function applyUpdates(base: Record<string, string>, updates: Record<string, stri
   for (const [key, value] of Object.entries(updates)) {
     const trimmed = value.trim();
     if (trimmed) next[key] = trimmed;
+    else if (COMMERCE_COPY_ALLOW_EMPTY_KEYS.has(key)) next[key] = "";
     else delete next[key];
   }
   return next;

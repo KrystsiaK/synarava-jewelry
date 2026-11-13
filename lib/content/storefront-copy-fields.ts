@@ -22,6 +22,11 @@ export type StorefrontCopyField = {
   area?: boolean;
   /** Short tooltip explaining exactly what this field controls on the storefront. */
   hint?: string;
+  /**
+   * When true, saving an empty string keeps an explicit blank override
+   * (hides the catalog default) instead of deleting the key.
+   */
+  allowEmpty?: boolean;
 };
 
 export type StorefrontCopyGroup = {

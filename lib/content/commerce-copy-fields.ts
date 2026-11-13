@@ -117,6 +117,12 @@ const CHECKOUT_GROUP: StorefrontCopyGroup = {
     { key: "product.addFailedTitle", label: "Error title" },
     { key: "product.addFailed", label: "Error body" },
     { key: "product.tryAgain", label: "Try again" },
+    {
+      key: "product.restockNotice",
+      label: "Restock notice",
+      hint: "Shown under stock status when the selected option is sold out. Empty = hidden",
+      allowEmpty: true,
+    },
   ],
 };
 
@@ -160,6 +166,13 @@ export const COMMERCE_COPY_GROUPS: StorefrontCopyGroup[] = [
 
 export const COMMERCE_COPY_KEYS: string[] = COMMERCE_COPY_GROUPS.flatMap((group) =>
   group.fields.map((field) => field.key),
+);
+
+/** Keys that persist `""` so the storefront can hide the catalog default. */
+export const COMMERCE_COPY_ALLOW_EMPTY_KEYS: ReadonlySet<string> = new Set(
+  COMMERCE_COPY_GROUPS.flatMap((group) =>
+    group.fields.filter((field) => field.allowEmpty).map((field) => field.key),
+  ),
 );
 
 /** Keys edited with AdminRichTextField — sanitize on server persist. */
