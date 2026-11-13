@@ -363,6 +363,7 @@
       "other": "{count} in stock"
     },
     "optionUnavailable": "This option is unavailable",
+    "restockNotice": "Back in stock in about 10 days",
     "shopifyUnavailable": "Unavailable",
     "selectOption": "Select an option",
     "currentlyUnavailable": "Currently unavailable",

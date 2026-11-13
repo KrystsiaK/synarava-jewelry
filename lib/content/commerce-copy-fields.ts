@@ -117,6 +117,11 @@ const CHECKOUT_GROUP: StorefrontCopyGroup = {
     { key: "product.addFailedTitle", label: "Error title" },
     { key: "product.addFailed", label: "Error body" },
     { key: "product.tryAgain", label: "Try again" },
+    {
+      key: "product.restockNotice",
+      label: "Restock notice",
+      hint: "Shown under stock status when the selected option is sold out. Empty = hidden",
+    },
   ],
 };
 
