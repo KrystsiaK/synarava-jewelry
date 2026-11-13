@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  COMMERCE_COPY_ALLOW_EMPTY_KEYS,
   COMMERCE_COPY_KEYS,
   overlayLegacyHeaderLabels,
 } from "@/lib/content/commerce-copy-fields";
@@ -16,6 +17,7 @@ describe("commerce copy fields", () => {
     expect(COMMERCE_COPY_KEYS).toContain("nav.cart");
     expect(COMMERCE_COPY_KEYS).toContain("loginPage.submit");
     expect(COMMERCE_COPY_KEYS).toContain("product.restockNotice");
+    expect(COMMERCE_COPY_ALLOW_EMPTY_KEYS.has("product.restockNotice")).toBe(true);
     expect(STOREFRONT_COPY_KEYS).not.toContain("nav.cart");
   });
 
