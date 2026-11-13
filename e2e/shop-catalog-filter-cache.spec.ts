@@ -141,9 +141,10 @@ async function pickPaginatedProductTypeTile(page: Page, unfilteredCount: number)
 }
 
 async function selectSortNewest(page: Page) {
-  const sortButton = page.getByRole("button", { name: /^sort$/i }).first();
-  await expect(sortButton).toBeVisible({ timeout: 10_000 });
-  await sortButton.click();
+  // Inactive sort shows "Featured" (inactiveLabel), not "Sort" — use the dropdown test id.
+  const sortDropdown = page.getByTestId("filter-dropdown-sort").first();
+  await expect(sortDropdown).toBeVisible({ timeout: 10_000 });
+  await sortDropdown.getByRole("button").click();
   await page.getByRole("option", { name: /newest/i }).click();
   await expect(page).toHaveURL(/sort=newest/);
 }
