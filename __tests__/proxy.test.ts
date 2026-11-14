@@ -7,7 +7,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
-import { proxy } from "@/proxy";
+import { config as proxyConfig, proxy } from "@/proxy";
 
 const REGISTRY_ROWS = [
   {
@@ -175,6 +175,14 @@ describe("admin session proxy", () => {
   });
 });
 
+describe("print/QR short-link matcher guards", () => {
+  it("excludes /ig and /gift from the proxy matcher", () => {
+    const source = proxyConfig.matcher?.[0]?.source ?? "";
+    expect(source).toContain("ig(?:/|$)");
+    expect(source).toContain("gift(?:/|$)");
+  });
+});
+
 describe("registry-driven locale routing", () => {
   it("passes through a published locale prefix and sets x-locale", async () => {
     const response = await proxy(new NextRequest("https://synarava.test/pt/shop"));
@@ -196,6 +204,20 @@ describe("registry-driven locale routing", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("https://synarava.test/pt/shop");
+  });
+
+  it("preserves print/QR utm query params on the locale redirect hop", async () => {
+    const response = await proxy(
+      new NextRequest(
+        "https://synarava.test/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
+        { headers: { cookie: "synarava-locale=pt" } },
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/pt/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
+    );
   });
 
   it("ignores a cookie for a registered but unpublished locale and falls back to default", async () => {
