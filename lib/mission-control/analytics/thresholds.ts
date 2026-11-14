@@ -67,6 +67,13 @@ export const ANALYTICS_THRESHOLDS = {
   clarityNumOfDays: 3 as 1 | 2 | 3,
   /** Default GA lookback for funnel / telemetry / silence checks. */
   gaLookbackDays: 28,
+  /** Visit pulse window (current vs previous). */
+  visitPulseDays: 7,
+  /**
+   * Sessions down vs prior week by more than this fraction → warn.
+   * Strictly greater (40% exact does not warn).
+   */
+  visitDropWarnFraction: 0.4,
 } as const;
 
 export type AnalyticsThresholds = typeof ANALYTICS_THRESHOLDS;

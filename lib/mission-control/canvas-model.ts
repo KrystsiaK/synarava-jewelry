@@ -88,7 +88,12 @@ export function buildCanvasGraph({ config, catalog, nodeStatuses = [], flowStatu
     if (!definition) return [];
     const status = statuses.get(widgetKey);
     const level: ServiceStatusLevel = definition.kind === "live" ? status?.level ?? "unknown" : "unknown";
-    const href = definition.env[environment].href.trim() || status?.href || null;
+    // Prefer absolute outbound href from collector (e.g. GA Acquisition deep link).
+    const statusHref = status?.href?.trim() || "";
+    const envHref = definition.env[environment].href.trim();
+    const href = statusHref.startsWith("http")
+      ? statusHref
+      : envHref || statusHref || null;
     return [{
       id: widgetKey, type: "missionControl", parentId: `group:${definition.group}`, extent: "parent" as const,
       position: positions[widgetKey] ?? definition.position,

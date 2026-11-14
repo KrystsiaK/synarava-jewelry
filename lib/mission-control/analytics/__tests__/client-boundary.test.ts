@@ -14,6 +14,9 @@ describe("Analytics client/server boundary", () => {
       "analytics/ga-jwt",
       "analytics/ga-client",
       "analytics/clarity-client",
+      "analytics/ga-visit-pulse",
+      "fetchGaVisitPulse",
+      "fetchGaEventCounts",
     ];
     const clientFiles = [
       "components/admin/mission-control/mission-control-node-modal.tsx",
@@ -21,6 +24,8 @@ describe("Analytics client/server boundary", () => {
       "components/admin/mission-control/mission-control-status-node.tsx",
       "components/admin/mission-control/mission-control-canvas.tsx",
       "components/admin/mission-control/mission-control-copy-report-button.tsx",
+      "app/admin/(admin)/mission-control/page.tsx",
+      "lib/mission-control/live-snapshot.ts",
     ];
     for (const file of clientFiles) {
       const source = read(file);
@@ -28,6 +33,13 @@ describe("Analytics client/server boundary", () => {
         expect(source, `${file} must not import ${bad}`).not.toContain(bad);
       }
     }
+  });
+
+  it("hub page loads collector-persisted snapshot only (no GA client)", () => {
+    const page = read("app/admin/(admin)/mission-control/page.tsx");
+    expect(page).toContain("loadMissionControlSnapshot");
+    expect(page).not.toContain("getAnalyticsStatus");
+    expect(page).not.toContain("runReport");
   });
 
   it("exposes client-safe payload readers without node/server imports", () => {
