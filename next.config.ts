@@ -107,14 +107,34 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
-  // Short, clean link for the Instagram profile. Temporary (307) so the target
-  // can change; the UTM tags attribute visits to the profile link.
+  // Print/QR short links. Temporary (307) so destinations can change without
+  // reprinting codes. Bare /shop (not /en/shop): proxy locale-prefixes and
+  // must keep utm_* on that hop (see __tests__/proxy.test.ts).
+  // https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects
   async redirects() {
     return [
       {
         source: "/ig",
         destination:
-          "/en/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+          "/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+        permanent: false,
+      },
+      {
+        source: "/gift/box",
+        destination:
+          "/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
+        permanent: false,
+      },
+      {
+        source: "/gift/card",
+        destination:
+          "/shop?utm_source=card&utm_medium=print&utm_campaign=packaging",
+        permanent: false,
+      },
+      // Typo safety for /gift without a suffix — shop, no box/card source.
+      {
+        source: "/gift",
+        destination: "/shop",
         permanent: false,
       },
     ];
