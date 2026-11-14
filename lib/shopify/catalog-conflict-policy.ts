@@ -54,8 +54,27 @@ export function isScopedCommerceFieldLabel(label: string): boolean {
   return isScopedCommerceFieldLabelFromRegistry(label) || isMediaGalleryFieldLabel(label);
 }
 
+/**
+ * Product field-level Apply / compare selectability.
+ * Must NOT use the product∪collection union — collection scopes Description /
+ * SEO title / SEO description while product keeps those whole-record-only.
+ */
+export function isScopedProductCommerceFieldLabel(label: string): boolean {
+  return isScopedProductCommerceLabel(label) || isMediaGalleryFieldLabel(label);
+}
+
 export function isScopedCollectionCommerceFieldLabel(label: string): boolean {
   return isScopedCollectionCommerceLabel(label);
+}
+
+/** Resource-aware scoped check for compare / apply gates (ADR-0010). */
+export function isScopedCommerceFieldLabelForResource(
+  label: string,
+  resourceType: "PRODUCT" | "COLLECTION",
+): boolean {
+  return resourceType === "COLLECTION"
+    ? isScopedCollectionCommerceFieldLabel(label)
+    : isScopedProductCommerceFieldLabel(label);
 }
 
 export { isScopedProductCommerceLabel };

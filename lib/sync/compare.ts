@@ -15,7 +15,7 @@ import {
   COMMERCE_UNSUPPORTED_REASON,
   MULTI_VARIANT_PUSH_BLOCKED_REASON,
   PENDING_SKU_BLOCKED_REASON,
-  isScopedCommerceFieldLabel,
+  isScopedCommerceFieldLabelForResource,
 } from "@/lib/shopify/catalog-conflict-policy";
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { CollectionPresenceDifference } from "@/lib/shopify/collection-presence";
@@ -231,7 +231,7 @@ function commerceLeaf(
   const path = diff.path ?? "";
   const unmapped = Boolean(path) && isUnmappedWindowPath(path, resourceType);
   const contract = path ? lookupContractForPath(path, resourceType) : null;
-  const supported = !unmapped && isScopedCommerceFieldLabel(diff.field);
+  const supported = !unmapped && isScopedCommerceFieldLabelForResource(diff.field, resourceType);
   const keySource = path.trim() || diff.field;
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
   const section: SyncConflictSection = unmapped ? "shopify" : (contract?.section ?? "shopify");
@@ -412,7 +412,7 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
     }
     if (window.ourWindow == null) continue;
     const diffs = diffShopifyProjections(window.ourWindow, window.shopifySnapshot);
-    if (window.resourceType === "PRODUCT" && diffs.some((d) => !isScopedCommerceFieldLabel(d.field))) {
+    if (window.resourceType === "PRODUCT" && diffs.some((d) => !isScopedCommerceFieldLabelForResource(d.field, "PRODUCT"))) {
       if (diffs.length > 0) {
         leaves.push(wholeItemCommerceLeaf(window.resourceId, diffs, {
           multiVariant: isMultiVariantCommerceWindow(window.ourWindow, window.shopifySnapshot),

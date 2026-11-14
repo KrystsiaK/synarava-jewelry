@@ -246,7 +246,10 @@ export const config = {
   // Skip proxy body cloning for admin API uploads (videos can exceed the
   // aligned 12 MB proxyClientMaxBodySize). Page Server Actions still go
   // through proxy with that cap; auth still runs inside each route handler.
-  matcher: [{ source: "/((?!api|admin/api|_next/static|_next/image|favicon.ico|.*\\..*).*)", missing: [
+  // Exclude /ig and /gift* so a matcher hit cannot treat them as unknown
+  // locales if redirects() were ever skipped. next.config redirects still run
+  // first: https://nextjs.org/docs/app/api-reference/file-conventions/proxy
+  matcher: [{ source: "/((?!api|admin/api|_next/static|_next/image|favicon.ico|ig(?:/|$)|gift(?:/|$)|.*\\..*).*)", missing: [
     { type: "header", key: "next-router-prefetch" },
     { type: "header", key: "purpose", value: "prefetch" },
   ] }],

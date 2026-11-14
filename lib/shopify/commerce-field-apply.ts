@@ -21,11 +21,16 @@ import {
 import {
   PENDING_SKU_BLOCKED_REASON,
   isMediaGalleryFieldLabel,
-  isScopedCommerceFieldLabel,
+  isScopedProductCommerceFieldLabel,
 } from "./catalog-conflict-policy";
 import { needsSkuAssignment } from "@/lib/sku/pending-sku";
 
-export { SCOPED_COMMERCE_FIELD_LABELS, isMediaGalleryFieldLabel, isScopedCommerceFieldLabel } from "./catalog-conflict-policy";
+export {
+  SCOPED_COMMERCE_FIELD_LABELS,
+  isMediaGalleryFieldLabel,
+  isScopedCommerceFieldLabel,
+  isScopedProductCommerceFieldLabel,
+} from "./catalog-conflict-policy";
 
 type UserError = { field?: string[] | null; message: string };
 
@@ -307,7 +312,9 @@ export async function applyCommerceField({
   expectedShopifyFingerprint: string;
   requestedBy?: string;
 }): Promise<CommerceFieldApplyResult> {
-  if (!isScopedCommerceFieldLabel(label)) {
+  // Product apply only — never the product∪collection union (Description / SEO
+  // are collection-scoped labels but product whole-record-only).
+  if (!isScopedProductCommerceFieldLabel(label)) {
     return { ok: false, reason: "UNSUPPORTED", message: `${label} is not a supported commerce field.` };
   }
 

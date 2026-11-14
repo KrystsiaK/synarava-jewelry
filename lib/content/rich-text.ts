@@ -267,6 +267,47 @@ export function sanitizeRichTextHtml(input: string): string {
   return result;
 }
 
+/**
+ * Block tags from the rich-text allowlist (plus common block tags sanitize may
+ * drop today). Whitespace between *these* tags is formatting noise; whitespace
+ * between inline tags (a, strong, em, …) is visible and must stay.
+ */
+const COMPARE_BLOCK_TAGS = new Set([
+  "p", "ul", "ol", "li", "br", "div", "blockquote",
+  "h1", "h2", "h3", "h4", "h5", "h6",
+]);
+
+function tagNameEndingAt(html: string, gtIndex: number): string | null {
+  const start = Math.max(0, gtIndex - 96);
+  const m = /<\/?([a-z][a-z0-9]*)\b[^>]*>$/i.exec(html.slice(start, gtIndex + 1));
+  return m?.[1]?.toLowerCase() ?? null;
+}
+
+function tagNameStartingAt(html: string, ltIndex: number): string | null {
+  const m = /^<\/?([a-z][a-z0-9]*)\b/i.exec(html.slice(ltIndex, ltIndex + 96));
+  return m?.[1]?.toLowerCase() ?? null;
+}
+
+/**
+ * Compare-only HTML normalize: sanitize + collapse whitespace only at block
+ * tag boundaries. Does not change text inside tags, and keeps spaces between
+ * inline elements (`</a> <a>`). Used by canonicalizeShopifyProjection so
+ * Shopify `</p>\n<p>` ≡ TipTap `</p><p>` without hiding real inline edits.
+ */
+export function normalizeRichTextHtmlForCompare(input: string): string {
+  const sanitized = sanitizeRichTextHtml(input);
+  return sanitized
+    .replace(/>(\s+)</g, (match, _ws: string, offset: number) => {
+      const left = tagNameEndingAt(sanitized, offset);
+      const right = tagNameStartingAt(sanitized, offset + match.length - 1);
+      if ((left && COMPARE_BLOCK_TAGS.has(left)) || (right && COMPARE_BLOCK_TAGS.has(right))) {
+        return "><";
+      }
+      return match;
+    })
+    .trim();
+}
+
 /** Normalize known rich-text string fields before DB persist (server-side). */
 export function normalizeRichTextFields<T extends Record<string, unknown>>(
   record: T,

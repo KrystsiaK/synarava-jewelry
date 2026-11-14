@@ -51,4 +51,49 @@ describe("Next.js deployment identity", () => {
       key: "X-Robots-Tag",
     }));
   });
+
+  it("redirects print/QR short links to the shop with temporary 307s", async () => {
+    const { default: config } = await import("@/next.config");
+
+    const rules = await config.redirects?.();
+    // Bare /shop destinations: proxy.ts locale-prefixes and must keep utm_*.
+    // https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects
+    expect(rules).toEqual(
+      expect.arrayContaining([
+        {
+          source: "/ig",
+          destination:
+            "/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+          permanent: false,
+        },
+        {
+          source: "/gift/box",
+          destination:
+            "/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
+          permanent: false,
+        },
+        {
+          source: "/gift/card",
+          destination:
+            "/shop?utm_source=card&utm_medium=print&utm_campaign=packaging",
+          permanent: false,
+        },
+        {
+          source: "/gift",
+          destination: "/shop",
+          permanent: false,
+        },
+      ]),
+    );
+    for (const rule of rules ?? []) {
+      if (
+        rule.source === "/ig" ||
+        rule.source === "/gift" ||
+        rule.source === "/gift/box" ||
+        rule.source === "/gift/card"
+      ) {
+        expect(rule.permanent).toBe(false);
+      }
+    }
+  });
 });
