@@ -219,6 +219,37 @@ describe("product whole-product commerce leaf (PR-A3)", () => {
     expect(commerce.every((leaf) => leaf.blockedReason == null)).toBe(true);
   });
 
+  it("product Description-only (real text) collapses to whole-item — never a field-level Description leaf", () => {
+    // Collection Description is scoped; product Description is whole-record-only.
+    // Label-union must not make product Description look field-applyable.
+    const result = compareProduct(
+      { title: "Ring", descriptionHtml: "<p>Local body</p>" },
+      { title: "Ring", descriptionHtml: "<p>Shopify body</p>" },
+    );
+    const commerce = result.leaves.filter((leaf) => leaf.kind === "commerce");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]).toMatchObject({
+      fieldKey: "commerce:whole-item",
+      label: "Product data (1 fields)",
+    });
+    expect(commerce[0]!.parts?.map((part) => part.label)).toEqual(["Description"]);
+    expect(commerce.every((leaf) => leaf.label !== "Description")).toBe(true);
+  });
+
+  it("product SEO title/description-only also collapse (same collection-label collision)", () => {
+    const result = compareProduct(
+      { title: "Ring", seo: { title: "Local SEO", description: "Local meta" } },
+      { title: "Ring", seo: { title: "Shopify SEO", description: "Shopify meta" } },
+    );
+    const commerce = result.leaves.filter((leaf) => leaf.kind === "commerce");
+    expect(commerce).toHaveLength(1);
+    expect(commerce[0]?.fieldKey).toBe("commerce:whole-item");
+    expect(commerce[0]?.parts?.map((part) => part.label).toSorted()).toEqual([
+      "SEO description",
+      "SEO title",
+    ]);
+  });
+
   it("after windows match, aggregate leaf disappears", () => {
     const before = compareProduct(PRICE_TAGS_STATUS_LOCAL, PRICE_TAGS_STATUS_SHOPIFY);
     expect(before.leaves.some((leaf) => leaf.fieldKey === "commerce:whole-item")).toBe(true);

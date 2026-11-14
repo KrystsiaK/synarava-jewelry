@@ -489,6 +489,36 @@ describe("applyCommerceField — unsupported field", () => {
     expect(mocks.updateProduct).not.toHaveBeenCalled();
     expect(mocks.updateVariant).not.toHaveBeenCalled();
   });
+
+  it("refuses product Description even though collection Description is scoped (label collision)", async () => {
+    // Bug: isScopedCommerceFieldLabel("Description") was true via collection registry,
+    // so apply entered write path then failed with "not a supported commerce field".
+    const result = await applyCommerceField({
+      productId: "product-1",
+      label: "Description",
+      direction: "SHOPIFY_TO_SYNARAVA",
+      ...fingerprintsFor("<p>A</p>", "<p>B</p>"),
+    });
+
+    expect(result).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
+    expect(result.message).toMatch(/Description is not a supported commerce field|product editor|whole/i);
+    expect(mocks.recheckEntityConflictLeaves).not.toHaveBeenCalled();
+    expect(mocks.request).not.toHaveBeenCalled();
+    expect(mocks.updateProduct).not.toHaveBeenCalled();
+  });
+
+  it("refuses product SEO title/description the same way (collection-scoped labels)", async () => {
+    for (const label of ["SEO title", "SEO description"] as const) {
+      const result = await applyCommerceField({
+        productId: "product-1",
+        label,
+        direction: "SYNARAVA_TO_SHOPIFY",
+        ...fingerprintsFor("local", "shopify"),
+      });
+      expect(result).toMatchObject({ ok: false, reason: "UNSUPPORTED" });
+      expect(mocks.recheckEntityConflictLeaves).not.toHaveBeenCalled();
+    }
+  });
 });
 
 describe("applyCommerceField — Media gallery", () => {

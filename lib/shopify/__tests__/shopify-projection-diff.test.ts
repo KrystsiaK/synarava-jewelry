@@ -557,12 +557,41 @@ it("treats bare Shopify span wrappers and dir attrs as equal descriptionHtml", (
   )).toEqual([]);
 });
 
+it("does not conflict when descriptionHtml differs only by whitespace between tags", () => {
+  // Bug case: Shopify serializes `</p>\n<p>`; local TipTap often emits `</p><p>`.
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>First.</p><p>Second.</p>" },
+    { descriptionHtml: "<p>First.</p>\n<p>Second.</p>" },
+  )).toEqual([]);
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>A</p>  <p>B</p>" },
+    { descriptionHtml: "<p>A</p><p>B</p>" },
+  )).toEqual([]);
+  // Regression fixture matching the real HTML shape from the conflict modal bug.
+  const local = "<p>Hand-finished in Lisbon.</p><p>Ships within five days.</p>";
+  const shopify = "<p>Hand-finished in Lisbon.</p>\n<p>Ships within five days.</p>";
+  expect(diffShopifyProjections({ descriptionHtml: local }, { descriptionHtml: shopify })).toEqual([]);
+  expect(canonicalizeShopifyProjection(local, "descriptionHtml"))
+    .toBe(canonicalizeShopifyProjection(shopify, "descriptionHtml"));
+});
+
 it("still conflicts when descriptionHtml text actually changes", () => {
   expect(diffShopifyProjections(
     { descriptionHtml: "<p>x</p>" },
     { descriptionHtml: "<p><span>y</span></p>" },
   )).toEqual([
     { path: "descriptionHtml", field: "Description", local: "<p>x</p>", shopify: "<p>y</p>" },
+  ]);
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p>First.</p><p>Second.</p>" },
+    { descriptionHtml: "<p>First.</p>\n<p>Changed.</p>" },
+  )).toEqual([
+    {
+      path: "descriptionHtml",
+      field: "Description",
+      local: "<p>First.</p><p>Second.</p>",
+      shopify: "<p>First.</p><p>Changed.</p>",
+    },
   ]);
 });
 
