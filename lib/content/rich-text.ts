@@ -267,6 +267,15 @@ export function sanitizeRichTextHtml(input: string): string {
   return result;
 }
 
+/**
+ * Compare-only HTML normalize: sanitize + collapse whitespace between tags.
+ * Does not change text inside tags. Used by canonicalizeShopifyProjection so
+ * Shopify `</p>\n<p>` and local `</p><p>` are equal for conflict detect.
+ */
+export function normalizeRichTextHtmlForCompare(input: string): string {
+  return sanitizeRichTextHtml(input).replace(/>\s+</g, "><").trim();
+}
+
 /** Normalize known rich-text string fields before DB persist (server-side). */
 export function normalizeRichTextFields<T extends Record<string, unknown>>(
   record: T,

@@ -76,4 +76,28 @@ describe("field-registry owns syncable commerce keys (ADR-0009)", () => {
       }
     }
   });
+
+  it("product field-level apply labels never include whole-record-only product fields (ADR-0010)", () => {
+    // Collection may scope the same human label (Description, SEO title, …).
+    // Product apply / compare must use PRODUCT scopedApply only — not the union.
+    const productWholeRecordOnly = PRODUCT_COMMERCE_FIELDS
+      .filter((f) => !f.scopedApply && f.applyToSynarava === "whole-record-only")
+      .map((f) => f.label);
+    expect(productWholeRecordOnly).toEqual(expect.arrayContaining([
+      "Description",
+      "SEO title",
+      "SEO description",
+    ]));
+    for (const label of productWholeRecordOnly) {
+      expect(isScopedProductCommerceLabel(label), label).toBe(false);
+      expect(SCOPED_COMMERCE_FIELD_LABELS.has(label), label).toBe(false);
+    }
+    // Guard: product conflict field-level selectability must not use the union helper alone.
+    const compareSrc = stripComments(read("lib/sync/compare.ts"));
+    const applySrc = stripComments(read("lib/shopify/commerce-field-apply.ts"));
+    const catalogApplySrc = stripComments(read("lib/shopify/catalog-conflict-apply.ts"));
+    expect(compareSrc).toMatch(/isScopedCommerceFieldLabelForResource/);
+    expect(applySrc).toMatch(/isScopedProductCommerceFieldLabel/);
+    expect(catalogApplySrc).toMatch(/isScopedProductCommerceFieldLabel/);
+  });
 });
