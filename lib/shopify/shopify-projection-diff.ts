@@ -1,4 +1,4 @@
-import { sanitizeRichTextHtml } from "@/lib/content/rich-text";
+import { normalizeRichTextHtmlForCompare } from "@/lib/content/rich-text";
 import { resolveGalleryMediaAlt } from "@/lib/shopify/product-media-alt-form";
 import {
   coerceMetafieldRows,
@@ -153,9 +153,11 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     if (INSTANT_PATH_RE.test(path)) {
       const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
     }
-    // Editor wrapper noise (bare <span>, dir=) — same sanitize as preferred-HTML reuse.
+    // Editor wrapper noise (bare <span>, dir=) + whitespace at block boundaries
+    // only (Shopify `</p>\n<p>` vs TipTap `</p><p>`; keep `</a> <a>`). ONE
+    // compare normalize — not storage.
     if (/(^|\.)descriptionHtml$/.test(path)) {
-      const html = sanitizeRichTextHtml(s).trim();
+      const html = normalizeRichTextHtmlForCompare(s);
       return html || null;
     }
     return /^https?:\/\//i.test(s) ? normalizeShopifyCdnUrl(s) : s;

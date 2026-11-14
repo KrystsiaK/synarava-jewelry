@@ -36,7 +36,7 @@ import { applyCommerceField } from "./commerce-field-apply";
 import {
   COMMERCE_UNSUPPORTED_REASON,
   isMediaIdentityContractKey,
-  isScopedCommerceFieldLabel,
+  isScopedProductCommerceFieldLabel,
 } from "./catalog-conflict-policy";
 import { applyCatalogPresenceDifference, scanAndSaveCatalogPresence } from "./catalog-presence-server";
 import { applyMediaIdentityBatch } from "./media-identity-apply";
@@ -97,9 +97,9 @@ export async function assertWholeRecordFingerprintsFresh(input: {
 /** Caps how many *products* one bulk preview/apply touches (not fields/product). */
 const MAX_BULK_PRODUCTS = 50;
 
-/** Scoped commerce labels only — see SCOPED_COMMERCE_FIELD_LABELS / COMMERCE_UNSUPPORTED_REASON. */
+/** Product scoped (+ media) only — never collection label union. */
 function isScopedCommerceField(field: CatalogConflictField): boolean {
-  return field.origin === "COMMERCE" && isScopedCommerceFieldLabel(field.label);
+  return field.origin === "COMMERCE" && isScopedProductCommerceFieldLabel(field.label);
 }
 
 export type CatalogConflictApplyScope =

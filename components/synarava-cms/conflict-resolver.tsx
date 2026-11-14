@@ -25,7 +25,7 @@ import {
 } from "@/components/synarava-cms/conflict-resolver-confirm";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopify/catalog-conflict";
-import { isScopedCommerceFieldLabel } from "@/lib/shopify/catalog-conflict-policy";
+import { isScopedProductCommerceFieldLabel } from "@/lib/shopify/catalog-conflict-policy";
 
 export const CONFLICT_DIRECTIONS = {
   SHOPIFY_TO_SYNARAVA: "SHOPIFY_TO_SYNARAVA",
@@ -133,7 +133,9 @@ export type ConflictResolverAdapter = {
  */
 export function isWholeRecordField(field: CatalogConflictField): boolean {
   if (field.origin !== "COMMERCE" || !field.blockedReason) return false;
-  if (isScopedCommerceFieldLabel(field.label)) return false;
+  // Whole-record is product-only; use product (+ media) scoped labels — not the
+  // product∪collection union (Description / SEO stay whole-record on products).
+  if (isScopedProductCommerceFieldLabel(field.label)) return false;
   return true;
 }
 
