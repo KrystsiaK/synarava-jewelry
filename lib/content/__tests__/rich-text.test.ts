@@ -13,6 +13,7 @@ import {
   plainTextFromRichText,
   richTextPlainLength,
   sanitizeHref,
+  normalizeRichTextHtmlForCompare,
   sanitizeRichTextHtml,
 } from "@/lib/content/rich-text";
 
@@ -59,6 +60,13 @@ describe("rich-text helpers", () => {
       "&lt;img src=x onerror=alert(1)&gt;",
     );
     expect(sanitizeRichTextHtml("<p>a < b & c > d</p>")).toBe("<p>a &lt; b & c &gt; d</p>");
+  });
+
+  it("compare normalize collapses whitespace between tags without changing text nodes", () => {
+    expect(normalizeRichTextHtmlForCompare("<p>First.</p>\n<p>Second.</p>")).toBe(
+      "<p>First.</p><p>Second.</p>",
+    );
+    expect(normalizeRichTextHtmlForCompare("<p>Keep  spaces</p>")).toBe("<p>Keep  spaces</p>");
   });
 
   it("keeps internal paths same-tab and accepts them for TipTap", () => {

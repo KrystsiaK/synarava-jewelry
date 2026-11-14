@@ -96,8 +96,8 @@ describe("field-registry owns syncable commerce keys (ADR-0009)", () => {
     const compareSrc = stripComments(read("lib/sync/compare.ts"));
     const applySrc = stripComments(read("lib/shopify/commerce-field-apply.ts"));
     const catalogApplySrc = stripComments(read("lib/shopify/catalog-conflict-apply.ts"));
-    expect(compareSrc).toMatch(/isScopedProductCommerceLabel|isScopedCommerceFieldLabelForResource/);
-    expect(applySrc).toMatch(/isScopedProductCommerceLabel|SCOPED_COMMERCE_FIELD_LABELS/);
-    expect(catalogApplySrc).toMatch(/isScopedProductCommerceLabel|SCOPED_COMMERCE_FIELD_LABELS|isScopedCommerceFieldLabelForResource/);
+    expect(compareSrc).toMatch(/isScopedCommerceFieldLabelForResource/);
+    expect(applySrc).toMatch(/isScopedProductCommerceFieldLabel/);
+    expect(catalogApplySrc).toMatch(/isScopedProductCommerceFieldLabel/);
   });
 });
