@@ -3,12 +3,43 @@ import { readFileSync } from "node:fs";
 import {
   buildGaAcquisitionReportsUrl,
   formatVisitPulseMessage,
+  GA_RESERVED_TOTAL,
   parseGaVisitPulseReport,
   type GaVisitPulseReportJson,
 } from "@/lib/mission-control/analytics/ga-visit-pulse";
 import { shouldSuppressOptionalAnalytics } from "@/lib/analytics/optional-analytics-ids";
 
 const ROOT = process.cwd();
+
+const DIM_HEADERS = [{ name: "countryId" }, { name: "dateRange" }] as const;
+const METRIC_HEADERS = [
+  { name: "sessions" },
+  { name: "activeUsers" },
+  { name: "averageSessionDuration" },
+  { name: "engagementRate" },
+] as const;
+
+/** Real GA4 multi-range TOTAL row: RESERVED_TOTAL + date_range_N. */
+function totalRow(
+  dateRange: "date_range_0" | "date_range_1" | "date_range_2",
+  sessions: string,
+  users = "0",
+  duration = "0",
+  eng = "0",
+) {
+  return {
+    dimensionValues: [
+      { value: GA_RESERVED_TOTAL },
+      { value: dateRange },
+    ],
+    metricValues: [
+      { value: sessions },
+      { value: users },
+      { value: duration },
+      { value: eng },
+    ],
+  };
+}
 
 describe("parseGaVisitPulseReport", () => {
   it("parses empty GA response as zero visits", () => {
@@ -18,18 +49,14 @@ describe("parseGaVisitPulseReport", () => {
     expect(pulse.previous.sessions).toBe(0);
     expect(pulse.lastDaySessions).toBe(0);
     expect(pulse.countries).toEqual([]);
+    expect(pulse.otherSessions).toBe(0);
     expect(pulse.previousTopCountryIds).toEqual([]);
   });
 
-  it("parses 0-session rows without throwing", () => {
+  it("parses 0-session rows without throwing (RESERVED_TOTAL totals)", () => {
     const report: GaVisitPulseReportJson = {
-      dimensionHeaders: [{ name: "countryId" }, { name: "dateRange" }],
-      metricHeaders: [
-        { name: "sessions" },
-        { name: "activeUsers" },
-        { name: "averageSessionDuration" },
-        { name: "engagementRate" },
-      ],
+      dimensionHeaders: [...DIM_HEADERS],
+      metricHeaders: [...METRIC_HEADERS],
       rows: [
         {
           dimensionValues: [{ value: "PT" }, { value: "date_range_0" }],
@@ -42,44 +69,61 @@ describe("parseGaVisitPulseReport", () => {
         },
       ],
       totals: [
-        {
-          dimensionValues: [{ value: "date_range_0" }],
-          metricValues: [
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-          ],
-        },
-        {
-          dimensionValues: [{ value: "date_range_1" }],
-          metricValues: [
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-          ],
-        },
-        {
-          dimensionValues: [{ value: "date_range_2" }],
-          metricValues: [
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-            { value: "0" },
-          ],
-        },
+        totalRow("date_range_0", "0"),
+        totalRow("date_range_1", "0"),
+        totalRow("date_range_2", "0"),
       ],
     };
     const pulse = parseGaVisitPulseReport(report);
     expect(pulse.current.sessions).toBe(0);
     expect(pulse.lastDaySessions).toBe(0);
-    expect(pulse.countries.every((row) => row.sessions === 0 || row.countryId === "остальные")).toBe(
-      true,
+    expect(pulse.countries.every((row) => row.sessions === 0)).toBe(true);
+    expect(pulse.countries.some((row) => row.countryId === "остальные")).toBe(
+      false,
     );
   });
 
-  it("aggregates top-5 countries + остальные and period totals", () => {
+  it("reads date_range_0 totals via header index (RESERVED_TOTAL is not a range)", () => {
+    // Regression: Boolean(dateRangeKey("date_range_0")) === false skipped current week.
+    const report: GaVisitPulseReportJson = {
+      dimensionHeaders: [...DIM_HEADERS],
+      metricHeaders: [...METRIC_HEADERS],
+      rows: [
+        {
+          dimensionValues: [{ value: "PT" }, { value: "date_range_0" }],
+          metricValues: [
+            { value: "40" },
+            { value: "30" },
+            { value: "100" },
+            { value: "0.5" },
+          ],
+        },
+        {
+          dimensionValues: [{ value: "ES" }, { value: "date_range_0" }],
+          metricValues: [
+            { value: "20" },
+            { value: "15" },
+            { value: "90" },
+            { value: "0.4" },
+          ],
+        },
+      ],
+      totals: [
+        totalRow("date_range_0", "60", "45", "95", "0.45"),
+        totalRow("date_range_1", "80", "50", "90", "0.4"),
+        totalRow("date_range_2", "5", "4", "80", "0.3"),
+      ],
+    };
+    const pulse = parseGaVisitPulseReport(report);
+    expect(pulse.current.sessions).toBe(60);
+    expect(pulse.previous.sessions).toBe(80);
+    expect(pulse.lastDaySessions).toBe(5);
+    // current.sessions matches sum of that week's row sessions
+    const week0Sum = 40 + 20;
+    expect(pulse.current.sessions).toBe(week0Sum);
+  });
+
+  it("aggregates top-5 countries + otherSessions (not a fake countryId)", () => {
     const rows = [
       ["PT", "date_range_0", "40", "30", "120", "0.5"],
       ["ES", "date_range_0", "20", "15", "90", "0.4"],
@@ -94,14 +138,11 @@ describe("parseGaVisitPulseReport", () => {
       ["PT", "date_range_2", "3", "2", "100", "0.5"],
     ] as const;
 
+    const week0Sessions = 40 + 20 + 15 + 10 + 8 + 5 + 2;
+
     const report: GaVisitPulseReportJson = {
-      dimensionHeaders: [{ name: "countryId" }, { name: "dateRange" }],
-      metricHeaders: [
-        { name: "sessions" },
-        { name: "activeUsers" },
-        { name: "averageSessionDuration" },
-        { name: "engagementRate" },
-      ],
+      dimensionHeaders: [...DIM_HEADERS],
+      metricHeaders: [...METRIC_HEADERS],
       rows: rows.map(([country, range, sessions, users, duration, eng]) => ({
         dimensionValues: [{ value: country }, { value: range }],
         metricValues: [
@@ -112,38 +153,14 @@ describe("parseGaVisitPulseReport", () => {
         ],
       })),
       totals: [
-        {
-          dimensionValues: [{ value: "date_range_0" }],
-          metricValues: [
-            { value: "100" },
-            { value: "75" },
-            { value: "95.5" },
-            { value: "0.42" },
-          ],
-        },
-        {
-          dimensionValues: [{ value: "date_range_1" }],
-          metricValues: [
-            { value: "100" },
-            { value: "75" },
-            { value: "90" },
-            { value: "0.4" },
-          ],
-        },
-        {
-          dimensionValues: [{ value: "date_range_2" }],
-          metricValues: [
-            { value: "3" },
-            { value: "2" },
-            { value: "100" },
-            { value: "0.5" },
-          ],
-        },
+        totalRow("date_range_0", String(week0Sessions), "75", "95.5", "0.42"),
+        totalRow("date_range_1", "100", "75", "90", "0.4"),
+        totalRow("date_range_2", "3", "2", "100", "0.5"),
       ],
     };
 
     const pulse = parseGaVisitPulseReport(report);
-    expect(pulse.current.sessions).toBe(100);
+    expect(pulse.current.sessions).toBe(week0Sessions);
     expect(pulse.current.activeUsers).toBe(75);
     expect(pulse.current.averageSessionDurationSec).toBeCloseTo(95.5);
     expect(pulse.current.engagementRate).toBeCloseTo(0.42);
@@ -155,11 +172,15 @@ describe("parseGaVisitPulseReport", () => {
       "FR",
       "DE",
       "IT",
-      "остальные",
     ]);
-    expect(pulse.countries[0]?.sharePct).toBe(40);
-    const rest = pulse.countries.find((c) => c.countryId === "остальные");
-    expect(rest?.sessions).toBe(7);
+    expect(pulse.countries.some((c) => c.countryId === "остальные")).toBe(
+      false,
+    );
+    expect(pulse.countries[0]?.sharePct).toBe(
+      Math.round((40 / week0Sessions) * 100),
+    );
+    expect(pulse.otherSessions).toBe(7);
+    expect(pulse.otherSharePct).toBe(Math.round((7 / week0Sessions) * 100));
     expect(pulse.previousTopCountryIds).toEqual(["PT", "ES", "FR"]);
   });
 });
@@ -183,15 +204,16 @@ describe("formatVisitPulseMessage", () => {
       countries: [
         { countryId: "PT", sessions: 40, sharePct: 40 },
         { countryId: "ES", sessions: 20, sharePct: 20 },
-        { countryId: "остальные", sessions: 40, sharePct: 40 },
       ],
+      otherSessions: 40,
+      otherSharePct: 40,
       previousTopCountryIds: ["PT", "ES", "FR"],
     });
     expect(message).toContain("Визиты 7д: 100");
     expect(message).toMatch(/▲\s*25%/);
     expect(message).toContain("Посетители: 80");
     expect(message).toContain("Среднее время: 2м 5с");
-    expect(message).toContain("Топ стран: PT 40%, ES 20%");
+    expect(message).toContain("Топ стран: PT 40%, ES 20%, остальные 40%");
   });
 });
 

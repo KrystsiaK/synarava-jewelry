@@ -4,7 +4,9 @@ import type { GaVisitPulse } from "@/lib/mission-control/analytics/ga-visit-puls
 
 const NOW = new Date("2026-11-04T12:00:00.000Z");
 
-function pulse(partial: Partial<GaVisitPulse> & Pick<GaVisitPulse, "current" | "previous">): GaVisitPulse {
+function pulse(
+  partial: Partial<GaVisitPulse> & Pick<GaVisitPulse, "current" | "previous">,
+): GaVisitPulse {
   return {
     lastDaySessions: partial.lastDaySessions ?? 10,
     countries: partial.countries ?? [
@@ -12,13 +14,15 @@ function pulse(partial: Partial<GaVisitPulse> & Pick<GaVisitPulse, "current" | "
       { countryId: "ES", sessions: 30, sharePct: 30 },
       { countryId: "FR", sessions: 20, sharePct: 20 },
     ],
+    otherSessions: partial.otherSessions ?? 0,
+    otherSharePct: partial.otherSharePct ?? 0,
     previousTopCountryIds: partial.previousTopCountryIds ?? ["PT", "ES", "FR"],
     ...partial,
   };
 }
 
 describe("detectVisitPulseIssues", () => {
-  it("warns when sessions drop more than 40% vs prior week", () => {
+  it("warns when sessions drop more than 40% vs prior week (previous ≥ 50)", () => {
     const issues = detectVisitPulseIssues({
       now: NOW,
       visitPulse: pulse({
@@ -40,7 +44,9 @@ describe("detectVisitPulseIssues", () => {
     expect(hit?.severity).toBe("warning");
     expect(hit?.kind).toBe("visit_pulse");
     expect(hit?.numbers.dropPercent).toBe(50);
-    expect(hit?.whereToLook.toLowerCase()).toMatch(/google analytics|ga4|acquisition/);
+    expect(hit?.whereToLook.toLowerCase()).toMatch(
+      /google analytics|ga4|acquisition/,
+    );
   });
 
   it("does not warn for a 40% drop (threshold is strictly greater)", () => {
@@ -62,6 +68,50 @@ describe("detectVisitPulseIssues", () => {
       }),
     });
     expect(issues.find((issue) => issue.id === "visit:drop")).toBeUndefined();
+  });
+
+  it("does not warn on small-traffic drop (previous < 50)", () => {
+    const issues = detectVisitPulseIssues({
+      now: NOW,
+      visitPulse: pulse({
+        current: {
+          sessions: 2,
+          activeUsers: 2,
+          averageSessionDurationSec: 60,
+          engagementRate: 0.3,
+        },
+        previous: {
+          sessions: 5,
+          activeUsers: 4,
+          averageSessionDurationSec: 60,
+          engagementRate: 0.3,
+        },
+      }),
+    });
+    expect(issues.find((issue) => issue.id === "visit:drop")).toBeUndefined();
+  });
+
+  it("warns when previous ≥ 50 and drop > 40%", () => {
+    const issues = detectVisitPulseIssues({
+      now: NOW,
+      visitPulse: pulse({
+        current: {
+          sessions: 20,
+          activeUsers: 15,
+          averageSessionDurationSec: 60,
+          engagementRate: 0.3,
+        },
+        previous: {
+          sessions: 50,
+          activeUsers: 40,
+          averageSessionDurationSec: 60,
+          engagementRate: 0.3,
+        },
+      }),
+    });
+    const hit = issues.find((issue) => issue.id === "visit:drop");
+    expect(hit?.severity).toBe("warning");
+    expect(hit?.numbers.dropPercent).toBe(60);
   });
 
   it("warns when last-day sessions are 0", () => {
@@ -137,6 +187,8 @@ describe("detectVisitPulseIssues", () => {
         lastDaySessions: 2,
       }),
     });
-    expect(issues.find((issue) => issue.id === "visit:new_country")).toBeUndefined();
+    expect(
+      issues.find((issue) => issue.id === "visit:new_country"),
+    ).toBeUndefined();
   });
 });

@@ -1,6 +1,11 @@
 /**
  * Pure GA4 visit-pulse parse + card copy.
  * No fetch/JWT — safe for unit tests. Collector uses ga-client for the API call.
+ *
+ * Multi-range TOTAL shape (Analytics Data API): totals rows carry the same
+ * dimension columns as data rows — countryId = RESERVED_TOTAL, dateRange =
+ * date_range_N. Read dateRange only via the header named "dateRange".
+ * @see https://developers.google.com/analytics/devguides/reporting/data/v1/rest/v1beta/properties/runReport
  */
 
 export type GaVisitPeriodMetrics = {
@@ -20,8 +25,11 @@ export type GaVisitPulse = {
   current: GaVisitPeriodMetrics;
   previous: GaVisitPeriodMetrics;
   lastDaySessions: number;
-  /** Top 5 + «остальные» for the current 7d window. */
+  /** Top 5 countries for the current 7d window (real countryId only). */
   countries: GaVisitCountryShare[];
+  /** Sessions outside top 5 (UI label «остальные»). */
+  otherSessions: number;
+  otherSharePct: number;
   /** Prior-week top-3 country ids (for new-country detection). */
   previousTopCountryIds: string[];
 };
@@ -48,6 +56,8 @@ const EMPTY_PERIOD: GaVisitPeriodMetrics = {
 
 const TOP_COUNTRIES = 5;
 const TOP_COMPARE = 3;
+/** GA4 TOTAL placeholder in dimension columns (not a real country). */
+export const GA_RESERVED_TOTAL = "RESERVED_TOTAL";
 
 function num(value: string | undefined): number {
   const n = Number(value ?? 0);
@@ -83,39 +93,40 @@ function periodFromMetrics(
   };
 }
 
+/** Exact date_range_N only — no endsWith guessing (Boolean(0) traps). */
 function dateRangeKey(value: string | undefined): 0 | 1 | 2 | null {
-  if (!value) return null;
-  if (value === "date_range_0" || value.endsWith("0")) return 0;
-  if (value === "date_range_1" || value.endsWith("1")) return 1;
-  if (value === "date_range_2" || value.endsWith("2")) return 2;
+  if (value === "date_range_0") return 0;
+  if (value === "date_range_1") return 1;
+  if (value === "date_range_2") return 2;
   return null;
 }
 
 function topCountries(
   byCountry: Map<string, number>,
   totalSessions: number,
-): GaVisitCountryShare[] {
+): {
+  countries: GaVisitCountryShare[];
+  otherSessions: number;
+  otherSharePct: number;
+} {
   const sorted = [...byCountry.entries()]
-    .filter(([id]) => id && id !== "(not set)")
+    .filter(([id]) => id && id !== "(not set)" && id !== GA_RESERVED_TOTAL)
     .toSorted((a, b) => b[1] - a[1]);
   const top = sorted.slice(0, TOP_COUNTRIES);
-  const restSessions = sorted
+  const otherSessions = sorted
     .slice(TOP_COUNTRIES)
     .reduce((sum, [, sessions]) => sum + sessions, 0);
   const denom = totalSessions > 0 ? totalSessions : 1;
-  const rows: GaVisitCountryShare[] = top.map(([countryId, sessions]) => ({
+  const countries: GaVisitCountryShare[] = top.map(([countryId, sessions]) => ({
     countryId,
     sessions,
     sharePct: Math.round((sessions / denom) * 100),
   }));
-  if (restSessions > 0 || sorted.length > TOP_COUNTRIES) {
-    rows.push({
-      countryId: "остальные",
-      sessions: restSessions,
-      sharePct: Math.round((restSessions / denom) * 100),
-    });
-  }
-  return rows;
+  return {
+    countries,
+    otherSessions,
+    otherSharePct: Math.round((otherSessions / denom) * 100),
+  };
 }
 
 /**
@@ -145,18 +156,17 @@ export function parseGaVisitPulseReport(
   let lastDaySessions = 0;
 
   const totals = report.totals ?? [];
-  if (totals.length > 0 && metricIndex.sessions >= 0) {
+  if (totals.length > 0 && metricIndex.sessions >= 0 && rangeIdx >= 0) {
     for (const total of totals) {
-      // Totals may carry dateRange as the only dimension when multi-range.
-      const rangeDim =
-        total.dimensionValues?.find((d) =>
-          Boolean(dateRangeKey(d.value)),
-        )?.value ?? total.dimensionValues?.[0]?.value;
-      const key = dateRangeKey(rangeDim);
+      const dims = total.dimensionValues ?? [];
+      // Same column layout as rows: read dateRange by header index only.
+      // Never Boolean(dateRangeKey(...)) — key 0 is falsy.
+      const key = dateRangeKey(dims[rangeIdx]?.value);
+      if (key === null) continue;
       const period = periodFromMetrics(total.metricValues, metricIndex);
       if (key === 0) current = period;
       else if (key === 1) previous = period;
-      else if (key === 2) lastDaySessions = period.sessions;
+      else lastDaySessions = period.sessions;
     }
   }
 
@@ -167,22 +177,15 @@ export function parseGaVisitPulseReport(
   for (const row of report.rows ?? []) {
     const dims = row.dimensionValues ?? [];
     const metrics = row.metricValues ?? [];
-    const country =
-      countryIdx >= 0
-        ? (dims[countryIdx]?.value ?? "")
-        : (dims[0]?.value ?? "");
-    const rangeRaw =
-      rangeIdx >= 0
-        ? dims[rangeIdx]?.value
-        : dims.length > 1
-          ? dims[dims.length - 1]?.value
-          : undefined;
-    const key = dateRangeKey(rangeRaw);
+    if (countryIdx < 0 || rangeIdx < 0) continue;
+    const country = dims[countryIdx]?.value ?? "";
+    const key = dateRangeKey(dims[rangeIdx]?.value);
+    if (key === null) continue;
     const sessions =
       metricIndex.sessions >= 0
         ? num(metrics[metricIndex.sessions]?.value)
         : num(metrics[0]?.value);
-    if (!country) continue;
+    if (!country || country === GA_RESERVED_TOTAL) continue;
     if (key === 0) {
       currentByCountry.set(
         country,
@@ -193,12 +196,12 @@ export function parseGaVisitPulseReport(
         country,
         (previousByCountry.get(country) ?? 0) + sessions,
       );
-    } else if (key === 2) {
+    } else {
       rowLastDay += sessions;
     }
   }
 
-  if (totals.length === 0) {
+  if (totals.length === 0 || rangeIdx < 0) {
     const sumMap = (map: Map<string, number>) =>
       [...map.values()].reduce((a, b) => a + b, 0);
     current = {
@@ -217,16 +220,20 @@ export function parseGaVisitPulseReport(
   }
 
   const previousTopCountryIds = [...previousByCountry.entries()]
-    .filter(([id]) => id && id !== "(not set)")
+    .filter(([id]) => id && id !== "(not set)" && id !== GA_RESERVED_TOTAL)
     .toSorted((a, b) => b[1] - a[1])
     .slice(0, TOP_COMPARE)
     .map(([id]) => id);
+
+  const ranked = topCountries(currentByCountry, current.sessions);
 
   return {
     current,
     previous,
     lastDaySessions,
-    countries: topCountries(currentByCountry, current.sessions),
+    countries: ranked.countries,
+    otherSessions: ranked.otherSessions,
+    otherSharePct: ranked.otherSharePct,
     previousTopCountryIds,
   };
 }
@@ -254,12 +261,15 @@ export function formatVisitPulseMessage(pulse: GaVisitPulse): string {
     pulse.current.sessions,
     pulse.previous.sessions,
   );
-  const top = pulse.countries
-    .filter((c) => c.countryId !== "остальные")
+  const topParts = pulse.countries
     .slice(0, 5)
-    .map((c) => `${c.countryId} ${c.sharePct}%`)
-    .join(", ");
-  const countriesPart = top ? ` · Топ стран: ${top}` : "";
+    .map((c) => `${c.countryId} ${c.sharePct}%`);
+  if (pulse.otherSessions > 0) {
+    topParts.push(`остальные ${pulse.otherSharePct}%`);
+  }
+  const countriesPart = topParts.length
+    ? ` · Топ стран: ${topParts.join(", ")}`
+    : "";
   return (
     `Визиты 7д: ${pulse.current.sessions} (${delta} к прошлой неделе)` +
     ` · Посетители: ${pulse.current.activeUsers}` +

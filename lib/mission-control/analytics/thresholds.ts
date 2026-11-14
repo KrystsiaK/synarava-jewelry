@@ -74,6 +74,8 @@ export const ANALYTICS_THRESHOLDS = {
    * Strictly greater (40% exact does not warn).
    */
   visitDropWarnFraction: 0.4,
+  /** Ignore visit-drop noise when prior week is below this session count. */
+  visitDropMinPreviousSessions: 50,
 } as const;
 
 export type AnalyticsThresholds = typeof ANALYTICS_THRESHOLDS;

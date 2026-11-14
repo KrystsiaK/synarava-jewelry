@@ -369,7 +369,7 @@ export function detectVisitPulseIssues(
 
   const prev = pulse.previous.sessions;
   const curr = pulse.current.sessions;
-  if (prev > 0) {
+  if (prev >= t.visitDropMinPreviousSessions) {
     const dropFraction = (prev - curr) / prev;
     if (dropFraction > t.visitDropWarnFraction) {
       const dropPercent = Math.round(dropFraction * 100);
@@ -383,6 +383,7 @@ export function detectVisitPulseIssues(
           currentSessions: curr,
           previousSessions: prev,
           dropPercent,
+          minPreviousSessions: t.visitDropMinPreviousSessions,
         },
         whereToLook,
         fixHint:
@@ -411,10 +412,7 @@ export function detectVisitPulseIssues(
 
   const priorTop = new Set(pulse.previousTopCountryIds);
   if (priorTop.size > 0) {
-    const currentTop = pulse.countries
-      .filter((c) => c.countryId !== "остальные")
-      .slice(0, 3)
-      .map((c) => c.countryId);
+    const currentTop = pulse.countries.slice(0, 3).map((c) => c.countryId);
     const newcomers = currentTop.filter((id) => !priorTop.has(id));
     if (newcomers.length > 0) {
       issues.push({
