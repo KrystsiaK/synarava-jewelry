@@ -153,8 +153,9 @@ export function canonicalizeShopifyProjection(value: unknown, path = ""): unknow
     if (INSTANT_PATH_RE.test(path)) {
       const t = Date.parse(s); return Number.isFinite(t) ? new Date(t).toISOString() : s;
     }
-    // Editor wrapper noise (bare <span>, dir=) + inter-tag whitespace (Shopify
-    // `</p>\n<p>` vs TipTap `</p><p>`). ONE compare normalize — not storage.
+    // Editor wrapper noise (bare <span>, dir=) + whitespace at block boundaries
+    // only (Shopify `</p>\n<p>` vs TipTap `</p><p>`; keep `</a> <a>`). ONE
+    // compare normalize — not storage.
     if (/(^|\.)descriptionHtml$/.test(path)) {
       const html = normalizeRichTextHtmlForCompare(s);
       return html || null;

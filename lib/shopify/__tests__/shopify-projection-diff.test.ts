@@ -557,7 +557,7 @@ it("treats bare Shopify span wrappers and dir attrs as equal descriptionHtml", (
   )).toEqual([]);
 });
 
-it("does not conflict when descriptionHtml differs only by whitespace between tags", () => {
+it("does not conflict when descriptionHtml differs only by whitespace between block tags", () => {
   // Bug case: Shopify serializes `</p>\n<p>`; local TipTap often emits `</p><p>`.
   expect(diffShopifyProjections(
     { descriptionHtml: "<p>First.</p><p>Second.</p>" },
@@ -567,12 +567,31 @@ it("does not conflict when descriptionHtml differs only by whitespace between ta
     { descriptionHtml: "<p>A</p>  <p>B</p>" },
     { descriptionHtml: "<p>A</p><p>B</p>" },
   )).toEqual([]);
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<ul><li>x</li><li>y</li></ul>" },
+    { descriptionHtml: "<ul><li>x</li>\n<li>y</li></ul>" },
+  )).toEqual([]);
   // Regression fixture matching the real HTML shape from the conflict modal bug.
   const local = "<p>Hand-finished in Lisbon.</p><p>Ships within five days.</p>";
   const shopify = "<p>Hand-finished in Lisbon.</p>\n<p>Ships within five days.</p>";
   expect(diffShopifyProjections({ descriptionHtml: local }, { descriptionHtml: shopify })).toEqual([]);
   expect(canonicalizeShopifyProjection(local, "descriptionHtml"))
     .toBe(canonicalizeShopifyProjection(shopify, "descriptionHtml"));
+});
+
+it("still conflicts when inline-element spacing differs (visible text change)", () => {
+  // Space between anchors is meaningful — must not be collapsed as formatting noise.
+  expect(diffShopifyProjections(
+    { descriptionHtml: "<p><a href=\"/a\">A</a> <a href=\"/b\">B</a></p>" },
+    { descriptionHtml: "<p><a href=\"/a\">A</a><a href=\"/b\">B</a></p>" },
+  )).toEqual([
+    {
+      path: "descriptionHtml",
+      field: "Description",
+      local: '<p><a href="/a">A</a> <a href="/b">B</a></p>',
+      shopify: '<p><a href="/a">A</a><a href="/b">B</a></p>',
+    },
+  ]);
 });
 
 it("still conflicts when descriptionHtml text actually changes", () => {

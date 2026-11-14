@@ -62,11 +62,19 @@ describe("rich-text helpers", () => {
     expect(sanitizeRichTextHtml("<p>a < b & c > d</p>")).toBe("<p>a &lt; b & c &gt; d</p>");
   });
 
-  it("compare normalize collapses whitespace between tags without changing text nodes", () => {
+  it("compare normalize collapses whitespace only at block tag boundaries", () => {
     expect(normalizeRichTextHtmlForCompare("<p>First.</p>\n<p>Second.</p>")).toBe(
       "<p>First.</p><p>Second.</p>",
     );
+    expect(normalizeRichTextHtmlForCompare("<li>x</li>\n<li>y</li>")).toBe("<li>x</li><li>y</li>");
     expect(normalizeRichTextHtmlForCompare("<p>Keep  spaces</p>")).toBe("<p>Keep  spaces</p>");
+    // Meaningful space between inline elements must survive (visible "Shipping Returns").
+    expect(
+      normalizeRichTextHtmlForCompare('<p><a href="/shipping">Shipping</a> <a href="#returns">Returns</a></p>'),
+    ).toBe('<p><a href="/shipping">Shipping</a> <a href="#returns">Returns</a></p>');
+    expect(normalizeRichTextHtmlForCompare("<p><strong>A</strong> <em>B</em></p>")).toBe(
+      "<p><strong>A</strong> <em>B</em></p>",
+    );
   });
 
   it("keeps internal paths same-tab and accepts them for TipTap", () => {
