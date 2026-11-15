@@ -3,24 +3,22 @@
 import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
-import { JEWELRY_TAXONOMY_VALUE_TRANSLATIONS } from "@/lib/catalog/shop-facet-labels";
+import {
+  emptyTaxonomyDivergenceMaps,
+  taxonomyLabelDivergence,
+  type TaxonomyLabelDivergence,
+} from "@/lib/catalog/taxonomy-label-divergence";
 import {
   listCatalogTaxonomyEnValues,
   listTaxonomyValueLabels,
   saveSynaravaTaxonomyLabels,
 } from "@/lib/catalog/taxonomy-value-labels";
 import type { TaxonomyKind } from "@/lib/catalog/taxonomy-value-kinds";
-import type { Locale } from "@/lib/i18n/locales";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 
 export type TaxonomyLabelsActionState = {
   error?: string;
   success?: string;
-};
-
-export type TaxonomyLabelDivergence = {
-  divergesFromDictionary: true;
-  dictionaryLabel: string;
 };
 
 export type TaxonomyLabelsEditorPayload = {
@@ -35,17 +33,6 @@ export type TaxonomyLabelsEditorPayload = {
 
 function emptyKindMaps(): Record<TaxonomyKind, Record<string, string>> {
   return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
-}
-
-function emptyDivergenceMaps(): Record<TaxonomyKind, Record<string, TaxonomyLabelDivergence>> {
-  return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
-}
-
-/** Code-dictionary display label for a taxonomy EN value + locale, if any. */
-function taxonomyDictionaryLabel(enValue: string, locale: string): string | undefined {
-  const dictionary = JEWELRY_TAXONOMY_VALUE_TRANSLATIONS[locale as Locale];
-  const label = dictionary?.[enValue]?.trim();
-  return label || undefined;
 }
 
 export async function loadTaxonomyLabelsEditorPayload(): Promise<TaxonomyLabelsEditorPayload> {
@@ -73,24 +60,20 @@ export async function loadTaxonomyLabelsEditorPayload(): Promise<TaxonomyLabelsE
     if (locale.code === "en") continue;
     labels[locale.code] = emptyKindMaps();
     sources[locale.code] = emptyKindMaps();
-    divergences[locale.code] = emptyDivergenceMaps();
+    divergences[locale.code] = emptyTaxonomyDivergenceMaps();
   }
   for (const row of rows) {
     if (row.locale === "en") continue;
     if (!labels[row.locale]) {
       labels[row.locale] = emptyKindMaps();
       sources[row.locale] = emptyKindMaps();
-      divergences[row.locale] = emptyDivergenceMaps();
+      divergences[row.locale] = emptyTaxonomyDivergenceMaps();
     }
-    const saved = row.label.trim();
     labels[row.locale][row.kind][row.enValue] = row.label;
     sources[row.locale][row.kind][row.enValue] = row.source;
-    const dictionaryLabel = taxonomyDictionaryLabel(row.enValue, row.locale);
-    if (dictionaryLabel && saved !== dictionaryLabel) {
-      divergences[row.locale][row.kind][row.enValue] = {
-        divergesFromDictionary: true,
-        dictionaryLabel,
-      };
+    const divergence = taxonomyLabelDivergence(row.enValue, row.locale, row.label);
+    if (divergence) {
+      divergences[row.locale][row.kind][row.enValue] = divergence;
     }
   }
 

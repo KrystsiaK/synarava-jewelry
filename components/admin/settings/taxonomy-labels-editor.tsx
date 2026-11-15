@@ -5,7 +5,6 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
   saveTaxonomyLabelsAction,
-  type TaxonomyLabelDivergence,
   type TaxonomyLabelsActionState,
   type TaxonomyLabelsEditorPayload,
 } from "@/app/admin/actions/taxonomy-labels";
@@ -25,6 +24,7 @@ import {
   AdminStatusBadge,
   AdminTextField,
 } from "@/components/synarava-cms";
+import { emptyTaxonomyDivergenceMaps } from "@/lib/catalog/taxonomy-label-divergence";
 import type { TaxonomyKind } from "@/lib/catalog/taxonomy-value-kinds";
 
 const SECTIONS = [
@@ -35,10 +35,6 @@ const SECTIONS = [
 type SectionId = (typeof SECTIONS)[number]["id"];
 
 function emptyKindMaps(): Record<TaxonomyKind, Record<string, string>> {
-  return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
-}
-
-function emptyDivergenceMaps(): Record<TaxonomyKind, Record<string, TaxonomyLabelDivergence>> {
   return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
 }
 
@@ -91,7 +87,7 @@ export function TaxonomyLabelsEditor({
   function clearDivergence(enValue: string) {
     setDivergences((prev) => {
       const next = { ...prev };
-      const localeMap = { ...(next[activeLocale] ?? emptyDivergenceMaps()) };
+      const localeMap = { ...(next[activeLocale] ?? emptyTaxonomyDivergenceMaps()) };
       const kindMap = { ...localeMap[activeKind] };
       delete kindMap[enValue];
       localeMap[activeKind] = kindMap;

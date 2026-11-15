@@ -27,6 +27,11 @@ vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getStorefrontLocales: mocks.getStorefrontLocales,
 }));
 
+import {
+  taxonomyDictionaryLabel,
+  taxonomyLabelDivergence,
+} from "@/lib/catalog/taxonomy-label-divergence";
+
 import { loadTaxonomyLabelsEditorPayload } from "../taxonomy-labels";
 
 beforeEach(() => {
@@ -40,6 +45,20 @@ beforeEach(() => {
   mocks.listCatalogTaxonomyEnValues.mockResolvedValue({
     categoryLeaves: [],
     productTypes: ["Bag Charm", "Necklaces"],
+  });
+});
+
+describe("taxonomyLabelDivergence (lib helper)", () => {
+  it("flags when the saved label differs from the code dictionary", () => {
+    expect(taxonomyDictionaryLabel("Bag Charm", "pt")).toBe("Charm para mala");
+    expect(taxonomyLabelDivergence("Bag Charm", "pt", "artefacto")).toEqual({
+      divergesFromDictionary: true,
+      dictionaryLabel: "Charm para mala",
+    });
+  });
+
+  it("does not flag when the saved label matches the code dictionary", () => {
+    expect(taxonomyLabelDivergence("Necklaces", "pt", "Colares")).toBeUndefined();
   });
 });
 

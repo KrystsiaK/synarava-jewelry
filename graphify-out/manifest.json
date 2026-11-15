@@ -7536,15 +7536,15 @@
     "semantic_hash": ""
   },
   "app/admin/actions/taxonomy-labels.ts": {
-    "mtime": 1794783006.4275103,
-    "seen": 1794783092.6581535,
-    "ast_hash": "1be1ce144b6b6de6252b978b8f1b2f9d",
+    "mtime": 1794783677.5812907,
+    "seen": 1794783732.0432339,
+    "ast_hash": "424edc5ac86f549daa93ae9049477b3a",
     "semantic_hash": ""
   },
   "components/admin/settings/taxonomy-labels-editor.tsx": {
-    "mtime": 1794783023.6868782,
-    "seen": 1794783092.6583352,
-    "ast_hash": "a2d4811cc08d2049a1df6d05d9183be2",
+    "mtime": 1794783705.457661,
+    "seen": 1794783732.0474892,
+    "ast_hash": "6a62eb3732ada592d26bb8bc9974df6b",
     "semantic_hash": ""
   },
   "lib/catalog/__tests__/taxonomy-value-labels.test.ts": {
@@ -15990,9 +15990,9 @@
     "semantic_hash": ""
   },
   "app/admin/actions/__tests__/taxonomy-labels.test.ts": {
-    "mtime": 1794782989.4129765,
-    "seen": 1794783092.6581311,
-    "ast_hash": "065fe472790d27fd5bd3869cf1f070ca",
+    "mtime": 1794783692.957492,
+    "seen": 1794783732.0427482,
+    "ast_hash": "153461c052dfeb2a5755326bf258b7d1",
     "semantic_hash": ""
   },
   "components/collections/__tests__/collection-products-catalog-filter-url.test.tsx": {
@@ -16065,6 +16065,12 @@
     "mtime": 1794775346.585898,
     "seen": 1794783092.6594143,
     "ast_hash": "c5963971785fa2f38beb96987b4de2b5",
+    "semantic_hash": ""
+  },
+  "lib/catalog/taxonomy-label-divergence.ts": {
+    "mtime": 1794783655.0690103,
+    "seen": 1794783732.0595658,
+    "ast_hash": "f2e29707e285295c351b42f6545a3580",
     "semantic_hash": ""
   },
   "pnpm-lock.yaml": {
