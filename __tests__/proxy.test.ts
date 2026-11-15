@@ -176,10 +176,122 @@ describe("admin session proxy", () => {
 });
 
 describe("print/QR short-link matcher guards", () => {
-  it("excludes /ig and /gift from the proxy matcher", () => {
+  it("includes /ig and /gift in the proxy matcher (handled in proxy, not next.config)", () => {
     const source = proxyConfig.matcher?.[0]?.source ?? "";
-    expect(source).toContain("ig(?:/|$)");
-    expect(source).toContain("gift(?:/|$)");
+    expect(source).not.toContain("ig(?:/|$)");
+    expect(source).not.toContain("gift(?:/|$)");
+  });
+});
+
+const SHORT_LINK_PUBLISHED_ROWS = [
+  {
+    code: "en",
+    routeSegment: "en",
+    isDefault: true,
+    status: "PUBLISHED",
+    isPublished: true,
+    deletedAt: null,
+    retiredAt: null,
+  },
+  {
+    code: "pt",
+    routeSegment: "pt",
+    isDefault: false,
+    status: "PUBLISHED",
+    isPublished: true,
+    deletedAt: null,
+    retiredAt: null,
+  },
+  {
+    code: "ru",
+    routeSegment: "ru",
+    isDefault: false,
+    status: "PUBLISHED",
+    isPublished: true,
+    deletedAt: null,
+    retiredAt: null,
+  },
+];
+
+describe("print/QR short-link locale redirects", () => {
+  beforeEach(() => {
+    mocks.findMany.mockResolvedValue(SHORT_LINK_PUBLISHED_ROWS);
+    invalidateStorefrontLocaleCache();
+  });
+
+  it("maps Accept-Language pt-PT to /pt/shop with card UTMs in one 307 hop", async () => {
+    const response = await proxy(
+      new NextRequest("https://synarava.test/gift/card", {
+        headers: { "accept-language": "pt-PT,pt;q=0.9,en;q=0.8" },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/pt/shop?utm_source=card&utm_medium=print&utm_campaign=packaging",
+    );
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(response.headers.get("vary")).toBe("Accept-Language, Cookie");
+  });
+
+  it("maps Accept-Language ru to /ru/shop", async () => {
+    const response = await proxy(
+      new NextRequest("https://synarava.test/gift/box", {
+        headers: { "accept-language": "ru" },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/ru/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
+    );
+  });
+
+  it("falls back to default when Accept-Language prefers an unpublished locale", async () => {
+    const response = await proxy(
+      new NextRequest("https://synarava.test/ig", {
+        headers: { "accept-language": "de,de-DE;q=0.9" },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/en/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
+    );
+  });
+
+  it("prefers a published cookie over Accept-Language", async () => {
+    const response = await proxy(
+      new NextRequest("https://synarava.test/gift/card", {
+        headers: {
+          cookie: "synarava-locale=pt",
+          "accept-language": "en",
+        },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://synarava.test/pt/shop?utm_source=card&utm_medium=print&utm_campaign=packaging",
+    );
+  });
+
+  it("falls back to default on garbage Accept-Language", async () => {
+    const response = await proxy(
+      new NextRequest("https://synarava.test/gift", {
+        headers: { "accept-language": "@@@,not-a-locale;q=xyz" },
+      }),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("https://synarava.test/en/shop");
+  });
+
+  it("issues 307 for every short-link path", async () => {
+    for (const path of ["/ig", "/gift", "/gift/box", "/gift/card"]) {
+      const response = await proxy(new NextRequest(`https://synarava.test${path}`));
+      expect(response.status).toBe(307);
+    }
   });
 });
 

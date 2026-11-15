@@ -33,6 +33,40 @@ export const FIXTURE_COLLECTION = {
 };
 
 /**
+ * Published storefront locales for smoke Accept-Language / SEO redirects.
+ * Mirrors migration `20260921150000_storefront_locale_registry` (+ status PUBLISHED).
+ * `db push` does not run that INSERT, so CI must upsert these explicitly.
+ */
+export const FIXTURE_LOCALES = [
+  {
+    id: "storefront-locale-en",
+    code: "en",
+    routeSegment: "en",
+    shopifyLocale: "en",
+    intlLocale: "en",
+    name: "English",
+    nativeName: "English",
+    isDefault: true,
+    status: "PUBLISHED",
+    isPublished: true,
+    sortOrder: 0,
+  },
+  {
+    id: "storefront-locale-pt",
+    code: "pt",
+    routeSegment: "pt",
+    shopifyLocale: "pt-PT",
+    intlLocale: "pt-PT",
+    name: "Portuguese",
+    nativeName: "Português",
+    isDefault: false,
+    status: "PUBLISHED",
+    isPublished: true,
+    sortOrder: 1,
+  },
+];
+
+/**
  * @param {string | undefined} databaseUrl
  * @returns {string | null} hostname, or null if unparseable / missing
  */
@@ -64,7 +98,45 @@ export function assertSafeCiSeedEnv(env) {
 }
 
 /** @param {object} prisma PrismaClient instance */
+async function seedStorefrontLocales(prisma) {
+  for (const row of FIXTURE_LOCALES) {
+    await prisma.storefrontLocale.upsert({
+      where: { code: row.code },
+      create: {
+        id: row.id,
+        code: row.code,
+        routeSegment: row.routeSegment,
+        shopifyLocale: row.shopifyLocale,
+        intlLocale: row.intlLocale,
+        name: row.name,
+        nativeName: row.nativeName,
+        isDefault: row.isDefault,
+        status: row.status,
+        isPublished: row.isPublished,
+        sortOrder: row.sortOrder,
+      },
+      update: {
+        routeSegment: row.routeSegment,
+        shopifyLocale: row.shopifyLocale,
+        intlLocale: row.intlLocale,
+        name: row.name,
+        nativeName: row.nativeName,
+        isDefault: row.isDefault,
+        status: row.status,
+        isPublished: row.isPublished,
+        sortOrder: row.sortOrder,
+        deletedAt: null,
+        retiredAt: null,
+      },
+    });
+  }
+  return FIXTURE_LOCALES.length;
+}
+
+/** @param {object} prisma PrismaClient instance */
 async function seed(prisma) {
+  const localeCount = await seedStorefrontLocales(prisma);
+
   const publishedAt = new Date();
   const products = [];
   for (const row of FIXTURE_PRODUCTS) {
@@ -133,7 +205,11 @@ async function seed(prisma) {
     });
   }
 
-  return { productCount: FIXTURE_PRODUCTS.length, collectionSlug: collection.slug };
+  return {
+    localeCount,
+    productCount: FIXTURE_PRODUCTS.length,
+    collectionSlug: collection.slug,
+  };
 }
 
 async function main() {
@@ -153,7 +229,7 @@ async function main() {
   try {
     const result = await seed(prisma);
     console.log(
-      `seed-shop-filter-fixture: upserted ${result.productCount} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1) + collection /${result.collectionSlug}`,
+      `seed-shop-filter-fixture: upserted ${result.localeCount} StorefrontLocale (en, pt) + ${result.productCount} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1) + collection /${result.collectionSlug}`,
     );
   } finally {
     await prisma.$disconnect();
