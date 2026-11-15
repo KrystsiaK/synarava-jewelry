@@ -4,6 +4,7 @@ import {
   assertSafeCiSeedEnv,
   databaseUrlHost,
   FIXTURE_COLLECTION,
+  FIXTURE_LOCALES,
   FIXTURE_PRODUCTS,
 } from "../seed-shop-filter-fixture.mjs";
 
@@ -59,5 +60,32 @@ describe("seed-shop-filter-fixture safety", () => {
   it("exposes an ACTIVE/PUBLIC collection slug for collection Back e2e", () => {
     expect(FIXTURE_COLLECTION.slug).toBe("ci-filter");
     expect(FIXTURE_COLLECTION.slug.length).toBeGreaterThan(0);
+  });
+
+  it("upserts published en (default) and pt (shopifyLocale pt-PT) for smoke locale redirects", () => {
+    expect(FIXTURE_LOCALES).toEqual([
+      expect.objectContaining({
+        code: "en",
+        routeSegment: "en",
+        shopifyLocale: "en",
+        isDefault: true,
+        status: "PUBLISHED",
+        isPublished: true,
+        sortOrder: 0,
+      }),
+      expect.objectContaining({
+        code: "pt",
+        routeSegment: "pt",
+        shopifyLocale: "pt-PT",
+        isDefault: false,
+        status: "PUBLISHED",
+        isPublished: true,
+        sortOrder: 1,
+      }),
+    ]);
+    expect(FIXTURE_LOCALES.filter((row) => row.isDefault)).toHaveLength(1);
+    expect(FIXTURE_LOCALES.every((row) => row.status === "PUBLISHED" && row.isPublished)).toBe(
+      true,
+    );
   });
 });

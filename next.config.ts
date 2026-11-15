@@ -107,38 +107,8 @@ const nextConfig: NextConfig = {
         : []),
     ],
   },
-  // Print/QR short links. Temporary (307) so destinations can change without
-  // reprinting codes. Bare /shop (not /en/shop): proxy locale-prefixes and
-  // must keep utm_* on that hop (see __tests__/proxy.test.ts).
-  // https://nextjs.org/docs/app/api-reference/config/next-config-js/redirects
-  async redirects() {
-    return [
-      {
-        source: "/ig",
-        destination:
-          "/shop?utm_source=instagram&utm_medium=bio&utm_campaign=profile_link",
-        permanent: false,
-      },
-      {
-        source: "/gift/box",
-        destination:
-          "/shop?utm_source=box&utm_medium=print&utm_campaign=packaging",
-        permanent: false,
-      },
-      {
-        source: "/gift/card",
-        destination:
-          "/shop?utm_source=card&utm_medium=print&utm_campaign=packaging",
-        permanent: false,
-      },
-      // Typo safety for /gift without a suffix — shop, no box/card source.
-      {
-        source: "/gift",
-        destination: "/shop",
-        permanent: false,
-      },
-    ];
-  },
+  // Print/QR short links (/ig, /gift*) live in proxy.ts so locale can follow
+  // cookie → Accept-Language → default in one 307 hop (see __tests__/proxy.test.ts).
   async headers() {
     const preventIndexing = !isProductionDeployment();
     return [
