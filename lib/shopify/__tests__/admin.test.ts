@@ -160,7 +160,7 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingScopes).toEqual([]);
     expect(connection.missingTranslationScopes).toEqual([]);
     expect(connection.missingEditorialScopes).toEqual([]);
-    expect(connection.missingReviewScopes).toEqual([]);
+    expect(connection).not.toHaveProperty("missingReviewScopes");
     expect(connection.missingWishlistScopes).toEqual([]);
     expect(connection.missingReturnsScopes).toEqual([]);
     expect(connection.unpublishedLocales).toEqual([]);
@@ -192,9 +192,7 @@ describe("Shopify Admin authentication", () => {
     expect(connection.missingEditorialScopes).toEqual([
       "read_metaobjects", "write_metaobjects", "read_metaobject_definitions", "write_metaobject_definitions",
     ]);
-    expect(connection.missingReviewScopes).toEqual([
-      "write_product_reviews", "read_metaobjects", "read_customers", "read_orders", "read_products",
-    ]);
+    expect(connection).not.toHaveProperty("missingReviewScopes");
     expect(connection.missingWishlistScopes).toEqual(["read_customers", "write_customers"]);
     expect(connection.missingReturnsScopes).toEqual(["read_returns"]);
     expect(connection.unpublishedLocales).toEqual([{ code: "pt", name: "Portuguese", shopifyLocale: "pt-PT" }]);

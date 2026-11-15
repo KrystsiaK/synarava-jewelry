@@ -11,7 +11,7 @@ export type AdminNavChildConfig = {
 };
 
 export type AdminNavBadgeConfig = {
-  kind: "sync";
+  kind: "sync" | "count";
   count: number;
 };
 
@@ -59,6 +59,8 @@ export type BuildAdminNavItemsInput = {
   /** @deprecated Prefer `syncCounts.total` — kept for callers that only know the hub total. */
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
+  /** PENDING local buyer reviews — count badge on Reviews nav. */
+  pendingReviewsCount?: number;
 };
 
 const EMPTY_SYNC_COUNTS: AdminNavSyncCounts = {
@@ -93,6 +95,11 @@ export function syncDifferenceToNavHref(
 function syncBadge(count: number | undefined): AdminNavBadgeConfig | undefined {
   if (!count || count <= 0) return undefined;
   return { kind: "sync", count };
+}
+
+function countBadge(count: number | undefined): AdminNavBadgeConfig | undefined {
+  if (!count || count <= 0) return undefined;
+  return { kind: "count", count };
 }
 
 const DEFAULT_CHILD_PREVIEW = 8;
@@ -194,6 +201,7 @@ export function buildAdminNavItems({
   pages = [],
   syncCount = 0,
   syncCounts,
+  pendingReviewsCount = 0,
 }: BuildAdminNavItemsInput = {}): AdminNavItemConfig[] {
   const pageChildren = buildPagesNavChildren(pages);
   const sync: AdminNavSyncCounts = {
@@ -254,6 +262,13 @@ export function buildAdminNavItems({
       label: "Collections",
       code: "COL",
       badge: syncBadge(sync.collections),
+    },
+    {
+      id: "reviews",
+      href: "/admin/reviews",
+      label: "Reviews",
+      code: "REV",
+      badge: countBadge(pendingReviewsCount),
     },
     {
       id: "translations",

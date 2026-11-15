@@ -28,7 +28,6 @@ vi.mock("@/lib/content/catalog", () => ({
 
 vi.mock("@/lib/content/product-reviews", () => ({
   getCustomerProductReviews: mocks.getReviews,
-  listReviewProductLinks: mocks.listReviewProducts,
 }));
 
 vi.mock("@/lib/content/account-orders-settings", () => ({
@@ -68,14 +67,16 @@ import ProfilePage from "../page";
 
 describe("ProfilePage", () => {
   beforeEach(() => {
-    mocks.getCustomerProfile.mockResolvedValue({ id: "gid://shopify/Customer/1" });
+    mocks.getCustomerProfile.mockResolvedValue({
+      id: "gid://shopify/Customer/1",
+      emailAddress: { emailAddress: "ana@example.com" },
+    });
     mocks.getSession.mockResolvedValue({ sessionExpiresAt: new Date("2026-10-15T00:00:00.000Z") });
     mocks.getWishlistIds.mockRejectedValue(
       new Error("Access denied: missing read_customers"),
     );
     mocks.listProducts.mockResolvedValue([]);
     mocks.getReviews.mockResolvedValue([]);
-    mocks.listReviewProducts.mockResolvedValue([]);
     vi.spyOn(console, "error").mockImplementation(() => undefined);
   });
 
@@ -112,11 +113,22 @@ describe("ProfilePage", () => {
     expect(mocks.getCustomerProfile).toHaveBeenCalledWith(session);
   });
 
-  it("redirects the temporary-hidden Reviews section to overview without fetching reviews", async () => {
-    await expect(
-      ProfilePage({ searchParams: Promise.resolve({ section: "reviews" }) }),
-    ).rejects.toThrow("NEXT_REDIRECT:/en/profile");
-    expect(mocks.getReviews).not.toHaveBeenCalled();
-    expect(mocks.listReviewProducts).not.toHaveBeenCalled();
+  it("loads local reviews by customer email for the Reviews section", async () => {
+    mocks.getReviews.mockResolvedValue([
+      {
+        id: "r1",
+        rating: 5,
+        title: "Nice",
+        body: "Great",
+        submittedAt: "2026-11-15T00:00:00.000Z",
+        verificationStatus: "unverified",
+        merchantReply: "",
+        productTitle: "Lava ring",
+        productHref: "/en/products/lava-ring",
+      },
+    ]);
+    render(await ProfilePage({ searchParams: Promise.resolve({ section: "reviews" }) }));
+    expect(mocks.getReviews).toHaveBeenCalledWith("ana@example.com", "en");
+    expect(screen.getByTestId("profile")).toHaveAttribute("data-review-count", "1");
   });
 });

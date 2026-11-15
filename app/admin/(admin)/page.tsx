@@ -1,9 +1,13 @@
 import Link from "next/link";
 
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { countPendingProductReviews } from "@/lib/reviews/queries";
 
 export default async function AdminDashboardPage() {
-  const { pages, products, collections } = await getAdminCatalogData();
+  const [{ pages, products, collections }, pendingReviews] = await Promise.all([
+    getAdminCatalogData(),
+    countPendingProductReviews().catch(() => 0),
+  ]);
 
   const publishedProducts = products.filter(
     (p) => p.status === "ACTIVE" && p.visibility === "PUBLIC",
@@ -16,6 +20,7 @@ export default async function AdminDashboardPage() {
     { label: "Pages", value: pages.length, href: "/admin/pages", code: "PGS" },
     { label: "Products", value: products.length, href: "/admin/products", code: "CAT" },
     { label: "Collections", value: collections.length, href: "/admin/collections", code: "COL" },
+    { label: "Pending reviews", value: pendingReviews, href: "/admin/reviews", code: "REV" },
   ];
 
   return (
@@ -33,7 +38,7 @@ export default async function AdminDashboardPage() {
 
       {/* Stat grid */}
       <div
-        className="grid grid-cols-2 gap-3 md:grid-cols-3"
+        className="grid grid-cols-2 gap-3 md:grid-cols-4"
       >
         {stats.map((stat) => (
           <Link key={stat.label} href={stat.href} className="adm-stat-card">

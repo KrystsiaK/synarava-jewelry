@@ -7,12 +7,8 @@ export type AccountReview = {
   verificationStatus: "verified_buyer" | "verified_reviewer" | "unverified";
   merchantReply: string;
   productId: string;
-};
-
-export type AccountReviewProduct = {
-  shopifyProductId: string;
-  slug: string;
-  title: string;
+  productSlug: string;
+  productTitle: string;
 };
 
 export type AccountReviewRow = {
@@ -29,22 +25,17 @@ export type AccountReviewRow = {
 
 export function toAccountReviewRows(
   reviews: AccountReview[],
-  products: AccountReviewProduct[],
   productPath: (slug: string) => string,
 ): AccountReviewRow[] {
-  const byId = new Map(products.map((product) => [product.shopifyProductId, product]));
-  return reviews.map((review) => {
-    const product = byId.get(review.productId);
-    return {
-      id: review.id,
-      rating: review.rating,
-      title: review.title,
-      body: review.body,
-      submittedAt: review.submittedAt,
-      verificationStatus: review.verificationStatus,
-      merchantReply: review.merchantReply,
-      productTitle: product?.title ?? null,
-      productHref: product ? productPath(product.slug) : null,
-    };
-  });
+  return reviews.map((review) => ({
+    id: review.id,
+    rating: review.rating,
+    title: review.title,
+    body: review.body,
+    submittedAt: review.submittedAt,
+    verificationStatus: review.verificationStatus,
+    merchantReply: review.merchantReply,
+    productTitle: review.productTitle || null,
+    productHref: review.productSlug ? productPath(review.productSlug) : null,
+  }));
 }

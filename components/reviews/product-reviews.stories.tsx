@@ -16,7 +16,6 @@ const meta = {
   args: {
     productSlug: "lava-ring",
     locale: "en",
-    isSignedIn: false,
     submitAction: async () => ({}),
     data: {
       average: 4.7,
@@ -24,7 +23,6 @@ const meta = {
       reviews: [
         {
           id: "review-1",
-          handle: "review-1",
           rating: 5,
           title: "Quietly beautiful",
           body: "The finish is even better in person and the proportions feel considered.",
@@ -36,7 +34,6 @@ const meta = {
         },
         {
           id: "review-2",
-          handle: "review-2",
           rating: 4,
           title: "A considered piece",
           body: "Beautifully packed and comfortable to wear throughout the day.",
@@ -56,9 +53,8 @@ type Story = StoryObj<typeof meta>;
 
 export const WithReviews: Story = {};
 
-export const EmptySignedIn: Story = {
+export const Empty: Story = {
   args: {
-    isSignedIn: true,
-    data: { reviews: [], average: null, count: 0 },
+    data: { average: null, count: 0, reviews: [] },
   },
 };

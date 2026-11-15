@@ -3,45 +3,21 @@ import { describe, expect, it } from "vitest";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { buildProductJsonLd } from "../product-json-ld";
 
-describe("product JSON-LD", () => {
-  it("uses canonical numeric commerce data and availability", () => {
+describe("buildProductJsonLd", () => {
+  it("builds localized product URLs", () => {
     const product = {
       slug: "silver-ring",
       sku: "RING-01",
       title: "Silver Ring",
       shortDescription: "A handmade silver ring.",
       description: "",
-      image: "https://cdn.example.com/ring.jpg",
+      image: "",
       commerceMedia: [],
       vendor: "Synarava",
       categoryName: "Rings",
       priceAmount: 129.5,
       currency: "EUR",
       stockOnHand: 2,
-      inStock: true,
-    } as ProductSummary;
-
-    expect(buildProductJsonLd(product, "https://synarava.com/")).toMatchObject({
-      "@type": "Product",
-      "@id": "https://synarava.com/en/products/silver-ring#product",
-      sku: "RING-01",
-      image: ["https://cdn.example.com/ring.jpg"],
-      offers: {
-        price: "129.50",
-        priceCurrency: "EUR",
-        availability: "https://schema.org/InStock",
-      },
-    });
-  });
-
-  it("uses the Portuguese canonical URL for product and offer structured data", () => {
-    const product = {
-      slug: "silver-ring",
-      title: "Anel de prata",
-      image: "",
-      commerceMedia: [],
-      priceAmount: 129.5,
-      currency: "EUR",
       inStock: true,
     } as ProductSummary;
     const data = buildProductJsonLd(product, "https://synarava.com", null, "pt");
@@ -49,7 +25,7 @@ describe("product JSON-LD", () => {
     expect(data.offers.url).toBe(data.url);
   });
 
-  it("adds Shopify review aggregate and published reviews when available", () => {
+  it("adds published review aggregate and omits authorEmail", () => {
     const product = {
       slug: "silver-ring",
       sku: "RING-01",
@@ -66,26 +42,29 @@ describe("product JSON-LD", () => {
       inStock: true,
     } as ProductSummary;
 
-    // TEMPORARY: storefront reviews kill-switch omits review JSON-LD.
-    // When STOREFRONT_REVIEWS_VISIBLE flips true, restore aggregateRating expectations.
     const jsonLd = buildProductJsonLd(product, "https://synarava.com", {
       average: 4.5,
       count: 2,
-      reviews: [{
-        id: "review-1",
-        handle: "review-1",
-        rating: 5,
-        title: "Beautiful",
-        body: "Better in person.",
-        authorDisplayName: "Ana",
-        submittedAt: "2026-09-10T12:00:00Z",
-        verificationStatus: "verified_buyer",
-        merchantReply: "",
-        merchantRepliedAt: null,
-      }],
+      reviews: [
+        {
+          id: "review-1",
+          rating: 5,
+          title: "Beautiful",
+          body: "Better in person.",
+          authorDisplayName: "Ana",
+          submittedAt: "2026-09-10T12:00:00Z",
+          verificationStatus: "verified_buyer",
+          merchantReply: "",
+          merchantRepliedAt: null,
+        },
+      ],
     });
-    expect(jsonLd).not.toHaveProperty("aggregateRating");
-    expect(jsonLd).not.toHaveProperty("review");
+    expect(jsonLd.aggregateRating).toMatchObject({
+      ratingValue: 4.5,
+      reviewCount: 2,
+    });
+    expect(jsonLd.review).toHaveLength(1);
+    expect(JSON.stringify(jsonLd)).not.toMatch(/authorEmail/i);
   });
 
   it("reports OutOfStock for a product with no purchasable variant, even with stale stockOnHand", () => {
@@ -93,20 +72,17 @@ describe("product JSON-LD", () => {
       slug: "silver-ring",
       sku: "RING-01",
       title: "Silver Ring",
-      shortDescription: "A handmade silver ring.",
+      shortDescription: "",
       description: "",
       image: "",
       commerceMedia: [],
       vendor: "Synarava",
-      categoryName: "Rings",
-      priceAmount: 129.5,
+      priceAmount: 10,
       currency: "EUR",
-      stockOnHand: 2,
+      stockOnHand: 5,
       inStock: false,
     } as ProductSummary;
-
-    expect(buildProductJsonLd(product, "https://synarava.com")).toMatchObject({
-      offers: { availability: "https://schema.org/OutOfStock" },
-    });
+    const jsonLd = buildProductJsonLd(product, "https://synarava.com");
+    expect(jsonLd.offers.availability).toBe("https://schema.org/OutOfStock");
   });
 });

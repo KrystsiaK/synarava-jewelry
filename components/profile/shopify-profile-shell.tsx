@@ -21,7 +21,6 @@ import type { Locale } from "@/lib/i18n/locales";
 import { AccountReviews } from "@/components/profile/account-reviews";
 import { ReturnRequestPanel } from "@/components/profile/return-request-panel";
 import { ArtifactLink } from "@/components/ui";
-import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import type { AccountReviewRow } from "@/lib/profile/account-reviews";
 import {
@@ -35,9 +34,7 @@ const allTabs = ["overview", "wishlist", "orders", "reviews", "addresses", "secu
 type Tab = (typeof allTabs)[number];
 
 function visibleAccountTabs(): Tab[] {
-  return storefrontReviewsVisible()
-    ? [...allTabs]
-    : allTabs.filter((tab) => tab !== "reviews");
+  return [...allTabs];
 }
 
 function tabHref(tab: Tab, locale: Locale) {
@@ -548,7 +545,7 @@ export function ShopifyProfileShell({
               </div>
             ) : null}
 
-            {storefrontReviewsVisible() && resolvedTab === "reviews" ? (
+            {resolvedTab === "reviews" ? (
               <AccountReviews reviews={reviews} />
             ) : null}
 
