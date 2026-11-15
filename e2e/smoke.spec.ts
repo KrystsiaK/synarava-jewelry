@@ -39,8 +39,13 @@ test("print QR /gift/box redirects to shop with utm_source=box", async ({
 test("print QR /gift/card follows Accept-Language to /pt/shop", async ({
   page,
   request,
+  context,
 }) => {
   // CI seed upserts published en+pt (see seed-shop-filter-fixture.mjs).
+  // Earlier smoke visits /en and persist() a synarava-locale cookie; cookie
+  // beats Accept-Language by design — clear so this case measures AL only.
+  await context.clearCookies();
+
   const hop = await request.get("/gift/card", {
     maxRedirects: 0,
     headers: { "Accept-Language": "pt-PT" },
@@ -50,6 +55,7 @@ test("print QR /gift/card follows Accept-Language to /pt/shop", async ({
   expect(location).toContain("/pt/shop");
   expect(location).toContain("utm_source=card");
 
+  await context.clearCookies();
   await page.setExtraHTTPHeaders({ "Accept-Language": "pt-PT" });
   const response = await page.goto("/gift/card");
   expect(response?.status()).toBe(200);
