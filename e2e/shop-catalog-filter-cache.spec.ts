@@ -54,24 +54,34 @@ async function readShowingCount(page: Page): Promise<number> {
 }
 
 /**
- * After Back/filter remount: poll aria-live counters every 50ms for 2s.
+ * After Back/filter remount: sample aria-live counters every 50ms for ~2s.
  * Never allow a visible "0 products" flash; settle on `expected`.
+ * Uses expect.poll (not waitForTimeout) — DEAD-007.
  */
 async function expectShowingCountNeverZeroFlash(page: Page, expected: number) {
   expect(expected).toBeGreaterThan(0);
-  const deadline = Date.now() + 2_000;
-  let lastSeen: number | null = null;
-  while (Date.now() < deadline) {
-    const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
-    for (const text of texts) {
-      const count = parseProductCount(text);
-      if (count === null) continue;
-      expect(count, `counter flashed "${text.trim()}"`).not.toBe(0);
-      lastSeen = count;
-    }
-    if (lastSeen === expected) break;
-    await page.waitForTimeout(50);
-  }
+  const started = Date.now();
+  await expect
+    .poll(
+      async () => {
+        const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
+        let sawExpected = false;
+        for (const text of texts) {
+          const count = parseProductCount(text);
+          if (count === null) continue;
+          if (count === 0) {
+            throw new Error(`counter flashed "${text.trim()}"`);
+          }
+          if (count === expected) sawExpected = true;
+        }
+        if (sawExpected) return "settled";
+        // Keep sampling for flash detection; final expect below may still settle.
+        if (Date.now() - started >= 1_900) return "window-ok";
+        return "sampling";
+      },
+      { timeout: 2_500, intervals: [50] },
+    )
+    .not.toBe("sampling");
   await expect(showingCounter(page)).toHaveText(productCountLabel(expected), { timeout: 15_000 });
 }
 
