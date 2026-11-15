@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 
 import {
   saveTaxonomyLabelsAction,
+  type TaxonomyLabelDivergence,
   type TaxonomyLabelsActionState,
   type TaxonomyLabelsEditorPayload,
 } from "@/app/admin/actions/taxonomy-labels";
@@ -16,10 +17,12 @@ import {
 } from "@/components/admin/shared/admin-locale-workspace";
 import {
   AdminAlert,
+  AdminButton,
   AdminIconButton,
   AdminPanel,
   AdminReadonlyField,
   AdminSectionTabs,
+  AdminStatusBadge,
   AdminTextField,
 } from "@/components/synarava-cms";
 import type { TaxonomyKind } from "@/lib/catalog/taxonomy-value-kinds";
@@ -30,6 +33,14 @@ const SECTIONS = [
 ] as const;
 
 type SectionId = (typeof SECTIONS)[number]["id"];
+
+function emptyKindMaps(): Record<TaxonomyKind, Record<string, string>> {
+  return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
+}
+
+function emptyDivergenceMaps(): Record<TaxonomyKind, Record<string, TaxonomyLabelDivergence>> {
+  return { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} };
+}
 
 export function TaxonomyLabelsEditor({
   initial,
@@ -45,6 +56,8 @@ export function TaxonomyLabelsEditor({
   const [activeLocale, selectLocale] = useAdminActiveLocale("taxonomy-labels", locales, nonEn);
   const [section, setSection] = useState<SectionId>("category");
   const [draft, setDraft] = useState(initial.labels);
+  const [sources, setSources] = useState(initial.sources);
+  const [divergences, setDivergences] = useState(initial.divergences);
 
   useEffect(() => {
     function syncFromHash() {
@@ -68,8 +81,30 @@ export function TaxonomyLabelsEditor({
   function setLabel(enValue: string, label: string) {
     setDraft((prev) => {
       const next = { ...prev };
-      const localeMap = { ...(next[activeLocale] ?? { CATEGORY_LEAF: {}, PRODUCT_TYPE: {} }) };
+      const localeMap = { ...(next[activeLocale] ?? emptyKindMaps()) };
       localeMap[activeKind] = { ...localeMap[activeKind], [enValue]: label };
+      next[activeLocale] = localeMap;
+      return next;
+    });
+  }
+
+  function clearDivergence(enValue: string) {
+    setDivergences((prev) => {
+      const next = { ...prev };
+      const localeMap = { ...(next[activeLocale] ?? emptyDivergenceMaps()) };
+      const kindMap = { ...localeMap[activeKind] };
+      delete kindMap[enValue];
+      localeMap[activeKind] = kindMap;
+      next[activeLocale] = localeMap;
+      return next;
+    });
+  }
+
+  function markSynaravaSource(enValue: string) {
+    setSources((prev) => {
+      const next = { ...prev };
+      const localeMap = { ...(next[activeLocale] ?? emptyKindMaps()) };
+      localeMap[activeKind] = { ...localeMap[activeKind], [enValue]: "SYNARAVA" };
       next[activeLocale] = localeMap;
       return next;
     });
@@ -98,6 +133,32 @@ export function TaxonomyLabelsEditor({
       const result = await saveTaxonomyLabelsAction({}, formData);
       setState(result);
       if (result.success) pushToast({ message: result.success, tone: "success" });
+      if (result.error) pushToast({ message: result.error, tone: "error" });
+    });
+  }
+
+  function restoreDictionary(enValue: string, dictionaryLabel: string) {
+    setLabel(enValue, dictionaryLabel);
+    startTransition(async () => {
+      const formData = new FormData();
+      formData.set(
+        "updates",
+        JSON.stringify([
+          {
+            kind: activeKind,
+            enValue,
+            locale: activeLocale,
+            label: dictionaryLabel,
+          },
+        ]),
+      );
+      const result = await saveTaxonomyLabelsAction({}, formData);
+      setState(result);
+      if (result.success) {
+        markSynaravaSource(enValue);
+        clearDivergence(enValue);
+        pushToast({ message: result.success, tone: "success" });
+      }
       if (result.error) pushToast({ message: result.error, tone: "error" });
     });
   }
@@ -159,7 +220,8 @@ export function TaxonomyLabelsEditor({
                 </p>
               ) : null}
               {enValues.map((enValue) => {
-                const source = initial.sources[activeLocale]?.[activeKind]?.[enValue];
+                const source = sources[activeLocale]?.[activeKind]?.[enValue];
+                const divergence = divergences[activeLocale]?.[activeKind]?.[enValue];
                 if (isEn) {
                   return (
                     <AdminReadonlyField
@@ -172,20 +234,47 @@ export function TaxonomyLabelsEditor({
                   );
                 }
                 return (
-                  <AdminTextField
-                    key={enValue}
-                    label={enValue}
-                    value={localeDraft[enValue] ?? ""}
-                    onChange={(event) => setLabel(enValue, event.target.value)}
-                    clearable
-                    onClear={() => setLabel(enValue, "")}
-                    owner={source === "SHOPIFY" ? "Shopify" : "Synarava"}
-                    help={
-                      source === "SHOPIFY"
-                        ? "Pulled from Shopify product_type translation. Edit becomes a Synarava overlay until the next pull."
-                        : "Synarava display overlay when Shopify has no translation for this value."
-                    }
-                  />
+                  <div key={enValue} className="grid gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      {source ? (
+                        <AdminStatusBadge tone={source === "SHOPIFY" ? "published" : source === "SYNARAVA" ? "pending" : "draft"}>
+                          {source}
+                        </AdminStatusBadge>
+                      ) : (
+                        <AdminStatusBadge tone="draft">unset</AdminStatusBadge>
+                      )}
+                      {divergence ? (
+                        <AdminButton
+                          variant="secondary"
+                          className="py-1 px-2 text-[0.7rem]"
+                          disabled={isPending}
+                          onClick={() => restoreDictionary(enValue, divergence.dictionaryLabel)}
+                        >
+                          вернуть словарь
+                        </AdminButton>
+                      ) : null}
+                    </div>
+                    <AdminTextField
+                      label={enValue}
+                      value={localeDraft[enValue] ?? ""}
+                      onChange={(event) => setLabel(enValue, event.target.value)}
+                      clearable
+                      onClear={() => setLabel(enValue, "")}
+                      owner={source === "SHOPIFY" ? "Shopify" : "Synarava"}
+                      warning={
+                        divergence
+                          ? `отличается от словаря: ${divergence.dictionaryLabel}`
+                          : undefined
+                      }
+                      help={
+                        source === "SHOPIFY"
+                          ? "Pulled from Shopify product_type translation. Edit becomes a Synarava overlay until the next pull."
+                          : source === "SEED_MAP"
+                            ? "Seeded from the code dictionary (SEED_MAP). Edit becomes a Synarava overlay."
+                            : "Synarava display overlay when Shopify has no translation for this value."
+                      }
+                    />
+                  </div>
                 );
               })}
             </div>
