@@ -59,11 +59,19 @@ export function MissionControlStatusNode({
             <a
               href={data.href}
               className="mc-node__link nodrag nopan"
-              aria-label={`Open ${data.label}`}
+              aria-label={
+                data.href.includes("analytics.google.com")
+                  ? "Открыть в Google Analytics"
+                  : `Open ${data.label}`
+              }
               target={data.href.startsWith("http") ? "_blank" : undefined}
               rel={data.href.startsWith("http") ? "noreferrer" : undefined}
             >
-              <span>Open</span>
+              <span>
+                {data.href.includes("analytics.google.com")
+                  ? "Открыть в Google Analytics"
+                  : "Open"}
+              </span>
               <ExternalLink aria-hidden="true" />
             </a>
           ) : null}

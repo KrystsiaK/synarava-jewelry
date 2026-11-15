@@ -12,8 +12,14 @@ import { detectAnalyticsIssues } from "@/lib/mission-control/analytics/detect";
 import {
   fetchGaEventCounts,
   fetchGaTelemetryCounts,
+  fetchGaVisitPulse,
 } from "@/lib/mission-control/analytics/ga-client";
 import { parseGaServiceAccountJson } from "@/lib/mission-control/analytics/ga-jwt";
+import {
+  buildGaAcquisitionReportsUrl,
+  formatVisitPulseMessage,
+  type GaVisitPulse,
+} from "@/lib/mission-control/analytics/ga-visit-pulse";
 import { safeHttpFailureReason } from "@/lib/mission-control/analytics/http-reason";
 import { formatAnalyticsMarkdownReport } from "@/lib/mission-control/analytics/report";
 import { buildTelemetryNotConfiguredNotice } from "@/lib/mission-control/analytics/telemetry-notice";
@@ -34,7 +40,7 @@ import {
 } from "@/lib/mission-control/status";
 import type { Prisma } from "@prisma/client";
 
-const HREF = "/admin/mission-control";
+const HREF_FALLBACK = "https://analytics.google.com/";
 
 export type AnalyticsEnv = {
   CLARITY_API_TOKEN?: string | null;
@@ -102,6 +108,7 @@ function toRecord(
   budgetDay: string,
   lastSuccessAt: string | null,
   lastSuccess: ClarityLastSuccessCache | null,
+  href: string = HREF_FALLBACK,
 ): ServiceNodeStatusRecord {
   const counters = {
     analytics: payload,
@@ -117,7 +124,7 @@ function toRecord(
     level: payload.level,
     message: payload.message,
     counters: counters as Prisma.JsonValue,
-    href: HREF,
+    href,
     checkedAt: now,
     updatedAt: now,
   };
@@ -200,6 +207,7 @@ export async function getAnalyticsStatus(
   let gaTelemetry = undefined as
     | Awaited<ReturnType<typeof fetchGaTelemetryCounts>>
     | undefined;
+  let visitPulse = undefined as GaVisitPulse | undefined;
   let clarityRows = undefined as
     | Awaited<ReturnType<typeof fetchClarityFrictionRows>>["rows"]
     | undefined;
@@ -215,8 +223,10 @@ export async function getAnalyticsStatus(
   let nextBudget = budget;
   const sourceIssues: AnalyticsIssue[] = [];
   const notices: AnalyticsNotice[] = [];
+  let gaHref = HREF_FALLBACK;
 
   if (gaOk && sa && env.GA_PROPERTY_ID) {
+    gaHref = buildGaAcquisitionReportsUrl(env.GA_PROPERTY_ID);
     const gaDeps = {
       propertyId: env.GA_PROPERTY_ID,
       serviceAccount: sa,
@@ -235,14 +245,23 @@ export async function getAnalyticsStatus(
       telemetryEnabled
         ? fetchGaTelemetryCounts(gaDeps)
         : Promise.resolve([] as Awaited<ReturnType<typeof fetchGaTelemetryCounts>>),
+      fetchGaVisitPulse(gaDeps),
     ]);
 
     const eventsResult = settled[0];
     const telemetryResult = settled[1];
+    const visitResult = settled[2];
 
     if (eventsResult.status === "fulfilled") {
       gaEvents = eventsResult.value;
-    } else {
+    }
+    if (visitResult.status === "fulfilled") {
+      visitPulse = visitResult.value;
+    }
+
+    const eventsOk = eventsResult.status === "fulfilled";
+    const visitOk = visitResult.status === "fulfilled";
+    if (!eventsOk && !visitOk) {
       gaSource = "skipped";
       sourceIssues.push(
         sourceUnavailableIssue(
@@ -255,13 +274,39 @@ export async function getAnalyticsStatus(
           "Confirm GA_PROPERTY_ID, service-account Viewer access, and Analytics Data API is enabled. Do not log the JSON key.",
         ),
       );
+    } else {
+      if (!eventsOk) {
+        sourceIssues.push(
+          sourceUnavailableIssue(
+            "source:ga_events",
+            "ga",
+            "GA commerce events query unavailable this run",
+            safeHttpFailureReason(eventsResult.reason),
+            now,
+            "GA4 Events report",
+            "Visit pulse may still be available; check Events API dimensions.",
+          ),
+        );
+      }
+      if (!visitOk) {
+        sourceIssues.push(
+          sourceUnavailableIssue(
+            "source:ga_visit_pulse",
+            "ga",
+            "GA visit pulse (7d) unavailable this run",
+            safeHttpFailureReason(visitResult.reason),
+            now,
+            "GA4 → Reports → Acquisition",
+            "Confirm Analytics Data API accepts sessions/activeUsers/countryId for this property.",
+          ),
+        );
+      }
     }
 
     if (telemetryEnabled) {
       if (telemetryResult.status === "fulfilled") {
         gaTelemetry = telemetryResult.value;
-      } else if (eventsResult.status === "fulfilled") {
-        // Events ok but telemetry failed — keep GA connected, note the gap safely.
+      } else if (eventsOk || visitOk) {
         sourceIssues.push(
           sourceUnavailableIssue(
             "source:ga_telemetry",
@@ -340,15 +385,37 @@ export async function getAnalyticsStatus(
     gaEvents,
     gaTelemetry,
     clarityRows,
+    visitPulse,
   });
   const issues = [...sourceIssues, ...detected];
   const level = worstLevelFromIssues(issues);
-  const message =
-    issues.length === 0
+  const message = visitPulse
+    ? formatVisitPulseMessage(visitPulse)
+    : issues.length === 0
       ? "No analytics issues above threshold"
       : `${issues.length} issue(s); worst=${level}`;
 
   const figures: AnalyticsSnapshotPayload["figures"] = [];
+  if (visitPulse) {
+    figures.push({
+      label: "GA sessions (7d)",
+      value: visitPulse.current.sessions,
+      period: `last ${ANALYTICS_THRESHOLDS.visitPulseDays} days (consented; admin excluded at collection)`,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA active users (7d)",
+      value: visitPulse.current.activeUsers,
+      period: `last ${ANALYTICS_THRESHOLDS.visitPulseDays} days (consented)`,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA sessions prior 7d",
+      value: visitPulse.previous.sessions,
+      period: `prior ${ANALYTICS_THRESHOLDS.visitPulseDays} days (consented)`,
+      source: "ga",
+    });
+  }
   for (const event of gaEvents ?? []) {
     figures.push({
       label: `GA event ${event.eventName}`,
@@ -407,5 +474,6 @@ export async function getAnalyticsStatus(
     nextBudget.day,
     nextBudget.lastSuccessAt,
     lastSuccess,
+    gaHref,
   );
 }

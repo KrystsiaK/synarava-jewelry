@@ -7,6 +7,11 @@ import {
   fetchGaAccessToken,
   type GaServiceAccount,
 } from "@/lib/mission-control/analytics/ga-jwt";
+import {
+  parseGaVisitPulseReport,
+  type GaVisitPulse,
+  type GaVisitPulseReportJson,
+} from "@/lib/mission-control/analytics/ga-visit-pulse";
 
 const DATA_API =
   "https://analyticsdata.googleapis.com/v1beta/properties";
@@ -16,7 +21,7 @@ type RunReportRow = {
   metricValues?: Array<{ value?: string }>;
 };
 
-type RunReportResponse = {
+type RunReportResponse = GaVisitPulseReportJson & {
   rows?: RunReportRow[];
 };
 
@@ -162,4 +167,46 @@ export async function fetchGaTelemetryCounts(
     eventCount: value.eventCount,
     poorCount: value.poorCount,
   }));
+}
+
+/**
+ * One runReport: current 7d vs previous 7d (+ last day) by countryId.
+ * Metrics: sessions, activeUsers, averageSessionDuration, engagementRate.
+ * Admin visits are already excluded at collection (PR #398) — no extra filter.
+ */
+export async function fetchGaVisitPulse(
+  deps: GaClientDeps,
+): Promise<GaVisitPulse> {
+  const accessToken = await fetchGaAccessToken(
+    deps.serviceAccount,
+    deps.fetchFn ?? fetch,
+  );
+  const days = ANALYTICS_THRESHOLDS.visitPulseDays;
+  const report = await runReport(deps, accessToken, {
+    dateRanges: [
+      // current 7d (exclude today partial — align with prior full days)
+      { startDate: `${days}daysAgo`, endDate: "yesterday" },
+      // previous 7d
+      {
+        startDate: `${days * 2}daysAgo`,
+        endDate: `${days + 1}daysAgo`,
+      },
+      // last complete day
+      { startDate: "yesterday", endDate: "yesterday" },
+    ],
+    dimensions: [{ name: "countryId" }],
+    metrics: [
+      { name: "sessions" },
+      { name: "activeUsers" },
+      { name: "averageSessionDuration" },
+      { name: "engagementRate" },
+    ],
+    metricAggregations: ["TOTAL"],
+    orderBys: [
+      { metric: { metricName: "sessions" }, desc: true },
+    ],
+    limit: 50,
+  });
+
+  return parseGaVisitPulseReport(report);
 }

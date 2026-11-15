@@ -3,6 +3,7 @@ import {
   type AnalyticsThresholds,
   type FunnelStepKey,
 } from "@/lib/mission-control/analytics/thresholds";
+import type { GaVisitPulse } from "@/lib/mission-control/analytics/ga-visit-pulse";
 import type { AnalyticsIssue } from "@/lib/mission-control/analytics/types";
 
 export type GaEventCount = {
@@ -35,6 +36,7 @@ export type DetectAnalyticsInput = {
   gaEvents?: readonly GaEventCount[];
   gaTelemetry?: readonly GaTelemetryCount[];
   clarityRows?: readonly ClarityFrictionRow[];
+  visitPulse?: GaVisitPulse | null;
   /** ISO date when each expected event was last observed (optional override). */
   lastSeenByEvent?: Readonly<Record<string, string | null | undefined>>;
   thresholds?: AnalyticsThresholds;
@@ -345,11 +347,103 @@ export function detectClarityFriction(
   return issues;
 }
 
+/**
+ * Visit pulse warns (same detect path — no new mechanism):
+ * - sessions down > 40% vs prior week
+ * - 0 sessions yesterday
+ * - new country in current top-3 vs prior top-3
+ */
+export function detectVisitPulseIssues(
+  input: DetectAnalyticsInput,
+): AnalyticsIssue[] {
+  const pulse = input.visitPulse;
+  if (!pulse) return [];
+  const t = input.thresholds ?? ANALYTICS_THRESHOLDS;
+  const since = isoDay(
+    new Date(input.now.getTime() - t.visitPulseDays * 24 * 60 * 60 * 1000),
+  );
+  const period = `last ${t.visitPulseDays} days vs prior ${t.visitPulseDays} (GA, consented)`;
+  const whereToLook =
+    "GA4 → Reports → Acquisition overview (Открыть в Google Analytics)";
+  const issues: AnalyticsIssue[] = [];
+
+  const prev = pulse.previous.sessions;
+  const curr = pulse.current.sessions;
+  if (prev >= t.visitDropMinPreviousSessions) {
+    const dropFraction = (prev - curr) / prev;
+    if (dropFraction > t.visitDropWarnFraction) {
+      const dropPercent = Math.round(dropFraction * 100);
+      issues.push({
+        id: "visit:drop",
+        kind: "visit_pulse",
+        severity: "warning",
+        title: `Визиты упали на ${dropPercent}% к прошлой неделе (${curr} vs ${prev})`,
+        since,
+        numbers: {
+          currentSessions: curr,
+          previousSessions: prev,
+          dropPercent,
+          minPreviousSessions: t.visitDropMinPreviousSessions,
+        },
+        whereToLook,
+        fixHint:
+          "Сверьте Acquisition/Demographics в GA: источник трафика, страна, согласие. Хаб только чтение — правьте теги/кампании снаружи.",
+        source: "ga",
+        period,
+      });
+    }
+  }
+
+  if (pulse.lastDaySessions === 0) {
+    issues.push({
+      id: "visit:last_day_zero",
+      kind: "visit_pulse",
+      severity: "warning",
+      title: "0 визитов за вчера (GA sessions)",
+      since: isoDay(new Date(input.now.getTime() - 24 * 60 * 60 * 1000)),
+      numbers: { lastDaySessions: 0 },
+      whereToLook,
+      fixHint:
+        "Проверьте, что GTM/consent на витрине живы и админ-трафик по-прежнему исключён (PR #398). Откройте GA Acquisition за вчера.",
+      source: "ga",
+      period: "yesterday (GA, consented)",
+    });
+  }
+
+  const priorTop = new Set(pulse.previousTopCountryIds);
+  if (priorTop.size > 0) {
+    const currentTop = pulse.countries.slice(0, 3).map((c) => c.countryId);
+    const newcomers = currentTop.filter((id) => !priorTop.has(id));
+    if (newcomers.length > 0) {
+      issues.push({
+        id: "visit:new_country",
+        kind: "visit_pulse",
+        severity: "warning",
+        title: `Новая страна в топ-3: ${newcomers.join(", ")}`,
+        since,
+        numbers: {
+          newCountries: newcomers.join(", "),
+          currentTop: currentTop.join(", "),
+          previousTop: pulse.previousTopCountryIds.join(", "),
+        },
+        whereToLook,
+        fixHint:
+          "Откройте Demographics/Acquisition по стране в GA — убедитесь, что это реальный спрос, не бот/тест.",
+        source: "ga",
+        period,
+      });
+    }
+  }
+
+  return issues;
+}
+
 /** Run all detectors; order is stable for snapshots. */
 export function detectAnalyticsIssues(
   input: DetectAnalyticsInput,
 ): AnalyticsIssue[] {
   return [
+    ...detectVisitPulseIssues(input),
     ...detectFunnelDropoffs(input),
     ...detectTelemetryBreakages(input),
     ...detectSilentEvents(input),

@@ -194,6 +194,11 @@ export function MissionControlNodeModal({
       ? readAnalyticsReportMarkdown(status?.counters)
       : null;
   const nonLiveLabel = statusLabel(node, status);
+  const openHref = status?.href?.trim() || env.href;
+  const openLabel =
+    env.label.startsWith("Открыть") || env.label.startsWith("Open")
+      ? env.label
+      : `Open ${env.label}`;
 
   return (
     <aside
@@ -273,14 +278,14 @@ export function MissionControlNodeModal({
           <MissionControlNodeWidget node={node} />
         </section>
         <aside className="mc-node-detail__aside">
-          {env.href ? (
+          {openHref ? (
             <a
               className="mc-node-detail__open"
-              href={env.href}
-              target={env.href.startsWith("http") ? "_blank" : undefined}
-              rel={env.href.startsWith("http") ? "noreferrer" : undefined}
+              href={openHref}
+              target={openHref.startsWith("http") ? "_blank" : undefined}
+              rel={openHref.startsWith("http") ? "noreferrer" : undefined}
             >
-              Open {env.label}
+              {openLabel}
               <ExternalLink aria-hidden="true" />
             </a>
           ) : (
