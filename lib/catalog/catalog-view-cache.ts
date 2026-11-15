@@ -94,6 +94,21 @@ export function getMemoryView(
   return snapshot;
 }
 
+/**
+ * Sync seed for the filter-bar product counter before async IDB/fetch settles.
+ * Prefer matching SSR page-1; else a same-tab memory snapshot; else unknown.
+ */
+export function catalogTotalCountSeed(args: {
+  locale: string;
+  fingerprint: string;
+  ssrFingerprint: string;
+  ssrTotalCount: number;
+}): number | null {
+  if (args.fingerprint === args.ssrFingerprint) return args.ssrTotalCount;
+  const viewKey = buildCatalogViewKey(args.locale, args.fingerprint);
+  return getMemoryView(viewKey, args.fingerprint)?.totalCount ?? null;
+}
+
 function openDb(): Promise<IDBDatabase | null> {
   if (typeof indexedDB === "undefined") return Promise.resolve(null);
   return new Promise((resolve) => {

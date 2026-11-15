@@ -296,7 +296,27 @@ async function checkShopFilter(baseUrl) {
 
     await page.goBack();
     await page.waitForURL((url) => !url.searchParams.has("productType"), { timeout: 15_000 });
-    const restored = await readShowingCount(page);
+    // Fail if "0 products" is ever visible while restoring a non-empty catalog.
+    const flashDeadline = Date.now() + 2_000;
+    let restored = null;
+    while (Date.now() < flashDeadline) {
+      const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
+      for (const text of texts) {
+        const count = parseProductCount(text);
+        if (count === null) continue;
+        if (count === 0 && unfilteredCount > 0) {
+          throw new Error(
+            `back flashed Showing 0 while catalog is non-zero (expected ${unfilteredCount})`,
+          );
+        }
+        restored = count;
+      }
+      if (restored === unfilteredCount) break;
+      await page.waitForTimeout(50);
+    }
+    if (restored !== unfilteredCount) {
+      restored = await readShowingCount(page);
+    }
     if (restored !== unfilteredCount) {
       throw new Error(`back restored Showing ${restored}, expected ${unfilteredCount}`);
     }

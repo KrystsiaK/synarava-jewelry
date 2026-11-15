@@ -53,6 +53,38 @@ async function readShowingCount(page: Page): Promise<number> {
   return count!;
 }
 
+/**
+ * After Back/filter remount: sample aria-live counters every 50ms for ~2s.
+ * Never allow a visible "0 products" flash; settle on `expected`.
+ * Uses expect.poll (not waitForTimeout) — DEAD-007.
+ */
+async function expectShowingCountNeverZeroFlash(page: Page, expected: number) {
+  expect(expected).toBeGreaterThan(0);
+  const started = Date.now();
+  await expect
+    .poll(
+      async () => {
+        const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
+        let sawExpected = false;
+        for (const text of texts) {
+          const count = parseProductCount(text);
+          if (count === null) continue;
+          if (count === 0) {
+            throw new Error(`counter flashed "${text.trim()}"`);
+          }
+          if (count === expected) sawExpected = true;
+        }
+        if (sawExpected) return "settled";
+        // Keep sampling for flash detection; final expect below may still settle.
+        if (Date.now() - started >= 1_900) return "window-ok";
+        return "sampling";
+      },
+      { timeout: 2_500, intervals: [50] },
+    )
+    .not.toBe("sampling");
+  await expect(showingCounter(page)).toHaveText(productCountLabel(expected), { timeout: 15_000 });
+}
+
 function productCountLabel(count: number): RegExp {
   return new RegExp(`\\b${count}\\s+product${count === 1 ? "" : "s"}\\b`, "i");
 }
@@ -160,9 +192,28 @@ test.describe("Shop catalog filter cache ownership", () => {
 
     await page.goBack();
     await expect(page).not.toHaveURL(/productType=/);
-    await expect(showingCounter(page)).toHaveText(productCountLabel(unfilteredCount), {
-      timeout: 15_000,
-    });
+    await expectShowingCountNeverZeroFlash(page, unfilteredCount);
+  });
+
+  test("shop filter → reload → Back never flashes 0 products", async ({ page }) => {
+    await page.goto("/en/shop");
+    await expect(page.locator("#shop-products")).toBeVisible();
+
+    const unfilteredCount = await readShowingCount(page);
+    expect(unfilteredCount).toBeGreaterThan(0);
+
+    const best = await pickNarrowestProductTypeTile(page, unfilteredCount);
+    await best.locator.click();
+    await expect(page).toHaveURL(/productType=/);
+    await expectFilteredEqualsTile(page, best.count);
+
+    await page.reload();
+    await expect(page).toHaveURL(/productType=/);
+    await expectFilteredEqualsTile(page, best.count);
+
+    await page.goBack();
+    await expect(page).not.toHaveURL(/productType=/);
+    await expectShowingCountNeverZeroFlash(page, unfilteredCount);
   });
 
   test("shop filters survive product Back (URL + cards + scroll)", async ({ page }) => {
@@ -239,9 +290,15 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(page).toHaveURL(/productType=Ring/);
     await expect(page).toHaveURL(/sort=newest/);
 
-    // Counter can flash 0 during URL remount — wait for the filtered total.
     await expect
-      .poll(async () => readShowingCount(page), { timeout: 15_000 })
+      .poll(async () => {
+        const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
+        for (const text of texts) {
+          const count = parseProductCount(text);
+          if (count !== null && count > 0) return count;
+        }
+        return 0;
+      }, { timeout: 15_000 })
       .toBeGreaterThan(0);
     const filteredTotal = await readShowingCount(page);
     expect(filteredTotal).toBeLessThanOrEqual(totalInCollection);
@@ -263,7 +320,7 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(page).toHaveURL(/sort=newest/);
     expect(new URL(page.url()).search).toBe(new URL(hrefBefore).search);
 
-    await expect(showingCounter(page)).toHaveText(productCountLabel(filteredTotal), { timeout: 15_000 });
+    await expectShowingCountNeverZeroFlash(page, filteredTotal);
     await expect(productCards(page)).toHaveCount(cardCountBefore, { timeout: 15_000 });
 
     await expect
@@ -274,5 +331,48 @@ test.describe("Shop catalog filter cache ownership", () => {
     await expect(page).toHaveURL(/productType=Ring/);
     await expect(page).toHaveURL(/sort=newest/);
     await expect(showingCounter(page)).toHaveText(productCountLabel(filteredTotal), { timeout: 15_000 });
+  });
+
+  test("collection filter → reload → Back never flashes 0 products", async ({ page }) => {
+    test.skip(
+      process.env.CI !== "true",
+      "Collection Back restore needs the CI seed collection (ci-filter); set CI=true after seeding",
+    );
+
+    await page.goto(`/en/collections/${CI_COLLECTION_SLUG}`);
+    const catalog = page.locator('[data-component="CollectionProductsCatalog"]');
+    await expect(catalog).toBeVisible({ timeout: 20_000 });
+    await expect(catalog.locator("#shop-products")).toBeVisible();
+
+    const totalInCollection = await readShowingCount(page);
+    expect(totalInCollection).toBeGreaterThan(0);
+
+    const typeButton = catalog.getByRole("button", { name: /^product type$/i }).first();
+    await expect(typeButton).toBeVisible({ timeout: 10_000 });
+    await typeButton.click();
+    await page.getByRole("option", { name: /^ring$/i }).click();
+    await expect(page).toHaveURL(/productType=Ring/);
+
+    await expect
+      .poll(async () => {
+        const texts = await page.locator('[aria-live="polite"]').allInnerTexts();
+        for (const text of texts) {
+          const count = parseProductCount(text);
+          if (count !== null && count > 0) return count;
+        }
+        return 0;
+      }, { timeout: 15_000 })
+      .toBeGreaterThan(0);
+    const filteredTotal = await readShowingCount(page);
+    expect(filteredTotal).toBeLessThanOrEqual(totalInCollection);
+
+    await page.reload();
+    await expect(page).toHaveURL(/productType=Ring/);
+    await expect(showingCounter(page)).toHaveText(productCountLabel(filteredTotal), { timeout: 15_000 });
+
+    await page.goBack();
+    await expect(page).toHaveURL(new RegExp(`/collections/${CI_COLLECTION_SLUG}`));
+    await expect(page).not.toHaveURL(/productType=/);
+    await expectShowingCountNeverZeroFlash(page, totalInCollection);
   });
 });
