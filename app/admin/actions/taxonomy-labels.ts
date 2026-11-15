@@ -42,7 +42,7 @@ function emptyDivergenceMaps(): Record<TaxonomyKind, Record<string, TaxonomyLabe
 }
 
 /** Code-dictionary display label for a taxonomy EN value + locale, if any. */
-export function taxonomyDictionaryLabel(enValue: string, locale: string): string | undefined {
+function taxonomyDictionaryLabel(enValue: string, locale: string): string | undefined {
   const dictionary = JEWELRY_TAXONOMY_VALUE_TRANSLATIONS[locale as Locale];
   const label = dictionary?.[enValue]?.trim();
   return label || undefined;
