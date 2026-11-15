@@ -168,6 +168,61 @@ describe("ShopCatalogClient", () => {
     expect(screen.queryByRole("heading", { name: "b" })).not.toBeInTheDocument();
   });
 
+  it("does not report totalCount=0 while the catalog is still loading", async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation(
+      () => new Promise(() => {}),
+    );
+    const onTotalCountChange = vi.fn();
+
+    render(
+      <ShopCatalogClient
+        key="en|q=pending"
+        initialPage={null}
+        filters={{ q: "pending" }}
+        onSelectFilters={vi.fn()}
+        categories={[]}
+        collections={[]}
+        tags={[]}
+        onTotalCountChange={onTotalCountChange}
+      />,
+    );
+
+    await waitFor(() => expect(onTotalCountChange).toHaveBeenCalled());
+    expect(onTotalCountChange).toHaveBeenCalledWith(null);
+    expect(onTotalCountChange).not.toHaveBeenCalledWith(0);
+  });
+
+  it("reports a real zero only after the server returns an empty page", async () => {
+    (fetch as unknown as ReturnType<typeof vi.fn>).mockResolvedValue({
+      ok: true,
+      json: () =>
+        Promise.resolve({
+          nodes: [],
+          hasNextPage: false,
+          endCursor: null,
+          totalCount: 0,
+          popularAvailable: true,
+        }),
+    });
+    const onTotalCountChange = vi.fn();
+
+    render(
+      <ShopCatalogClient
+        key="en|q=empty"
+        initialPage={null}
+        filters={{ q: "empty" }}
+        onSelectFilters={vi.fn()}
+        categories={[]}
+        collections={[]}
+        tags={[]}
+        onTotalCountChange={onTotalCountChange}
+      />,
+    );
+
+    await waitFor(() => expect(onTotalCountChange).toHaveBeenCalledWith(0));
+    expect(onTotalCountChange.mock.calls.some((call) => call[0] === null)).toBe(true);
+  });
+
   it("aborts an in-flight fetch when the view remounts for another filter", async () => {
     let resolveFirst: ((value: unknown) => void) | null = null;
     (fetch as unknown as ReturnType<typeof vi.fn>).mockImplementation((_url: string, init?: { signal?: AbortSignal }) => {

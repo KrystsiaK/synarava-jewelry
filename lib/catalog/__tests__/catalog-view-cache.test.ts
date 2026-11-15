@@ -1,6 +1,7 @@
 import {
   buildCatalogViewKey,
   CATALOG_VIEW_SCHEMA_VERSION,
+  catalogTotalCountSeed,
   clearCatalogViewCacheForTests,
   fingerprintFromViewKey,
   getMemoryView,
@@ -219,6 +220,37 @@ describe("catalog view cache", () => {
       saveView(snapshot({ viewKey: key, fingerprint: fp }));
       expect(getMemoryView(key, "")).toBeNull();
       expect(getMemoryView(key, fp)).not.toBeNull();
+    });
+
+    it("catalogTotalCountSeed prefers SSR when fingerprints match, else sync memory, else null", () => {
+      expect(
+        catalogTotalCountSeed({
+          locale: "en",
+          fingerprint: "",
+          ssrFingerprint: "",
+          ssrTotalCount: 72,
+        }),
+      ).toBe(72);
+
+      expect(
+        catalogTotalCountSeed({
+          locale: "en",
+          fingerprint: "productType=Ring",
+          ssrFingerprint: "",
+          ssrTotalCount: 72,
+        }),
+      ).toBeNull();
+
+      const fp = "productType=Ring";
+      saveView(snapshot({ viewKey: buildCatalogViewKey("en", fp), fingerprint: fp, totalCount: 3 }));
+      expect(
+        catalogTotalCountSeed({
+          locale: "en",
+          fingerprint: fp,
+          ssrFingerprint: "",
+          ssrTotalCount: 72,
+        }),
+      ).toBe(3);
     });
   });
 });

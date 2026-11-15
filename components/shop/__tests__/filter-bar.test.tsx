@@ -90,6 +90,22 @@ describe("FilterBar", () => {
     expect(screen.getAllByText(/1 product/i).length).toBeGreaterThan(0);
   });
 
+  it("shows '0 products' only when the server count is known zero", () => {
+    render(<FilterBar {...defaultProps} totalCount={0} />);
+    expect(screen.getAllByText(/0 products/i).length).toBeGreaterThan(0);
+  });
+
+  it("does not render a numeric product count while the catalog count is unknown", () => {
+    render(<FilterBar {...defaultProps} totalCount={null} />);
+    expect(screen.queryByText(/\d+\s+products?/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/null/i)).not.toBeInTheDocument();
+    const liveRegions = document.querySelectorAll('[aria-live="polite"]');
+    expect(liveRegions.length).toBeGreaterThan(0);
+    for (const region of liveRegions) {
+      expect((region.textContent ?? "").trim()).toBe("");
+    }
+  });
+
   it("renders search input", () => {
     render(<FilterBar {...defaultProps} />);
     expect(screen.getAllByPlaceholderText(/search/i).length).toBeGreaterThan(0);
