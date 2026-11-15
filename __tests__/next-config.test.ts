@@ -57,8 +57,9 @@ describe("Next.js deployment identity", () => {
 
     const rules = (await config.redirects?.()) ?? [];
     // Short links live in proxy.ts so Accept-Language can pick a locale in one hop.
-    expect(rules.map((rule) => rule.source)).not.toEqual(
-      expect.arrayContaining(["/ig", "/gift", "/gift/box", "/gift/card"]),
-    );
+    const sources = rules.map((rule) => rule.source);
+    for (const path of ["/ig", "/gift", "/gift/box", "/gift/card"]) {
+      expect(sources).not.toContain(path);
+    }
   });
 });
