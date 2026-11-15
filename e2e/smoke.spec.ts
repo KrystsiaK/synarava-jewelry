@@ -37,9 +37,8 @@ test("print QR /gift/card follows Accept-Language to /pt/shop", async ({
   expect(location).toContain("/pt/shop");
   expect(location).toContain("utm_source=card");
 
-  const response = await page.goto("/gift/card", {
-    headers: { "Accept-Language": "pt-PT" },
-  });
+  await page.setExtraHTTPHeaders({ "Accept-Language": "pt-PT" });
+  const response = await page.goto("/gift/card");
   expect(response?.status()).toBe(200);
   await expect(page).toHaveURL(/\/pt\/shop/);
   await expect(page).toHaveURL(/utm_source=card/);

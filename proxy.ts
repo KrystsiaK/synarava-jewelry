@@ -8,6 +8,7 @@ import {
   adminReturnCookieOptions,
   getSafeAdminRedirect,
 } from "@/lib/auth/admin-return-path";
+import { matchPublishedLocaleFromAcceptLanguage } from "@/lib/i18n/accept-language";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { resolveLocaleRequestDisposition } from "@/lib/i18n/locale-retirement-redirect";
 
@@ -15,6 +16,73 @@ const ADMIN_COOKIE = "synarava-admin-session";
 // Emergency fallback only, if the registry cache has never successfully
 // loaded (e.g. DB unreachable on first request) — not the normal path.
 const FALLBACK_DEFAULT_SEGMENT = "en";
+
+/** Print/QR short links → shop + UTM. Locale chosen only for these paths. */
+const SHORT_LINK_DESTINATIONS = {
+  "/ig": {
+    path: "/shop",
+    utm: {
+      utm_source: "instagram",
+      utm_medium: "bio",
+      utm_campaign: "profile_link",
+    },
+  },
+  "/gift/box": {
+    path: "/shop",
+    utm: {
+      utm_source: "box",
+      utm_medium: "print",
+      utm_campaign: "packaging",
+    },
+  },
+  "/gift/card": {
+    path: "/shop",
+    utm: {
+      utm_source: "card",
+      utm_medium: "print",
+      utm_campaign: "packaging",
+    },
+  },
+  // Typo safety for /gift without a suffix — shop, no box/card source.
+  "/gift": { path: "/shop", utm: {} },
+} as const;
+
+type ShortLinkPath = keyof typeof SHORT_LINK_DESTINATIONS;
+
+function isShortLinkPath(pathname: string): pathname is ShortLinkPath {
+  return Object.hasOwn(SHORT_LINK_DESTINATIONS, pathname);
+}
+
+function publishedRouteSegments(
+  locales: Awaited<ReturnType<typeof getStorefrontLocales>>,
+) {
+  return locales
+    .filter(
+      (locale) =>
+        locale.status === "PUBLISHED" && locale.isPublished && !locale.deletedAt,
+    )
+    .map((locale) => locale.routeSegment);
+}
+
+function resolveShortLinkLocale(
+  request: NextRequest,
+  locales: Awaited<ReturnType<typeof getStorefrontLocales>>,
+) {
+  const published = publishedRouteSegments(locales);
+  const defaultSegment =
+    locales.find((locale) => locale.isDefault)?.routeSegment ??
+    FALLBACK_DEFAULT_SEGMENT;
+  const cookieLocale = request.cookies.get("synarava-locale")?.value;
+  if (typeof cookieLocale === "string" && published.includes(cookieLocale)) {
+    return cookieLocale;
+  }
+  return (
+    matchPublishedLocaleFromAcceptLanguage(
+      request.headers.get("accept-language"),
+      published,
+    ) ?? defaultSegment
+  );
+}
 
 function origin(value?: string) {
   try {
@@ -176,6 +244,24 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Short links: one 307 to /{locale}/shop?utm_… (cookie → Accept-Language →
+  // default). Ordinary bare URLs still ignore Accept-Language for SEO (308).
+  if (isShortLinkPath(pathname)) {
+    const locales = await getStorefrontLocales();
+    const target = resolveShortLinkLocale(request, locales);
+    const destination = SHORT_LINK_DESTINATIONS[pathname];
+    const url = request.nextUrl.clone();
+    url.pathname = `/${target}${destination.path}`;
+    url.search = "";
+    for (const [key, value] of Object.entries(destination.utm)) {
+      url.searchParams.set(key, value);
+    }
+    const response = NextResponse.redirect(url, 307);
+    response.headers.set("Cache-Control", "no-store");
+    response.headers.set("Vary", "Accept-Language, Cookie");
+    return response;
+  }
+
   const locales = isLocaleExempt ? [] : await getStorefrontLocales();
   // Registered (published or not) — an unpublished/disabled locale still
   // matches here so it reaches app/[locale]/layout.tsx and gets a real 404
@@ -190,9 +276,7 @@ export async function proxy(request: NextRequest) {
   const localeSegment = firstSegment && registeredSegments.includes(firstSegment) ? firstSegment : null;
 
   if (!isLocaleExempt && !localeSegment) {
-    const publishedSegments = locales
-      .filter((locale) => locale.status === "PUBLISHED" && locale.isPublished && !locale.deletedAt)
-      .map((locale) => locale.routeSegment);
+    const publishedSegments = publishedRouteSegments(locales);
     const defaultSegment = locales.find((locale) => locale.isDefault)?.routeSegment ?? FALLBACK_DEFAULT_SEGMENT;
     const cookieLocale = request.cookies.get("synarava-locale")?.value;
     const hasValidCookie = typeof cookieLocale === "string" && publishedSegments.includes(cookieLocale);
@@ -204,6 +288,7 @@ export async function proxy(request: NextRequest) {
     // A remembered preference is a personalized, non-cacheable redirect (307).
     // No cookie — what Googlebot and first-time visitors get — is the stable,
     // permanent mapping of every currently-indexed bare URL (308).
+    // Accept-Language is intentionally ignored here (SEO: bare URL → stable 308).
     return NextResponse.redirect(url, hasValidCookie ? 307 : 308);
   }
 
@@ -246,10 +331,8 @@ export const config = {
   // Skip proxy body cloning for admin API uploads (videos can exceed the
   // aligned 12 MB proxyClientMaxBodySize). Page Server Actions still go
   // through proxy with that cap; auth still runs inside each route handler.
-  // Exclude /ig and /gift* so a matcher hit cannot treat them as unknown
-  // locales if redirects() were ever skipped. next.config redirects still run
-  // first: https://nextjs.org/docs/app/api-reference/file-conventions/proxy
-  matcher: [{ source: "/((?!api|admin/api|_next/static|_next/image|favicon.ico|ig(?:/|$)|gift(?:/|$)|.*\\..*).*)", missing: [
+  // /ig and /gift* are matched here (short-link → locale shop redirect).
+  matcher: [{ source: "/((?!api|admin/api|_next/static|_next/image|favicon.ico|.*\\..*).*)", missing: [
     { type: "header", key: "next-router-prefetch" },
     { type: "header", key: "purpose", value: "prefetch" },
   ] }],
