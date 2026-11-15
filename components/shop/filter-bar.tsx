@@ -59,7 +59,8 @@ export type FilterBarProps = {
   finishes?: FilterOption[];
   origins?: FilterOption[];
   initialFilters: ShopFilters;
-  totalCount: number;
+  /** Product total for the active filters, or `null` while still loading. */
+  totalCount: number | null;
   onFiltersChange?: (filters: ShopFilters) => void;
   /** Storefront path without locale prefix. Defaults to `/shop`. */
   basePath?: string;
@@ -274,7 +275,9 @@ export function FilterBar({
                 {text(labels?.showing, "shop.filters.showing")}
               </p>
               <p className="mt-1 font-serif text-[1.35rem] leading-none text-foreground" aria-live="polite" aria-atomic="true">
-                <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">{plural("shop.filters.productCount", totalCount)}</span>
+                <span className="font-sans text-[0.7rem] font-semibold uppercase tracking-[0.16em] text-muted/60">
+                  {totalCount === null ? "" : plural("shop.filters.productCount", totalCount)}
+                </span>
               </p>
             </div>
           </div>
@@ -387,7 +390,7 @@ export function FilterBar({
         </div>
 
         <span className="mt-3 flex justify-end whitespace-nowrap text-right text-[0.64rem] font-semibold uppercase tracking-[0.13em] text-muted/60 tabular-nums" aria-live="polite" aria-atomic="true">
-          {plural("shop.filters.productCount", totalCount)}
+          {totalCount === null ? "" : plural("shop.filters.productCount", totalCount)}
         </span>
 
         <div className="mt-2 grid w-full grid-cols-2 divide-x divide-foreground/[0.1] border border-foreground/[0.12] bg-background/55">

@@ -7,7 +7,10 @@ import { motion, useInView } from "motion/react";
 
 import { DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { RichText } from "@/components/content/rich-text";
-import { buildCatalogViewKey } from "@/lib/catalog/catalog-view-cache";
+import {
+  buildCatalogViewKey,
+  catalogTotalCountSeed,
+} from "@/lib/catalog/catalog-view-cache";
 import {
   shopListStateSchema,
   type ShopListState,
@@ -115,7 +118,7 @@ function FilterSection({
   labels,
 }: {
   filterProps: Omit<FilterBarProps, "totalCount" | "labels">;
-  totalCount: number;
+  totalCount: number | null;
   labels?: FilterBarProps["labels"];
 }) {
   return (
@@ -262,13 +265,26 @@ export function ShopPage({
     initialState: toListState(filterProps.initialFilters),
     pathname: listPathname,
   });
-  const [totalCount, setTotalCount] = useState(initialPage.totalCount);
   const activeFingerprint = buildSearchParams(activeFilters);
   const ssrFingerprint = buildSearchParams(filterProps.initialFilters);
   const catalogViewKey = useMemo(
     () => buildCatalogViewKey(locale, activeFingerprint),
     [locale, activeFingerprint],
   );
+  const seedTotalCount = catalogTotalCountSeed({
+    locale,
+    fingerprint: activeFingerprint,
+    ssrFingerprint,
+    ssrTotalCount: initialPage.totalCount,
+  });
+  const [reportedTotalCount, setReportedTotalCount] = useState<{
+    viewKey: string;
+    count: number | null;
+  } | null>(null);
+  const totalCount =
+    reportedTotalCount?.viewKey === catalogViewKey
+      ? reportedTotalCount.count
+      : seedTotalCount;
   const selectDiscoveryFilters = (filters: ShopFilters) => {
     setState(toListState(filters));
     window.requestAnimationFrame(() => {
@@ -326,7 +342,9 @@ export function ShopPage({
             productTypes={filterProps.productTypes}
             collections={filterProps.collections}
             tags={filterProps.tags}
-            onTotalCountChange={setTotalCount}
+            onTotalCountChange={(count) => {
+              setReportedTotalCount({ viewKey: catalogViewKey, count });
+            }}
           />
         </div>
       </div>

@@ -281,7 +281,8 @@ export type ShopCatalogClientProps = {
   productTypes?: FilterOption[];
   collections: FilterOption[];
   tags: FilterOption[];
-  onTotalCountChange?: (count: number) => void;
+  /** `null` while this view's count is still loading (never treat as zero). */
+  onTotalCountChange?: (count: number | null) => void;
   basePath?: string;
   pinnedFilters?: Pick<ShopFilters, "collection">;
 };
@@ -426,9 +427,10 @@ export function ShopCatalogClient({
   }, []);
 
   useEffect(() => {
-    onTotalCountChange?.(state.totalCount);
+    // Loading uses totalCount=0 as a placeholder — do not surface it as a real count.
+    onTotalCountChange?.(state.loading ? null : state.totalCount);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [state.totalCount]);
+  }, [state.loading, state.totalCount]);
 
   useEffect(() => {
     if (!anchorToRestore) return;
