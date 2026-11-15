@@ -8,6 +8,7 @@ export type AnalyticsIssueKind =
   | "telemetry_breakage"
   | "silent_event"
   | "clarity_friction"
+  | "visit_pulse"
   | "source_unavailable";
 
 export type AnalyticsIssue = {
