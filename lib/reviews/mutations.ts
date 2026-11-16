@@ -18,19 +18,65 @@ export type UpsertLocalReviewInput = {
   authorEmail: string;
 };
 
+export type UpsertLocalReviewOutcome = {
+  reviews: ProductReviewsData;
+  /** Existing HIDDEN row left untouched — caller must return a neutral success. */
+  blockedHidden: boolean;
+  /** True when the write made a PUBLISHED review visible on the storefront. */
+  storefrontChanged: boolean;
+};
+
+const publishedSelect = {
+  id: true,
+  rating: true,
+  title: true,
+  body: true,
+  authorName: true,
+  status: true,
+  verifiedPurchase: true,
+  createdAt: true,
+} as const;
+
+async function listPublishedReviews(productId: string): Promise<ProductReviewsData> {
+  const rows = await db.productReview.findMany({
+    where: { productId, status: "PUBLISHED" },
+    orderBy: { createdAt: "desc" },
+    select: publishedSelect,
+  });
+  return toProductReviewsData(rows);
+}
+
 /**
  * Upsert by (productId, authorEmail).
  * - Moderation on (default): create/update → PENDING.
  * - Moderation off: create/update → PUBLISHED immediately.
- * Unique constraint: a second submit for the same email updates the row
- * (and, when moderation is on, returns it to PENDING for re-review).
+ * - HIDDEN rows are irreversible for the author: leave untouched.
  */
 export async function upsertLocalProductReview(
   input: UpsertLocalReviewInput,
-): Promise<ProductReviewsData> {
+): Promise<UpsertLocalReviewOutcome> {
   const settings = await getProductReviewsSettings();
   const authorEmail = normalizeReviewEmail(input.authorEmail);
   const authorName = publicAuthorName(input.authorName);
+
+  const existing = await db.productReview.findUnique({
+    where: {
+      productId_authorEmail: {
+        productId: input.productId,
+        authorEmail,
+      },
+    },
+    select: { status: true },
+  });
+
+  if (existing?.status === "HIDDEN") {
+    return {
+      reviews: await listPublishedReviews(input.productId),
+      blockedHidden: true,
+      storefrontChanged: false,
+    };
+  }
+
   const status: ProductReviewStatus = settings.moderationBeforePublish
     ? "PENDING"
     : "PUBLISHED";
@@ -68,21 +114,11 @@ export async function upsertLocalProductReview(
     },
   });
 
-  const rows = await db.productReview.findMany({
-    where: { productId: input.productId, status: "PUBLISHED" },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      rating: true,
-      title: true,
-      body: true,
-      authorName: true,
-      status: true,
-      verifiedPurchase: true,
-      createdAt: true,
-    },
-  });
-  return toProductReviewsData(rows);
+  return {
+    reviews: await listPublishedReviews(input.productId),
+    blockedHidden: false,
+    storefrontChanged: status === "PUBLISHED",
+  };
 }
 
 export async function setProductReviewStatus(input: {

@@ -1,4 +1,3 @@
-import { escapeHtml } from "@/lib/content/rich-text";
 import type { ProductReview, ProductReviewStatus } from "@prisma/client";
 
 import { aggregatePublishedReviews } from "@/lib/reviews/aggregate";
@@ -17,12 +16,13 @@ type ReviewRow = Pick<
 >;
 
 function toPublicReview(row: ReviewRow): PublicProductReview {
+  // Keep raw text — React escapes on render; JSON-LD uses safeJsonLd (\\u003c).
   return {
     id: row.id,
     rating: row.rating,
-    title: escapeHtml(row.title),
-    body: escapeHtml(row.body),
-    authorDisplayName: escapeHtml(row.authorName),
+    title: row.title,
+    body: row.body,
+    authorDisplayName: row.authorName,
     submittedAt: row.createdAt.toISOString(),
     verificationStatus: row.verifiedPurchase ? "verified_buyer" : "unverified",
     merchantReply: "",

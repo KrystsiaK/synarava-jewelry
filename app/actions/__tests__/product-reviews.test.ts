@@ -40,13 +40,19 @@ function reviewFormData(overrides: Record<string, string> = {}) {
   return formData;
 }
 
+const emptyOutcome = {
+  reviews: { average: null, count: 0, reviews: [] },
+  blockedHidden: false,
+  storefrontChanged: false,
+};
+
 describe("submitProductReviewAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.checkRateLimit.mockResolvedValue({ ok: true });
     mocks.findProduct.mockResolvedValue({ id: "prod_1" });
     mocks.getProductReviewsSettings.mockResolvedValue({ moderationBeforePublish: true });
-    mocks.upsertLocalProductReview.mockResolvedValue({ average: null, count: 0, reviews: [] });
+    mocks.upsertLocalProductReview.mockResolvedValue(emptyOutcome);
     mocks.headers.mockResolvedValue(new Headers({ "x-forwarded-for": "1.2.3.4" }));
   });
 
@@ -62,26 +68,40 @@ describe("submitProductReviewAction", () => {
         rating: 5,
       }),
     );
+    expect(mocks.checkRateLimit).toHaveBeenCalledWith(
+      "product-review-ip",
+      "1.2.3.4",
+      expect.objectContaining({ max: 5 }),
+    );
+    expect(mocks.checkRateLimit).toHaveBeenCalledWith(
+      "product-review-email",
+      "ana@example.com",
+      expect.objectContaining({ max: 5 }),
+    );
   });
 
   it("publishes immediately when moderation is off", async () => {
     mocks.getProductReviewsSettings.mockResolvedValue({ moderationBeforePublish: false });
     mocks.upsertLocalProductReview.mockResolvedValue({
-      average: 5,
-      count: 1,
-      reviews: [
-        {
-          id: "r1",
-          rating: 5,
-          title: "Beautiful",
-          body: "Even better in person.",
-          authorDisplayName: "Ana S.",
-          submittedAt: "2026-11-15T00:00:00.000Z",
-          verificationStatus: "unverified",
-          merchantReply: "",
-          merchantRepliedAt: null,
-        },
-      ],
+      reviews: {
+        average: 5,
+        count: 1,
+        reviews: [
+          {
+            id: "r1",
+            rating: 5,
+            title: "Beautiful",
+            body: "Even better in person.",
+            authorDisplayName: "Ana S.",
+            submittedAt: "2026-11-15T00:00:00.000Z",
+            verificationStatus: "unverified",
+            merchantReply: "",
+            merchantRepliedAt: null,
+          },
+        ],
+      },
+      blockedHidden: false,
+      storefrontChanged: true,
     });
 
     await expect(submitProductReviewAction({}, reviewFormData())).resolves.toMatchObject({
@@ -89,14 +109,29 @@ describe("submitProductReviewAction", () => {
       average: 5,
       count: 1,
     });
+    expect(mocks.revalidateStorefrontPath).toHaveBeenCalled();
   });
 
-  it("rate-limits by email + product + ip", async () => {
-    mocks.checkRateLimit.mockResolvedValue({ ok: false });
-    await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
-      notice: "rateLimited",
+  it("rate-limits the 6th submission from one IP across different emails", async () => {
+    let ipCount = 0;
+    mocks.checkRateLimit.mockImplementation(async (action: string) => {
+      if (action === "product-review-ip") {
+        ipCount += 1;
+        return ipCount <= 5 ? { ok: true } : { ok: false, error: "limited", retryAfterSeconds: 60 };
+      }
+      return { ok: true };
     });
-    expect(mocks.upsertLocalProductReview).not.toHaveBeenCalled();
+
+    for (let i = 1; i <= 5; i++) {
+      await expect(
+        submitProductReviewAction({}, reviewFormData({ authorEmail: `user${i}@example.com` })),
+      ).resolves.toMatchObject({ notice: "pendingModeration" });
+    }
+
+    await expect(
+      submitProductReviewAction({}, reviewFormData({ authorEmail: "user6@example.com" })),
+    ).resolves.toEqual({ notice: "rateLimited" });
+    expect(mocks.upsertLocalProductReview).toHaveBeenCalledTimes(5);
   });
 
   it("soft-succeeds on honeypot without writing", async () => {
@@ -104,6 +139,40 @@ describe("submitProductReviewAction", () => {
       submitProductReviewAction({}, reviewFormData({ company: "Acme Bot" })),
     ).resolves.toMatchObject({ notice: "success" });
     expect(mocks.upsertLocalProductReview).not.toHaveBeenCalled();
+  });
+
+  it("returns neutral success when HIDDEN (moderation on) without leaking status", async () => {
+    mocks.getProductReviewsSettings.mockResolvedValue({ moderationBeforePublish: true });
+    mocks.upsertLocalProductReview.mockResolvedValue({
+      reviews: { average: null, count: 0, reviews: [] },
+      blockedHidden: true,
+      storefrontChanged: false,
+    });
+
+    await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
+      notice: "success",
+      average: null,
+      count: 0,
+      reviews: [],
+    });
+    expect(mocks.revalidateStorefrontPath).not.toHaveBeenCalled();
+  });
+
+  it("returns neutral success when HIDDEN (moderation off) without publishing", async () => {
+    mocks.getProductReviewsSettings.mockResolvedValue({ moderationBeforePublish: false });
+    mocks.upsertLocalProductReview.mockResolvedValue({
+      reviews: { average: null, count: 0, reviews: [] },
+      blockedHidden: true,
+      storefrontChanged: false,
+    });
+
+    await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
+      notice: "success",
+      average: null,
+      count: 0,
+      reviews: [],
+    });
+    expect(mocks.revalidateStorefrontPath).not.toHaveBeenCalled();
   });
 
   it("validates fields before writing", async () => {

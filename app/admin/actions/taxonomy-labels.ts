@@ -4,6 +4,11 @@ import { revalidatePath } from "next/cache";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import {
+  emptyTaxonomyDivergenceMaps,
+  taxonomyLabelDivergence,
+  type TaxonomyLabelDivergence,
+} from "@/lib/catalog/taxonomy-label-divergence";
+import {
   listCatalogTaxonomyEnValues,
   listTaxonomyValueLabels,
   saveSynaravaTaxonomyLabels,
@@ -22,6 +27,8 @@ export type TaxonomyLabelsEditorPayload = {
   /** locale → kind → enValue → label */
   labels: Record<string, Record<TaxonomyKind, Record<string, string>>>;
   sources: Record<string, Record<TaxonomyKind, Record<string, string>>>;
+  /** locale → kind → enValue → divergence when saved label ≠ code dictionary */
+  divergences: Record<string, Record<TaxonomyKind, Record<string, TaxonomyLabelDivergence>>>;
 };
 
 function emptyKindMaps(): Record<TaxonomyKind, Record<string, string>> {
@@ -48,19 +55,26 @@ export async function loadTaxonomyLabelsEditorPayload(): Promise<TaxonomyLabelsE
 
   const labels: TaxonomyLabelsEditorPayload["labels"] = {};
   const sources: TaxonomyLabelsEditorPayload["sources"] = {};
+  const divergences: TaxonomyLabelsEditorPayload["divergences"] = {};
   for (const locale of locales) {
     if (locale.code === "en") continue;
     labels[locale.code] = emptyKindMaps();
     sources[locale.code] = emptyKindMaps();
+    divergences[locale.code] = emptyTaxonomyDivergenceMaps();
   }
   for (const row of rows) {
     if (row.locale === "en") continue;
     if (!labels[row.locale]) {
       labels[row.locale] = emptyKindMaps();
       sources[row.locale] = emptyKindMaps();
+      divergences[row.locale] = emptyTaxonomyDivergenceMaps();
     }
     labels[row.locale][row.kind][row.enValue] = row.label;
     sources[row.locale][row.kind][row.enValue] = row.source;
+    const divergence = taxonomyLabelDivergence(row.enValue, row.locale, row.label);
+    if (divergence) {
+      divergences[row.locale][row.kind][row.enValue] = divergence;
+    }
   }
 
   return {
@@ -68,6 +82,7 @@ export async function loadTaxonomyLabelsEditorPayload(): Promise<TaxonomyLabelsE
     productTypes: [...typeSet].sort((a, b) => a.localeCompare(b)),
     labels,
     sources,
+    divergences,
   };
 }
 

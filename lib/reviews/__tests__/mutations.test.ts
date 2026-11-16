@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   getSettings: vi.fn(),
   upsert: vi.fn(),
   findMany: vi.fn(),
+  findUnique: vi.fn(),
 }));
 
 vi.mock("@/lib/reviews/settings", () => ({
@@ -14,6 +15,7 @@ vi.mock("@/lib/db", () => ({
     productReview: {
       upsert: mocks.upsert,
       findMany: mocks.findMany,
+      findUnique: mocks.findUnique,
     },
   },
 }));
@@ -24,13 +26,14 @@ describe("upsertLocalProductReview", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.findMany.mockResolvedValue([]);
+    mocks.findUnique.mockResolvedValue(null);
   });
 
   it("creates PENDING when moderation is on and normalizes email", async () => {
     mocks.getSettings.mockResolvedValue({ moderationBeforePublish: true });
     mocks.upsert.mockResolvedValue({});
 
-    await upsertLocalProductReview({
+    const outcome = await upsertLocalProductReview({
       productId: "p1",
       locale: "en",
       rating: 5,
@@ -56,6 +59,7 @@ describe("upsertLocalProductReview", () => {
         }),
       }),
     );
+    expect(outcome).toMatchObject({ blockedHidden: false, storefrontChanged: false });
   });
 
   it("creates PUBLISHED when moderation is off", async () => {
@@ -90,6 +94,44 @@ describe("upsertLocalProductReview", () => {
         update: expect.objectContaining({ status: "PUBLISHED" }),
       }),
     );
-    expect(result.count).toBe(1);
+    expect(result.reviews.count).toBe(1);
+    expect(result.storefrontChanged).toBe(true);
+    expect(result.blockedHidden).toBe(false);
+  });
+
+  it("leaves a HIDDEN review untouched when moderation is on", async () => {
+    mocks.getSettings.mockResolvedValue({ moderationBeforePublish: true });
+    mocks.findUnique.mockResolvedValue({ status: "HIDDEN" });
+
+    const outcome = await upsertLocalProductReview({
+      productId: "p1",
+      locale: "en",
+      rating: 5,
+      title: "Try again",
+      body: "Please publish me.",
+      authorName: "Ana Silva",
+      authorEmail: "ana@example.com",
+    });
+
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({ blockedHidden: true, storefrontChanged: false });
+  });
+
+  it("leaves a HIDDEN review untouched when moderation is off", async () => {
+    mocks.getSettings.mockResolvedValue({ moderationBeforePublish: false });
+    mocks.findUnique.mockResolvedValue({ status: "HIDDEN" });
+
+    const outcome = await upsertLocalProductReview({
+      productId: "p1",
+      locale: "pt",
+      rating: 1,
+      title: "Force publish",
+      body: "Should still stay hidden.",
+      authorName: "Ana Silva",
+      authorEmail: "ana@example.com",
+    });
+
+    expect(mocks.upsert).not.toHaveBeenCalled();
+    expect(outcome).toMatchObject({ blockedHidden: true, storefrontChanged: false });
   });
 });

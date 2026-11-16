@@ -6,6 +6,7 @@ import { checkRateLimit } from "@/lib/auth/rate-limit";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { db } from "@/lib/db";
 import { parseFormData } from "@/lib/forms/parse-form-data";
+import { normalizeReviewEmail } from "@/lib/reviews/author";
 import { upsertLocalProductReview } from "@/lib/reviews/mutations";
 import type { PublicProductReview } from "@/lib/reviews/public";
 import { productReviewSubmitSchema } from "@/lib/reviews/schema";
@@ -33,6 +34,10 @@ export type ProductReviewActionState = {
   count?: number;
   reviews?: PublicProductReview[];
 };
+
+const REVIEW_RATE_WINDOW_MS = 24 * 60 * 60 * 1_000;
+const REVIEW_IP_MAX = 5;
+const REVIEW_EMAIL_MAX = 5;
 
 function clientIpFromHeaders(headerList: Headers): string {
   const forwarded = headerList.get("x-forwarded-for");
@@ -77,16 +82,24 @@ export async function submitProductReviewAction(
 
   const headerList = await headers();
   const ip = clientIpFromHeaders(headerList);
-  const rateLimit = await checkRateLimit(
-    "product-review",
-    `${parsed.data.authorEmail.toLowerCase()}:${product.id}:${ip}`,
-    { max: 5, windowMs: 24 * 60 * 60 * 1_000 },
-  );
-  if (!rateLimit.ok) return { notice: "rateLimited" };
+  const email = normalizeReviewEmail(parsed.data.authorEmail);
+
+  // IP bucket (shared across emails) + separate per-email daily cap.
+  const ipLimit = await checkRateLimit("product-review-ip", ip, {
+    max: REVIEW_IP_MAX,
+    windowMs: REVIEW_RATE_WINDOW_MS,
+  });
+  if (!ipLimit.ok) return { notice: "rateLimited" };
+
+  const emailLimit = await checkRateLimit("product-review-email", email, {
+    max: REVIEW_EMAIL_MAX,
+    windowMs: REVIEW_RATE_WINDOW_MS,
+  });
+  if (!emailLimit.ok) return { notice: "rateLimited" };
 
   try {
     const settings = await getProductReviewsSettings();
-    const reviews = await upsertLocalProductReview({
+    const outcome = await upsertLocalProductReview({
       productId: product.id,
       locale: parsed.data.locale,
       rating: parsed.data.rating,
@@ -95,15 +108,27 @@ export async function submitProductReviewAction(
       authorName: parsed.data.authorName,
       authorEmail: parsed.data.authorEmail,
     });
-    // Only bust the PDP cache when the review is actually visible.
-    if (!settings.moderationBeforePublish) {
+
+    // HIDDEN is irreversible for the author — same neutral success as honeypot,
+    // never leak moderation status.
+    if (outcome.blockedHidden) {
+      return {
+        notice: "success",
+        average: outcome.reviews.average,
+        count: outcome.reviews.count,
+        reviews: outcome.reviews.reviews,
+      };
+    }
+
+    if (outcome.storefrontChanged) {
       revalidateStorefrontPath(`/products/${parsed.data.productSlug}`);
     }
+
     return {
       notice: settings.moderationBeforePublish ? "pendingModeration" : "success",
-      average: reviews.average,
-      count: reviews.count,
-      reviews: reviews.reviews,
+      average: outcome.reviews.average,
+      count: outcome.reviews.count,
+      reviews: outcome.reviews.reviews,
     };
   } catch (error) {
     console.error(
