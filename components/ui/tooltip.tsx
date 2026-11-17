@@ -30,6 +30,7 @@ import { cn } from "@/lib/ui";
 
 type TooltipTriggerProps = {
   "aria-describedby"?: string;
+  "aria-expanded"?: boolean;
   onBlur?: (event: ReactFocusEvent<HTMLElement>) => void;
   onClick?: (event: ReactMouseEvent<HTMLElement>) => void;
   onFocus?: (event: ReactFocusEvent<HTMLElement>) => void;
@@ -47,8 +48,13 @@ export type TooltipProps = {
   children: ReactElement<TooltipTriggerProps>;
   className?: string;
   content: ReactNode;
+  /** Hover/focus open delay in ms. Click/Enter/Space ignore this when openOnClick. */
   delay?: number;
   maxWidth?: number;
+  /** Gap between trigger and floating content, in px. */
+  offset?: number;
+  /** Click/tap toggles immediately; Escape and a second click close. */
+  openOnClick?: boolean;
   side?: TooltipPlacement;
 };
 
@@ -91,6 +97,8 @@ export function Tooltip({
   content,
   delay = 220,
   maxWidth = 320,
+  offset = 10,
+  openOnClick = false,
   side = "auto",
 }: TooltipProps) {
   const tooltipId = useId();
@@ -167,8 +175,9 @@ export function Tooltip({
       viewport: { width: window.innerWidth, height: window.innerHeight },
       preferredSide: side,
       align,
+      gap: offset,
     }));
-  }, [align, side]);
+  }, [align, offset, side]);
 
   const schedulePositionUpdate = useCallback(() => {
     if (frameRef.current) cancelAnimationFrame(frameRef.current);
@@ -258,6 +267,7 @@ export function Tooltip({
   /* eslint-disable react-hooks/refs */
   const triggerNode = cloneElement(trigger, {
     "aria-describedby": describedBy,
+    "aria-expanded": openOnClick ? open : trigger.props["aria-expanded"],
     onBlur: (event) => {
       trigger.props.onBlur?.(event);
       hide();
@@ -271,6 +281,9 @@ export function Tooltip({
         return;
       }
       trigger.props.onClick?.(event);
+      if (!openOnClick) return;
+      if (openRef.current) hide(true);
+      else show(true);
     },
     onFocus: (event) => {
       trigger.props.onFocus?.(event);
@@ -278,11 +291,22 @@ export function Tooltip({
       // tooltip as if it were the save result — toast owns that moment.
       // Event-handler clock gate (not render); module timestamp set on toast close.
       if (isFocusSuppressedAfterToast()) return;
-      show(true);
+      // Same delay as hover; Enter/Space (via click) and openOnClick open immediately.
+      show();
     },
     onKeyDown: (event) => {
       trigger.props.onKeyDown?.(event);
-      if (event.key === "Escape") hide(true);
+      if (event.key === "Escape") {
+        hide(true);
+        return;
+      }
+      if (!openOnClick) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
+      // Native <button> also synthesizes click; skip duplicate toggle there.
+      if (event.currentTarget instanceof HTMLButtonElement) return;
+      event.preventDefault();
+      if (openRef.current) hide(true);
+      else show(true);
     },
     onPointerCancel: (event) => {
       trigger.props.onPointerCancel?.(event);
@@ -293,6 +317,15 @@ export function Tooltip({
       trigger.props.onPointerDown?.(event);
       if (event.pointerType !== "touch" && event.pointerType !== "pen") return;
       touchArmedRef.current = true;
+      if (openOnClick) {
+        if (openRef.current) {
+          hide(true);
+          suppressClickRef.current = true;
+          return;
+        }
+        show(true);
+        return;
+      }
       show();
     },
     onPointerEnter: (event) => {

@@ -88,6 +88,40 @@ describe("Tooltip", () => {
     expect(trigger).toHaveAttribute("aria-describedby", tooltip.id);
   });
 
+  it("honors hover delay before opening, and openOnClick toggles immediately", () => {
+    vi.useFakeTimers();
+    resetTooltipWarmth();
+    render(
+      <Tooltip content="Delayed hint" delay={500} openOnClick>
+        <button type="button">Delay</button>
+      </Tooltip>,
+    );
+    const trigger = screen.getByRole("button", { name: "Delay" });
+
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    act(() => {
+      vi.advanceTimersByTime(499);
+    });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Delayed hint");
+
+    fireEvent.pointerLeave(trigger, { pointerType: "mouse" });
+    act(() => {
+      vi.advanceTimersByTime(80);
+    });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    fireEvent.click(trigger);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Delayed hint");
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    fireEvent.click(trigger);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
   it("closes with Escape while leaving focus on the trigger", () => {
     render(
       <Tooltip content="Explains this action" delay={0}>

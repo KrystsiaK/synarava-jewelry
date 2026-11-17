@@ -4037,8 +4037,8 @@ select.adm-field option {
   flex-wrap: nowrap;
   min-width: 0;
   max-width: 100%;
-  /* Close to the kicker. The button is only as wide as the italic, so the gap stays short. */
-  gap: 0.18rem;
+  /* Clear of the «i» hit box so the hover disc never paints over the kicker. */
+  gap: 0.65rem;
 }
 
 /* Grid items default to min-width: auto, which lets a long name wrap the row. */
@@ -4116,7 +4116,8 @@ select.adm-field option {
   display: inline-grid;
   place-items: center;
   /*
-   * Larger than the kicker (0.72rem) so the italic reads as a mark.
+   * Fixed hit box sized to the glyph. Hover disc stays inside this box so it
+   * cannot overlay the label word; box size is stable (no layout shift).
    * The row is min-h-6, so the lift stays inside the label band.
    */
   font-family: var(--font-sans), sans-serif;
@@ -4124,9 +4125,8 @@ select.adm-field option {
   font-weight: 500;
   font-style: normal;
   line-height: 1;
-  /* Hug the italic. A full em square left a gap beside the narrow stem. */
-  width: auto;
-  height: auto;
+  width: 1.15rem;
+  height: 1.15rem;
   padding: 0;
   border: 0;
   border-radius: 0;
@@ -4144,25 +4144,21 @@ select.adm-field option {
   transition: color 160ms cubic-bezier(0.23, 1, 0.32, 1), scale 100ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 
-/* Hit target only — does not widen the gap beside the word. */
+/* Hit target matches the fixed box — no negative inset into the label. */
 .adm-help__trigger::before {
   content: "";
   position: absolute;
-  inset: -0.4rem;
+  inset: 0;
 }
 
-/* Soft disc on hover, shifted toward the italic's lean so it clears the kicker. */
+/* Soft disc on hover, clipped to the trigger box (never overlaps the kicker). */
 .adm-help__trigger::after {
   content: "";
   position: absolute;
-  left: 78%;
-  top: 50%;
+  inset: 0;
   z-index: -1;
-  width: 1.15em;
-  height: 1.15em;
   border-radius: 50%;
   background: transparent;
-  transform: translate(-50%, -50%);
   transition: background 160ms cubic-bezier(0.23, 1, 0.32, 1);
 }
 

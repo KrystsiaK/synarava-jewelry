@@ -35,9 +35,14 @@ export const HelpTags: Story = {
           </Tooltip>
         ))}
       </div>
-      <AdminHelp label="Field guidance">
-        Price, compare-at, tax, and cost mirror Shopify’s Price card. Profit is calculated locally.
-      </AdminHelp>
+      <span className="adm-label-row min-h-6">
+        <span className="adm-label adm-label__lead">
+          <span className="adm-label__text">THRESHOLD (SYNARAVA)</span>
+        </span>
+        <AdminHelp label="Field guidance">
+          Price, compare-at, tax, and cost mirror Shopify’s Price card. Profit is calculated locally.
+        </AdminHelp>
+      </span>
     </div>
   ),
 };
