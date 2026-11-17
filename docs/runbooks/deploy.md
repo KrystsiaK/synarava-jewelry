@@ -136,6 +136,8 @@ Bot-PR Dependabot по-прежнему может не получить `NODE_A
 
 `Automerge to staging` (label `automerge`): for Dependabot, only the **development-dependencies** group (patch/minor) may auto-merge, and only after required checks are green (Quality Gates, Storefront smoke, Path filter, SKU Quality Gates). Production-dependency groups and majors stay manual.
 
+**Security audit — no suppressions.** Do not add `audit.ignore` / `ignoreGhsas` / `ignoreCves`, lower `--audit-level`, or wrap the CI audit step in `continue-on-error` / `|| true`. If `pnpm audit --audit-level high --prod` fails (e.g. unpatched transitive CVE), escalate to the owner with the real audit output and options (upgrade/replace the pulling dependency, remove it, wait for a patch). Owner decides in writing; agents stop. Guard: `.github/__tests__/no-security-check-suppression.guard.test.ts`.
+
 ### Версионирование релиза
 
 - [ ] Перед production deploy поднять `package.json` `version` по semver.

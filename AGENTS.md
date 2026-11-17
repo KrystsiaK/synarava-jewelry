@@ -74,6 +74,10 @@ For bots (and humans) closing a `bug`-labeled issue:
 5. **Never touch production or real staging data** (no hit to `shop.synarava.com`, no prod/staging DB writes, no prod Shopify mutations, no reading secrets — see **Protected environment files**).
 6. Follow sync rules in [`docs/history/sync-unification.md`](docs/history/sync-unification.md) / [ADR-0008](docs/adr/0008-sync-two-state-owner-model.md): **no automatic writes to Synarava data** — fetch / compare / show only unless a human Apply path is explicitly in scope.
 
+## Never suppress security checks
+
+Do **not** ignore, suppress, or weaken security gates: `pnpm`/`npm` audit, secret scan, security lint, or CI Quality Gates security steps. Forbidden: `audit.ignore` / `ignoreGhsas` / `ignoreCves`, `--ignore` on audit, lowered `--audit-level`, `continue-on-error` / `|| true` on audit or security steps, overrides to known-vulnerable versions just to silence the check. If a security check is red: **STOP**, describe the finding and options to the owner; do not invent a bypass. Risk accept / exception decisions are **owner only** (written). Guard: [`.github/__tests__/no-security-check-suppression.guard.test.ts`](.github/__tests__/no-security-check-suppression.guard.test.ts). Process: [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md#dependabot).
+
 ## Ship finished work (staging → main)
 
 See [`ship-to-main`](.agents/skills/ship-to-main/SKILL.md) (canonical). Before push: `pnpm test:run` (pre-push hook).
