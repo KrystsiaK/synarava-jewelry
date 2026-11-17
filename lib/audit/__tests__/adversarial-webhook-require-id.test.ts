@@ -31,7 +31,8 @@ describe("webhook require id (REL-003)", () => {
 
   it("every webhook route rejects missing id with 400 before claim", () => {
     const routes = webhookRouteFiles();
-    expect(routes.length).toBeGreaterThanOrEqual(6);
+    // Local ProductReview removed the Shopify reviews webhook; remaining commerce routes ≥5.
+    expect(routes.length).toBeGreaterThanOrEqual(5);
     for (const file of routes) {
       const src = readFileSync(file, "utf8");
       expect(src, file).toMatch(/readShopifyWebhookId/);

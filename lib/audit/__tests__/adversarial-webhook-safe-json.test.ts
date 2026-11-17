@@ -1,5 +1,6 @@
 /**
- * REL-001 / REL-002 / DEAD-001 — products + reviews webhooks use safe JSON parse.
+ * REL-001 / REL-002 / DEAD-001 — products webhook uses safe JSON parse.
+ * Shopify product-review webhooks were removed (local ProductReview).
  */
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -16,11 +17,8 @@ describe("webhook safe JSON inventory (REL-001/002/DEAD-001)", () => {
     expect(src).toMatch(/Invalid webhook payload[\s\S]*status:\s*400/);
   });
 
-  it("reviews route uses parseShopifyWebhookJson (not bare JSON.parse)", () => {
-    const src = read("app/api/shopify/webhooks/reviews/route.ts");
-    expect(src).toMatch(/parseShopifyWebhookJson/);
-    expect(src).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
-    expect(src).toMatch(/Invalid webhook payload[\s\S]*status:\s*400/);
+  it("does not keep a Shopify reviews webhook route", () => {
+    expect(() => read("app/api/shopify/webhooks/reviews/route.ts")).toThrow();
   });
 });
 
@@ -32,7 +30,6 @@ const mocks = vi.hoisted(() => ({
   pullShopifyInventory: vi.fn(),
   findUniqueProduct: vi.fn(),
   updateEvent: vi.fn(),
-  refreshAggregates: vi.fn(),
   findProducts: vi.fn(),
   revalidatePath: vi.fn(),
   revalidateTemplate: vi.fn(),
@@ -49,9 +46,6 @@ vi.mock("@/lib/shopify/webhook-event", () => ({
 vi.mock("@/lib/shopify/product-sync", () => ({
   refreshShopifyProductState: mocks.refreshShopifyProductState,
   pullShopifyInventory: mocks.pullShopifyInventory,
-}));
-vi.mock("@/lib/shopify/product-reviews", () => ({
-  refreshShopifyProductReviewAggregates: mocks.refreshAggregates,
 }));
 vi.mock("@/lib/content/revalidate-storefront", () => ({
   revalidateStorefrontPath: mocks.revalidatePath,
@@ -82,30 +76,6 @@ describe("products webhook bad JSON → 400", () => {
           "x-shopify-hmac-sha256": "sig",
           "x-shopify-webhook-id": "wh-1",
           "x-shopify-topic": "products/update",
-        },
-        body: "{not-json",
-      }),
-    );
-    expect(response.status).toBe(400);
-    expect(mocks.claimWebhookEvent).not.toHaveBeenCalled();
-  });
-});
-
-describe("reviews webhook bad JSON → 400", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mocks.verifyShopifyWebhook.mockReturnValue(true);
-  });
-
-  it("returns 400 and does not claim when body is not JSON", async () => {
-    const { POST } = await import("@/app/api/shopify/webhooks/reviews/route");
-    const response = await POST(
-      new Request("http://localhost/api/shopify/webhooks/reviews", {
-        method: "POST",
-        headers: {
-          "x-shopify-hmac-sha256": "sig",
-          "x-shopify-webhook-id": "wh-1",
-          "x-shopify-topic": "metaobjects/update",
         },
         body: "{not-json",
       }),

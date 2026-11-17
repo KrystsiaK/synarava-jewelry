@@ -36,10 +36,9 @@ import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { ShareNetwork as Share2, Star } from "@phosphor-icons/react/ssr";
 import { ProductReviews } from "@/components/reviews/product-reviews";
 import { WishlistHeartButton } from "@/components/commerce/wishlist-heart-button";
-import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { truncateText } from "@/lib/text/truncate";
 import { useCanHover } from "@/lib/hooks/use-can-hover";
-import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
+import type { ProductReviewsData } from "@/lib/reviews/public";
 import type { ProductReviewActionState } from "@/app/actions/product-reviews";
 
 const ease = [0.22, 1, 0.36, 1] as const;
@@ -83,7 +82,7 @@ function ProductHero({
   isSignedIn,
 }: {
   product: ProductSummary;
-  reviews: ShopifyProductReviews | null;
+  reviews: ProductReviewsData | null;
   isSignedIn: boolean;
 }) {
   const { t, locale, plural } = useTranslations();
@@ -157,7 +156,7 @@ function ProductHero({
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, ease, delay: 0.68 }}
             >
-              {storefrontReviewsVisible() && reviews?.average != null && reviews.count > 0 ? (
+              {reviews?.average != null && reviews.count > 0 ? (
                 <a
                   href="#reviews"
                   className="inline-flex items-center gap-2 text-sm text-foreground/68 underline-offset-4 hover:text-couture-red hover:underline"
@@ -963,7 +962,7 @@ export function ProductDetail({
 }: {
   product: ProductSummary;
   fitVideoSrc?: string;
-  reviews?: ShopifyProductReviews | null;
+  reviews?: ProductReviewsData | null;
   isSignedIn?: boolean;
   submitReviewAction?: (
     state: ProductReviewActionState,
@@ -1012,11 +1011,10 @@ export function ProductDetail({
       <CraftSection product={product} fitVideoSrc={fitVideoSrc} />
       <LookbookSection product={product} />
       <RelatedProductsSection products={relatedProducts} />
-      {storefrontReviewsVisible() && reviews && submitReviewAction ? (
+      {reviews && submitReviewAction ? (
         <ProductReviews
           productSlug={product.slug}
           locale={locale}
-          isSignedIn={isSignedIn}
           data={reviews}
           submitAction={submitReviewAction}
         />

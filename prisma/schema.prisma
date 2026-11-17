@@ -206,10 +206,45 @@ model Product {
   syncEvents          ProductSyncEvent[]
   translations        ProductTranslation[]
   incomingUpdate      ProductIncomingUpdate?
+  reviews             ProductReview[]
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
   @@index([categoryId])
+}
+
+/// Local buyer product reviews (not Shopify). Admin moderates PENDING → PUBLISHED / HIDDEN.
+enum ProductReviewStatus {
+  PENDING
+  PUBLISHED
+  HIDDEN
+}
+
+model ProductReview {
+  id               String              @id @default(cuid())
+  productId        String
+  locale           String
+  rating           Int
+  title            String              @default("")
+  body             String              @default("")
+  /// Public display: first name + last initial.
+  authorName       String
+  /// Private — never expose on storefront or JSON-LD. Stored lowercased.
+  authorEmail      String
+  status           ProductReviewStatus @default(PENDING)
+  verifiedPurchase Boolean             @default(false)
+  moderatedAt      DateTime?
+  moderatedBy      String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  product          Product             @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, authorEmail])
+  @@index([status, createdAt])
+  @@index([productId, status])
+  @@index([locale, status])
+  @@index([rating, status])
+  @@index([authorEmail])
 }
 
 model ProductIncomingUpdate {

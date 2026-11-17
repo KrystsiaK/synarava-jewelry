@@ -163,20 +163,12 @@ Shopify's `BEST_SELLING` sort; the rail is omitted when no usable ranking is ava
 and sorting run in the browser and update the query string without a route reload. Browser back and
 forward navigation rehydrates the matching filter state.
 
-Product reviews use Shopify's standard `product_review` metaobject plus the standard
-`reviews.rating` and `reviews.rating_count` product metafields. This integration requires Shopify
-approval for product-review syndication and the `write_product_reviews`, `read_metaobjects`,
-`read_customers`, `read_orders`, and `read_products` scopes. **Run conflict check** validates the
-Shopify connection and scopes, establishes the initial store binding, and registers filtered
-`metaobjects/create`, `metaobjects/update`, and `metaobjects/delete` webhooks when `APP_URL` and
-`SHOPIFY_WEBHOOK_SECRET` are configured.
-The storefront uses Shopify's official **Verified by Shop** badge only when syndicated reviews are
-actually present. The signed-in account lists that customer's published reviews
-(`author` = the Shopify customer id) in a table; choosing the text opens the review as stored.
-Standard `product_review` fields are not admin-filterable, so the account reads the same cached
-metaobject list the product page uses and keeps the matching author. Review records are not copied
-into Synarava. The leave-a-review form is its own Shared section and syncs with the rest of
-`$app:storefront_copy`; the account table labels stay on Customer account and are not synced.
+Product reviews are stored locally in `ProductReview` (not Shopify). Anyone can submit with name +
+email; email stays private (never storefront / JSON-LD). New reviews default to `PENDING` until an
+admin publishes them (Admin → Reviews), unless moderation-before-publish is turned off. Aggregate
+rating and JSON-LD use `PUBLISHED` reviews only. The leave-a-review form copy is edited under Shared
+→ Reviews; account table labels stay on Customer account. A signed-in account lists that customer's
+reviews by matching email.
 
 Customer wishlists are stored in the Shopify Customer `synarava.wishlist` metafield and require the
 Admin API `read_customers` and `write_customers` scopes. Missing wishlist access degrades to an empty

@@ -152,7 +152,7 @@ const ORDERS: StorefrontCopyGroup = {
 const REVIEWS: StorefrontCopyGroup = {
   id: "reviews",
   title: "Reviews",
-  description: "The customer’s own Shopify product reviews. The text, rating, and reply come from Shopify. The form for leaving a review is edited under Shared.",
+  description: "The customer’s own product reviews (matched by email). Moderation lives under Admin → Reviews. The leave-a-review form copy is edited under Shared.",
   fields: [
     { key: "profile.tabs.reviews", label: "Tab — Reviews" },
     { key: "profile.reviews.title", label: "Title" },

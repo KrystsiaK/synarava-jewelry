@@ -23,6 +23,7 @@ import {
   getLatestReconcileRun,
   isReconcileRunActivelyChecking,
 } from "@/lib/shopify/reconciliation-run";
+import { countPendingProductReviews } from "@/lib/reviews/queries";
 
 export default async function AdminLayout({
   children,
@@ -33,7 +34,8 @@ export default async function AdminLayout({
   // hardcode `/admin` or a deep link is lost when a signed-but-expired session
   // cookie slips past the edge guard and this layout re-checks the DB.
   const session = await requireAdminSession();
-  const [latestReconcileRun, syncDifferences, syncPages, waterfall] = await Promise.all([
+  const [latestReconcileRun, syncDifferences, syncPages, waterfall, pendingReviewsCount] =
+    await Promise.all([
     getLatestReconcileRun(),
     getLatestReconcileDifferences(),
     db.page.findMany({
@@ -50,6 +52,10 @@ export default async function AdminLayout({
       // Audit: never swallow into "0 conflicts / all good".
       console.error("[admin-layout] sync waterfall failed", error);
       return null;
+    }),
+    countPendingProductReviews().catch((error) => {
+      console.error("[admin-layout] pending reviews count unavailable", error);
+      return 0;
     }),
   ]);
   const navPages = syncPages.map((page) => ({ slug: page.slug, title: page.title }));
@@ -80,6 +86,7 @@ export default async function AdminLayout({
             pages={navPages}
             syncCounts={syncCounts}
             syncNavHrefs={syncNavHrefs}
+            pendingReviewsCount={pendingReviewsCount}
             footer={
               <div className="grid gap-3">
                 <AdminThemeToggle />
@@ -126,6 +133,7 @@ export default async function AdminLayout({
               pages={navPages}
               syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}
+              pendingReviewsCount={pendingReviewsCount}
             />
           </div>
 

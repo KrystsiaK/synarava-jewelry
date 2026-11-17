@@ -19,7 +19,6 @@ import { getPublicSiteUrl } from "@/lib/seo/site-url";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
-import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
 
@@ -71,9 +70,7 @@ export default async function ProductDetailPage({ params }: Props) {
 
   if (!product) notFound();
   if (shouldRedirectLocalizedHandle(locale, key, product.slug)) redirect(localePath(locale, `/products/${product.slug}`));
-  const reviews = storefrontReviewsVisible()
-    ? await getProductReviewsBySlug(product.sourceSlug)
-    : null;
+  const reviews = await getProductReviewsBySlug(product.sourceSlug);
 
   const relatedIds = product.shopifyProductId
     ? await getShopifyRelatedProductIds(product.shopifyProductId).catch(() => [])
@@ -109,7 +106,7 @@ export default async function ProductDetailPage({ params }: Props) {
         fitVideoSrc={hasFitFilm() ? videos.braceletFilm : undefined}
         reviews={reviews}
         isSignedIn={isSignedIn}
-        submitReviewAction={storefrontReviewsVisible() ? submitProductReviewAction : undefined}
+        submitReviewAction={submitProductReviewAction}
         relatedProducts={relatedProducts}
       />
     </>

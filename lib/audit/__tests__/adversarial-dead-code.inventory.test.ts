@@ -42,13 +42,11 @@ function sourceImportCount(packageName: string): number {
 }
 
 describe("Phase 4 dead-code inventory (DEAD-*)", () => {
-  it("Shopify product+reviews webhooks use parseShopifyWebhookJson (DEAD-001)", () => {
+  it("Shopify product webhook uses parseShopifyWebhookJson (DEAD-001); reviews webhook removed", () => {
     const products = read("app/api/shopify/webhooks/products/route.ts");
-    const reviews = read("app/api/shopify/webhooks/reviews/route.ts");
     expect(products).toMatch(/parseShopifyWebhookJson/);
-    expect(reviews).toMatch(/parseShopifyWebhookJson/);
     expect(products).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
-    expect(reviews).not.toMatch(/JSON\.parse\(\s*rawBody\s*\)/);
+    expect(() => read("app/api/shopify/webhooks/reviews/route.ts")).toThrow();
   });
 
   it("documents which order-family routes already use the safe parser", () => {
