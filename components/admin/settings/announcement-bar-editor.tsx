@@ -25,6 +25,7 @@ import {
   type FreeShippingMoney,
 } from "@/lib/content/announcement-bar-fields";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
+import { formatAdminDateTime } from "@/lib/format/admin-date";
 import { formatShopifyMoneyByLocale } from "@/lib/shopify/money";
 
 function moneyLabel(money: FreeShippingMoney | null, locale: string): string {
@@ -32,18 +33,11 @@ function moneyLabel(money: FreeShippingMoney | null, locale: string): string {
   return formatShopifyMoneyByLocale(money.amount, money.currencyCode, locale) || "—";
 }
 
-function checkedAtLabel(iso: string | null, locale: string): string {
+function checkedAtLabel(iso: string | null): string {
   if (!iso) return "Not checked yet";
   const ms = Date.parse(iso);
   if (!Number.isFinite(ms)) return "Not checked yet";
-  try {
-    return new Intl.DateTimeFormat(locale, {
-      dateStyle: "medium",
-      timeStyle: "short",
-    }).format(new Date(ms));
-  } catch {
-    return iso;
-  }
+  return formatAdminDateTime(iso);
 }
 
 export function AnnouncementBarEditor({
@@ -158,7 +152,7 @@ export function AnnouncementBarEditor({
             />
             <AdminReadonlyField
               label="Last Shopify check"
-              value={checkedAtLabel(setting.shopifyCheckedAt, activeLocale)}
+              value={checkedAtLabel(setting.shopifyCheckedAt)}
               owner="Shopify"
               help="Updated when catalog refresh pulls the Portugal free-shipping rate."
             />
