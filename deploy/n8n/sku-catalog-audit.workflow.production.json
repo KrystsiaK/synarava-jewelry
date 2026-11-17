@@ -157,7 +157,7 @@
     {
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
-        "text": "=\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://shop.synarava.com/admin/settings#shared-sku-policy",
+        "text": "=\ud83d\udd34 PRODUCTION \u00b7 SKU AUDIT\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://shop.synarava.com/admin/shared#shared-sku-policy",
         "additionalFields": {
           "appendAttribution": false
         }

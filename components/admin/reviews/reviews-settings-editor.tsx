@@ -8,6 +8,7 @@ import {
   saveProductReviewsSettingsAction,
   type AdminReviewsActionState,
 } from "@/app/admin/actions/reviews";
+import { adminSharedHref } from "@/components/admin/shared/admin-paths";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
 import {
   AdminAlert,
@@ -49,8 +50,8 @@ export function ReviewsSettingsEditor({
               <p className="mt-1 max-w-2xl text-xs leading-5" style={{ color: "var(--adm-muted)" }}>
                 Moderation toggle for new submissions. Translatable section copy (EN/PT/RU) is edited
                 under{" "}
-                <Link href="/admin/settings#shared-reviews" className="underline">
-                  Shared → Reviews
+                <Link href={adminSharedHref("shared-reviews")} className="underline">
+                  Shared → Review texts
                 </Link>
                 — do not invent a second translation system here.
               </p>

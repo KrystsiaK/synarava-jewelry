@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 
+import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { tryCreateSkuClient } from "@/lib/sku/client";
 import { getSkuServiceConfig } from "@/lib/sku/config";
@@ -42,7 +43,7 @@ export type SkuPolicyActionState = {
 };
 
 export async function loadSkuPolicyEditorPayload(): Promise<SkuPolicyEditorPayload> {
-  await requireAdminSession("/admin/settings");
+  await requireAdminSession(ADMIN_SHARED_PATH);
   const config = getSkuServiceConfig();
   if (!config.configured) {
     return {
@@ -115,7 +116,7 @@ export async function saveSkuPolicyDraftAction(input: {
   allowedCharacters: string;
   familiesJson: string;
 }): Promise<SkuPolicyActionState> {
-  await requireAdminSession("/admin/settings");
+  await requireAdminSession(ADMIN_SHARED_PATH);
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };
@@ -146,7 +147,7 @@ export async function saveSkuPolicyDraftAction(input: {
 export async function publishSkuPolicyAction(
   version: number,
 ): Promise<SkuPolicyActionState> {
-  await requireAdminSession("/admin/settings");
+  await requireAdminSession(ADMIN_SHARED_PATH);
   const client = tryCreateSkuClient();
   if (!client) {
     return { ok: false, error: "SKU API is not configured on this environment" };

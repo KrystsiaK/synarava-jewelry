@@ -106,7 +106,7 @@ SoT — never invent a parallel taxonomy tree in Synarava.
 
 **Buyer-facing display overlays** for distinct EN category leaves and product
 types live in `TaxonomyValueLabel` and are edited at **Admin → Shared → Taxonomy**
-(`/admin/settings#shared-taxonomy`). One row per `(kind, enValue, locale)`.
+(`/admin/shared#shared-taxonomy`). One row per `(kind, enValue, locale)`.
 Shop listing cards, filter chips, and PDP product-type rows all resolve through
 `localizeShopFacetValue` (overlay → shipped dictionary → English).
 

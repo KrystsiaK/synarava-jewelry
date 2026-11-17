@@ -110,7 +110,7 @@ describe("sku-catalog-audit n8n workflow (Этап 5 Slice B)", () => {
     expect(text).toContain("🟡 STAGING");
     expect(text).toContain("SKU Audit");
     expect(text).toContain(
-      "https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy",
+      "https://synarava-shop-app-staging.up.railway.app/admin/shared#shared-sku-policy",
     );
     expect(String(notify?.parameters?.chatId ?? "")).toContain(
       "$env.TELEGRAM_CHAT_ID",
@@ -128,7 +128,7 @@ describe("sku-catalog-audit n8n workflow (Этап 5 Slice B)", () => {
     const serialized = JSON.stringify(production);
     expect(serialized).toContain("https://shop.synarava.com/api/ops/sku-catalog");
     expect(serialized).toContain(
-      "https://shop.synarava.com/admin/settings#shared-sku-policy",
+      "https://shop.synarava.com/admin/shared#shared-sku-policy",
     );
     expect(serialized).not.toContain("CATALOG_ITEMS_JSON");
     expect(serialized).not.toContain("synarava-shop-app-production.up.railway.app");

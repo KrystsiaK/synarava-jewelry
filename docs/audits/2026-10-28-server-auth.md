@@ -22,7 +22,7 @@ Full inventory tables (path / export / auth / zod / notes) are summarized below;
 |---|---|
 | **Severity** | critical (mutations) / medium (load) |
 | **Evidence** | `app/admin/actions/sku-policy.ts` — `loadSkuPolicyEditorPayload` (~L42), `saveSkuPolicyDraftAction` (~L108), `publishSkuPolicyAction` (~L142) never call `requireAdminSession`. Client editor calls mutations. Unauthenticated unit call returns SKU-config error, **not** login redirect (`adversarial-admin-auth-rejection.test.ts`). Source guard: `it.fails(... AUTH-ADV-001)`. |
-| **Proposed minimal fix** | `await requireAdminSession("/admin/settings")` (or SKU settings path) at the top of all three exports. |
+| **Proposed minimal fix** | `await requireAdminSession("/admin/shared")` (or SKU settings path) at the top of all three exports. |
 | **Estimated size** | XS |
 | **Fix owner** | admin UI / core (sku admin) |
 

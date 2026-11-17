@@ -138,7 +138,7 @@
     {
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
-        "text": "=🟡 STAGING · SKU catalog audit\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy",
+        "text": "=🟡 STAGING · SKU catalog audit\n\ndeviations: {{ $json.deviationCount }}\nitems: {{ $json.itemCount }}\ndigest: {{ $json.digest }}\ncorrelationId: {{ $json.correlationId }}\n\nSKU Audit: https://synarava-shop-app-staging.up.railway.app/admin/shared#shared-sku-policy",
         "additionalFields": {
           "appendAttribution": false
         }

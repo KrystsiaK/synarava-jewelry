@@ -15,6 +15,12 @@ ignoredBuiltDependencies:
   - unrs-resolver
 minimumReleaseAgeExclude:
   - railway@3.15.0
+# GHSA-fc5q-39xc-vjpf (picomatch ReDoS): no npm release >4.0.7 yet. Prod path is
+# @sentry/nextjs → @rollup/plugin-commonjs (build tooling), not user-controlled globs.
+# Drop when picomatch ships a patched version.
+audit:
+  ignore:
+    - GHSA-fc5q-39xc-vjpf
 overrides:
   browserslist: 4.28.9
   deepmerge-ts: 8.0.2
