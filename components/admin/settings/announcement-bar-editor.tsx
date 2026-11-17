@@ -99,17 +99,17 @@ export function AnnouncementBarEditor({
     });
   }
 
-  function takeShopify() {
+  function adoptLiveThreshold() {
     setError(null);
     startTransition(async () => {
       const result = await adoptAnnouncementThresholdAction();
       if (!result.ok) {
-        setError(result.error ?? "Take Shopify failed");
-        pushToast({ tone: "error", message: result.error ?? "Take Shopify failed" });
+        setError(result.error ?? "Adopt threshold failed");
+        pushToast({ tone: "error", message: result.error ?? "Adopt threshold failed" });
         return;
       }
       if (result.setting) setSetting(result.setting);
-      pushToast({ tone: "success", message: result.message ?? "Took Shopify" });
+      pushToast({ tone: "success", message: result.message ?? "Adopted live threshold" });
     });
   }
 
@@ -152,7 +152,7 @@ export function AnnouncementBarEditor({
 
           <AdminAlert message={error} />
           {conflict ? (
-            <AdminAlert message="Free shipping threshold differs from Shopify. Take Shopify to adopt the live rate condition, or wait for the next catalog refresh." />
+            <AdminAlert message="Free shipping threshold differs from Shopify. Adopt the live delivery-profile amount, or wait for the next catalog refresh." />
           ) : null}
 
           <AdminCheckboxField
@@ -170,7 +170,7 @@ export function AnnouncementBarEditor({
               label="Threshold (Synarava)"
               value={moneyLabel(setting.threshold, activeLocale)}
               owner="Shopify"
-              help="Working copy after Take Shopify. Storefront uses this amount."
+              help="Working copy after human adopt. Storefront uses this amount."
             />
             <AdminReadonlyField
               label="Threshold (Shopify)"
@@ -185,9 +185,9 @@ export function AnnouncementBarEditor({
               type="button"
               variant="secondary"
               disabled={isPending || !setting.shopifySnapshot?.freeShippingMinSubtotal}
-              onClick={takeShopify}
+              onClick={adoptLiveThreshold}
             >
-              Take Shopify
+              Adopt live threshold
             </AdminButton>
             <span className="text-sm text-[color:var(--adm-muted)]">
               {conflict ? "Conflict" : setting.shopifySnapshot ? "In sync" : "Not checked yet"}

@@ -31,6 +31,9 @@ const mocks = vi.hoisted(() => ({
   ]),
   findManyCollections: vi.fn(),
   findManyProducts: vi.fn(),
+  siteSettingFindUnique: vi.fn(async () => null),
+  refreshFreeShippingThresholdShopifyState: vi.fn(async () => ({ freeShippingMinSubtotal: null })),
+  refreshAnnouncementBarShopifySnapshot: vi.fn(async () => undefined),
   getLatestReconcileDifferences: vi.fn(async () => []),
   getLatestReconcileRun: vi.fn(async () => ({
     id: "run-1",
@@ -82,9 +85,20 @@ vi.mock("@/lib/db", () => ({
   db: {
     collection: { findMany: mocks.findManyCollections },
     product: { findMany: mocks.findManyProducts },
+    siteSetting: { findUnique: mocks.siteSettingFindUnique },
     shopifyTranslationBinding: { count: vi.fn(async () => 0) },
   },
 }));
+vi.mock("@/lib/shopify/free-shipping-threshold", () => ({
+  refreshFreeShippingThresholdShopifyState: mocks.refreshFreeShippingThresholdShopifyState,
+}));
+vi.mock("@/lib/content/announcement-bar", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/content/announcement-bar")>();
+  return {
+    ...actual,
+    refreshAnnouncementBarShopifySnapshot: mocks.refreshAnnouncementBarShopifySnapshot,
+  };
+});
 
 import { runCatalogConflictCheck } from "@/lib/shopify/catalog-conflict-signals-server";
 import { catalogConflictSignalsFromSyncResult, selectAdminNavSyncCounts } from "@/lib/sync";
