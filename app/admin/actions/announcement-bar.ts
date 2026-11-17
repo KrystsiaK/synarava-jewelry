@@ -11,6 +11,7 @@ import {
 import { ANNOUNCEMENT_BAR_COPY_KEY } from "@/lib/content/announcement-bar-fields";
 import { getStorefrontCopy, setStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
+import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 
 export type AnnouncementBarActionState = {
@@ -49,7 +50,7 @@ export async function saveAnnouncementBarAction(input: {
       setAnnouncementBarEnabled(input.enabled),
       Object.keys(updates).length > 0 ? setStorefrontCopy(updates) : Promise.resolve(null),
     ]);
-    revalidatePath("/admin/settings");
+    revalidatePath(ADMIN_SHARED_PATH);
     revalidatePath("/");
     return { ok: true, message: "Announcement bar saved", setting };
   } catch (error) {
@@ -65,7 +66,7 @@ export async function adoptAnnouncementThresholdAction(): Promise<AnnouncementBa
   try {
     await requireAdminSession();
     const setting = await adoptFreeShippingThresholdFromShopify();
-    revalidatePath("/admin/settings");
+    revalidatePath(ADMIN_SHARED_PATH);
     revalidatePath("/");
     return { ok: true, message: "Took Shopify free-shipping threshold", setting };
   } catch (error) {

@@ -1,6 +1,8 @@
 import { ACCOUNT_PAGE_AREAS } from "@/lib/content/account-page-fields";
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
 
+import { ADMIN_SHARED_PATH, adminSharedHref } from "@/components/admin/shared/admin-paths";
+
 /** Attention signal for a nav node (Shopify sync conflicts). */
 export type AdminNavSignal = "sync";
 
@@ -87,7 +89,7 @@ export function syncDifferenceToNavHref(
 ): string {
   if (difference.rootEntityType === "PRODUCT") return "/admin/products";
   if (difference.rootEntityType === "COLLECTION") return "/admin/collections";
-  if (difference.rootEntityType === "STOREFRONT_COPY") return "/admin/settings";
+  if (difference.rootEntityType === "STOREFRONT_COPY") return ADMIN_SHARED_PATH;
   const slug = pageSlugById.get(difference.rootEntityId);
   return slug ? `/admin/pages/${slug}` : "/admin/pages";
 }
@@ -169,14 +171,19 @@ export function buildCommerceCopyNavChildren(): AdminNavChildConfig[] {
 
 export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
   return [
-    { id: "settings-header", href: "/admin/settings#shared-header", label: "Header" },
-    { id: "settings-footer", href: "/admin/settings#shared-footer", label: "Footer" },
-    { id: "settings-home", href: "/admin/settings#shared-home", label: "Home" },
-    { id: "settings-cookies", href: "/admin/settings#shared-cookies", label: "Cookies" },
-    { id: "settings-contact", href: "/admin/settings#shared-contact", label: "Contact" },
-    { id: "settings-reviews", href: "/admin/settings#shared-reviews", label: "Reviews" },
-    { id: "settings-taxonomy", href: "/admin/settings#shared-taxonomy", label: "Taxonomy" },
-    { id: "settings-sku-policy", href: "/admin/settings#shared-sku-policy", label: "SKU policy" },
+    {
+      id: "settings-announcement-bar",
+      href: adminSharedHref("shared-announcement-bar"),
+      label: "Announcement bar",
+    },
+    { id: "settings-header", href: adminSharedHref("shared-header"), label: "Header" },
+    { id: "settings-footer", href: adminSharedHref("shared-footer"), label: "Footer" },
+    { id: "settings-home", href: adminSharedHref("shared-home"), label: "Home" },
+    { id: "settings-cookies", href: adminSharedHref("shared-cookies"), label: "Cookies" },
+    { id: "settings-contact", href: adminSharedHref("shared-contact"), label: "Contact" },
+    { id: "settings-reviews", href: adminSharedHref("shared-reviews"), label: "Review texts" },
+    { id: "settings-taxonomy", href: adminSharedHref("shared-taxonomy"), label: "Taxonomy" },
+    { id: "settings-sku-policy", href: adminSharedHref("shared-sku-policy"), label: "SKU policy" },
   ];
 }
 
@@ -223,12 +230,12 @@ export function buildAdminNavItems({
       badge: syncBadge(sync.pages),
     },
     {
-      id: "settings",
-      href: "/admin/settings",
+      id: "shared",
+      href: ADMIN_SHARED_PATH,
       label: "Shared",
       code: "SHR",
       children: buildStorefrontCopyNavChildren(),
-      childPreviewLimit: 8,
+      childPreviewLimit: 9,
       badge: syncBadge(sync.settings),
     },
     {

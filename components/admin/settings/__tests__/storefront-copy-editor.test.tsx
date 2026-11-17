@@ -73,7 +73,7 @@ function setLabeledValue(scope: ReturnType<typeof within>, label: string, value:
 
 beforeEach(() => {
   vi.clearAllMocks();
-  window.history.replaceState(null, "", "/admin/settings");
+  window.history.replaceState(null, "", "/admin/shared");
 });
 
 describe("StorefrontCopyEditor", () => {
@@ -266,7 +266,7 @@ describe("StorefrontCopyEditor", () => {
       />,
     );
 
-    await user.click(sharedAreaTab(/^Reviews/));
+    await user.click(sharedAreaTab(/^Review texts/));
     const reviews = area("shared-reviews");
     expect(reviews.getByText("Reviews — leave a review")).toBeVisible();
     expect(reviews.getByLabelText("Heading (EN)")).toHaveAttribute("placeholder", "Share your experience");

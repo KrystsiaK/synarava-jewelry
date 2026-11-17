@@ -60,7 +60,7 @@ export const TreeWithSignals: Story = {
       "/admin/products",
       "/admin/collections",
       "/admin/pages/care",
-      "/admin/settings",
+      "/admin/shared",
     ],
   },
 };

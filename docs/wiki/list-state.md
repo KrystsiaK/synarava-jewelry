@@ -32,7 +32,7 @@ URL writes are adapter-owned (never both):
 | Site videos (`SiteVideosCms`) | No | Skipped | Form editor, not a filterable list |
 | Translations / languages | No list filters | Skipped | Panel/config UI, not a catalog-style list |
 | Orders | N/A | Skipped | No admin orders list route under `app/admin/(admin)/` |
-| Mission Control / meta / settings | N/A | Skipped | Dashboards / editors, not filterable entity lists |
+| Mission Control / meta / shared | N/A | Skipped | Dashboards / editors, not filterable entity lists |
 
 When a new admin list gains search/status/sort controls, add a domain schema next to that feature and wire `useListState` with the admin adapter — do not reintroduce local filter `useState`.
 

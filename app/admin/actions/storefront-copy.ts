@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { setFooterContactEmails } from "@/lib/content/footer-contact";
 import { setFooterLinks } from "@/lib/content/footer-links";
@@ -133,7 +134,7 @@ function readContactEmails(formData: FormData): string[] | { error: string } {
 }
 
 export async function saveStorefrontCopyAction(formData: FormData): Promise<StorefrontCopyActionState> {
-  await requireAdminSession("/admin/settings");
+  await requireAdminSession(ADMIN_SHARED_PATH);
 
   const headerNav = readHeaderNavPayload(formData);
   if ("error" in headerNav) return { error: headerNav.error };

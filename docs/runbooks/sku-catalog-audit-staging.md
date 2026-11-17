@@ -72,7 +72,7 @@ Exit codes: `0` no new notify · `2` should notify · `1` transport/API error.
 3. **GET live Shopify catalog** — protected Synarava endpoint reads every Shopify variant with cursor pagination; Shopify credentials never enter n8n.
 4. **Build payload** — require `source=shopify`, `complete=true`, matching `itemCount`, valid variant IDs, and ≤5,000 rows.
 5. **POST** private `sku-api` → `/v1/workspaces/{SKU_API_WORKSPACE}/audit/catalog` with the same Header Auth Bearer.
-6. **IF `shouldNotify`** → **Notify Telegram · SKU** (`n8n-nodes-base.telegram`) — PII-free summary with **🟡 STAGING** and a link to [SKU Audit](https://synarava-shop-app-staging.up.railway.app/admin/settings#shared-sku-policy). Chat ID from `$env.TELEGRAM_CHAT_ID`; bot token only in the n8n Telegram credential (never in git).
+6. **IF `shouldNotify`** → **Notify Telegram · SKU** (`n8n-nodes-base.telegram`) — PII-free summary with **🟡 STAGING** and a link to [SKU Audit](https://synarava-shop-app-staging.up.railway.app/admin/shared#shared-sku-policy). Chat ID from `$env.TELEGRAM_CHAT_ID`; bot token only in the n8n Telegram credential (never in git).
 7. **Save checkpoint** — always write `digest` back to static data (both branches). Notify failure leaves digest unsaved on the true branch until after successful notify.
 
 Static data persists only for **active** scheduled/production executions, not manual “Test workflow” runs.
