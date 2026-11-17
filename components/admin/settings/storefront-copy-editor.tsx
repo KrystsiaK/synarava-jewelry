@@ -41,8 +41,10 @@ const SHARED_AREAS = [
 
 type SharedAreaId = (typeof SHARED_AREAS)[number]["id"];
 
-const GROUP_AREA: Record<string, SharedAreaId> = {
+const GROUP_AREA: Record<string, SharedAreaId | "announcement"> = {
   "header-chrome": "header",
+  // Edited in AnnouncementBarEditor — keep out of Shared area tabs.
+  "announcement-bar": "announcement",
   "footer-brand": "footer",
   "footer-nav": "footer",
   "footer-service-heading": "footer",

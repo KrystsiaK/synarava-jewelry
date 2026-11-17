@@ -15,6 +15,9 @@ const mocks = vi.hoisted(() => ({
   heartbeatCatalogCheckRun: vi.fn(),
   findManyProducts: vi.fn(async () => []),
   findManyCollections: vi.fn(async () => []),
+  siteSettingFindUnique: vi.fn(async () => null),
+  refreshFreeShippingThresholdShopifyState: vi.fn(async () => ({ freeShippingMinSubtotal: null })),
+  refreshAnnouncementBarShopifySnapshot: vi.fn(async () => undefined),
   getPublishedStorefrontLocales: vi.fn(async () => []),
 }));
 
@@ -40,10 +43,17 @@ vi.mock("@/lib/shopify/reconciliation-run", () => ({
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getPublishedStorefrontLocales: mocks.getPublishedStorefrontLocales,
 }));
+vi.mock("@/lib/shopify/free-shipping-threshold", () => ({
+  refreshFreeShippingThresholdShopifyState: mocks.refreshFreeShippingThresholdShopifyState,
+}));
+vi.mock("@/lib/content/announcement-bar", () => ({
+  refreshAnnouncementBarShopifySnapshot: mocks.refreshAnnouncementBarShopifySnapshot,
+}));
 vi.mock("@/lib/db", () => ({
   db: {
     product: { findMany: mocks.findManyProducts },
     collection: { findMany: mocks.findManyCollections },
+    siteSetting: { findUnique: mocks.siteSettingFindUnique },
   },
 }));
 

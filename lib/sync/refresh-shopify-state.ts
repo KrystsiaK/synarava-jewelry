@@ -5,12 +5,14 @@
 
 import "server-only";
 
+import { refreshAnnouncementBarShopifySnapshot } from "@/lib/content/announcement-bar";
 import { refreshShopifyProductState } from "@/lib/shopify/product-sync";
 import { scanAndSaveCatalogPresence } from "@/lib/shopify/catalog-presence-server";
 import {
   refreshShopifyCollectionState,
   scanAndSaveCollectionPresence,
 } from "@/lib/shopify/collection-presence-server";
+import { refreshFreeShippingThresholdShopifyState } from "@/lib/shopify/free-shipping-threshold";
 import {
   beginCatalogCheckRun,
   finishCatalogCheckRun,
@@ -403,6 +405,14 @@ export async function refreshShopifyState(
         }
       }
     })).ms;
+
+    try {
+      const shopWindow = await refreshFreeShippingThresholdShopifyState();
+      await refreshAnnouncementBarShopifySnapshot(shopWindow);
+      await heartbeatCatalogCheckRun(runId);
+    } catch (error) {
+      warnings.push(error instanceof Error ? error.message : "Free-shipping threshold Shopify refresh failed.");
+    }
 
     const translationStatus = translationRun.translationStatus ?? "SUCCEEDED";
     const intendedStatus = warnings.length > 0 && translationStatus === "FAILED"

@@ -618,33 +618,36 @@
       "one": "{count} star",
       "other": "{count} stars"
     },
+    "nameLabel": "Your name",
+    "namePlaceholder": "First name and last name",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "emailPrivateNotice": "Email stays private — it is never shown on the product page.",
     "titleLabel": "Title",
     "optional": "optional",
     "titlePlaceholder": "What stood out?",
     "bodyLabel": "Review",
     "bodyPlaceholder": "Tell others about the piece, fit, materials, or delivery.",
-    "publishing": "Publishing…",
-    "publish": "Publish review",
-    "storedNotice": "Your review is stored in Shopify. If you purchased this product with this account, it will be marked as a verified purchase.",
-    "signInBody": "Sign in with your Shopify customer account to publish or update your review.",
-    "signInCta": "Sign in to write a review",
+    "publishing": "Submitting…",
+    "publish": "Submit review",
+    "storedNotice": "Reviews may be moderated before they appear. Your email is never shown publicly.",
     "firstTitle": "Be the first to review this piece.",
     "firstBody": "Share details that would help another customer choose with confidence.",
     "verifiedBuyer": "Verified buyer",
     "merchantReply": "Synarava reply",
-    "signInAgain": "Sign in again.",
     "form": {
       "checkFields": "Check the highlighted review fields.",
-      "requiresLogin": "Sign in with Shopify to write a review.",
-      "verifyFailed": "Shopify could not verify your customer account. Please try again later.",
-      "productNotReady": "This product is not ready for Shopify reviews yet.",
-      "rateLimited": "Too many reviews from this account today. Please try again tomorrow.",
-      "publishFailed": "Shopify could not publish the review. Please try again later.",
+      "productNotReady": "This product is not ready for reviews yet.",
+      "rateLimited": "Too many reviews from this email today. Please try again tomorrow.",
+      "publishFailed": "Could not save the review. Please try again later.",
+      "pendingModeration": "Thanks — your review was submitted and will appear after moderation.",
       "success": "Your review is now published.",
       "field": {
         "rating": "Choose a rating from 1 to 5.",
         "title": "Keep the title under 120 characters.",
-        "body": "Write at least 10 characters, or leave this blank."
+        "body": "Write at least 10 characters, or leave this blank.",
+        "authorName": "Enter your name.",
+        "authorEmail": "Enter a valid email."
       }
     }
   },
@@ -796,5 +799,8 @@
   },
   "brand": {
     "curatedGoods": "Jewellery & Accessories"
+  },
+  "announcement": {
+    "bar": "Free shipping in Portugal from {amount}"
   }
 }

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   productFindMany: vi.fn(),
   collectionFindMany: vi.fn(),
+  siteSettingFindUnique: vi.fn(async () => null),
   differences: vi.fn(),
   productPresence: vi.fn(),
   collectionPresence: vi.fn(),
@@ -15,6 +16,7 @@ vi.mock("@/lib/db", () => ({
   db: {
     product: { findMany: mocks.productFindMany },
     collection: { findMany: mocks.collectionFindMany },
+    siteSetting: { findUnique: mocks.siteSettingFindUnique },
   },
 }));
 vi.mock("@/lib/i18n/storefront-locale-cache", () => ({

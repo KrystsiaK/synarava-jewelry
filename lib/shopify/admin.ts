@@ -330,14 +330,6 @@ const EDITORIAL_METAOBJECT_SCOPES = [
   "read_metaobject_definitions",
   "write_metaobject_definitions",
 ] as const;
-const REVIEW_SCOPES = [
-  "write_product_reviews",
-  "read_metaobjects",
-  "read_customers",
-  "read_orders",
-  "read_products",
-] as const;
-
 /** Needed to read and write the `synarava.wishlist` Customer metafield. */
 const WISHLIST_SCOPES = ["read_customers", "write_customers"] as const;
 
@@ -393,9 +385,6 @@ export async function testShopifyAdminConnection() {
   const missingTranslationScopes: string[] = TRANSLATION_SCOPES.filter(
     (scope) => !grantedScopes.includes(scope),
   );
-  const missingReviewScopes: string[] = REVIEW_SCOPES.filter(
-    (scope) => !grantedScopes.includes(scope),
-  );
   const missingWishlistScopes: string[] = WISHLIST_SCOPES.filter(
     (scope) => !grantedScopes.includes(scope),
   );
@@ -426,7 +415,6 @@ export async function testShopifyAdminConnection() {
     grantedScopes,
     missingScopes,
     missingTranslationScopes,
-    missingReviewScopes,
     missingWishlistScopes,
     missingReturnsScopes,
     missingEditorialScopes,

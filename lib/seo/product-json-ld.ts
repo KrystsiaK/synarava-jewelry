@@ -1,6 +1,6 @@
 import type { ProductSummary } from "@/lib/content/catalog";
-import { storefrontReviewsVisible } from "@/lib/features/storefront-reviews";
-import type { ShopifyProductReviews } from "@/lib/shopify/product-reviews";
+import type { ProductReviewsData } from "@/lib/reviews/public";
+import { assertNoAuthorEmail } from "@/lib/reviews/map-public";
 import { localePath } from "@/lib/i18n/routing";
 import type { Locale } from "@/lib/i18n/locales";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
@@ -8,7 +8,7 @@ import { plainTextFromRichText } from "@/lib/content/rich-text";
 export function buildProductJsonLd(
   product: ProductSummary,
   siteUrl: string,
-  reviews?: ShopifyProductReviews | null,
+  reviews?: ProductReviewsData | null,
   locale: Locale = "en",
 ) {
   const baseUrl = siteUrl.replace(/\/$/, "");
@@ -20,9 +20,12 @@ export function buildProductJsonLd(
   const description =
     plainTextFromRichText(product.shortDescription) ||
     plainTextFromRichText(product.description);
-  const includeReviews = storefrontReviewsVisible()
-    && reviews?.average != null
-    && reviews.count > 0;
+  const includeReviews =
+    reviews?.average != null
+    && reviews.count > 0
+    && reviews.reviews.length > 0;
+
+  if (reviews) assertNoAuthorEmail(reviews);
 
   return {
     "@context": "https://schema.org",

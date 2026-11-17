@@ -91,6 +91,9 @@ describe("admin-nav-config", () => {
     expect(catalog?.badge).toEqual({ kind: "sync", count: 5 });
     expect(collections?.badge).toEqual({ kind: "sync", count: 1 });
     expect(problems).toBeUndefined();
+    const reviews = items.find((item) => item.id === "reviews");
+    expect(reviews).toMatchObject({ href: "/admin/reviews", label: "Reviews", code: "REV" });
+    expect(reviews?.badge).toBeUndefined();
     expect(translations).toMatchObject({ label: "Translations" });
     expect(translations?.badge).toBeUndefined();
     expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });
@@ -102,6 +105,14 @@ describe("admin-nav-config", () => {
     const items = buildAdminNavItems({ syncCount: 4 });
     expect(items.find((item) => item.id === "translations")?.badge).toBeUndefined();
     expect(items.find((item) => item.id === "products")?.badge).toBeUndefined();
+  });
+
+  it("shows a count badge for pending local reviews", () => {
+    const items = buildAdminNavItems({ pendingReviewsCount: 3 });
+    expect(items.find((item) => item.id === "reviews")?.badge).toEqual({
+      kind: "count",
+      count: 3,
+    });
   });
 
   it("tallies sync differences per sidebar section via selectAdminNavSyncCounts", () => {

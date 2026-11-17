@@ -118,7 +118,8 @@ describe("Phase 5 reliability inventory (REL-*)", () => {
       }
     };
     walk(root);
-    expect(routes.length).toBeGreaterThanOrEqual(6);
+    // Local ProductReview removed the Shopify reviews webhook; remaining commerce routes ≥5.
+    expect(routes.length).toBeGreaterThanOrEqual(5);
     for (const file of routes) {
       const src = readFileSync(file, "utf8");
       expect(src, file).toMatch(/verifyShopifyWebhook/);

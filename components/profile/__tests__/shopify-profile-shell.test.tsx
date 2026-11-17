@@ -338,7 +338,7 @@ describe("ShopifyProfileShell total spent (REV-14)", () => {
 });
 
 describe("ShopifyProfileShell reviews", () => {
-  it("hides the Reviews tab while STOREFRONT_REVIEWS_VISIBLE is temporary false", () => {
+  it("shows the Reviews tab and local review content", () => {
     render(
       <ShopifyProfileShell
         customer={customer}
@@ -359,8 +359,7 @@ describe("ShopifyProfileShell reviews", () => {
       />,
     );
 
-    expect(screen.queryByRole("tab", { name: /^reviews$/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: /^overview$/i })).toHaveAttribute("aria-selected", "true");
-    expect(screen.queryByRole("button", { name: "A lasting piece" })).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /^reviews$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "A lasting piece" })).toBeInTheDocument();
   });
 });

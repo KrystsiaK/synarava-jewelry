@@ -151,7 +151,7 @@ Bot-PR Dependabot по-прежнему может не получить `NODE_A
 
 - [ ] Создать вебхук в Shopify Admin → Settings → Notifications → Webhooks (или через **Reconcile** / conflict check в `/admin`, которая регистрирует их автоматически при заданном `APP_URL`)
   - Events: `products/create`, `products/update`, `products/delete`, `inventory_levels/update`, `orders/paid`
-- [ ] Для отзывов получить approval Shopify Product Review Syndication и выдать scopes: `write_product_reviews`, `read_metaobjects`, `read_customers`, `read_orders`, `read_products`
+- [ ] Buyer reviews are local (`ProductReview` + Admin → Reviews). No Shopify Product Review Syndication scopes required for storefront reviews.
 - [ ] Для wishlist выдать Admin API scopes `read_customers` и `write_customers`; без них профиль работает, но сохранение товаров недоступно
 - [ ] `orders/paid` требует `read_orders` (уже в review scopes); endpoint: `/api/shopify/webhooks/orders/paid` — idempotent receipt + decrement Synarava `stockOnHand` (no local Order store; cancel/refund do not restock)
 - [ ] Запустить **Test Shopify connection**: он включает стандартный `product_review` metaobject и регистрирует отфильтрованные `metaobjects/create`, `metaobjects/update`, `metaobjects/delete` webhooks

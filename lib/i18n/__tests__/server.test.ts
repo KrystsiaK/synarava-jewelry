@@ -35,7 +35,7 @@ describe("server translations", () => {
     expect(t("product.relatedTitle")).toBe("Вам также может понравиться");
     expect(t("reviews.title")).toBe("Отзывы покупателей");
     expect(t("reviews.shareTitle")).toBe("Поделитесь впечатлением");
-    expect(t("reviews.signInCta")).toBe("Войти, чтобы оставить отзыв");
+    expect(t("reviews.nameLabel")).toBe("Ваше имя");
   });
 
   it("glues orphan punctuation in server UI copy", async () => {

@@ -73,6 +73,7 @@ export function AdminNav({
   syncCount = 0,
   syncCounts,
   syncNavHrefs = [],
+  pendingReviewsCount = 0,
   onNavigate,
 }: {
   pages?: AdminNavPageRef[];
@@ -80,11 +81,12 @@ export function AdminNav({
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
   syncNavHrefs?: string[];
+  pendingReviewsCount?: number;
   onNavigate?: () => void;
 }) {
   const items = useMemo(
-    () => buildAdminNavItems({ pages, syncCount, syncCounts }),
-    [pages, syncCount, syncCounts],
+    () => buildAdminNavItems({ pages, syncCount, syncCounts, pendingReviewsCount }),
+    [pages, syncCount, syncCounts, pendingReviewsCount],
   );
 
   return (
@@ -102,6 +104,7 @@ export function AdminMobileMenu({
   syncCount = 0,
   syncCounts,
   syncNavHrefs = [],
+  pendingReviewsCount = 0,
 }: {
   footer?: ReactNode;
   pages?: AdminNavPageRef[];
@@ -109,6 +112,7 @@ export function AdminMobileMenu({
   syncCount?: number;
   syncCounts?: Partial<AdminNavSyncCounts>;
   syncNavHrefs?: string[];
+  pendingReviewsCount?: number;
 }) {
   const [open, setOpen] = useState(false);
   const portalTarget = typeof document === "undefined"
@@ -190,6 +194,7 @@ export function AdminMobileMenu({
               syncCount={syncCount}
               syncCounts={syncCounts}
               syncNavHrefs={syncNavHrefs}
+              pendingReviewsCount={pendingReviewsCount}
               onNavigate={() => setOpen(false)}
             />
 
