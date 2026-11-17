@@ -290,31 +290,6 @@ export const COLLECTION_COMMERCE_FIELDS: readonly SyncFieldDef[] = [
   }),
 ] as const;
 
-/**
- * Shop-level commerce fields (delivery / shipping). Owner = Shopify.
- * Detect via the same deepDiff window path as product/collection (ADR-0010).
- * Never push back to Shopify from Synarava.
- */
-export const SHOP_COMMERCE_FIELDS: readonly SyncFieldDef[] = [
-  field({
-    key: "freeShippingMinSubtotal",
-    contractKey: "shop.freeShippingMinSubtotal",
-    label: "Free shipping threshold",
-    scope: "base",
-    section: "shopify",
-    ownership: "shopify",
-    valueType: "money",
-    normalizerId: "money",
-    windowPaths: [
-      "freeShippingMinSubtotal",
-      "freeShippingMinSubtotal.amount",
-      "freeShippingMinSubtotal.currencyCode",
-    ],
-    applyToSynarava: "scoped",
-    applyToShopify: "unsupported",
-  }),
-] as const;
-
 /** Synthetic contract keys (not Shopify window paths). */
 export const PRESENCE_CONTRACT_KEY = "presence";
 export const WHOLE_ITEM_CONTRACT_KEY = "commerce:whole-item";
@@ -344,11 +319,6 @@ const SCOPED_PRODUCT_LABELS = new Set(
 const SCOPED_COLLECTION_LABELS = new Set(
   COLLECTION_COMMERCE_FIELDS.filter((f) => f.scopedApply).map((f) => f.label),
 );
-// Shop fields are Shopify-owned: Take Shopify is scoped; push is unsupported, so
-// `scopedApply` is false — still treat applyToSynarava === "scoped" as selectable.
-const SCOPED_SHOP_LABELS = new Set(
-  SHOP_COMMERCE_FIELDS.filter((f) => f.applyToSynarava === "scoped").map((f) => f.label),
-);
 
 export function isScopedProductCommerceLabel(label: string): boolean {
   return SCOPED_PRODUCT_LABELS.has(label);
@@ -358,15 +328,10 @@ export function isScopedCollectionCommerceLabel(label: string): boolean {
   return SCOPED_COLLECTION_LABELS.has(label);
 }
 
-export function isScopedShopCommerceLabel(label: string): boolean {
-  return SCOPED_SHOP_LABELS.has(label);
-}
-
-/** All commerce labels that participate in scoped Apply (product ∪ collection ∪ shop). */
+/** All commerce labels that participate in scoped Apply (product ∪ collection). */
 export function isScopedCommerceFieldLabel(label: string): boolean {
   return isScopedProductCommerceLabel(label)
-    || isScopedCollectionCommerceLabel(label)
-    || isScopedShopCommerceLabel(label);
+    || isScopedCollectionCommerceLabel(label);
 }
 
 /** Normalize concrete deepDiff paths (`variants[0].x`) to registry patterns (`variants[].x`). */
@@ -405,12 +370,11 @@ function longestMatchingField(
   return best;
 }
 
-/** Commerce window resource — product, collection, and shop registries are separate. */
-export type CommerceResourceType = "PRODUCT" | "COLLECTION" | "SHOP";
+/** Commerce window resource — product and collection registries are separate. */
+export type CommerceResourceType = "PRODUCT" | "COLLECTION";
 
 function commerceFieldsFor(resource: CommerceResourceType): readonly SyncFieldDef[] {
   if (resource === "COLLECTION") return COLLECTION_COMMERCE_FIELDS;
-  if (resource === "SHOP") return SHOP_COMMERCE_FIELDS;
   return PRODUCT_COMMERCE_FIELDS;
 }
 
@@ -428,7 +392,6 @@ export function lookupContractForPath(
 export function lookupContractByKey(contractKey: string): SyncFieldDef | null {
   return PRODUCT_COMMERCE_FIELDS.find((f) => f.contractKey === contractKey)
     ?? COLLECTION_COMMERCE_FIELDS.find((f) => f.contractKey === contractKey)
-    ?? SHOP_COMMERCE_FIELDS.find((f) => f.contractKey === contractKey)
     ?? null;
 }
 
@@ -498,7 +461,10 @@ export function lookupTranslationContractMeta(
   resourceType: "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY" | "SHOP",
 ): { contractKey: string; section: SyncConflictSection } {
   const commerceKey = TRANSLATION_FIELD_TO_COMMERCE_KEY[fieldKey];
-  if (commerceKey && resourceType !== "SHOP" && resourceType !== "PAGE" && resourceType !== "STOREFRONT_COPY") {
+  if (
+    commerceKey
+    && (resourceType === "PRODUCT" || resourceType === "COLLECTION")
+  ) {
     const fields =
       resourceType === "COLLECTION" ? COLLECTION_COMMERCE_FIELDS : PRODUCT_COMMERCE_FIELDS;
     const def = fields.find((field) => field.key === commerceKey);

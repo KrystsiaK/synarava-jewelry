@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 
 import {
-  adoptFreeShippingThresholdFromShopify,
   readAnnouncementBarSetting,
   setAnnouncementBarEnabled,
   type AnnouncementBarSetting,
@@ -56,22 +55,6 @@ export async function saveAnnouncementBarAction(input: {
     return {
       ok: false,
       error: error instanceof Error ? error.message : "Save failed",
-    };
-  }
-}
-
-/** Human Apply — Take Shopify threshold into Synarava working copy. */
-export async function adoptAnnouncementThresholdAction(): Promise<AnnouncementBarActionState> {
-  try {
-    await requireAdminSession();
-    const setting = await adoptFreeShippingThresholdFromShopify();
-    revalidatePath("/admin/settings");
-    revalidatePath("/");
-    return { ok: true, message: "Took Shopify free-shipping threshold", setting };
-  } catch (error) {
-    return {
-      ok: false,
-      error: error instanceof Error ? error.message : "Adopt failed",
     };
   }
 }

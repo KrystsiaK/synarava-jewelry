@@ -250,7 +250,9 @@ export default async function RootLayout({
                 {!isAdminPath && announcementSetting ? (
                   <AnnouncementBar
                     enabled={announcementSetting.enabled}
-                    threshold={announcementSetting.threshold}
+                    freeShippingMinSubtotal={
+                      announcementSetting.shopifySnapshot?.freeShippingMinSubtotal ?? null
+                    }
                     template={announcementTemplate}
                     locale={initialLocale}
                   />

@@ -133,13 +133,13 @@ async function seedStorefrontLocales(prisma) {
   return FIXTURE_LOCALES.length;
 }
 
-/** CI announcement bar: enabled + adopted 45 EUR threshold (matches live PT delivery profile). */
+/** CI announcement bar: enabled + Shopify snapshot amount (sole owner; no local threshold). */
 export const FIXTURE_ANNOUNCEMENT_BAR = {
   key: "announcement-bar-v1",
   value: {
     enabled: true,
-    threshold: { amount: "45.0", currencyCode: "EUR" },
     shopifySnapshot: { freeShippingMinSubtotal: { amount: "45.0", currencyCode: "EUR" } },
+    shopifyCheckedAt: "2026-11-17T12:00:00.000Z",
   },
 };
 

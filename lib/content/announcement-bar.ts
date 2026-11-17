@@ -1,5 +1,6 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
 import { cache } from "react";
 
 import { db } from "@/lib/db";
@@ -14,7 +15,6 @@ import {
 export {
   ANNOUNCEMENT_BAR_SETTING_KEY,
   ANNOUNCEMENT_BAR_COPY_KEY,
-  FREE_SHIPPING_THRESHOLD_RESOURCE_ID,
   DEFAULT_ANNOUNCEMENT_BAR_SETTING,
   type AnnouncementBarSetting,
   type FreeShippingMoney,
@@ -36,23 +36,25 @@ function asWindow(value: unknown): FreeShippingThresholdWindow | null {
   return { freeShippingMinSubtotal: asMoney(record.freeShippingMinSubtotal) };
 }
 
+function asCheckedAt(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const ms = Date.parse(trimmed);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
 export function parseAnnouncementBarSetting(value: unknown): AnnouncementBarSetting {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ...DEFAULT_ANNOUNCEMENT_BAR_SETTING };
   }
   const record = value as Record<string, unknown>;
+  // Legacy `threshold` keys are ignored — Shopify snapshot is the sole amount source.
   return {
     enabled: record.enabled === true,
-    threshold: asMoney(record.threshold),
     shopifySnapshot: asWindow(record.shopifySnapshot),
+    shopifyCheckedAt: asCheckedAt(record.shopifyCheckedAt),
   };
-}
-
-/** OUR commerce window — threshold only (Shopify-shaped). */
-export function deriveFreeShippingThresholdWindow(
-  setting: AnnouncementBarSetting,
-): FreeShippingThresholdWindow {
-  return { freeShippingMinSubtotal: setting.threshold };
 }
 
 /** Uncached DB read — sync waterfall must see post-refresh Shopify snapshots. */
@@ -76,28 +78,9 @@ export async function setAnnouncementBarEnabled(enabled: boolean): Promise<Annou
   return next;
 }
 
-/** Human Apply: copy Shopify observation → Synarava working threshold. */
-export async function adoptFreeShippingThresholdFromShopify(): Promise<AnnouncementBarSetting> {
-  const current = await readAnnouncementBarSetting();
-  const remote = current.shopifySnapshot?.freeShippingMinSubtotal ?? null;
-  if (!remote) {
-    throw new Error("No Shopify free-shipping threshold observation to adopt.");
-  }
-  const next: AnnouncementBarSetting = {
-    ...current,
-    threshold: { ...remote },
-  };
-  await db.siteSetting.upsert({
-    where: { key: ANNOUNCEMENT_BAR_SETTING_KEY },
-    update: { value: next },
-    create: { key: ANNOUNCEMENT_BAR_SETTING_KEY, value: next },
-  });
-  return next;
-}
-
 /**
- * Refresh-only: persist Shopify observation. Never writes `threshold` / `enabled`
- * (ADR-0008 — nothing automatic writes Synarava content).
+ * Refresh-only: persist Shopify observation + checked-at.
+ * Never writes Synarava on/off or banner copy (ADR-0008).
  */
 export async function refreshAnnouncementBarShopifySnapshot(
   snapshot: FreeShippingThresholdWindow | null,
@@ -106,11 +89,13 @@ export async function refreshAnnouncementBarShopifySnapshot(
   const next: AnnouncementBarSetting = {
     ...current,
     shopifySnapshot: snapshot,
+    shopifyCheckedAt: new Date().toISOString(),
   };
   await db.siteSetting.upsert({
     where: { key: ANNOUNCEMENT_BAR_SETTING_KEY },
     update: { value: next },
     create: { key: ANNOUNCEMENT_BAR_SETTING_KEY, value: next },
   });
+  revalidatePath("/");
   return next;
 }

@@ -68,7 +68,7 @@ export type SyncLocaleRef = {
 };
 
 export type SyncCommerceWindow = {
-  resourceType: "PRODUCT" | "COLLECTION" | "SHOP";
+  resourceType: "PRODUCT" | "COLLECTION";
   resourceId: string;
   /** Derived OUR Shopify-shaped window (columns + extras). */
   ourWindow: unknown | null;
@@ -224,7 +224,7 @@ function pendingSkuDirections(diff: ShopifyProjectionDiff): {
 }
 
 function commerceLeaf(
-  resourceType: "PRODUCT" | "COLLECTION" | "SHOP",
+  resourceType: "PRODUCT" | "COLLECTION",
   resourceId: string,
   diff: ShopifyProjectionDiff,
 ): SyncLeaf {
@@ -240,12 +240,8 @@ function commerceLeaf(
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
   const section: SyncConflictSection = unmapped ? "shopify" : (contract?.section ?? "shopify");
   const contractKey = unmapped ? UNMAPPED_CONTRACT_KEY : (contract?.contractKey ?? slugFieldKey(keySource));
-  const pendingSku = resourceType !== "SHOP" && !unmapped && supported
+  const pendingSku = !unmapped && supported
     ? pendingSkuDirections(diff)
-    : null;
-  // Shopify-owned shop fields: Take Shopify only (never push shipping settings).
-  const shopOnlyTake = resourceType === "SHOP" && supported && !unmapped
-    ? (["SHOPIFY_TO_SYNARAVA"] as const)
     : null;
   // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
@@ -259,11 +255,11 @@ function commerceLeaf(
     synaravaValue: diff.local,
     shopifyValue: diff.shopify,
     allowedDirections: pendingSku?.allowedDirections
-      ?? (shopOnlyTake ? [...shopOnlyTake] : allowedDirectionsForLeaf({
+      ?? allowedDirectionsForLeaf({
         kind: "commerce",
         resourceType,
         commerceSupported: supported && !unmapped,
-      })),
+      }),
     blockedReason: pendingSku?.blockedReason
       ?? (unmapped || !supported ? COMMERCE_UNSUPPORTED_REASON : null),
     sourceId: null,
@@ -339,7 +335,7 @@ function wholeItemCommerceLeaf(
   };
 }
 
-function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION" | "SHOP", resourceId: string, shopifySummary: string): SyncLeaf {
+function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, shopifySummary: string): SyncLeaf {
   const synaravaValue = "— No Synarava commerce window —";
   return {
     id: `${resourceType}:${resourceId}:${ADOPT_SHOPIFY_FIELD_KEY}`,

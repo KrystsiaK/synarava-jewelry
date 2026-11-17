@@ -18,27 +18,12 @@ import {
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
 import {
-  deriveFreeShippingThresholdWindow,
-  readAnnouncementBarSetting,
-} from "@/lib/content/announcement-bar";
-import { FREE_SHIPPING_THRESHOLD_RESOURCE_ID } from "@/lib/content/announcement-bar-fields";
-import {
   ourCollectionWindowFromRow,
   ourProductWindowFromRow,
 } from "@/lib/sync/our-window-from-row";
 
 import type { SyncCommerceWindow, SyncCompareInput, SyncLocaleRef } from "./compare";
 import type { RefreshShopifyStateScope } from "./refresh-shopify-state";
-
-async function loadShopCommerceWindows(): Promise<SyncCommerceWindow[]> {
-  const setting = await readAnnouncementBarSetting();
-  return [{
-    resourceType: "SHOP",
-    resourceId: FREE_SHIPPING_THRESHOLD_RESOURCE_ID,
-    ourWindow: deriveFreeShippingThresholdWindow(setting),
-    shopifySnapshot: setting.shopifySnapshot,
-  }];
-}
 
 async function loadProductCommerceWindows(productId?: string): Promise<SyncCommerceWindow[]> {
   const products = await db.product.findMany({
@@ -154,7 +139,6 @@ export async function readSynaravaStateForCompare(
     commerceWindows = [
       ...(await loadProductCommerceWindows()),
       ...(await loadCollectionCommerceWindows()),
-      ...(await loadShopCommerceWindows()),
     ];
   }
 

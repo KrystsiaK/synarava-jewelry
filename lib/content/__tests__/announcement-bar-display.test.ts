@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAnnouncementBarText } from "@/lib/content/announcement-bar-display";
+import {
+  ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF,
+  announcementMarqueeCopies,
+  resolveAnnouncementBarText,
+} from "@/lib/content/announcement-bar-display";
 import { formatShopifyMoneyByLocale } from "@/lib/shopify/money";
 
 describe("formatShopifyMoneyByLocale", () => {
@@ -12,21 +16,21 @@ describe("formatShopifyMoneyByLocale", () => {
 });
 
 describe("resolveAnnouncementBarText", () => {
-  const threshold = { amount: "45.0", currencyCode: "EUR" };
+  const freeShippingMinSubtotal = { amount: "45.0", currencyCode: "EUR" };
 
   it("hides when off", () => {
     expect(resolveAnnouncementBarText({
       enabled: false,
-      threshold,
+      freeShippingMinSubtotal,
       template: "Free shipping from {amount}",
       locale: "en",
     })).toBeNull();
   });
 
-  it("hides when threshold is missing", () => {
+  it("hides when Shopify snapshot amount is missing (enabled)", () => {
     expect(resolveAnnouncementBarText({
       enabled: true,
-      threshold: null,
+      freeShippingMinSubtotal: null,
       template: "Free shipping from {amount}",
       locale: "en",
     })).toBeNull();
@@ -35,9 +39,17 @@ describe("resolveAnnouncementBarText", () => {
   it("substitutes the formatted amount into the template", () => {
     expect(resolveAnnouncementBarText({
       enabled: true,
-      threshold,
+      freeShippingMinSubtotal,
       template: "Free shipping in Portugal from {amount}",
       locale: "en",
     })).toBe("Free shipping in Portugal from €45.00");
+  });
+});
+
+describe("announcementMarqueeCopies", () => {
+  it("returns enough copies for a seamless dual-half track", () => {
+    const copies = announcementMarqueeCopies("Free shipping");
+    expect(copies).toHaveLength(ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF);
+    expect(copies.every((copy) => copy === "Free shipping")).toBe(true);
   });
 });
