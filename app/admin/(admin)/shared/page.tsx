@@ -2,7 +2,6 @@ import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "@/lib/i18n/utils";
-import { getAnnouncementBarSetting } from "@/lib/content/announcement-bar";
 import { getFooterContactEmails } from "@/lib/content/footer-contact";
 import { getFooterLinks } from "@/lib/content/footer-links";
 import { getHeaderNav } from "@/lib/content/header-nav";
@@ -19,8 +18,9 @@ import type { AdminLocaleStatus } from "@/components/admin/shared/admin-locale-w
 import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { loadTaxonomyLabelsEditorPayload } from "@/app/admin/actions/taxonomy-labels";
 import { loadSkuPolicyEditorPayload } from "@/app/admin/actions/sku-policy";
+import { loadAnnouncementBarEditorPayload } from "@/app/admin/actions/announcement-bar";
 
-export default async function AdminSettingsPage() {
+export default async function AdminSharedPage() {
   const [
     copy,
     headerNav,
@@ -31,7 +31,7 @@ export default async function AdminSettingsPage() {
     registryLocales,
     taxonomyLabels,
     skuPolicy,
-    announcementSetting,
+    announcementPayload,
   ] =
     await Promise.all([
       getStorefrontCopy(),
@@ -46,7 +46,7 @@ export default async function AdminSettingsPage() {
       getStorefrontLocales(),
       loadTaxonomyLabelsEditorPayload(),
       loadSkuPolicyEditorPayload(),
-      getAnnouncementBarSetting(),
+      loadAnnouncementBarEditorPayload(),
     ]);
   const storefrontSyncDifferences = syncDifferences.filter(
     (difference) => difference.rootEntityType === "STOREFRONT_COPY" && difference.rootEntityId === STOREFRONT_COPY_KEY,
@@ -79,11 +79,12 @@ export default async function AdminSettingsPage() {
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
       <AnnouncementBarEditor
-        initialSetting={announcementSetting}
+        initialSetting={announcementPayload.setting}
         copy={copy}
         defaults={defaults}
         locales={locales}
         ptStatus={ptStatus}
+        thresholdConflictCount={announcementPayload.thresholdConflictCount}
       />
       <StorefrontCopyEditor
         copy={copy}

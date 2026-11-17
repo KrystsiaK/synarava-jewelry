@@ -4,8 +4,38 @@
  */
 import "server-only";
 
-import { shopifyAdminRequest } from "@/lib/shopify/admin";
+import { ShopifyAdminError, shopifyAdminRequest } from "@/lib/shopify/admin";
 import type { FreeShippingMoney, FreeShippingThresholdWindow } from "@/lib/content/announcement-bar-fields";
+
+/** Admin-facing reason when Shopify has no PT free domestic rate. */
+export const FREE_SHIPPING_THRESHOLD_NOT_FOUND_MESSAGE =
+  "No free shipping rate found for Portugal (PT) in Shopify.";
+
+/** Admin-facing reason when delivery-profile read is blocked by scopes. */
+export const FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE =
+  "Missing Shopify permission: read_shipping (cannot read delivery profiles).";
+
+export type FreeShippingThresholdRefreshResult = {
+  window: FreeShippingThresholdWindow | null;
+  error: string | null;
+};
+
+/** Map Shopify Admin errors to a stable admin reason (never “Not checked yet”). */
+export function freeShippingThresholdReadErrorMessage(error: unknown): string {
+  if (error instanceof ShopifyAdminError) {
+    const details = error.details ?? [];
+    const accessDenied = details.some((detail) => detail.extensions?.code === "ACCESS_DENIED")
+      || /access denied|not approved to access|ACCESS_DENIED/i.test(error.message);
+    const shippingScope = /read_shipping|deliveryProfiles|shipping/i.test(error.message)
+      || details.some((detail) => /read_shipping|deliveryProfiles|shipping/i.test(detail.message));
+    if (accessDenied || shippingScope) {
+      return FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE;
+    }
+    return error.message.trim() || "Free-shipping threshold Shopify refresh failed.";
+  }
+  if (error instanceof Error && error.message.trim()) return error.message.trim();
+  return "Free-shipping threshold Shopify refresh failed.";
+}
 
 const DELIVERY_PROFILES_QUERY = `#graphql
   query PortugalFreeShippingThreshold($first: Int!) {
@@ -186,7 +216,20 @@ export async function fetchPortugalFreeShippingThreshold(): Promise<PortugalFree
 }
 
 /** Refresh-only helper used by the catalog Shopify waterfall. */
-export async function refreshFreeShippingThresholdShopifyState(): Promise<FreeShippingThresholdWindow | null> {
-  const discovery = await fetchPortugalFreeShippingThreshold();
-  return discovery?.window ?? { freeShippingMinSubtotal: null };
+export async function refreshFreeShippingThresholdShopifyState(): Promise<FreeShippingThresholdRefreshResult> {
+  try {
+    const discovery = await fetchPortugalFreeShippingThreshold();
+    if (!discovery) {
+      return {
+        window: { freeShippingMinSubtotal: null },
+        error: FREE_SHIPPING_THRESHOLD_NOT_FOUND_MESSAGE,
+      };
+    }
+    return { window: discovery.window, error: null };
+  } catch (error) {
+    return {
+      window: null,
+      error: freeShippingThresholdReadErrorMessage(error),
+    };
+  }
 }

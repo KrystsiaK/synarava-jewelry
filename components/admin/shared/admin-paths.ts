@@ -9,3 +9,6 @@ export function adminSharedHref(hash?: string): string {
   if (!hash) return ADMIN_SHARED_PATH;
   return `${ADMIN_SHARED_PATH}#${hash.replace(/^#/, "")}`;
 }
+
+/** Announcement bar panel id / hash on the Shared page. */
+export const ADMIN_SHARED_ANNOUNCEMENT_BAR_ID = "shared-announcement-bar" as const;

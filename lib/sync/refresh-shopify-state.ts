@@ -34,7 +34,9 @@ export type RefreshShopifyStateScope =
   | { kind: "catalog" }
   | { kind: "product"; productId: string; locale?: string }
   | { kind: "collection"; collectionId: string; locale?: string }
-  | { kind: "collections" };
+  | { kind: "collections" }
+  /** Free-shipping threshold window only (Portugal delivery profile). */
+  | { kind: "shop" };
 
 /** Phase timings for waterfall summary logs (counts only — no resource IDs). */
 export type RefreshShopifyStateTiming = {
@@ -302,6 +304,28 @@ export async function refreshShopifyState(
     };
   }
 
+  if (scope.kind === "shop") {
+    const observation = await refreshFreeShippingThresholdShopifyState();
+    await refreshAnnouncementBarShopifySnapshot({
+      snapshot: observation.window === null ? undefined : observation.window,
+      error: observation.error,
+    });
+    if (observation.error && observation.window === null) {
+      return {
+        ok: false,
+        warning: observation.error,
+        runId: null,
+        timing: baseTiming(null, "FAILED", elapsed(), 1),
+      };
+    }
+    return {
+      ok: true,
+      warning: observation.error ?? undefined,
+      runId: null,
+      timing: baseTiming(null, observation.error ? "PARTIAL" : "SUCCEEDED", elapsed(), observation.error ? 1 : 0),
+    };
+  }
+
   // catalog — one full check: translations + both presence scans + all commerce windows.
   // Single-flight: ShopifyReconcileRun stays RUNNING until this whole path finishes.
   const began = await beginCatalogCheckRun({ trigger: catalogTrigger, requestedBy });
@@ -406,12 +430,14 @@ export async function refreshShopifyState(
       }
     })).ms;
 
-    try {
-      const shopWindow = await refreshFreeShippingThresholdShopifyState();
-      await refreshAnnouncementBarShopifySnapshot(shopWindow);
+    {
+      const observation = await refreshFreeShippingThresholdShopifyState();
+      await refreshAnnouncementBarShopifySnapshot({
+        snapshot: observation.window === null ? undefined : observation.window,
+        error: observation.error,
+      });
+      if (observation.error) warnings.push(observation.error);
       await heartbeatCatalogCheckRun(runId);
-    } catch (error) {
-      warnings.push(error instanceof Error ? error.message : "Free-shipping threshold Shopify refresh failed.");
     }
 
     const translationStatus = translationRun.translationStatus ?? "SUCCEEDED";

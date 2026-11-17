@@ -16,7 +16,10 @@ const mocks = vi.hoisted(() => ({
   findManyProducts: vi.fn(async () => []),
   findManyCollections: vi.fn(async () => []),
   siteSettingFindUnique: vi.fn(async () => null),
-  refreshFreeShippingThresholdShopifyState: vi.fn(async () => ({ freeShippingMinSubtotal: null })),
+  refreshFreeShippingThresholdShopifyState: vi.fn(async () => ({
+    window: { freeShippingMinSubtotal: null },
+    error: null,
+  })),
   refreshAnnouncementBarShopifySnapshot: vi.fn(async () => undefined),
   getPublishedStorefrontLocales: vi.fn(async () => []),
 }));

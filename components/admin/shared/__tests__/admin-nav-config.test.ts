@@ -9,7 +9,11 @@ import {
   resolveAdminNavSignal,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
-import { ADMIN_SHARED_PATH, adminSharedHref } from "@/components/admin/shared/admin-paths";
+import {
+  ADMIN_SHARED_ANNOUNCEMENT_BAR_ID,
+  ADMIN_SHARED_PATH,
+  adminSharedHref,
+} from "@/components/admin/shared/admin-paths";
 import { emptySyncResult, selectAdminNavSyncCounts } from "@/lib/sync";
 
 describe("admin-nav-config", () => {
@@ -74,6 +78,7 @@ describe("admin-nav-config", () => {
       "Taxonomy",
       "SKU policy",
     ]);
+    expect(shared?.children?.[0]?.href).toBe(adminSharedHref(ADMIN_SHARED_ANNOUNCEMENT_BAR_ID));
     expect(shared?.badge).toEqual({ kind: "sync", count: 1 });
     expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
     const customerAccount = items.find((item) => item.id === "customer-account");

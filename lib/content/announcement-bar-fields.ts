@@ -24,10 +24,16 @@ export type AnnouncementBarSetting = {
   threshold: FreeShippingMoney | null;
   /** Last Shopify observation (refresh-only; never auto-writes threshold). */
   shopifySnapshot: FreeShippingThresholdWindow | null;
+  /**
+   * Last Shopify read outcome when the live amount is missing or the read failed.
+   * Cleared when a non-null free-shipping amount is observed.
+   */
+  shopifyObservationError: string | null;
 };
 
 export const DEFAULT_ANNOUNCEMENT_BAR_SETTING: AnnouncementBarSetting = {
   enabled: false,
   threshold: null,
   shopifySnapshot: null,
+  shopifyObservationError: null,
 };

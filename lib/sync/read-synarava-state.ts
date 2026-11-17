@@ -150,6 +150,8 @@ export async function readSynaravaStateForCompare(
     commerceWindows = await loadCollectionCommerceWindows(scope.collectionId);
   } else if (scope.kind === "collections") {
     commerceWindows = await loadCollectionCommerceWindows();
+  } else if (scope.kind === "shop") {
+    commerceWindows = await loadShopCommerceWindows();
   } else {
     commerceWindows = [
       ...(await loadProductCommerceWindows()),

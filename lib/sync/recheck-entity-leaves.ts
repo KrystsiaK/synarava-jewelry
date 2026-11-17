@@ -10,7 +10,7 @@ import type { SyncLeaf, SyncResourceType } from "./types";
 import { runSyncWaterfall } from "./waterfall";
 
 export type RecheckEntityConflictLeavesInput = {
-  resourceType: Extract<SyncResourceType, "PRODUCT" | "COLLECTION">;
+  resourceType: Extract<SyncResourceType, "PRODUCT" | "COLLECTION" | "SHOP">;
   resourceId: string;
   requestedBy: string;
 };
@@ -21,16 +21,18 @@ export type RecheckEntityConflictLeavesResult = {
 };
 
 /**
- * Refresh Shopify window(s) for one product/collection, read Synarava, compare
- * once via the waterfall. Callers match leaves by fieldKey / label and check
- * fingerprints — STALE when the leaf is gone or fingerprints drifted.
+ * Refresh Shopify window(s) for one product/collection/shop leaf, read Synarava,
+ * compare once via the waterfall. Callers match leaves by fieldKey / label and
+ * check fingerprints — STALE when the leaf is gone or fingerprints drifted.
  */
 export async function recheckEntityConflictLeaves(
   input: RecheckEntityConflictLeavesInput,
 ): Promise<RecheckEntityConflictLeavesResult> {
   const scope = input.resourceType === "PRODUCT"
     ? { kind: "product" as const, productId: input.resourceId }
-    : { kind: "collection" as const, collectionId: input.resourceId };
+    : input.resourceType === "COLLECTION"
+      ? { kind: "collection" as const, collectionId: input.resourceId }
+      : { kind: "shop" as const };
 
   const { result, warning } = await runSyncWaterfall({
     scope,
