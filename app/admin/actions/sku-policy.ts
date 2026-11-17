@@ -1,6 +1,5 @@
 "use server";
 
-import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { randomUUID } from "node:crypto";
 
 import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";

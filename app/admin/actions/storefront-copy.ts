@@ -1,6 +1,5 @@
 "use server";
 
-import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { revalidatePath } from "next/cache";
 
 import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
