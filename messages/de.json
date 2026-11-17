@@ -106,5 +106,8 @@
   },
   "product": {
     "restockNotice": "Wieder verfügbar in etwa 10 Tagen"
+  },
+  "announcement": {
+    "bar": "Kostenloser Versand nach Portugal ab {amount}"
   }
 }

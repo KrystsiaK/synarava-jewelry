@@ -2,10 +2,12 @@ import en from "@/messages/en.json";
 import pt from "@/messages/pt.json";
 import ru from "@/messages/ru.json";
 import { flattenMessages } from "@/lib/i18n/utils";
+import { getAnnouncementBarSetting } from "@/lib/content/announcement-bar";
 import { getFooterContactEmails } from "@/lib/content/footer-contact";
 import { getFooterLinks } from "@/lib/content/footer-links";
 import { getHeaderNav } from "@/lib/content/header-nav";
 import { getStorefrontCopy, type StorefrontCopy } from "@/lib/content/storefront-copy";
+import { AnnouncementBarEditor } from "@/components/admin/settings/announcement-bar-editor";
 import { StorefrontCopyEditor } from "@/components/admin/settings/storefront-copy-editor";
 import { TaxonomyLabelsEditor } from "@/components/admin/settings/taxonomy-labels-editor";
 import { SkuPolicyEditor } from "@/components/admin/settings/sku-policy-editor";
@@ -29,6 +31,7 @@ export default async function AdminSettingsPage() {
     registryLocales,
     taxonomyLabels,
     skuPolicy,
+    announcementSetting,
   ] =
     await Promise.all([
       getStorefrontCopy(),
@@ -43,6 +46,7 @@ export default async function AdminSettingsPage() {
       getStorefrontLocales(),
       loadTaxonomyLabelsEditorPayload(),
       loadSkuPolicyEditorPayload(),
+      getAnnouncementBarSetting(),
     ]);
   const storefrontSyncDifferences = syncDifferences.filter(
     (difference) => difference.rootEntityType === "STOREFRONT_COPY" && difference.rootEntityId === STOREFRONT_COPY_KEY,
@@ -74,6 +78,13 @@ export default async function AdminSettingsPage() {
         </p>
         <AdminSyncInlineWarning className="mt-4" differences={storefrontSyncDifferences} />
       </div>
+      <AnnouncementBarEditor
+        initialSetting={announcementSetting}
+        copy={copy}
+        defaults={defaults}
+        locales={locales}
+        ptStatus={ptStatus}
+      />
       <StorefrontCopyEditor
         copy={copy}
         defaults={defaults}

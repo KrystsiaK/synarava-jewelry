@@ -799,5 +799,8 @@
   },
   "brand": {
     "curatedGoods": "Joalharia e acessórios"
+  },
+  "announcement": {
+    "bar": "Envio gratuito em Portugal a partir de {amount}"
   }
 }

@@ -5,7 +5,7 @@
 
 import type { SyncConflictSection, SyncLeafPart } from "./field-registry";
 
-export type SyncResourceType = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY";
+export type SyncResourceType = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY" | "SHOP";
 
 export type SyncLeafKind = "commerce" | "translation" | "presence";
 

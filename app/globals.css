@@ -267,6 +267,87 @@ html {
   transform: translateY(0);
 }
 
+/* Site-wide free-shipping announcement — fixed height, SSR, no CLS. */
+.announcement-bar {
+  --announcement-bar-height: 2.25rem;
+  height: var(--announcement-bar-height);
+  overflow: hidden;
+  background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
+  color: #f7f7f5;
+  font-family: var(--font-serif);
+  font-size: 0.8125rem;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  border-bottom: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
+}
+
+.announcement-bar__track {
+  height: 100%;
+  outline: none;
+}
+
+.announcement-bar__track:focus-visible {
+  box-shadow: inset 0 0 0 2px color-mix(in srgb, #f7f7f5 55%, transparent);
+}
+
+.announcement-bar__static {
+  display: none;
+  margin: 0;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.announcement-bar__marquee {
+  height: 100%;
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+}
+
+.announcement-bar__cycle {
+  display: flex;
+  width: max-content;
+  height: 100%;
+  align-items: center;
+  gap: 3.5rem;
+  animation: announcement-marquee 28s linear infinite;
+}
+
+.announcement-bar__cycle span {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding-inline: 0.5rem;
+}
+
+.announcement-bar__track:hover .announcement-bar__cycle,
+.announcement-bar__track:focus-within .announcement-bar__cycle {
+  animation-play-state: paused;
+}
+
+@keyframes announcement-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .announcement-bar__marquee {
+    display: none;
+  }
+
+  .announcement-bar__static {
+    display: flex;
+  }
+
+  .announcement-bar__cycle {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   *,

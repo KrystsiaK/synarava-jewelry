@@ -7,9 +7,11 @@
 import {
   COLLECTION_COMMERCE_FIELDS,
   PRODUCT_COMMERCE_FIELDS,
+  SHOP_COMMERCE_FIELDS,
   isScopedCollectionCommerceLabel,
   isScopedCommerceFieldLabel as isScopedCommerceFieldLabelFromRegistry,
   isScopedProductCommerceLabel,
+  isScopedShopCommerceLabel,
 } from "@/lib/sync/field-registry";
 
 /** @deprecated Prefer field-registry; kept for callers that iterate the Set. */
@@ -67,14 +69,23 @@ export function isScopedCollectionCommerceFieldLabel(label: string): boolean {
   return isScopedCollectionCommerceLabel(label);
 }
 
+export function isScopedShopCommerceFieldLabel(label: string): boolean {
+  return isScopedShopCommerceLabel(label);
+}
+
+/** @deprecated Prefer field-registry; kept for callers that iterate the Set. */
+export const SCOPED_SHOP_COMMERCE_FIELD_LABELS = new Set(
+  SHOP_COMMERCE_FIELDS.filter((f) => f.applyToSynarava === "scoped").map((f) => f.label),
+);
+
 /** Resource-aware scoped check for compare / apply gates (ADR-0010). */
 export function isScopedCommerceFieldLabelForResource(
   label: string,
-  resourceType: "PRODUCT" | "COLLECTION",
+  resourceType: "PRODUCT" | "COLLECTION" | "SHOP",
 ): boolean {
-  return resourceType === "COLLECTION"
-    ? isScopedCollectionCommerceFieldLabel(label)
-    : isScopedProductCommerceFieldLabel(label);
+  if (resourceType === "COLLECTION") return isScopedCollectionCommerceFieldLabel(label);
+  if (resourceType === "SHOP") return isScopedShopCommerceFieldLabel(label);
+  return isScopedProductCommerceFieldLabel(label);
 }
 
 export { isScopedProductCommerceLabel };

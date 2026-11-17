@@ -799,5 +799,8 @@
   },
   "brand": {
     "curatedGoods": "Jewellery & Accessories"
+  },
+  "announcement": {
+    "bar": "Free shipping in Portugal from {amount}"
   }
 }
