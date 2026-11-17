@@ -1,4 +1,7 @@
-import { resolveAnnouncementBarText } from "@/lib/content/announcement-bar-display";
+import {
+  announcementMarqueeCopies,
+  resolveAnnouncementBarText,
+} from "@/lib/content/announcement-bar-display";
 import type { FreeShippingMoney } from "@/lib/content/announcement-bar-fields";
 
 type AnnouncementBarProps = {
@@ -22,14 +25,21 @@ export function AnnouncementBar({
   const text = resolveAnnouncementBarText({ enabled, threshold, template, locale });
   if (!text) return null;
 
+  const half = announcementMarqueeCopies(text);
+
   return (
-    <div className="announcement-bar" role="region" aria-label={text}>
+    <div className="announcement-bar">
       <div className="announcement-bar__track" tabIndex={0}>
+        {/* Visually hidden while marquee animates; SR reads this content (no aria-label). */}
         <p className="announcement-bar__static">{text}</p>
         <div className="announcement-bar__marquee" aria-hidden="true">
           <div className="announcement-bar__cycle">
-            <span>{text}</span>
-            <span aria-hidden="true">{text}</span>
+            {half.map((copy, index) => (
+              <span key={`a-${index}`}>{copy}</span>
+            ))}
+            {half.map((copy, index) => (
+              <span key={`b-${index}`}>{copy}</span>
+            ))}
           </div>
         </div>
       </div>
