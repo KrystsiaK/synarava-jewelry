@@ -133,9 +133,32 @@ async function seedStorefrontLocales(prisma) {
   return FIXTURE_LOCALES.length;
 }
 
+/** CI announcement bar: enabled + adopted 45 EUR threshold (matches live PT delivery profile). */
+export const FIXTURE_ANNOUNCEMENT_BAR = {
+  key: "announcement-bar-v1",
+  value: {
+    enabled: true,
+    threshold: { amount: "45.0", currencyCode: "EUR" },
+    shopifySnapshot: { freeShippingMinSubtotal: { amount: "45.0", currencyCode: "EUR" } },
+  },
+};
+
+/** @param {object} prisma PrismaClient instance */
+async function seedAnnouncementBar(prisma) {
+  await prisma.siteSetting.upsert({
+    where: { key: FIXTURE_ANNOUNCEMENT_BAR.key },
+    create: {
+      key: FIXTURE_ANNOUNCEMENT_BAR.key,
+      value: FIXTURE_ANNOUNCEMENT_BAR.value,
+    },
+    update: { value: FIXTURE_ANNOUNCEMENT_BAR.value },
+  });
+}
+
 /** @param {object} prisma PrismaClient instance */
 async function seed(prisma) {
   const localeCount = await seedStorefrontLocales(prisma);
+  await seedAnnouncementBar(prisma);
 
   const publishedAt = new Date();
   const products = [];
@@ -229,7 +252,7 @@ async function main() {
   try {
     const result = await seed(prisma);
     console.log(
-      `seed-shop-filter-fixture: upserted ${result.localeCount} StorefrontLocale (en, pt) + ${result.productCount} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1) + collection /${result.collectionSlug}`,
+      `seed-shop-filter-fixture: upserted ${result.localeCount} StorefrontLocale (en, pt) + ${result.productCount} ACTIVE/PUBLIC products (Ring×3, Earrings×2, Bracelet×1) + collection /${result.collectionSlug} + announcement-bar-v1`,
     );
   } finally {
     await prisma.$disconnect();

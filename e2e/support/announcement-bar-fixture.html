@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Announcement bar fixture</title>
+  <style>
+    :root {
+      --color-couture-red: #a6192e;
+      --font-serif: "Iowan Old Style", Palatino, "Palatino Linotype", serif;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #f7f7f5; color: #211d19; font-family: system-ui, sans-serif; }
+    .announcement-bar {
+      --announcement-bar-height: 2.25rem;
+      height: var(--announcement-bar-height);
+      overflow: hidden;
+      background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
+      color: #f7f7f5;
+      font-family: var(--font-serif);
+      font-size: 0.8125rem;
+      letter-spacing: 0.04em;
+      line-height: 1;
+      border-bottom: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
+    }
+    .announcement-bar__track { height: 100%; outline: none; }
+    .announcement-bar__static {
+      display: none; margin: 0; height: 100%; align-items: center; justify-content: center;
+      text-align: center; padding: 0 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .announcement-bar__marquee {
+      height: 100%; overflow: hidden;
+      mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    }
+    .announcement-bar__cycle {
+      display: flex; width: max-content; height: 100%; align-items: center; gap: 3.5rem;
+      animation: announcement-marquee 28s linear infinite;
+    }
+    .announcement-bar__cycle span { flex: 0 0 auto; white-space: nowrap; padding-inline: 0.5rem; }
+    @keyframes announcement-marquee {
+      from { transform: translateX(0); }
+      to { transform: translateX(-50%); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .announcement-bar__marquee { display: none; }
+      .announcement-bar__static { display: flex; }
+      .announcement-bar__cycle { animation: none; }
+    }
+    .fake-header {
+      height: 64px; display: flex; align-items: center; padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(33,29,25,0.12); background: #f7f7f5;
+      font-family: var(--font-serif); letter-spacing: 0.18em; font-size: 1.1rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="announcement-bar" role="region" aria-label="Free shipping in Portugal from €45.00">
+    <div class="announcement-bar__track" tabindex="0">
+      <p class="announcement-bar__static">Free shipping in Portugal from €45.00</p>
+      <div class="announcement-bar__marquee" aria-hidden="true">
+        <div class="announcement-bar__cycle">
+          <span>Free shipping in Portugal from €45.00</span>
+          <span aria-hidden="true">Free shipping in Portugal from €45.00</span>
+        </div>
+      </div>
+    </div>
+  </div>
+  <header class="fake-header">SYNARAVA</header>
+</body>
+</html>

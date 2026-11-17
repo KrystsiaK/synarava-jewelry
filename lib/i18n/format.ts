@@ -7,7 +7,7 @@ const NUMBER_LOCALES: Record<Locale, string> = {
 };
 
 export function localeTag(locale: Locale) {
-  return NUMBER_LOCALES[locale];
+  return NUMBER_LOCALES[locale] ?? locale;
 }
 
 export function formatCurrency(

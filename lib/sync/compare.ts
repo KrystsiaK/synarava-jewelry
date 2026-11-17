@@ -68,7 +68,7 @@ export type SyncLocaleRef = {
 };
 
 export type SyncCommerceWindow = {
-  resourceType: "PRODUCT" | "COLLECTION";
+  resourceType: "PRODUCT" | "COLLECTION" | "SHOP";
   resourceId: string;
   /** Derived OUR Shopify-shaped window (columns + extras). */
   ourWindow: unknown | null;
@@ -224,19 +224,29 @@ function pendingSkuDirections(diff: ShopifyProjectionDiff): {
 }
 
 function commerceLeaf(
-  resourceType: "PRODUCT" | "COLLECTION",
+  resourceType: "PRODUCT" | "COLLECTION" | "SHOP",
   resourceId: string,
   diff: ShopifyProjectionDiff,
 ): SyncLeaf {
   const path = diff.path ?? "";
   const unmapped = Boolean(path) && isUnmappedWindowPath(path, resourceType);
   const contract = path ? lookupContractForPath(path, resourceType) : null;
-  const supported = !unmapped && isScopedCommerceFieldLabelForResource(diff.field, resourceType);
+  // Prefer contract label — projection-diff labels default to PRODUCT registry.
+  const supported = !unmapped && isScopedCommerceFieldLabelForResource(
+    contract?.label ?? diff.field,
+    resourceType,
+  );
   const keySource = path.trim() || diff.field;
   const label = unmapped ? `Unmapped Shopify field ${path}` : (contract?.label ?? diff.field);
   const section: SyncConflictSection = unmapped ? "shopify" : (contract?.section ?? "shopify");
   const contractKey = unmapped ? UNMAPPED_CONTRACT_KEY : (contract?.contractKey ?? slugFieldKey(keySource));
-  const pendingSku = !unmapped && supported ? pendingSkuDirections(diff) : null;
+  const pendingSku = resourceType !== "SHOP" && !unmapped && supported
+    ? pendingSkuDirections(diff)
+    : null;
+  // Shopify-owned shop fields: Take Shopify only (never push shipping settings).
+  const shopOnlyTake = resourceType === "SHOP" && supported && !unmapped
+    ? (["SHOPIFY_TO_SYNARAVA"] as const)
+    : null;
   // Shared commerce leaves address under node 'base' only (never under locale tabs).
   return {
     id: `${resourceType}:${resourceId}:commerce:${slugFieldKey(keySource)}`,
@@ -248,11 +258,12 @@ function commerceLeaf(
     label,
     synaravaValue: diff.local,
     shopifyValue: diff.shopify,
-    allowedDirections: pendingSku?.allowedDirections ?? allowedDirectionsForLeaf({
-      kind: "commerce",
-      resourceType,
-      commerceSupported: supported && !unmapped,
-    }),
+    allowedDirections: pendingSku?.allowedDirections
+      ?? (shopOnlyTake ? [...shopOnlyTake] : allowedDirectionsForLeaf({
+        kind: "commerce",
+        resourceType,
+        commerceSupported: supported && !unmapped,
+      })),
     blockedReason: pendingSku?.blockedReason
       ?? (unmapped || !supported ? COMMERCE_UNSUPPORTED_REASON : null),
     sourceId: null,
@@ -328,7 +339,7 @@ function wholeItemCommerceLeaf(
   };
 }
 
-function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION", resourceId: string, shopifySummary: string): SyncLeaf {
+function adoptLeaf(resourceType: "PRODUCT" | "COLLECTION" | "SHOP", resourceId: string, shopifySummary: string): SyncLeaf {
   const synaravaValue = "— No Synarava commerce window —";
   return {
     id: `${resourceType}:${resourceId}:${ADOPT_SHOPIFY_FIELD_KEY}`,
@@ -434,7 +445,13 @@ function compareCommerceWindows(windows: readonly SyncCommerceWindow[]): {
 }
 
 function asResourceType(value: string): SyncResourceType | null {
-  if (value === "PRODUCT" || value === "COLLECTION" || value === "PAGE" || value === "STOREFRONT_COPY") {
+  if (
+    value === "PRODUCT"
+    || value === "COLLECTION"
+    || value === "PAGE"
+    || value === "STOREFRONT_COPY"
+    || value === "SHOP"
+  ) {
     return value;
   }
   return null;

@@ -103,7 +103,7 @@ function countNav(result: SyncResult): SyncNavCounts {
     products: leafCount(result, "PRODUCT"),
     collections: leafCount(result, "COLLECTION"),
     pages: leafCount(result, "PAGE"),
-    settings: leafCount(result, "STOREFRONT_COPY"),
+    settings: leafCount(result, "STOREFRONT_COPY") + leafCount(result, "SHOP"),
     total: leafCount(result),
   };
 }

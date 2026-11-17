@@ -106,5 +106,8 @@
   },
   "product": {
     "restockNotice": "De retour en stock dans environ 10 jours"
+  },
+  "announcement": {
+    "bar": "Livraison gratuite au Portugal à partir de {amount}"
   }
 }

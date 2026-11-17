@@ -63,6 +63,20 @@ const HEADER_CHROME_GROUP: StorefrontCopyGroup = {
   ],
 };
 
+const ANNOUNCEMENT_BAR_GROUP: StorefrontCopyGroup = {
+  id: "announcement-bar",
+  title: "Announcement bar",
+  description:
+    "Site-wide free-shipping banner above the header. Use {amount} for the Shopify threshold (formatted per locale). On/off and sync live in the Announcement bar panel.",
+  fields: [
+    {
+      key: "announcement.bar",
+      label: "Banner text",
+      hint: "Must include {amount}. Example: Free shipping in Portugal from {amount}",
+    },
+  ],
+};
+
 const FOOTER_BRAND_GROUP: StorefrontCopyGroup = {
   id: "footer-brand",
   title: "Footer — brand",
@@ -347,6 +361,7 @@ const REVIEW_FORM_GROUP: StorefrontCopyGroup = {
 
 export const STOREFRONT_COPY_GROUPS: StorefrontCopyGroup[] = [
   HEADER_CHROME_GROUP,
+  ANNOUNCEMENT_BAR_GROUP,
   FOOTER_BRAND_GROUP,
   FOOTER_NAV_GROUP,
   FOOTER_SERVICE_HEADING_GROUP,
