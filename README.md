@@ -139,9 +139,10 @@ If checkout cannot be opened, `/checkout` shows an error instead of silently ret
 Payment / checkout verification matrix: [`docs/testing/payment-checkout-test-matrix.md`](docs/testing/payment-checkout-test-matrix.md).
 
 The Admin API token needs
-`read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`, and
-`write_publications`. Product localization also needs `read_translations`, `write_translations`,
-and `read_locales`. Enable and publish each language you want to synchronize in Shopify Markets,
+`read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`,
+`write_publications`, and `read_shipping` (Portugal free-shipping threshold from delivery profiles;
+read-only — no `write_shipping`). Product localization also needs `read_translations`,
+`write_translations`, and `read_locales`. Enable and publish each language you want to synchronize in Shopify Markets,
 then import it into the admin locale registry. Portuguese (`pt-PT`) and Russian (`ru`) are already
 supported by the registry; translated content still needs to be entered and reviewed per product.
 After changing scopes,

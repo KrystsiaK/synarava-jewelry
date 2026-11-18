@@ -17,6 +17,7 @@ import {
   AdminCheckboxField,
   AdminIconButton,
   AdminPanel,
+  AdminReadonlyField,
   AdminTextField,
 } from "@/components/synarava-cms";
 import {
@@ -24,6 +25,11 @@ import {
   type AnnouncementBarSetting,
   type FreeShippingMoney,
 } from "@/lib/content/announcement-bar-fields";
+import {
+  announcementThresholdHonestyStatus,
+  formatObservationSource,
+  shopifyThresholdFromSetting,
+} from "@/lib/content/announcement-bar-threshold-status";
 import type { StorefrontCopy } from "@/lib/content/storefront-copy";
 import { formatShopifyMoneyByLocale } from "@/lib/shopify/money";
 
@@ -77,8 +83,14 @@ export function AnnouncementBarEditor({
     ?? defaults.en?.[ANNOUNCEMENT_BAR_COPY_KEY]
     ?? "Free shipping in Portugal from {amount}";
 
-  const thresholdLabel = moneyLabel(setting.threshold, activeLocale);
-  const hasSnapshot = Boolean(setting.shopifySnapshot);
+  const shopifyThreshold = shopifyThresholdFromSetting(setting);
+  const shopifyLabel = moneyLabel(shopifyThreshold, activeLocale);
+  const localLabel = moneyLabel(setting.threshold, activeLocale);
+  const sourceLabel = formatObservationSource(setting.shopifyObservationSource);
+  const honesty = announcementThresholdHonestyStatus({
+    setting,
+    conflictCount,
+  });
 
   function save() {
     setError(null);
@@ -143,19 +155,46 @@ export function AnnouncementBarEditor({
             </p>
           </AdminCheckboxField>
 
-          <div className="grid gap-2">
-            <p className="text-sm" style={{ color: "var(--adm-text)" }}>
-              Threshold: {thresholdLabel} (from Shopify)
-            </p>
-            {setting.shopifyObservationError ? (
-              <AdminAlert message={setting.shopifyObservationError} />
-            ) : null}
-            {!hasSnapshot && !setting.shopifyObservationError ? (
-              <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
-                Run a catalog update from Shopify to observe the live delivery-profile amount.
+          <div className="grid gap-3" data-testid="announcement-threshold-honesty">
+            <AdminReadonlyField
+              label="Shopify threshold"
+              owner="Shopify"
+              help="Last amount observed from Shopify delivery profiles (read_shipping)."
+              value={shopifyThreshold ? shopifyLabel : null}
+            />
+            <AdminReadonlyField
+              label="Local working threshold"
+              owner="Synarava"
+              help="Adopted only via ConflictResolver. Storefront banner uses this value."
+              value={setting.threshold ? localLabel : null}
+            />
+            {sourceLabel ? (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }} data-testid="announcement-threshold-source">
+                Rate: {sourceLabel}
               </p>
-            ) : conflictCount > 0 ? (
-              <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
+            ) : null}
+            {setting.shopifyObservationWarning ? (
+              <AdminAlert message={setting.shopifyObservationWarning} />
+            ) : null}
+            {honesty.kind === "reason" ? (
+              <div data-testid="announcement-threshold-status">
+                <AdminAlert message={honesty.message} />
+                {conflictCount > 0 ? (
+                  <p className="mt-2 text-sm" style={{ color: "var(--adm-muted)" }}>
+                    Last observed amount also differs from the local working threshold.{" "}
+                    <button
+                      type="button"
+                      className="underline"
+                      style={{ color: "var(--adm-text)" }}
+                      onClick={() => setResolverOpen(true)}
+                    >
+                      Resolve in ConflictResolver
+                    </button>
+                  </p>
+                ) : null}
+              </div>
+            ) : honesty.kind === "differs" ? (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }} data-testid="announcement-threshold-status">
                 Threshold differs from Shopify.{" "}
                 <button
                   type="button"
@@ -166,7 +205,15 @@ export function AnnouncementBarEditor({
                   Resolve in ConflictResolver
                 </button>
               </p>
-            ) : null}
+            ) : honesty.kind === "matches" ? (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }} data-testid="announcement-threshold-status">
+                Threshold matches Shopify.
+              </p>
+            ) : (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }} data-testid="announcement-threshold-status">
+                Run a catalog update from Shopify to observe the live delivery-profile amount.
+              </p>
+            )}
           </div>
 
           <AdminTextField
