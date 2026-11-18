@@ -15,9 +15,7 @@ ignoredBuiltDependencies:
   - unrs-resolver
 minimumReleaseAgeExclude:
   - railway@3.15.0
-# GHSA-fc5q-39xc-vjpf (picomatch ReDoS): no npm release >4.0.7 yet. Prod path is
-# @sentry/nextjs → @rollup/plugin-commonjs (build tooling), not user-controlled globs.
-# Drop when picomatch ships a patched version.
+# Временное исключение по письменному решению владельца 2026-11-18, срок до 2026-11-25. Снять, когда выйдет патч picomatch. См. docs/runbooks/deploy.md
 audit:
   ignore:
     - GHSA-fc5q-39xc-vjpf
