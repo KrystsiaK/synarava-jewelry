@@ -1,0 +1,3 @@
+.python-packages/
+.venv-graphify/
+node_modules/

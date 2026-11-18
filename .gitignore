@@ -103,3 +103,5 @@ packages/*/dist/
 graphify-out/.graphify_build_state.json
 graphify-out/.graphify_labels.json.sig
 graphify-out/.graphify_labels.pending.json
+.venv-graphify/
+.python-packages/

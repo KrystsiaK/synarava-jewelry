@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 
 import {
   ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF,
+  ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S,
   announcementMarqueeCopies,
+  announcementMarqueeDurationSec,
   resolveAnnouncementBarText,
 } from "@/lib/content/announcement-bar-display";
 import { formatShopifyMoneyByLocale } from "@/lib/shopify/money";
@@ -51,5 +53,21 @@ describe("announcementMarqueeCopies", () => {
     const copies = announcementMarqueeCopies("Free shipping");
     expect(copies).toHaveLength(ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF);
     expect(copies.every((copy) => copy === "Free shipping")).toBe(true);
+  });
+});
+
+describe("announcementMarqueeDurationSec", () => {
+  it("derives duration from half-cycle travel at the target speed", () => {
+    expect(announcementMarqueeDurationSec(4300)).toBeCloseTo(
+      4300 / 2 / ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S,
+      5,
+    );
+    expect(announcementMarqueeDurationSec(900, 45)).toBe(10);
+  });
+
+  it("returns 0 for non-positive inputs", () => {
+    expect(announcementMarqueeDurationSec(0)).toBe(0);
+    expect(announcementMarqueeDurationSec(-10)).toBe(0);
+    expect(announcementMarqueeDurationSec(100, 0)).toBe(0);
   });
 });

@@ -39,6 +39,24 @@ export function resolveAnnouncementBarText(input: {
  */
 export const ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF = 8;
 
+/** Target travel speed for the seamless −50% marquee cycle. */
+export const ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S = 45;
+export const ANNOUNCEMENT_MARQUEE_SPEED_MIN_PX_PER_S = 40;
+export const ANNOUNCEMENT_MARQUEE_SPEED_MAX_PX_PER_S = 50;
+
+/**
+ * Duration (seconds) for one −50% cycle at constant px/s.
+ * Distance traveled = half the cycle width (two identical halves).
+ */
+export function announcementMarqueeDurationSec(
+  cycleWidthPx: number,
+  speedPxPerS: number = ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S,
+): number {
+  if (!Number.isFinite(cycleWidthPx) || cycleWidthPx <= 0) return 0;
+  if (!Number.isFinite(speedPxPerS) || speedPxPerS <= 0) return 0;
+  return cycleWidthPx / 2 / speedPxPerS;
+}
+
 export function announcementMarqueeCopies(text: string): string[] {
   return Array.from({ length: ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF }, () => text);
 }

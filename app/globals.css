@@ -267,19 +267,40 @@ html {
   transform: translateY(0);
 }
 
-/* Site-wide free-shipping announcement — fixed height, SSR, no CLS. */
+/* Site-wide free-shipping announcement — height from font size, no CLS. */
 .announcement-bar {
-  --announcement-bar-height: 2.25rem;
+  --announcement-bar-font-size: 0.8125rem; /* 13px mobile */
+  --announcement-bar-height: calc(var(--announcement-bar-font-size) * 2.75);
+  --announcement-marquee-duration: 60s; /* fallback until width-measured */
   position: relative;
   height: var(--announcement-bar-height);
   overflow: hidden;
   background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
   color: #f7f7f5;
   font-family: var(--font-serif);
-  font-size: 0.8125rem;
+  font-size: var(--announcement-bar-font-size);
+  font-weight: 600;
   letter-spacing: 0.04em;
-  line-height: 1;
+  line-height: 1.2;
   border-bottom: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
+  transition:
+    height 180ms ease,
+    opacity 180ms ease,
+    border-bottom-width 180ms ease;
+}
+
+@media (min-width: 768px) {
+  .announcement-bar {
+    --announcement-bar-font-size: 0.9375rem; /* 15px desktop */
+  }
+}
+
+/* Hide on scroll so the strip never paints under the transparent sticky header. */
+.announcement-bar[data-hidden="true"] {
+  height: 0;
+  border-bottom-width: 0;
+  opacity: 0;
+  pointer-events: none;
 }
 
 .announcement-bar__track {
@@ -316,8 +337,9 @@ html {
   width: max-content;
   height: 100%;
   align-items: center;
-  /* Spacing via span padding (not gap) so −50% is exact and seamless. */
-  animation: announcement-marquee 28s linear infinite;
+  /* Spacing via span padding (not gap) so −50% is exact and seamless.
+     Duration is set from measured cycle width → constant ~45 px/s. */
+  animation: announcement-marquee var(--announcement-marquee-duration) linear infinite;
 }
 
 .announcement-bar__cycle span {
