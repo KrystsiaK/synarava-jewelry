@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { resolveAnnouncementBarText } from "@/lib/content/announcement-bar-display";
+import {
+  ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF,
+  announcementMarqueeCopies,
+  resolveAnnouncementBarText,
+} from "@/lib/content/announcement-bar-display";
 import { formatShopifyMoneyByLocale } from "@/lib/shopify/money";
 
 describe("formatShopifyMoneyByLocale", () => {
@@ -39,5 +43,13 @@ describe("resolveAnnouncementBarText", () => {
       template: "Free shipping in Portugal from {amount}",
       locale: "en",
     })).toBe("Free shipping in Portugal from €45.00");
+  });
+});
+
+describe("announcementMarqueeCopies", () => {
+  it("returns enough copies for a seamless dual-half track", () => {
+    const copies = announcementMarqueeCopies("Free shipping");
+    expect(copies).toHaveLength(ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF);
+    expect(copies.every((copy) => copy === "Free shipping")).toBe(true);
   });
 });
