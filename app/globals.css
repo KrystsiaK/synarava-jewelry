@@ -267,33 +267,48 @@ html {
   transform: translateY(0);
 }
 
-/* Site-wide free-shipping announcement — fixed height, SSR, no CLS. */
-.announcement-bar {
-  --announcement-bar-height: 2.25rem;
+/*
+ * Home free-shipping marquee — height from font size, no CLS.
+ * Lives between hero and the next home section (not under sticky header).
+ * Text #f7f7f5 on darkened couture-red → WCAG AA contrast.
+ */
+.announcement-marquee {
+  --announcement-marquee-font-size: 1rem; /* 16px mobile (15–17) */
+  --announcement-marquee-height: calc(var(--announcement-marquee-font-size) * 2.75);
+  --announcement-marquee-gap: 7em;
+  --announcement-marquee-duration: 60s; /* fallback until width-measured */
   position: relative;
-  height: var(--announcement-bar-height);
+  z-index: 1;
+  height: var(--announcement-marquee-height);
   overflow: hidden;
   background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
   color: #f7f7f5;
   font-family: var(--font-serif);
-  font-size: 0.8125rem;
+  font-size: var(--announcement-marquee-font-size);
+  font-weight: 600;
   letter-spacing: 0.04em;
-  line-height: 1;
-  border-bottom: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
+  line-height: 1.2;
+  border-block: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
 }
 
-.announcement-bar__track {
+@media (min-width: 768px) {
+  .announcement-marquee {
+    --announcement-marquee-font-size: 1.25rem; /* 20px desktop (18–22) */
+  }
+}
+
+.announcement-marquee__track {
   position: relative;
   height: 100%;
   outline: none;
 }
 
-.announcement-bar__track:focus-visible {
+.announcement-marquee__track:focus-visible {
   box-shadow: inset 0 0 0 2px color-mix(in srgb, #f7f7f5 55%, transparent);
 }
 
 /* SR content while marquee animates — visually hidden, not display:none. */
-.announcement-bar__static {
+.announcement-marquee__static {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -305,29 +320,31 @@ html {
   border: 0;
 }
 
-.announcement-bar__marquee {
+.announcement-marquee__marquee {
   height: 100%;
   overflow: hidden;
   mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
 
-.announcement-bar__cycle {
+.announcement-marquee__cycle {
   display: flex;
   width: max-content;
   height: 100%;
   align-items: center;
-  /* Spacing via span padding (not gap) so −50% is exact and seamless. */
-  animation: announcement-marquee 28s linear infinite;
+  /* Spacing via span padding (not gap) so −50% is exact and seamless.
+     Duration is set from measured cycle width → constant ~30 px/s. */
+  animation: announcement-marquee var(--announcement-marquee-duration) linear infinite;
 }
 
-.announcement-bar__cycle span {
+.announcement-marquee__cycle span {
   flex: 0 0 auto;
   white-space: nowrap;
-  padding-inline: 1.75rem;
+  /* Half-gap each side → full gap between adjacent repeats. */
+  padding-inline: calc(var(--announcement-marquee-gap) / 2);
 }
 
-.announcement-bar__track:hover .announcement-bar__cycle,
-.announcement-bar__track:focus-within .announcement-bar__cycle {
+.announcement-marquee__track:hover .announcement-marquee__cycle,
+.announcement-marquee__track:focus-within .announcement-marquee__cycle {
   animation-play-state: paused;
 }
 
@@ -337,11 +354,11 @@ html {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .announcement-bar__marquee {
+  .announcement-marquee__marquee {
     display: none;
   }
 
-  .announcement-bar__static {
+  .announcement-marquee__static {
     position: static;
     width: auto;
     height: 100%;
@@ -356,7 +373,7 @@ html {
     text-overflow: ellipsis;
   }
 
-  .announcement-bar__cycle {
+  .announcement-marquee__cycle {
     animation: none;
   }
 }
