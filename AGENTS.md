@@ -76,7 +76,9 @@ For bots (and humans) closing a `bug`-labeled issue:
 
 ## Never suppress security checks
 
-Do **not** ignore, suppress, or weaken security gates: `pnpm`/`npm` audit, secret scan, security lint, or CI Quality Gates security steps. Forbidden: `audit.ignore` / `ignoreGhsas` / `ignoreCves`, `--ignore` on audit, lowered `--audit-level`, `continue-on-error` / `|| true` on audit or security steps, overrides to known-vulnerable versions just to silence the check. If a security check is red: **STOP**, describe the finding and options to the owner; do not invent a bypass. Risk accept / exception decisions are **owner only** (written). Guard: [`.github/__tests__/no-security-check-suppression.guard.test.ts`](.github/__tests__/no-security-check-suppression.guard.test.ts). Process: [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md#dependabot).
+Do **not** ignore, suppress, or weaken security gates: `pnpm`/`npm` audit, secret scan, security lint, or CI Quality Gates security steps. Forbidden without a **written owner decision that includes an end date**: `audit.ignore` / `ignoreGhsas` / `ignoreCves`, `--ignore` on audit, lowered `--audit-level`, `continue-on-error` / `|| true` on audit or security steps, overrides to known-vulnerable versions just to silence the check. **Bots must not add or extend** the allowlist in [`.github/__tests__/no-security-check-suppression.guard.test.ts`](.github/__tests__/no-security-check-suppression.guard.test.ts). If a security check is red: **STOP**, describe the finding and options to the owner. Risk accept / temporary exception = **owner only**.
+
+**Check for a patch:** `npm view picomatch dist-tags` and `pnpm audit --audit-level high --prod`. **Remove an expired/temporary ignore:** delete the GHSA from `pnpm-workspace.yaml` `audit.ignore`, remove the matching allowlist entry in the guard test, refresh the lockfile if needed, re-run audit. Process: [`docs/runbooks/deploy.md`](docs/runbooks/deploy.md#dependabot).
 
 ## Ship finished work (staging → main)
 

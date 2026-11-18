@@ -4,19 +4,41 @@ import { describe, expect, it } from "vitest";
 
 /**
  * STRUCTURAL: Never suppress or weaken dependency audit / security checks.
- * Allowed exceptions: empty — Менять только с письменного решения владельца.
+ * Менять только с письменного решения владельца (dated allowlist below).
  */
 
 const ROOT = process.cwd();
 const WORKFLOWS_DIR = join(ROOT, ".github/workflows");
+const WORKSPACE_YAML = "pnpm-workspace.yaml";
 
-/** Empty until the owner grants a written exception. */
-const ALLOWED_AUDIT_IGNORE_EXCEPTIONS: readonly string[] = [];
-/** Empty until the owner grants a written exception. */
+type AuditIgnoreException = {
+  id: string;
+  approvedBy: string;
+  approvedAt: string;
+  expiresAt: string;
+  reason: string;
+};
+
+/**
+ * Owner-written audit-ignore allowlist only. Bots must not add or extend.
+ * Менять только с письменного решения владельца.
+ */
+const ALLOWED_AUDIT_IGNORE_EXCEPTIONS: readonly AuditIgnoreException[] = [
+  {
+    id: "GHSA-fc5q-39xc-vjpf",
+    approvedBy: "owner",
+    approvedAt: "2026-11-18",
+    expiresAt: "2026-11-25",
+    reason:
+      "picomatch≤4.0.7 no patch; prod path only via @sentry/nextjs→rollup; owner rejected remove-Sentry/wait",
+  },
+];
+
+/** Workflow weaken flags: no exceptions. Менять только с письменного решения владельца. */
 const ALLOWED_WORKFLOW_WEAKEN_EXCEPTIONS: readonly string[] = [];
 
 const CONFIG_CANDIDATES = [
-  "pnpm-workspace.yaml",
+  WORKSPACE_YAML,
   "package.json",
   ".npmrc",
   ".pnpmfile.cjs",
@@ -24,7 +46,9 @@ const CONFIG_CANDIDATES = [
   ".pnpmfile.mjs",
 ] as const;
 
-const IGNORE_PATTERNS: ReadonlyArray<{ id: string; re: RegExp }> = [
+const ADVISORY_ID_RE = /\b(?:GHSA-[a-z0-9-]+|CVE-\d{4}-\d+)\b/gi;
+
+const IGNORE_SECTION_PATTERNS: ReadonlyArray<{ id: string; re: RegExp }> = [
   { id: "audit.ignore", re: /\baudit\s*:\s*[\s\S]*?\bignore\s*:/m },
   { id: "auditConfig.ignoreGhsas", re: /\bignores?Ghsas\b/i },
   { id: "ignoreCves", re: /\bignores?Cves\b/i },
@@ -43,24 +67,68 @@ const WEAKEN_CHECKS: ReadonlyArray<{ id: string; re: RegExp }> = [
   },
 ];
 
+function todayUtc(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
 function readIfExists(rel: string): string | null {
   const path = join(ROOT, rel);
   if (!existsSync(path)) return null;
   return readFileSync(path, "utf8");
 }
 
-function findConfigSuppressions(): string[] {
-  const hits: string[] = [];
+function extractAdvisoryIds(src: string): string[] {
+  const ids = new Set<string>();
+  for (const match of src.matchAll(ADVISORY_ID_RE)) {
+    const raw = match[0];
+    const id = raw.toUpperCase().startsWith("GHSA-")
+      ? `GHSA-${raw.slice(5).toLowerCase()}`
+      : raw.toUpperCase();
+    ids.add(id);
+  }
+  return [...ids].toSorted();
+}
+
+function configHasIgnoreMechanism(src: string): boolean {
+  return IGNORE_SECTION_PATTERNS.some(({ re }) => re.test(src));
+}
+
+/** Advisory IDs listed under any audit-ignore mechanism across config candidates. */
+function findIgnoredAdvisoryIds(): string[] {
+  const ids = new Set<string>();
   for (const rel of CONFIG_CANDIDATES) {
     const src = readIfExists(rel);
-    if (src === null) continue;
-    for (const { id, re } of IGNORE_PATTERNS) {
-      if (re.test(src)) {
-        hits.push(`${rel}: ${id}`);
-      }
+    if (src === null || !configHasIgnoreMechanism(src)) continue;
+    for (const id of extractAdvisoryIds(src)) {
+      ids.add(id);
     }
   }
-  return hits.filter((h) => !ALLOWED_AUDIT_IGNORE_EXCEPTIONS.includes(h));
+  return [...ids].toSorted();
+}
+
+function workspaceIgnoresAdvisory(id: string): boolean {
+  const src = readIfExists(WORKSPACE_YAML);
+  if (src === null || !/\baudit\s*:\s*[\s\S]*?\bignore\s*:/m.test(src)) {
+    return false;
+  }
+  return extractAdvisoryIds(src).includes(id);
+}
+
+function findUnauthorizedIgnores(): string[] {
+  const allowed = new Set(ALLOWED_AUDIT_IGNORE_EXCEPTIONS.map((e) => e.id));
+  return findIgnoredAdvisoryIds().filter((id) => !allowed.has(id));
+}
+
+function findExpiredExceptions(today: string): string[] {
+  return ALLOWED_AUDIT_IGNORE_EXCEPTIONS.filter((e) => today > e.expiresAt).map(
+    (e) => e.id,
+  );
+}
+
+function findStaleAllowlistEntries(): string[] {
+  return ALLOWED_AUDIT_IGNORE_EXCEPTIONS.filter(
+    (e) => !workspaceIgnoresAdvisory(e.id),
+  ).map((e) => e.id);
 }
 
 function workflowFiles(): string[] {
@@ -72,7 +140,7 @@ function workflowFiles(): string[] {
 
 /**
  * Split a workflow into step-ish blocks (name + following lines until next
- * "- name:" / "- run:" / "jobs:" boundary). Good enough for structural gates.
+ * "- name:" boundary). Good enough for structural gates.
  */
 function workflowSteps(src: string): Array<{ name: string; body: string }> {
   const lines = src.split(/\r?\n/);
@@ -116,19 +184,30 @@ function findWorkflowWeakenings(): string[] {
 }
 
 describe("no security-check suppression", () => {
-  it("rejects audit.ignore / ignoreGhsas / ignoreCves in package config", () => {
+  it("rejects audit ignores not on the owner allowlist", () => {
     // Менять только с письменного решения владельца.
-    expect(findConfigSuppressions()).toEqual([]);
+    expect(findUnauthorizedIgnores()).toEqual([]);
+  });
+
+  it("rejects expired owner audit-ignore exceptions", () => {
+    // Менять только с письменного решения владельца.
+    const expired = findExpiredExceptions(todayUtc());
+    expect(
+      expired,
+      expired.length > 0
+        ? `Срок исключения истёк: нужен новый письменный выбор владельца или снять исключение (${expired.join(", ")})`
+        : undefined,
+    ).toEqual([]);
+  });
+
+  it("rejects allowlist entries missing from pnpm-workspace.yaml audit.ignore", () => {
+    // Менять только с письменного решения владельца.
+    expect(findStaleAllowlistEntries()).toEqual([]);
   });
 
   it("rejects weaken flags on audit/security workflow steps", () => {
     // Менять только с письменного решения владельца.
     expect(findWorkflowWeakenings()).toEqual([]);
-  });
-
-  it("keeps exception allowlists empty until the owner decides in writing", () => {
-    // Менять только с письменного решения владельца.
-    expect(ALLOWED_AUDIT_IGNORE_EXCEPTIONS).toEqual([]);
     expect(ALLOWED_WORKFLOW_WEAKEN_EXCEPTIONS).toEqual([]);
   });
 });

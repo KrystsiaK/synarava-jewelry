@@ -136,7 +136,9 @@ Bot-PR Dependabot по-прежнему может не получить `NODE_A
 
 `Automerge to staging` (label `automerge`): for Dependabot, only the **development-dependencies** group (patch/minor) may auto-merge, and only after required checks are green (Quality Gates, Storefront smoke, Path filter, SKU Quality Gates). Production-dependency groups and majors stay manual.
 
-**Security audit — no suppressions.** Do not add `audit.ignore` / `ignoreGhsas` / `ignoreCves`, lower `--audit-level`, or wrap the CI audit step in `continue-on-error` / `|| true`. If `pnpm audit --audit-level high --prod` fails (e.g. unpatched transitive CVE), escalate to the owner with the real audit output and options (upgrade/replace the pulling dependency, remove it, wait for a patch). Owner decides in writing; agents stop. Guard: `.github/__tests__/no-security-check-suppression.guard.test.ts`.
+**Security audit — no suppressions (except dated owner exceptions).** Do not add `audit.ignore` / `ignoreGhsas` / `ignoreCves`, lower `--audit-level`, or wrap the CI audit step in `continue-on-error` / `|| true` unless the owner grants a **written** temporary exception with an **end date**. Bots must not invent or extend exceptions. Guard: `.github/__tests__/no-security-check-suppression.guard.test.ts` (allowlist + expiry; workflow weaken flags have no exceptions).
+
+If `pnpm audit --audit-level high --prod` fails: escalate with real output and options. **Check for a patch:** `npm view picomatch dist-tags` and re-run `pnpm audit --audit-level high --prod`. **Remove a temporary ignore:** drop the GHSA from `pnpm-workspace.yaml` `audit.ignore`, remove the matching allowlist entry in the guard, refresh lockfile if needed, confirm audit is green. Current owner exception (if any) is documented next to `audit.ignore` in `pnpm-workspace.yaml` and in the guard allowlist.
 
 ### Версионирование релиза
 
