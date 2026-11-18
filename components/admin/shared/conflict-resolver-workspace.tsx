@@ -24,7 +24,7 @@ import type { CatalogConflictDirection, CatalogConflictField } from "@/lib/shopi
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
 type ToastTone = "success" | "error" | "info";
-type EntityIdField = "productId" | "collectionId";
+type EntityIdField = "productId" | "collectionId" | "shopId";
 
 type ManualPreviewRaw = {
   truncated?: boolean;

@@ -45,6 +45,7 @@ function walk(dir: string, out: string[] = []): string[] {
 function isAdapterOrSharedShell(rel: string): boolean {
   return rel === "components/admin/products/product-conflict-adapter.tsx"
     || rel === "components/admin/collections/collection-conflict-adapter.tsx"
+    || rel === "components/admin/settings/shop-conflict-adapter.tsx"
     || rel === "components/admin/shared/conflict-resolver-workspace.tsx";
 }
 

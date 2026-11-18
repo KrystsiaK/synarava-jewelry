@@ -1,7 +1,12 @@
 import { ACCOUNT_PAGE_AREAS } from "@/lib/content/account-page-fields";
 import { COMMERCE_COPY_GROUPS } from "@/lib/content/commerce-copy-fields";
+import {
+  ADMIN_SHARED_ANNOUNCEMENT_BAR_ID,
+  ADMIN_SHARED_PATH,
+  adminSharedHref,
+} from "@/components/admin/shared/admin-paths";
 
-import { ADMIN_SHARED_PATH, adminSharedHref } from "@/components/admin/shared/admin-paths";
+export { ADMIN_SHARED_PATH, ADMIN_SHARED_ANNOUNCEMENT_BAR_ID, adminSharedHref };
 
 /** Attention signal for a nav node (Shopify sync conflicts). */
 export type AdminNavSignal = "sync";
@@ -173,7 +178,7 @@ export function buildStorefrontCopyNavChildren(): AdminNavChildConfig[] {
   return [
     {
       id: "settings-announcement-bar",
-      href: adminSharedHref("shared-announcement-bar"),
+      href: adminSharedHref(ADMIN_SHARED_ANNOUNCEMENT_BAR_ID),
       label: "Announcement bar",
     },
     { id: "settings-header", href: adminSharedHref("shared-header"), label: "Header" },

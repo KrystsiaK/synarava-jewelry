@@ -67,7 +67,7 @@ const ANNOUNCEMENT_BAR_GROUP: StorefrontCopyGroup = {
   id: "announcement-bar",
   title: "Announcement bar",
   description:
-    "Site-wide free-shipping banner above the header. Use {amount} for the Shopify threshold (formatted per locale). On/off and sync live in the Announcement bar panel.",
+    "Site-wide free-shipping banner above the header. Use {amount} for the working threshold (Shopify-owned leaf; Apply via ConflictResolver). On/off lives in the Announcement bar panel.",
   fields: [
     {
       key: "announcement.bar",
