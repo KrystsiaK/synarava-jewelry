@@ -65,8 +65,8 @@ describe("AdminNavTree", () => {
   });
 
   it("opens Shared section from hash deep links", async () => {
-    pathnameState.value = "/admin/settings";
-    window.history.replaceState(null, "", "/admin/settings#shared-footer");
+    pathnameState.value = "/admin/shared";
+    window.history.replaceState(null, "", "/admin/shared#shared-footer");
 
     render(<AdminNavTree items={buildAdminNavItems({ pages: [] })} />);
 

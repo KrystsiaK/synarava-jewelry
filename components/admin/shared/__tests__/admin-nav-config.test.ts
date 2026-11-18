@@ -9,13 +9,18 @@ import {
   resolveAdminNavSignal,
   syncDifferenceToNavHref,
 } from "@/components/admin/shared/admin-nav-config";
+import {
+  ADMIN_SHARED_ANNOUNCEMENT_BAR_ID,
+  ADMIN_SHARED_PATH,
+  adminSharedHref,
+} from "@/components/admin/shared/admin-paths";
 import { emptySyncResult, selectAdminNavSyncCounts } from "@/lib/sync";
 
 describe("admin-nav-config", () => {
   it("matches path and hash for deep links", () => {
-    expect(adminHrefMatches("/admin/settings", "/admin/settings#copy-header-main")).toBe(true);
+    expect(adminHrefMatches(ADMIN_SHARED_PATH, adminSharedHref("copy-header-main"))).toBe(true);
     expect(
-      adminHrefMatches("/admin/settings#copy-header-main", "/admin/settings#copy-footer-brand"),
+      adminHrefMatches(adminSharedHref("copy-header-main"), adminSharedHref("copy-footer-brand")),
     ).toBe(false);
     expect(adminHrefMatches("/admin/pages/home", "/admin/pages/home")).toBe(true);
   });
@@ -49,7 +54,7 @@ describe("admin-nav-config", () => {
     });
 
     const pages = items.find((item) => item.id === "pages");
-    const settings = items.find((item) => item.id === "settings");
+    const shared = items.find((item) => item.id === "shared");
     const commerce = items.find((item) => item.id === "commerce");
     const catalog = items.find((item) => item.id === "products");
     const collections = items.find((item) => item.id === "collections");
@@ -61,17 +66,20 @@ describe("admin-nav-config", () => {
     expect(pages?.children).toHaveLength(2);
     expect(pages?.children?.[0]).toMatchObject({ href: "/admin/pages/home", label: "Home" });
     expect(pages?.badge).toEqual({ kind: "sync", count: 2 });
-    expect(settings?.children?.map((child) => child.label)).toEqual([
+    expect(shared).toMatchObject({ href: ADMIN_SHARED_PATH, label: "Shared" });
+    expect(shared?.children?.map((child) => child.label)).toEqual([
+      "Announcement bar",
       "Header",
       "Footer",
       "Home",
       "Cookies",
       "Contact",
-      "Reviews",
+      "Review texts",
       "Taxonomy",
       "SKU policy",
     ]);
-    expect(settings?.badge).toEqual({ kind: "sync", count: 1 });
+    expect(shared?.children?.[0]?.href).toBe(adminSharedHref(ADMIN_SHARED_ANNOUNCEMENT_BAR_ID));
+    expect(shared?.badge).toEqual({ kind: "sync", count: 1 });
     expect(commerce).toMatchObject({ href: "/admin/commerce", label: "Cart & account", code: "BAG" });
     const customerAccount = items.find((item) => item.id === "customer-account");
     expect(customerAccount).toMatchObject({ href: "/admin/customer-account", label: "Customer account", code: "CUS" });
@@ -147,6 +155,9 @@ describe("admin-nav-config", () => {
     expect(
       syncDifferenceToNavHref({ rootEntityType: "PAGE", rootEntityId: "missing" }, pages),
     ).toBe("/admin/pages");
+    expect(
+      syncDifferenceToNavHref({ rootEntityType: "STOREFRONT_COPY", rootEntityId: "s1" }, pages),
+    ).toBe(ADMIN_SHARED_PATH);
   });
 
   it("bubbles child sync signals to the parent", () => {

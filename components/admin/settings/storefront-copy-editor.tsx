@@ -36,7 +36,7 @@ const SHARED_AREAS = [
   { id: "product", label: "Product", detail: "PDP continue-exploring chrome" },
   { id: "cookies", label: "Cookies", detail: "Banner and settings page" },
   { id: "contact", label: "Contact", detail: "Banner on service pages" },
-  { id: "reviews", label: "Reviews", detail: "Form for leaving a review" },
+  { id: "reviews", label: "Review texts", detail: "Form for leaving a review" },
 ] as const;
 
 type SharedAreaId = (typeof SHARED_AREAS)[number]["id"];

@@ -31,3 +31,14 @@ export function resolveAnnouncementBarText(input: {
   const text = template.replaceAll("{amount}", amount).trim();
   return text.length > 0 ? text : null;
 }
+
+/**
+ * Copies per marquee half so one half covers ≥1 viewport at a conservative
+ * short-string width (~220px) up to 1440px. Two halves → ≥2 viewport widths;
+ * −50% translate stays seamless when spacing is padding (not gap).
+ */
+export const ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF = 8;
+
+export function announcementMarqueeCopies(text: string): string[] {
+  return Array.from({ length: ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF }, () => text);
+}

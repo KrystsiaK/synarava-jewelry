@@ -39,4 +39,32 @@ describe("computeTooltipPosition", () => {
 
     expect(result.side).toBe("right");
   });
+
+  it("honors a larger gap so the tip is not flush against the trigger", () => {
+    const result = computeTooltipPosition({
+      reference: { left: 200, right: 220, top: 200, bottom: 220, width: 20, height: 20 },
+      floating: { width: 160, height: 48 },
+      viewport: { width: 900, height: 600 },
+      preferredSide: "top",
+      gap: 18,
+    });
+
+    expect(result.side).toBe("top");
+    expect(result.top + 48 + 18).toBe(200);
+  });
+
+  it("keeps a preferred top tip inside the viewport near the top edge", () => {
+    const result = computeTooltipPosition({
+      reference: { left: 300, right: 320, top: 4, bottom: 24, width: 20, height: 20 },
+      floating: { width: 200, height: 80 },
+      viewport: { width: 900, height: 600 },
+      preferredSide: "top",
+      gap: 18,
+      viewportPadding: 8,
+    });
+
+    expect(result.side).toBe("bottom");
+    expect(result.top).toBeGreaterThanOrEqual(24);
+    expect(result.left).toBeGreaterThanOrEqual(8);
+  });
 });

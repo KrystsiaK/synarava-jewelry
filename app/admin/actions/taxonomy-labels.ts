@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { ADMIN_SHARED_PATH } from "@/components/admin/shared/admin-paths";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import {
   emptyTaxonomyDivergenceMaps,
@@ -118,7 +119,7 @@ export async function saveTaxonomyLabelsAction(
 
   try {
     const saved = await saveSynaravaTaxonomyLabels(updates);
-    revalidatePath("/admin/settings");
+    revalidatePath(ADMIN_SHARED_PATH);
     revalidatePath("/[locale]/shop", "page");
     revalidatePath("/[locale]/artifacts/[id]", "page");
     return { success: saved ? `Taxonomy labels saved (${saved}).` : "No taxonomy label changes." };

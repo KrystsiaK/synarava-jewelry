@@ -1,24 +1,24 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Visibility requires announcement-bar-v1 enabled + adopted threshold in DB
- * (CI seed / local seed). When off, the suite still asserts no empty shell.
+ * CI seed enables announcement-bar-v1 with a threshold amount.
+ * Spec requires the banner present — no “or absent” branch.
+ * Human: wire `e2e/announcement-bar.spec.ts` into the Playwright CI step
+ * (bots must not edit `.github/workflows/ci.yml`).
  */
 test.describe("announcement bar", () => {
   for (const path of ["/en", "/en/shop", "/en/cart"] as const) {
-    test(`visible or absent (never empty) on ${path}`, async ({ page }) => {
+    test(`visible on ${path}`, async ({ page }) => {
       const response = await page.goto(path);
       expect(response?.status()).toBe(200);
-      const bars = page.locator(".announcement-bar");
-      const count = await bars.count();
-      if (count === 0) {
-        await expect(bars).toHaveCount(0);
-        return;
-      }
-      await expect(bars.first()).toBeVisible();
-      const height = await bars.first().evaluate((el) => getComputedStyle(el).height);
+      const bar = page.locator(".announcement-bar");
+      await expect(bar).toHaveCount(1);
+      await expect(bar).toBeVisible();
+      const height = await bar.evaluate((el) => getComputedStyle(el).height);
       expect(height).toBe("36px");
-      await expect(bars.first()).toHaveAttribute("role", "region");
+      await expect(bar).not.toHaveAttribute("aria-label");
+      await expect(bar.locator(".announcement-bar__static")).toHaveCount(1);
+      await expect(bar.locator(".announcement-bar__marquee")).toHaveAttribute("aria-hidden", "true");
     });
   }
 
@@ -27,15 +27,39 @@ test.describe("announcement bar", () => {
     const response = await page.goto("/en");
     expect(response?.status()).toBe(200);
     const bar = page.locator(".announcement-bar");
-    if (await bar.count() === 0) {
-      test.skip(true, "Announcement bar off in this environment — no empty shell");
-      return;
-    }
+    await expect(bar).toHaveCount(1);
     await expect(bar.locator(".announcement-bar__static")).toBeVisible();
     await expect(bar.locator(".announcement-bar__marquee")).toBeHidden();
     const animation = await bar.locator(".announcement-bar__cycle").evaluate((el) => {
       return getComputedStyle(el).animationName;
     });
     expect(animation === "none" || animation === "").toBeTruthy();
+  });
+
+  test("marquee cycle covers at least two viewport widths at 1440 and 375", async ({ page }) => {
+    for (const width of [1440, 375] as const) {
+      await page.setViewportSize({ width, height: 800 });
+      const response = await page.goto("/en");
+      expect(response?.status()).toBe(200);
+      const bar = page.locator(".announcement-bar");
+      await expect(bar).toBeVisible();
+      const metrics = await bar.evaluate((el) => {
+        const cycle = el.querySelector(".announcement-bar__cycle") as HTMLElement | null;
+        if (!cycle) return null;
+        const style = getComputedStyle(cycle);
+        return {
+          cycleWidth: cycle.getBoundingClientRect().width,
+          viewport: window.innerWidth,
+          hasGap: style.columnGap !== "normal" && style.columnGap !== "0px"
+            ? style.columnGap
+            : style.gap !== "normal" && style.gap !== "0px"
+              ? style.gap
+              : "0px",
+        };
+      });
+      expect(metrics).not.toBeNull();
+      expect(metrics!.hasGap).toBe("0px");
+      expect(metrics!.cycleWidth).toBeGreaterThanOrEqual(metrics!.viewport * 2);
+    }
   });
 });

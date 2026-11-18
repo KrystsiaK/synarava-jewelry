@@ -3,10 +3,7 @@
 import { HardDriveUpload, RefreshCw } from "lucide-react";
 import { useState, useTransition } from "react";
 
-import {
-  adoptAnnouncementThresholdAction,
-  saveAnnouncementBarAction,
-} from "@/app/admin/actions/announcement-bar";
+import { saveAnnouncementBarAction } from "@/app/admin/actions/announcement-bar";
 import {
   AdminLocaleTabs,
   useAdminActiveLocale,
@@ -14,13 +11,12 @@ import {
   type AdminLocaleTab,
 } from "@/components/admin/shared/admin-locale-workspace";
 import { useAdminToast } from "@/components/admin/shared/admin-toast";
+import { ShopThresholdConflictWorkspace } from "@/components/admin/settings/shop-conflict-adapter";
 import {
   AdminAlert,
-  AdminButton,
   AdminCheckboxField,
   AdminIconButton,
   AdminPanel,
-  AdminReadonlyField,
   AdminTextField,
 } from "@/components/synarava-cms";
 import {
@@ -36,32 +32,29 @@ function moneyLabel(money: FreeShippingMoney | null, locale: string): string {
   return formatShopifyMoneyByLocale(money.amount, money.currencyCode, locale) || "—";
 }
 
-function thresholdConflict(setting: AnnouncementBarSetting): boolean {
-  const local = setting.threshold;
-  const remote = setting.shopifySnapshot?.freeShippingMinSubtotal ?? null;
-  if (!remote) return false;
-  if (!local) return true;
-  return local.amount !== remote.amount || local.currencyCode !== remote.currencyCode;
-}
-
 export function AnnouncementBarEditor({
   initialSetting,
   copy,
   defaults,
   locales,
   ptStatus,
+  thresholdConflictCount = 0,
 }: {
   initialSetting: AnnouncementBarSetting;
   copy: StorefrontCopy;
   defaults: StorefrontCopy;
   locales: AdminLocaleTab[];
   ptStatus?: AdminLocaleStatus;
+  /** SyncResult leaf count for shop.freeShippingMinSubtotal (skipRefresh). */
+  thresholdConflictCount?: number;
 }) {
   const { pushToast } = useAdminToast();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [setting, setSetting] = useState(initialSetting);
   const [enabled, setEnabled] = useState(initialSetting.enabled);
+  const [conflictCount, setConflictCount] = useState(thresholdConflictCount);
+  const [resolverOpen, setResolverOpen] = useState(false);
   const [activeLocale, selectLocale] = useAdminActiveLocale(
     "announcement-bar",
     locales,
@@ -79,11 +72,13 @@ export function AnnouncementBarEditor({
     return next;
   });
 
-  const conflict = thresholdConflict(setting);
   const placeholder =
     defaults[activeLocale]?.[ANNOUNCEMENT_BAR_COPY_KEY]
     ?? defaults.en?.[ANNOUNCEMENT_BAR_COPY_KEY]
     ?? "Free shipping in Portugal from {amount}";
+
+  const thresholdLabel = moneyLabel(setting.threshold, activeLocale);
+  const hasSnapshot = Boolean(setting.shopifySnapshot);
 
   function save() {
     setError(null);
@@ -96,20 +91,6 @@ export function AnnouncementBarEditor({
       }
       if (result.setting) setSetting(result.setting);
       pushToast({ tone: "success", message: result.message ?? "Saved" });
-    });
-  }
-
-  function adoptLiveThreshold() {
-    setError(null);
-    startTransition(async () => {
-      const result = await adoptAnnouncementThresholdAction();
-      if (!result.ok) {
-        setError(result.error ?? "Adopt threshold failed");
-        pushToast({ tone: "error", message: result.error ?? "Adopt threshold failed" });
-        return;
-      }
-      if (result.setting) setSetting(result.setting);
-      pushToast({ tone: "success", message: result.message ?? "Adopted live threshold" });
     });
   }
 
@@ -146,14 +127,11 @@ export function AnnouncementBarEditor({
             <h2 className="text-base font-medium">Announcement bar</h2>
             <p className="adm-page-subtitle mt-1">
               Free-shipping strip above the header. Threshold is Shopify-owned (Portugal delivery profile).
-              Banner text uses {"{amount}"} — never hardcode the number.
+              Banner text uses {"{amount}"} — never hardcode the number. Resolve threshold conflicts in ConflictResolver.
             </p>
           </div>
 
           <AdminAlert message={error} />
-          {conflict ? (
-            <AdminAlert message="Free shipping threshold differs from Shopify. Adopt the live delivery-profile amount, or wait for the next catalog refresh." />
-          ) : null}
 
           <AdminCheckboxField
             label="Show announcement bar"
@@ -161,37 +139,34 @@ export function AnnouncementBarEditor({
             onChange={(event) => setEnabled(event.target.checked)}
           >
             <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
-              When off, or when no adopted threshold exists, the storefront renders nothing.
+              When off, or when no working threshold exists, the storefront renders nothing.
             </p>
           </AdminCheckboxField>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <AdminReadonlyField
-              label="Threshold (Synarava)"
-              value={moneyLabel(setting.threshold, activeLocale)}
-              owner="Shopify"
-              help="Working copy after human adopt. Storefront uses this amount."
-            />
-            <AdminReadonlyField
-              label="Threshold (Shopify)"
-              value={moneyLabel(setting.shopifySnapshot?.freeShippingMinSubtotal ?? null, activeLocale)}
-              owner="Shopify"
-              help="Last delivery-profile observation from catalog refresh."
-            />
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            <AdminButton
-              type="button"
-              variant="secondary"
-              disabled={isPending || !setting.shopifySnapshot?.freeShippingMinSubtotal}
-              onClick={adoptLiveThreshold}
-            >
-              Adopt live threshold
-            </AdminButton>
-            <span className="text-sm text-[color:var(--adm-muted)]">
-              {conflict ? "Conflict" : setting.shopifySnapshot ? "In sync" : "Not checked yet"}
-            </span>
+          <div className="grid gap-2">
+            <p className="text-sm" style={{ color: "var(--adm-text)" }}>
+              Threshold: {thresholdLabel} (from Shopify)
+            </p>
+            {setting.shopifyObservationError ? (
+              <AdminAlert message={setting.shopifyObservationError} />
+            ) : null}
+            {!hasSnapshot && !setting.shopifyObservationError ? (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
+                Run a catalog update from Shopify to observe the live delivery-profile amount.
+              </p>
+            ) : conflictCount > 0 ? (
+              <p className="text-sm" style={{ color: "var(--adm-muted)" }}>
+                Threshold differs from Shopify.{" "}
+                <button
+                  type="button"
+                  className="underline"
+                  style={{ color: "var(--adm-text)" }}
+                  onClick={() => setResolverOpen(true)}
+                >
+                  Resolve in ConflictResolver
+                </button>
+              </p>
+            ) : null}
           </div>
 
           <AdminTextField
@@ -207,6 +182,14 @@ export function AnnouncementBarEditor({
           />
         </div>
       </AdminPanel.Body>
+
+      <ShopThresholdConflictWorkspace
+        open={resolverOpen}
+        onClose={() => setResolverOpen(false)}
+        conflictLeafCount={conflictCount}
+        onToast={(message, tone) => pushToast({ tone, message })}
+        onApplied={() => setConflictCount(0)}
+      />
     </AdminPanel.Root>
   );
 }

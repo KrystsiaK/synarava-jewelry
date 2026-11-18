@@ -106,6 +106,7 @@ Translation axis: two-way diverge rows only. Default-locale EN translation leave
 | Piece | Path |
 | --- | --- |
 | Waterfall / compare / select | `lib/sync/*` (`compareSyncState`, `selectSyncCounts`, `catalogConflictFieldsForEntity`) |
+| Shop free-shipping threshold | `shop.freeShippingMinSubtotal` (`SHOP_COMMERCE_FIELDS`); OUR = SiteSetting `announcement-bar-v1.threshold`; Shopify = `shopifySnapshot`; Take Shopify only via ConflictResolver Apply (`lib/shopify/shop-conflict-apply.ts`) — never push; storefront reads OUR working copy |
 | Derive OUR window | `lib/sync/derive-window.ts`, `lib/sync/our-window-from-row.ts`, `lib/sync/extras.ts` |
 | Normalize + deep-diff | `lib/shopify/shopify-projection-diff.ts` (`canonicalizeShopifyProjection`, `diffShopifyProjections`) |
 | Refresh Shopify copy (no syncStatus CONFLICT write) | `refreshShopifyProductState`, `refreshShopifyCollectionState` |

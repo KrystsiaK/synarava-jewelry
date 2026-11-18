@@ -41,10 +41,15 @@ export function parseAnnouncementBarSetting(value: unknown): AnnouncementBarSett
     return { ...DEFAULT_ANNOUNCEMENT_BAR_SETTING };
   }
   const record = value as Record<string, unknown>;
+  const observationError =
+    typeof record.shopifyObservationError === "string"
+      ? record.shopifyObservationError.trim() || null
+      : null;
   return {
     enabled: record.enabled === true,
     threshold: asMoney(record.threshold),
     shopifySnapshot: asWindow(record.shopifySnapshot),
+    shopifyObservationError: observationError,
   };
 }
 
@@ -96,16 +101,21 @@ export async function adoptFreeShippingThresholdFromShopify(): Promise<Announcem
 }
 
 /**
- * Refresh-only: persist Shopify observation. Never writes `threshold` / `enabled`
- * (ADR-0008 — nothing automatic writes Synarava content).
+ * Refresh-only: persist Shopify observation (+ optional read error).
+ * Never writes `threshold` / `enabled` (ADR-0008 — nothing automatic writes Synarava content).
+ * Pass `snapshot: undefined` to leave the last window unchanged (failed read).
  */
-export async function refreshAnnouncementBarShopifySnapshot(
-  snapshot: FreeShippingThresholdWindow | null,
-): Promise<AnnouncementBarSetting> {
+export async function refreshAnnouncementBarShopifySnapshot(input: {
+  snapshot?: FreeShippingThresholdWindow | null;
+  error?: string | null;
+}): Promise<AnnouncementBarSetting> {
   const current = await readAnnouncementBarSetting();
+  const nextSnapshot = input.snapshot === undefined ? current.shopifySnapshot : input.snapshot;
+  const observedAmount = nextSnapshot?.freeShippingMinSubtotal ?? null;
   const next: AnnouncementBarSetting = {
     ...current,
-    shopifySnapshot: snapshot,
+    shopifySnapshot: nextSnapshot,
+    shopifyObservationError: observedAmount ? null : (input.error ?? null),
   };
   await db.siteSetting.upsert({
     where: { key: ANNOUNCEMENT_BAR_SETTING_KEY },
