@@ -309,6 +309,8 @@ export async function refreshShopifyState(
     await refreshAnnouncementBarShopifySnapshot({
       snapshot: observation.window === null ? undefined : observation.window,
       error: observation.error,
+      source: observation.window === null ? undefined : observation.source,
+      warning: observation.window === null ? undefined : observation.warning,
     });
     if (observation.error && observation.window === null) {
       return {
@@ -318,11 +320,12 @@ export async function refreshShopifyState(
         timing: baseTiming(null, "FAILED", elapsed(), 1),
       };
     }
+    const shopWarning = [observation.error, observation.warning].filter(Boolean).join(" ") || undefined;
     return {
       ok: true,
-      warning: observation.error ?? undefined,
+      warning: shopWarning,
       runId: null,
-      timing: baseTiming(null, observation.error ? "PARTIAL" : "SUCCEEDED", elapsed(), observation.error ? 1 : 0),
+      timing: baseTiming(null, shopWarning ? "PARTIAL" : "SUCCEEDED", elapsed(), shopWarning ? 1 : 0),
     };
   }
 
@@ -435,8 +438,11 @@ export async function refreshShopifyState(
       await refreshAnnouncementBarShopifySnapshot({
         snapshot: observation.window === null ? undefined : observation.window,
         error: observation.error,
+        source: observation.window === null ? undefined : observation.source,
+        warning: observation.window === null ? undefined : observation.warning,
       });
       if (observation.error) warnings.push(observation.error);
+      if (observation.warning) warnings.push(observation.warning);
       await heartbeatCatalogCheckRun(runId);
     }
 

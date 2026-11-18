@@ -111,6 +111,13 @@ describe("free-shipping threshold Apply guard", () => {
       enabled: true,
       threshold: shopMoney,
       shopifySnapshot: { freeShippingMinSubtotal: shopMoney },
+      shopifyObservationError: null,
+      shopifyObservationSource: {
+        profileName: "General",
+        zoneName: "Portugal",
+        rateName: "Free shipping",
+      },
+      shopifyObservationWarning: null,
     });
 
     const take = await applyShopCommerceField({
@@ -146,6 +153,19 @@ describe("free-shipping threshold Apply guard", () => {
     );
     expect(source).toMatch(/refreshAnnouncementBarShopifySnapshot/);
     expect(source).not.toMatch(/adoptFreeShippingThresholdFromShopify/);
+  });
+
+  it("uses one threshold-read mechanism (selectPortugalFreeShippingThreshold) with no bypass", async () => {
+    const fs = await import("node:fs");
+    const reader = fs.readFileSync("lib/shopify/free-shipping-threshold.ts", "utf8");
+    const refresh = fs.readFileSync("lib/sync/refresh-shopify-state.ts", "utf8");
+    expect(reader).toMatch(/export function selectPortugalFreeShippingThreshold/);
+    expect(reader).toMatch(/selectPortugalFreeShippingThreshold\(/);
+    expect(reader).toMatch(/collectPortugalFreeShippingCandidates\(/);
+    // Waterfall refresh is the only writer of the observation — via the shared helper.
+    expect(refresh).toMatch(/refreshFreeShippingThresholdShopifyState/);
+    expect(refresh).not.toMatch(/fetchPortugalFreeShippingThreshold/);
+    expect(refresh).not.toMatch(/deliveryProfiles/);
   });
 
   it("storefront banner reads OUR working threshold, not snapshot-only", () => {
