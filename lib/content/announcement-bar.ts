@@ -8,6 +8,7 @@ import {
   DEFAULT_ANNOUNCEMENT_BAR_SETTING,
   type AnnouncementBarSetting,
   type FreeShippingMoney,
+  type FreeShippingObservationSource,
   type FreeShippingThresholdWindow,
 } from "@/lib/content/announcement-bar-fields";
 
@@ -18,6 +19,7 @@ export {
   DEFAULT_ANNOUNCEMENT_BAR_SETTING,
   type AnnouncementBarSetting,
   type FreeShippingMoney,
+  type FreeShippingObservationSource,
   type FreeShippingThresholdWindow,
 } from "@/lib/content/announcement-bar-fields";
 
@@ -36,6 +38,16 @@ function asWindow(value: unknown): FreeShippingThresholdWindow | null {
   return { freeShippingMinSubtotal: asMoney(record.freeShippingMinSubtotal) };
 }
 
+function asSource(value: unknown): FreeShippingObservationSource | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const profileName = typeof record.profileName === "string" ? record.profileName.trim() : "";
+  const zoneName = typeof record.zoneName === "string" ? record.zoneName.trim() : "";
+  const rateName = typeof record.rateName === "string" ? record.rateName.trim() : "";
+  if (!profileName || !zoneName || !rateName) return null;
+  return { profileName, zoneName, rateName };
+}
+
 export function parseAnnouncementBarSetting(value: unknown): AnnouncementBarSetting {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return { ...DEFAULT_ANNOUNCEMENT_BAR_SETTING };
@@ -45,11 +57,17 @@ export function parseAnnouncementBarSetting(value: unknown): AnnouncementBarSett
     typeof record.shopifyObservationError === "string"
       ? record.shopifyObservationError.trim() || null
       : null;
+  const observationWarning =
+    typeof record.shopifyObservationWarning === "string"
+      ? record.shopifyObservationWarning.trim() || null
+      : null;
   return {
     enabled: record.enabled === true,
     threshold: asMoney(record.threshold),
     shopifySnapshot: asWindow(record.shopifySnapshot),
     shopifyObservationError: observationError,
+    shopifyObservationSource: asSource(record.shopifyObservationSource),
+    shopifyObservationWarning: observationWarning,
   };
 }
 
@@ -101,21 +119,46 @@ export async function adoptFreeShippingThresholdFromShopify(): Promise<Announcem
 }
 
 /**
- * Refresh-only: persist Shopify observation (+ optional read error).
+ * Refresh-only: persist Shopify observation (+ optional read error / source / warning).
  * Never writes `threshold` / `enabled` (ADR-0008 — nothing automatic writes Synarava content).
  * Pass `snapshot: undefined` to leave the last window unchanged (failed read).
+ *
+ * Observation error persistence: always store the latest `error` when provided.
+ * Clear it only when THIS refresh observes a fresh non-null amount. Keeping a prior
+ * snapshot amount must not swallow a new read failure (skipRefresh would otherwise
+ * look “fine” with Threshold: — and no reason).
  */
 export async function refreshAnnouncementBarShopifySnapshot(input: {
   snapshot?: FreeShippingThresholdWindow | null;
   error?: string | null;
+  source?: FreeShippingObservationSource | null;
+  warning?: string | null;
 }): Promise<AnnouncementBarSetting> {
   const current = await readAnnouncementBarSetting();
-  const nextSnapshot = input.snapshot === undefined ? current.shopifySnapshot : input.snapshot;
-  const observedAmount = nextSnapshot?.freeShippingMinSubtotal ?? null;
+  const snapshotProvided = input.snapshot !== undefined;
+  const nextSnapshot = snapshotProvided ? input.snapshot! : current.shopifySnapshot;
+  const freshAmount = snapshotProvided
+    ? (input.snapshot?.freeShippingMinSubtotal ?? null)
+    : null;
+
+  const nextError = freshAmount
+    ? null
+    : (input.error !== undefined ? (input.error ?? null) : current.shopifyObservationError);
+
+  const nextSource = freshAmount
+    ? (input.source ?? null)
+    : (input.source !== undefined ? input.source : current.shopifyObservationSource);
+
+  const nextWarning = freshAmount
+    ? (input.warning ?? null)
+    : (input.warning !== undefined ? input.warning : current.shopifyObservationWarning);
+
   const next: AnnouncementBarSetting = {
     ...current,
     shopifySnapshot: nextSnapshot,
-    shopifyObservationError: observedAmount ? null : (input.error ?? null),
+    shopifyObservationError: nextError,
+    shopifyObservationSource: nextSource,
+    shopifyObservationWarning: nextWarning,
   };
   await db.siteSetting.upsert({
     where: { key: ANNOUNCEMENT_BAR_SETTING_KEY },

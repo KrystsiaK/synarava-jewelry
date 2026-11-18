@@ -18,6 +18,13 @@ export type FreeShippingThresholdWindow = {
   freeShippingMinSubtotal: FreeShippingMoney | null;
 };
 
+/** Which delivery-profile rate produced the last Shopify observation (not compared). */
+export type FreeShippingObservationSource = {
+  profileName: string;
+  zoneName: string;
+  rateName: string;
+};
+
 export type AnnouncementBarSetting = {
   enabled: boolean;
   /** Synarava working threshold — adopted only via human Take Shopify. */
@@ -26,9 +33,13 @@ export type AnnouncementBarSetting = {
   shopifySnapshot: FreeShippingThresholdWindow | null;
   /**
    * Last Shopify read outcome when the live amount is missing or the read failed.
-   * Cleared when a non-null free-shipping amount is observed.
+   * Cleared only when a fresh non-null free-shipping amount is observed.
    */
   shopifyObservationError: string | null;
+  /** Profile / zone / rate that produced the last observed amount. */
+  shopifyObservationSource: FreeShippingObservationSource | null;
+  /** Non-fatal note when several distinct PT free-rate amounts were found. */
+  shopifyObservationWarning: string | null;
 };
 
 export const DEFAULT_ANNOUNCEMENT_BAR_SETTING: AnnouncementBarSetting = {
@@ -36,4 +47,6 @@ export const DEFAULT_ANNOUNCEMENT_BAR_SETTING: AnnouncementBarSetting = {
   threshold: null,
   shopifySnapshot: null,
   shopifyObservationError: null,
+  shopifyObservationSource: null,
+  shopifyObservationWarning: null,
 };
