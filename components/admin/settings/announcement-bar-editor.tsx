@@ -165,7 +165,7 @@ export function AnnouncementBarEditor({
             <AdminReadonlyField
               label="Local working threshold"
               owner="Synarava"
-              help="Adopted only via Take Shopify in ConflictResolver. Storefront banner uses this value."
+              help="Adopted only via ConflictResolver. Storefront banner uses this value."
               value={setting.threshold ? localLabel : null}
             />
             {sourceLabel ? (
