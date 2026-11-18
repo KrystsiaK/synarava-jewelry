@@ -1,17 +1,17 @@
 # Graph Report - synarava-jewelry  (2026-11-18)
 
 ## Corpus Check
-- 2754 files · ~1,776,154 words
+- 2754 files · ~1,776,166 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 180 file(s) not represented in the graph (top: .mdc 122, .csv 24, (none) 10)
 
 ## Summary
 - 24461 nodes · 47454 edges · 1251 communities (1114 shown, 137 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 2198 edges (avg confidence: 0.89)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 2196 edges (avg confidence: 0.89)
 - Token cost: 15,300 input · 4,750 output
 
 ## Graph Freshness
-- Built from commit: `f2187917`
+- Built from commit: `368a749d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1257,12 +1257,12 @@
 10. `EditProductForm()` - 66 edges
 
 ## Surprising Connections (you probably didn't know these)
+- `UX бесконечной прокрутки` --references--> `ProductGrid()`  [INFERRED]
+  docs/proposals/catalog-server-pagination.md → components/shop/shop-catalog-client.tsx
 - `Task 7: Выделить `ShopCatalogClient` и подключить sentinel` --references--> `ShopCatalogClient()`  [INFERRED]
   docs/proposals/catalog-server-pagination.md → components/shop/shop-catalog-client.tsx
 - `Цель` --references--> `ShopPage()`  [INFERRED]
   docs/proposals/catalog-server-pagination.md → components/shop/shop-page.tsx
-- `SYNC-ADV-004 — `retainedShopifyMediaIds` does not dedupe` --references--> `retainedShopifyMediaIds()`  [INFERRED]
-  docs/audits/2026-10-28-sync-adversarial.md → lib/shopify/product-media-alt-form.ts
 - `DEAD-003 — Unused dependency `@visx/pattern`` --references--> `isPatternDefComponent()`  [INFERRED]
   docs/audits/2026-10-28-dead-code.md → components/charts/chart-defs.ts
 - `Server Functions` --references--> `headers()`  [INFERRED]
@@ -5730,24 +5730,24 @@ Cohesion: 0.40
 Nodes (5): AI architecture, AI позже, AI сейчас, Как получать данные, Уровни полномочий AI
 
 ## Knowledge Gaps
-- **77 isolated node(s):** `EXPECTED_ENVIRONMENT`, `EXPECTED_ENVIRONMENT_ID`, `EXPECTED_PROJECT_ID`, `EXPECTED_PROJECT_NAME`, `LOCAL_DIR` (+72 more)
+- **77 isolated node(s):** `ADR-0007`, `ADR-0007`, `ADR-0009`, `EXPECTED_ENVIRONMENT`, `EXPECTED_ENVIRONMENT_ID` (+72 more)
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 12447 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
 - **137 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `react` connect `synarava-cms/index.ts` to `context.tsx`, `mission-control-hub.tsx`, `mission-control-canvas.tsx`, `cli.py`, `shopify/product-organization.ts`, `weighted.py`, `scroll-reveal.stories.tsx`, `home-section-visibility-editor.tsx`, `@storybook/react-vite`, `shop-page.tsx`, `account-page-editor.tsx`, `ref_server_only`, `shopify-product-specs.ts`, `useTranslations`, `_dispatchable`, `shared/page.tsx`, `admin/storefront-href.ts`, `language-bundle.ts`, `telemetry/client.ts`, `reconciliation-apply.ts`, `План: разрешение конфликтов каталога Shopify ↔ Synarava`, `product-metafields-panel.tsx`, `product-editor-tabs.tsx`, `storefront-copy-editor.tsx`, `bar-chart.tsx`, `chart-tooltip.tsx`, `site-seo-editor.tsx`, `cart.ts`, `page-editor-form.tsx`, `redirects-visibility.ts`, `shopify-profile-shell.tsx`, `package.json`, `@testing-library/react`, `conflict-resolver.tsx`, `product-edit-form.tsx`, `requireAdminSession`, `actions/storefront-copy.ts`, `use-fit-display-text.ts`, `privacy-consent-manager.tsx`, `product-media-gallery.tsx`, `legal-sections.ts`, `@sentry/nextjs`, `charts/animation.ts`, `taxonomy-labels-editor.tsx`, `getStorefrontLocales`, `mission-control-hub.stories.tsx`, `session-adapters/opencode.js`, `announcement-bar-display.ts`, `next`, `footer-contact.ts`, `wiring.ts`, `admin-nav-config.ts`, `locale-retirement-redirect.ts`, `app/layout.tsx`, `terminal-welcome.js`, `help-docs.ts`, `api.ts`, `storefront.ts`, `test_edge_kcomponents.py`, `lucide-react`, `charts/client.ts`, `ProductFormFields`, `legal-section-scroll.tsx`, `ephemeral-toast.tsx`, `image-alt-checklist.ts`, `product-media-manager.tsx`, `gauge.tsx`, `content/account-orders-settings.ts`, `loading-sweep.tsx`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+- **Why does `status()` connect `Async Reactivity with `resource`` to `ADR-0008: Sync — two states, nothing automatic, one module`, `mission-control-hub.stories.tsx`, `ref_server_only`, `product-sync.ts`, `product-media-manager.tsx`, `lib/list-state/index.ts`?**
+  _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `localePath()` (e.g. with `Adding a new language` and `SEO`) actually correct?**
   _`localePath()` has 3 INFERRED edges - model-reasoned connections that need verification._
-- **What connects `EXPECTED_ENVIRONMENT`, `EXPECTED_ENVIRONMENT_ID`, `EXPECTED_PROJECT_ID` to the rest of the system?**
+- **What connects `ADR-0007`, `ADR-0007`, `ADR-0009` to the rest of the system?**
   _77 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `live-browser.js` be split into smaller, more focused modules?**
   _Cohesion score 0.03536693191865606 - nodes in this community are weakly interconnected._
-- **Why does `status()` connect `Async Reactivity with `resource`` to `ADR-0008: Sync — two states, nothing automatic, one module`, `mission-control-hub.stories.tsx`, `ref_server_only`, `product-sync.ts`, `product-media-manager.tsx`, `lib/list-state/index.ts`?**
-  _High betweenness centrality (0.042) - this node is a cross-community bridge._
+- **Why does `MCP Tools` connect `product-media-manager.tsx` to `os`, `fal.ai Media Generation`, `Async Reactivity with `resource``?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._
 - **Should `context.tsx` be split into smaller, more focused modules?**
   _Cohesion score 0.04329004329004329 - nodes in this community are weakly interconnected._
-- **Why does `MCP Tools` connect `product-media-manager.tsx` to `os`, `fal.ai Media Generation`, `Async Reactivity with `resource``?**
-  _High betweenness centrality (0.036) - this node is a cross-community bridge._
+- **Why does `search()` connect `os` to `design_system.py`, `product-media-manager.tsx`?**
+  _High betweenness centrality (0.043) - this node is a cross-community bridge._

@@ -16206,9 +16206,9 @@
     "semantic_hash": ""
   },
   "components/layout/announcement-bar.tsx": {
-    "mtime": 1795038114.4290738,
-    "seen": 1795038149.4548824,
-    "ast_hash": "dfde1d1853390d3e8bd67e2384b70e7e",
+    "mtime": 1795038647.9588766,
+    "seen": 1795038681.9958835,
+    "ast_hash": "c8e964c98b1a7496c132c8b0643c974f",
     "semantic_hash": ""
   },
   "e2e/announcement-bar.spec.ts": {
