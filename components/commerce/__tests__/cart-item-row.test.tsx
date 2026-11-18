@@ -1,5 +1,7 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+
+import { resetTooltipWarmth } from "@/components/ui/tooltip";
 
 const mocks = vi.hoisted(() => ({
   decreaseCartItemAction: vi.fn(),
@@ -23,6 +25,11 @@ const item = {
 };
 
 describe("CartItemRow", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+    resetTooltipWarmth();
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.decreaseCartItemAction.mockResolvedValue({ ok: true });
@@ -68,6 +75,8 @@ describe("CartItemRow", () => {
   });
 
   it("explains when no more inventory is available", () => {
+    vi.useFakeTimers();
+    resetTooltipWarmth();
     render(<CartItemRow item={{ ...item, maxQuantity: 2 }} />);
 
     const increaseButton = screen.getByRole("button", { name: "Increase quantity" });
@@ -76,6 +85,10 @@ describe("CartItemRow", () => {
       "true",
     );
     fireEvent.focus(increaseButton);
+    // Default Tooltip delay (220ms) applies on focus; click still opens immediately when openOnClick.
+    act(() => {
+      vi.advanceTimersByTime(220);
+    });
     expect(screen.getByRole("tooltip")).toHaveTextContent("No more items available");
   });
 
