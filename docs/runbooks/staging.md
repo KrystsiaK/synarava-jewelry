@@ -8,11 +8,9 @@ Staging URL: `https://synarava-shop-app-staging.up.railway.app`.
 - Finished-work ship steps (ready PR → wait CI → merge when green): see
   [`ship-to-main`](../../.agents/skills/ship-to-main/SKILL.md) (canonical).
 - Prefer a **merge commit** when promoting staging→main (avoids needless
-  divergence). Squash is allowed but leaves parallel tips; the sync job below
-  heals that with a merge, not a reset.
-- If `main` moves ahead (hotfix), `.github/workflows/sync-main-to-staging.yml`
-  syncs `staging` from `main`: fast-forward when possible, otherwise
-  **merge main into staging** (non-destructive — staging tip commits stay).
+  divergence). Squash is allowed but leaves parallel tips.
+- After a release to `main`, the release manager manually opens a PR
+  `main` → `staging` and merges it (no code changes — merge commit only).
 - Do **not** force-push or `reset --hard` staging onto main to “fix” diverge;
   that drops unfinished staging work. Only merge conflicts need a manual
   resolve on staging.
