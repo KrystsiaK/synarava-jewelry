@@ -7,10 +7,19 @@ When the user types `/graphify`, invoke the `skill` tool with `skill: "graphify"
 Rules:
 - For codebase questions, first run `graphify query "<question>"` when graphify-out/graph.json exists. Use `graphify path "<A>" "<B>"` for relationships and `graphify explain "<concept>"` for focused concepts. These return a scoped subgraph, usually much smaller than GRAPH_REPORT.md or raw grep output.
 - Dirty `graphify-out/` files are expected after hooks or incremental updates; dirty graph files are not a reason to skip graphify. Only skip graphify if the task is about stale or incorrect graph output, or the user explicitly says not to use it.
-- `graph.json`, `GRAPH_REPORT.md`, and `manifest.json` are committed so another machine can `git pull` and run `graphify query` immediately. Local-only: `cache/`, machine paths (`.graphify_python` / `.graphify_root`). After a large code change, run `graphify update .` to refresh.
+- `graph.json`, `GRAPH_REPORT.md`, and `manifest.json` are committed so another machine can `git pull` and run `graphify query` immediately. Local-only: `cache/`, machine paths (`.graphify_python` / `.graphify_root`).
+- You MAY run `graphify update .` locally for queries.
+- Before commit: restore graphify-out (`git restore --staged --worktree graphify-out`) OR never stage it (`git add -A -- . ':!graphify-out'`).
+- Maintainer refreshes the graph in a separate PR titled `chore: refresh graphify` after merges to staging.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- After modifying code, run `graphify update .` to keep the graph current (AST-only, no API cost).
+
+### graphify bootstrap
+
+At the start of the first task in a session, run `scripts/setup-graphify.sh --check`.
+
+- **Local agents** (Filesystem boundary): NEVER run install. If check fails, send one message to the user with what is missing and the exact fix command (`scripts/setup-graphify.sh` or `scripts/setup-graphify.sh --cli-only`), then continue the task without graphify.
+- **Cloud agents** MAY run `scripts/setup-graphify.sh --cli-only` (CLI only; no merge-driver / hooks / graph build). Full setup (CLI + merge driver) is for humans / local clones: `scripts/setup-graphify.sh`.
 
 ## Filesystem boundary
 

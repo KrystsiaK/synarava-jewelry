@@ -1,0 +1,4 @@
+{
+  "install": "bash scripts/setup-graphify.sh --cli-only || true",
+  "start": "git fetch origin --prune -q || true"
+}

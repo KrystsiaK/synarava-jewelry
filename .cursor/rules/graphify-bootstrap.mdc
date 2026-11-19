@@ -1,0 +1,9 @@
+---
+description: "Graphify CLI check + query-first for codebase questions"
+alwaysApply: true
+---
+# Graphify bootstrap
+
+- At start of the first task in a session, run `bash scripts/setup-graphify.sh --check --cli-only`.
+- For codebase questions, first run `graphify query "<question>"` when `graphify-out/graph.json` exists.
+- Never commit `graphify-out/*` in feature PRs — follow the canonical graphify rules in `AGENTS.md` (do not duplicate them here).
