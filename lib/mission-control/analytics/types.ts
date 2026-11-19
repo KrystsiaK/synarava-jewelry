@@ -1,5 +1,27 @@
 import type { ServiceStatusLevel } from "@/lib/mission-control/status";
 
+/** Email-style 7d vs prior GA snapshot (shape owned here so hub UI stays client-safe). */
+export type AnalyticsWeeklyPeriodMetrics = {
+  users: number;
+  sessions: number;
+  purchases: number;
+  revenue: number;
+  conversionRate: number;
+};
+
+export type AnalyticsWeeklyShareRow = {
+  name: string;
+  sessions: number;
+  sharePct: number;
+};
+
+export type AnalyticsWeeklySummary = {
+  current: AnalyticsWeeklyPeriodMetrics;
+  previous: AnalyticsWeeklyPeriodMetrics;
+  sources: AnalyticsWeeklyShareRow[];
+  pages: AnalyticsWeeklyShareRow[];
+};
+
 /** Admin-facing severity; maps to ServiceStatusLevel warn/down. */
 export type AnalyticsIssueSeverity = "warning" | "error";
 
@@ -70,6 +92,16 @@ export type AnalyticsSnapshotPayload = {
     period: string;
     source: "ga" | "clarity";
   }>;
+  /**
+   * GA email-style 7d vs prior 7d summary (collector).
+   * Null when GA overview reports were unavailable this run.
+   */
+  weeklySummary?: AnalyticsWeeklySummary | null;
+  /**
+   * Server-built GA4 intelligent-home URL (property id never goes to NEXT_PUBLIC_*).
+   * Client renders «Open in Google Analytics» from this field / status.href.
+   */
+  gaOpenUrl?: string | null;
 };
 
 export const ANALYTICS_NODE_KEY = "analytics";

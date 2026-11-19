@@ -12,6 +12,10 @@ import {
   type GaVisitPulse,
   type GaVisitPulseReportJson,
 } from "@/lib/mission-control/analytics/ga-visit-pulse";
+import {
+  parseGaWeeklySummary,
+  type GaWeeklySummary,
+} from "@/lib/mission-control/analytics/ga-weekly-summary";
 
 const DATA_API =
   "https://analyticsdata.googleapis.com/v1beta/properties";
@@ -209,4 +213,53 @@ export async function fetchGaVisitPulse(
   });
 
   return parseGaVisitPulseReport(report);
+}
+
+/**
+ * Email-style weekly summary: two runReports.
+ * 1) Overview + top sessionSource (current 7d vs prior 7d)
+ * 2) Top pagePath (current 7d)
+ * Metrics: activeUsers, sessions, ecommercePurchases, purchaseRevenue.
+ */
+export async function fetchGaWeeklySummary(
+  deps: GaClientDeps,
+): Promise<GaWeeklySummary> {
+  const accessToken = await fetchGaAccessToken(
+    deps.serviceAccount,
+    deps.fetchFn ?? fetch,
+  );
+  const days = ANALYTICS_THRESHOLDS.visitPulseDays;
+  const ranges = [
+    { startDate: `${days}daysAgo`, endDate: "yesterday" },
+    {
+      startDate: `${days * 2}daysAgo`,
+      endDate: `${days + 1}daysAgo`,
+    },
+  ];
+  const overviewMetrics = [
+    { name: "activeUsers" },
+    { name: "sessions" },
+    { name: "ecommercePurchases" },
+    { name: "purchaseRevenue" },
+  ];
+
+  const [overview, pages] = await Promise.all([
+    runReport(deps, accessToken, {
+      dateRanges: ranges,
+      dimensions: [{ name: "sessionSource" }],
+      metrics: overviewMetrics,
+      metricAggregations: ["TOTAL"],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 50,
+    }),
+    runReport(deps, accessToken, {
+      dateRanges: [ranges[0]],
+      dimensions: [{ name: "pagePath" }],
+      metrics: [{ name: "sessions" }, { name: "activeUsers" }],
+      orderBys: [{ metric: { metricName: "sessions" }, desc: true }],
+      limit: 5,
+    }),
+  ]);
+
+  return parseGaWeeklySummary({ overview, pages });
 }

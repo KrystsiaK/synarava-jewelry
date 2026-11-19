@@ -1,13 +1,23 @@
 import Link from "next/link";
 
 import { getAdminCatalogData } from "@/lib/content/catalog";
+import { analyticsHomeBadgeFromStatus } from "@/lib/mission-control/analytics/admin-home-badge";
+import { ANALYTICS_NODE_KEY } from "@/lib/mission-control/analytics/types";
+import { readServiceNodeStatus } from "@/lib/mission-control/status";
 import { countPendingProductReviews } from "@/lib/reviews/queries";
 
 export default async function AdminDashboardPage() {
-  const [{ pages, products, collections }, pendingReviews] = await Promise.all([
-    getAdminCatalogData(),
-    countPendingProductReviews().catch(() => 0),
-  ]);
+  const [{ pages, products, collections }, pendingReviews, analyticsStatus] =
+    await Promise.all([
+      getAdminCatalogData(),
+      countPendingProductReviews().catch(() => 0),
+      // Persisted collector row only — never re-poll GA from the admin home.
+      readServiceNodeStatus(ANALYTICS_NODE_KEY).catch((error) => {
+        console.error("[admin-home] analytics node status unavailable", error);
+        return null;
+      }),
+    ]);
+  const analyticsBadge = analyticsHomeBadgeFromStatus(analyticsStatus);
 
   const publishedProducts = products.filter(
     (p) => p.status === "ACTIVE" && p.visibility === "PUBLIC",
@@ -34,6 +44,16 @@ export default async function AdminDashboardPage() {
         <p className="adm-page-subtitle">
           Store management interface for catalog, editorial pages, collections, and publish readiness.
         </p>
+        {analyticsBadge.kind === "alert" ? (
+          <p className="adm-analytics-home-badge" data-level={analyticsBadge.level}>
+            <Link href={analyticsBadge.href}>{analyticsBadge.label}</Link>
+          </p>
+        ) : null}
+        {analyticsBadge.kind === "disconnected" ? (
+          <p className="adm-analytics-home-badge adm-analytics-home-badge--muted">
+            {analyticsBadge.label}
+          </p>
+        ) : null}
       </div>
 
       {/* Stat grid */}

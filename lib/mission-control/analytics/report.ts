@@ -28,6 +28,48 @@ export function formatAnalyticsMarkdownReport(
     lines.push(`- Clarity data as of ${payload.clarityDataAsOf}`);
   }
 
+  if (payload.gaOpenUrl) {
+    lines.push(`- Open in Google Analytics: ${payload.gaOpenUrl}`);
+  }
+
+  if (payload.weeklySummary) {
+    const summary = payload.weeklySummary;
+    lines.push(
+      "",
+      "## GA weekly summary (7d vs prior 7d, consented)",
+      "",
+      `- Users: **${summary.current.users}** (prior ${summary.previous.users})`,
+      `- Sessions: **${summary.current.sessions}** (prior ${summary.previous.sessions})`,
+      `- Orders: **${summary.current.purchases}** (prior ${summary.previous.purchases})`,
+      `- Revenue: **${summary.current.revenue}** (prior ${summary.previous.revenue})`,
+      `- Conversion: **${summary.current.conversionRate}** (prior ${summary.previous.conversionRate})`,
+      "",
+      "### Top sources",
+      "",
+    );
+    if (summary.sources.length === 0) {
+      lines.push("_No sources._", "");
+    } else {
+      for (const source of summary.sources) {
+        lines.push(
+          `- ${source.name}: **${source.sessions}** sessions · ${source.sharePct}%`,
+        );
+      }
+      lines.push("");
+    }
+    lines.push("### Top pages", "");
+    if (summary.pages.length === 0) {
+      lines.push("_No pages._", "");
+    } else {
+      for (const page of summary.pages) {
+        lines.push(
+          `- ${page.name}: **${page.sessions}** sessions · ${page.sharePct}%`,
+        );
+      }
+      lines.push("");
+    }
+  }
+
   lines.push("", "## Figures", "");
 
   if (payload.figures.length === 0) {
