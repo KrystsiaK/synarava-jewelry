@@ -31,7 +31,7 @@ describe("Analytics client/server boundary", () => {
       "analytics/ga-client",
       "analytics/clarity-client",
       "analytics/ga-visit-pulse",
-      "analytics/ga-weekly-summary",
+      // formatRevenue from ga-weekly-summary is client-safe (pure number format).
       "fetchGaVisitPulse",
       "fetchGaEventCounts",
       "fetchGaWeeklySummary",

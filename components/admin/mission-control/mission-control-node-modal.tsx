@@ -5,6 +5,7 @@ import { MissionControlCopyPromptButton } from "@/components/admin/mission-contr
 import { MissionControlCopyReportButton } from "@/components/admin/mission-control/mission-control-copy-report-button";
 import { MissionControlNodeWidget } from "@/components/admin/mission-control/mission-control-node-widgets";
 import { MissionControlStatusMark } from "@/components/admin/mission-control/mission-control-status-mark";
+import { formatRevenue } from "@/lib/mission-control/analytics/ga-weekly-summary";
 import {
   ANALYTICS_NODE_KEY,
   ANALYTICS_NOT_CONNECTED_MESSAGE,
@@ -157,7 +158,7 @@ function WeeklySummaryPanel({
     },
     {
       label: "Revenue",
-      current: String(summary.current.revenue),
+      current: formatRevenue(summary.current.revenue),
       delta: formatDelta(summary.current.revenue, summary.previous.revenue),
     },
     {
