@@ -21,3 +21,4 @@ Closes #N
 - [ ] Tests added or updated (failing test first for bug fixes)
 - [ ] No secrets in the diff
 - [ ] No new dependencies
+- [ ] graphify-out не изменён (или это chore: refresh graphify)
