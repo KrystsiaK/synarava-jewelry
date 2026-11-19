@@ -451,7 +451,7 @@ function HeroSection({
           diagonal clip-path excludes its own bottom-right corner, which would
           clip this button's default placement there. */}
       {activeVideoSrc ? (
-        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute bottom-6 right-6 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:bottom-10 md:right-[6%]" />
+        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute bottom-6 right-6 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 md:bottom-10 md:right-[6%]" />
       ) : null}
 
       <div className="home-hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]" aria-hidden="true" />
@@ -643,7 +643,7 @@ function ArchiveRecord({
           : "w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
       }
     >
-      <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
+      <div className="relative h-full w-full">
         <ParallaxImage src={item.image} alt={item.imageAlt || item.title} clipPath={clipPath} />
         <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
           {viewCollection}
@@ -776,7 +776,7 @@ function EditShowcase({
               <Link
                 key={product.slug}
                 href={localePath(locale, `/products/${product.slug}`)}
-                className="edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
+                className="edit-showcase-card group block"
               >
                 <div className="edit-showcase-image relative aspect-[4/5] overflow-hidden bg-[#e3ddd5]">
                   <Image
@@ -806,7 +806,7 @@ function EditShowcase({
         <div className="mt-14 flex justify-end border-t border-[#171513]/20 pt-6 md:mt-20">
           <Link
             href={localePath(locale, "/shop")}
-            className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
+            className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513]"
           >
             {viewAllLabel || defaults.viewAllLabel}
             <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
@@ -1306,7 +1306,7 @@ function FinalFooter({ title, contactLabel, contactEmail, showContact }: { title
       {showMailto ? (
         <a
           href={`mailto:${email}`}
-          className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+          className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen"
         >
           {contactLabel?.trim() || email}
         </a>
@@ -1396,7 +1396,7 @@ function CompactFinalCTA({
               </ArtifactLink>
               <Link
                 href={resolvedSecondaryCtaHref}
-                className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen active:scale-[0.98]"
               >
                 {resolvedSecondaryCtaLabel}
                 <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -1620,13 +1620,13 @@ function DesktopFinalCTA({
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <PrimaryCtaButton
               href={resolvedCtaHref}
-              className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 focus-visible:outline-linen [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
+              className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
               {resolvedCtaLabel}
             </PrimaryCtaButton>
             <Link
               href={resolvedSecondaryCtaHref}
-              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen active:scale-[0.98]"
             >
               {resolvedSecondaryCtaLabel}
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

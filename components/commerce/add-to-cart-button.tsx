@@ -123,7 +123,7 @@ export function AddToCartButton({
       <button
         type="button"
         onClick={dismissPanel}
-        className="absolute right-2 top-2 flex size-11 items-center justify-center text-white/58 transition-colors hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-couture-red"
+        className="absolute right-2 top-2 flex size-11 items-center justify-center text-white/58 transition-colors hover:text-white"
         aria-label={t("product.closeConfirmation")}
       >
         <X className="size-4" aria-hidden="true" />

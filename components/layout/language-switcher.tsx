@@ -41,7 +41,7 @@ export function LanguageSwitcher({
             type="button"
             aria-label={t("language.select")}
             aria-haspopup="listbox"
-            className={`inline-flex items-center justify-center text-muted transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent ${
+            className={`inline-flex items-center justify-center text-muted transition-colors hover:text-foreground ${
               fullWidth
                 ? "w-full justify-between gap-3 px-3 py-2.5"
                 : showCode

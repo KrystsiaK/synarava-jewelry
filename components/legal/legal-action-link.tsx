@@ -13,7 +13,6 @@ export function LegalActionLink({ actionId, children }: { actionId: LegalActionI
     <Link
       href={localePath(locale, LEGAL_ACTION_PATHS[actionId])}
       data-legal-action={actionId}
-      className="focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
     >
       {children}
     </Link>

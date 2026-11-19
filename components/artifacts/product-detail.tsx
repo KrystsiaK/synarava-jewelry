@@ -834,7 +834,7 @@ function RelatedProductCard({ product }: { product: ProductSummary }) {
   return (
     <Link
       href={localePath(locale, `/products/${product.slug}`)}
-      className="group block w-[min(76vw,19rem)] shrink-0 snap-start focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground/40 md:w-[21rem]"
+      className="group block w-[min(76vw,19rem)] shrink-0 snap-start md:w-[21rem]"
     >
       <ProductGalleryMedia
         src={product.image}
