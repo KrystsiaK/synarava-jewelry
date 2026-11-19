@@ -8,9 +8,13 @@
 # Differs from synarava/wordpress-starter: does NOT install git hooks, does NOT add
 # pre-commit, and does NOT build the graph. Full mode installs the pinned CLI
 # and registers the local merge.graphify.* driver from the graphify shebang.
-# Pin: graphifyy[leiden]==0.9.112 (known-good; no PyPI latest chase).
+# --check is offline: no PyPI / network; verifies CLI + pinned version (+ merge driver).
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+# Pinned CLI — keep in sync with scripts/__tests__/setup-graphify-pin.guard.test.ts
+GRAPHIFYY_VERSION="0.9.112"
+GRAPHIFYY_SPEC="graphifyy[leiden]==${GRAPHIFYY_VERSION}"
 
 check=0 cli_only=0
 for a in "$@"; do
@@ -44,6 +48,13 @@ if [ "$check" = 1 ]; then
   missing=()
   if ! command -v graphify >/dev/null 2>&1; then
     missing+=("graphify CLI is not installed")
+  else
+    cur=$(version)
+    if [ -z "$cur" ]; then
+      missing+=("graphify CLI version could not be parsed")
+    elif [ "$cur" != "$GRAPHIFYY_VERSION" ]; then
+      missing+=("graphify $cur does not match pinned ${GRAPHIFYY_VERSION}")
+    fi
   fi
   if [ "$cli_only" = 0 ]; then
     git config --get merge.graphify.driver >/dev/null 2>&1 || missing+=("graph.json merge driver is not registered")
@@ -57,7 +68,6 @@ if [ "$check" = 1 ]; then
 fi
 
 # Install pinned CLI; [leiden] = Leiden clustering (otherwise a silent Louvain fallback).
-GRAPHIFYY_SPEC="graphifyy[leiden]==0.9.112"
 if command -v uv >/dev/null 2>&1; then
   uv tool install --force "$GRAPHIFYY_SPEC" >/dev/null
 elif command -v pipx >/dev/null 2>&1; then

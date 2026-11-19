@@ -13,7 +13,6 @@ Rules:
 - Maintainer refreshes the graph in a separate PR titled `chore: refresh graphify` after merges to staging.
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
-- Before each task: sync with `staging` (`git fetch origin staging` + rebase onto `origin/staging`). On conflict you cannot resolve safely, stop and report.
 
 ### graphify bootstrap
 

@@ -1,6 +1,6 @@
 ## graphify
 
-Canonical graphify rules live in `AGENTS.md` (bootstrap, query-first, dirty `graphify-out/` expected locally, never commit `graphify-out/` in feature PRs — restore/unstage before commit; maintainer refreshes via `chore: refresh graphify`).
+Canonical graphify rules live in `AGENTS.md` (query-first, dirty `graphify-out/` expected locally, never commit `graphify-out/` in feature PRs — restore/unstage before commit; maintainer refreshes via `chore: refresh graphify`).
 
 ## Ship finished work (staging → main)
 
