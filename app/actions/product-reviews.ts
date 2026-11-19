@@ -11,6 +11,8 @@ import { upsertLocalProductReview } from "@/lib/reviews/mutations";
 import type { PublicProductReview } from "@/lib/reviews/public";
 import { productReviewSubmitSchema } from "@/lib/reviews/schema";
 import { getProductReviewsSettings } from "@/lib/reviews/settings";
+import { getTrustedClientIp } from "@/lib/security/request-ip";
+import { isSynaravaProductAccessible } from "@/lib/shopify/reconciliation";
 
 export type ProductReviewNotice =
   | "checkFields"
@@ -38,15 +40,8 @@ export type ProductReviewActionState = {
 const REVIEW_RATE_WINDOW_MS = 24 * 60 * 60 * 1_000;
 const REVIEW_IP_MAX = 5;
 const REVIEW_EMAIL_MAX = 5;
-
-function clientIpFromHeaders(headerList: Headers): string {
-  const forwarded = headerList.get("x-forwarded-for");
-  if (forwarded) {
-    const first = forwarded.split(",")[0]?.trim();
-    if (first) return first;
-  }
-  return headerList.get("x-real-ip")?.trim() || "unknown";
-}
+const REVIEW_GLOBAL_WINDOW_MS = 60 * 60 * 1_000;
+const REVIEW_GLOBAL_MAX = 30;
 
 export async function submitProductReviewAction(
   _state: ProductReviewActionState,
@@ -74,17 +69,17 @@ export async function submitProductReviewAction(
 
   const product = await db.product.findUnique({
     where: { slug: parsed.data.productSlug },
-    select: { id: true },
+    select: { id: true, status: true, visibility: true },
   });
-  if (!product) {
+  if (!product || !isSynaravaProductAccessible(product.status, product.visibility)) {
     return { notice: "productNotReady" };
   }
 
   const headerList = await headers();
-  const ip = clientIpFromHeaders(headerList);
+  const ip = getTrustedClientIp(headerList);
   const email = normalizeReviewEmail(parsed.data.authorEmail);
 
-  // IP bucket (shared across emails) + separate per-email daily cap.
+  // IP bucket (shared across emails) + per-email daily cap + shared flood cap.
   const ipLimit = await checkRateLimit("product-review-ip", ip, {
     max: REVIEW_IP_MAX,
     windowMs: REVIEW_RATE_WINDOW_MS,
@@ -96,6 +91,12 @@ export async function submitProductReviewAction(
     windowMs: REVIEW_RATE_WINDOW_MS,
   });
   if (!emailLimit.ok) return { notice: "rateLimited" };
+
+  const globalLimit = await checkRateLimit("product-review-global", "all", {
+    max: REVIEW_GLOBAL_MAX,
+    windowMs: REVIEW_GLOBAL_WINDOW_MS,
+  });
+  if (!globalLimit.ok) return { notice: "rateLimited" };
 
   try {
     const settings = await getProductReviewsSettings();
@@ -109,8 +110,7 @@ export async function submitProductReviewAction(
       authorEmail: parsed.data.authorEmail,
     });
 
-    // HIDDEN is irreversible for the author — same neutral success as honeypot,
-    // never leak moderation status.
+    // Existing row (any status) — same neutral success as honeypot; never leak status.
     if (outcome.blockedHidden) {
       return {
         notice: "success",

@@ -46,11 +46,13 @@ const emptyOutcome = {
   storefrontChanged: false,
 };
 
+const publishedProduct = { id: "prod_1", status: "ACTIVE", visibility: "PUBLIC" };
+
 describe("submitProductReviewAction", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.checkRateLimit.mockResolvedValue({ ok: true });
-    mocks.findProduct.mockResolvedValue({ id: "prod_1" });
+    mocks.findProduct.mockResolvedValue(publishedProduct);
     mocks.getProductReviewsSettings.mockResolvedValue({ moderationBeforePublish: true });
     mocks.upsertLocalProductReview.mockResolvedValue(emptyOutcome);
     mocks.headers.mockResolvedValue(new Headers({ "x-forwarded-for": "1.2.3.4" }));
@@ -77,6 +79,11 @@ describe("submitProductReviewAction", () => {
       "product-review-email",
       "ana@example.com",
       expect.objectContaining({ max: 5 }),
+    );
+    expect(mocks.checkRateLimit).toHaveBeenCalledWith(
+      "product-review-global",
+      "all",
+      expect.objectContaining({ max: 30, windowMs: 60 * 60 * 1000 }),
     );
   });
 
@@ -132,6 +139,41 @@ describe("submitProductReviewAction", () => {
       submitProductReviewAction({}, reviewFormData({ authorEmail: "user6@example.com" })),
     ).resolves.toEqual({ notice: "rateLimited" });
     expect(mocks.upsertLocalProductReview).toHaveBeenCalledTimes(5);
+  });
+
+  it("spoofed first x-forwarded-for must NOT yield a new IP bucket", async () => {
+    mocks.headers.mockResolvedValue(
+      new Headers({ "x-forwarded-for": "198.51.100.5, 203.0.113.10" }),
+    );
+
+    await expect(submitProductReviewAction({}, reviewFormData())).resolves.toMatchObject({
+      notice: "pendingModeration",
+    });
+
+    expect(mocks.checkRateLimit).toHaveBeenCalledWith(
+      "product-review-ip",
+      "203.0.113.10",
+      expect.objectContaining({ max: 5 }),
+    );
+    expect(mocks.checkRateLimit).not.toHaveBeenCalledWith(
+      "product-review-ip",
+      "198.51.100.5",
+      expect.anything(),
+    );
+  });
+
+  it("returns productNotReady when the product is not storefront-accessible", async () => {
+    mocks.findProduct.mockResolvedValue({
+      id: "prod_draft",
+      status: "DRAFT",
+      visibility: "PRIVATE",
+    });
+
+    await expect(submitProductReviewAction({}, reviewFormData())).resolves.toEqual({
+      notice: "productNotReady",
+    });
+    expect(mocks.upsertLocalProductReview).not.toHaveBeenCalled();
+    expect(mocks.checkRateLimit).not.toHaveBeenCalled();
   });
 
   it("soft-succeeds on honeypot without writing", async () => {
