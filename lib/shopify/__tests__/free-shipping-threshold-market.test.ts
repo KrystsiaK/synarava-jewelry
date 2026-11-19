@@ -36,11 +36,31 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-function marketNode(input: {
+function marketListNode(input: {
   id?: string;
   name: string;
   codes: string[];
   status?: string;
+}) {
+  return {
+    id: input.id ?? `gid://shopify/Market/${input.name}`,
+    name: input.name,
+    status: input.status ?? "ACTIVE",
+    conditions: {
+      regionsCondition: {
+        regions: {
+          nodes: input.codes.map((code) => ({
+            code,
+          })),
+        },
+      },
+    },
+  };
+}
+
+function marketShippingNode(input: {
+  id?: string;
+  name: string;
   shipping: null | {
     isEnabled: boolean;
     options: Array<{
@@ -57,21 +77,9 @@ function marketNode(input: {
     }>;
   };
 }) {
+  const id = input.id ?? `gid://shopify/Market/${input.name}`;
   return {
-    id: input.id ?? `gid://shopify/Market/${input.name}`,
-    name: input.name,
-    status: input.status ?? "ACTIVE",
-    conditions: {
-      regionsCondition: {
-        regions: {
-          nodes: input.codes.map((code) => ({
-            __typename: "MarketRegionCountry",
-            code,
-            name: code,
-          })),
-        },
-      },
-    },
+    id,
     delivery: {
       shipping: input.shipping
         ? {
@@ -101,6 +109,66 @@ function marketNode(input: {
     },
   };
 }
+
+/** Combined shape used by collectPortugalMarketFreeShippingCandidates (unit tests). */
+function marketNode(input: {
+  id?: string;
+  name: string;
+  codes: string[];
+  status?: string;
+  shipping: null | {
+    isEnabled: boolean;
+    options: Array<{
+      id: string;
+      name: string;
+      isActive?: boolean;
+      __typename?: string;
+      freeDeliveryMinimumValue?: { amount: string; currencyCode: string } | null;
+      valueBasedRates?: Array<{
+        id: string;
+        price: { amount: string; currencyCode: string };
+        minValue: { amount: string; currencyCode: string };
+      }>;
+    }>;
+  };
+}) {
+  return {
+    ...marketListNode(input),
+    ...marketShippingNode(input),
+    id: input.id ?? `gid://shopify/Market/${input.name}`,
+  };
+}
+
+const EU_LIST = marketListNode({
+  name: "European Union",
+  codes: ["PT", "ES", "FR"],
+});
+const PT_LIST = marketListNode({
+  name: "Portugal",
+  codes: ["PT"],
+});
+const EU_SHIPPING = marketShippingNode({
+  name: "European Union",
+  shipping: {
+    isEnabled: true,
+    options: [{
+      id: "gid://shopify/DeliveryFlatRateOptionDefinition/eu",
+      name: "EU free",
+      freeDeliveryMinimumValue: { amount: "69.0", currencyCode: "EUR" },
+    }],
+  },
+});
+const PT_SHIPPING = marketShippingNode({
+  name: "Portugal",
+  shipping: {
+    isEnabled: true,
+    options: [{
+      id: "gid://shopify/DeliveryFlatRateOptionDefinition/pt",
+      name: "Domestic free",
+      freeDeliveryMinimumValue: { amount: "49.0", currencyCode: "EUR" },
+    }],
+  },
+});
 
 describe("collectPortugalMarketFreeShippingCandidates", () => {
   it("reads freeDeliveryMinimumValue from the PT-only market", () => {
@@ -155,35 +223,10 @@ describe("fetchPortugalFreeShippingThreshold market-driven path", () => {
         shop: { features: { marketDrivenShipping: true } },
       })
       .mockResolvedValueOnce({
-        markets: {
-          nodes: [
-            marketNode({
-              name: "European Union",
-              codes: ["PT", "ES", "FR"],
-              shipping: {
-                isEnabled: true,
-                options: [{
-                  id: "gid://shopify/DeliveryFlatRateOptionDefinition/eu",
-                  name: "EU free",
-                  freeDeliveryMinimumValue: { amount: "69.0", currencyCode: "EUR" },
-                }],
-              },
-            }),
-            marketNode({
-              name: "Portugal",
-              codes: ["PT"],
-              shipping: {
-                isEnabled: true,
-                options: [{
-                  id: "gid://shopify/DeliveryFlatRateOptionDefinition/pt",
-                  name: "Domestic free",
-                  freeDeliveryMinimumValue: { amount: "49.0", currencyCode: "EUR" },
-                }],
-              },
-            }),
-          ],
-        },
-      });
+        markets: { nodes: [EU_LIST, PT_LIST] },
+      })
+      .mockResolvedValueOnce({ node: EU_SHIPPING })
+      .mockResolvedValueOnce({ node: PT_SHIPPING });
 
     const discovery = await fetchPortugalFreeShippingThreshold();
     expect(discovery?.money).toEqual({ amount: "49.0", currencyCode: "EUR" });
@@ -194,8 +237,65 @@ describe("fetchPortugalFreeShippingThreshold market-driven path", () => {
     });
     expect(discovery?.warning).toMatch(/Multiple Portugal free-shipping thresholds/);
     expect(mocks.shopifyAdminRequest.mock.calls[1]?.[0]).toContain("markets(");
-    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[0]).toContain("freeDeliveryMinimumValue");
+    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[0]).not.toContain("freeDeliveryMinimumValue");
+    expect(mocks.shopifyAdminRequest.mock.calls[1]?.[0]).toContain("regions(first: 30)");
+    expect(mocks.shopifyAdminRequest.mock.calls[2]?.[0]).toContain("node(id:");
+    expect(mocks.shopifyAdminRequest.mock.calls[2]?.[0]).toContain("freeDeliveryMinimumValue");
+    expect(mocks.shopifyAdminRequest.mock.calls[2]?.[1]).toEqual({ id: EU_LIST.id });
+    expect(mocks.shopifyAdminRequest.mock.calls[3]?.[1]).toEqual({ id: PT_LIST.id });
     expect(mocks.shopifyAdminRequest.mock.calls.some((call) => String(call[0]).includes("deliveryProfiles"))).toBe(false);
+  });
+
+  it("two-query flow matches the previous single-query selection outcome", async () => {
+    const combined = [
+      marketNode({
+        name: "European Union",
+        codes: ["PT", "ES", "FR"],
+        shipping: {
+          isEnabled: true,
+          options: [{
+            id: "gid://shopify/DeliveryFlatRateOptionDefinition/eu",
+            name: "EU free",
+            freeDeliveryMinimumValue: { amount: "69.0", currencyCode: "EUR" },
+          }],
+        },
+      }),
+      marketNode({
+        name: "Portugal",
+        codes: ["PT"],
+        shipping: {
+          isEnabled: true,
+          options: [{
+            id: "gid://shopify/DeliveryFlatRateOptionDefinition/pt",
+            name: "Domestic free",
+            freeDeliveryMinimumValue: { amount: "49.0", currencyCode: "EUR" },
+          }],
+        },
+      }),
+    ];
+    const expected = selectPortugalFreeShippingThreshold(
+      collectPortugalMarketFreeShippingCandidates(combined),
+    );
+
+    mocks.shopifyAdminRequest
+      .mockResolvedValueOnce({
+        shop: { features: { marketDrivenShipping: true } },
+      })
+      .mockResolvedValueOnce({
+        markets: { nodes: [EU_LIST, PT_LIST] },
+      })
+      .mockResolvedValueOnce({ node: EU_SHIPPING })
+      .mockResolvedValueOnce({ node: PT_SHIPPING });
+
+    const discovery = await fetchPortugalFreeShippingThreshold();
+    expect(discovery?.money).toEqual(expected.selected?.money);
+    expect(discovery?.source).toEqual({
+      profileName: expected.selected?.profileName,
+      zoneName: expected.selected?.zoneName,
+      rateName: expected.selected?.rateName,
+    });
+    expect(discovery?.warning).toEqual(expected.warning);
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledTimes(4);
   });
 
   it("keeps the deliveryProfiles path when marketDrivenShipping is false", async () => {
@@ -291,17 +391,9 @@ describe("fetchPortugalFreeShippingThreshold market-driven path", () => {
       .mockResolvedValueOnce({
         markets: {
           nodes: [
-            marketNode({
+            marketListNode({
               name: "Spain",
               codes: ["ES"],
-              shipping: {
-                isEnabled: true,
-                options: [{
-                  id: "gid://shopify/DeliveryFlatRateOptionDefinition/es",
-                  name: "ES free",
-                  freeDeliveryMinimumValue: { amount: "40.0", currencyCode: "EUR" },
-                }],
-              },
             }),
           ],
         },
@@ -310,6 +402,8 @@ describe("fetchPortugalFreeShippingThreshold market-driven path", () => {
     const result = await refreshFreeShippingThresholdShopifyState();
     expect(result.error).toBe(FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE);
     expect(result.window).toBeNull();
+    // No per-market shipping fetches when PT is absent.
+    expect(mocks.shopifyAdminRequest).toHaveBeenCalledTimes(2);
   });
 
   it("returns not-found when a PT market exists but has no free-shipping threshold", async () => {
@@ -319,21 +413,21 @@ describe("fetchPortugalFreeShippingThreshold market-driven path", () => {
       })
       .mockResolvedValueOnce({
         markets: {
-          nodes: [
-            marketNode({
-              name: "Portugal",
-              codes: ["PT"],
-              shipping: {
-                isEnabled: true,
-                options: [{
-                  id: "gid://shopify/DeliveryFlatRateOptionDefinition/pt",
-                  name: "Paid only",
-                  freeDeliveryMinimumValue: null,
-                }],
-              },
-            }),
-          ],
+          nodes: [marketListNode({ name: "Portugal", codes: ["PT"] })],
         },
+      })
+      .mockResolvedValueOnce({
+        node: marketShippingNode({
+          name: "Portugal",
+          shipping: {
+            isEnabled: true,
+            options: [{
+              id: "gid://shopify/DeliveryFlatRateOptionDefinition/pt",
+              name: "Paid only",
+              freeDeliveryMinimumValue: null,
+            }],
+          },
+        }),
       });
 
     const result = await refreshFreeShippingThresholdShopifyState();

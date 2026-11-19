@@ -146,12 +146,20 @@ const DELIVERY_PROFILES_QUERY = `#graphql
 `;
 
 /**
- * Market-driven shipping (Admin API 2026-07).
- * Docs: Market.delivery.shipping.optionDefinitions[].freeDeliveryMinimumValue
- * and DeliveryValueBasedRate (price 0 + minValue) as order-amount free rates.
+ * Market-driven shipping (Admin API 2026-07) — split to stay under the
+ * single-query max cost (1000). Nested connections multiply:
+ * connection ≈ 2 + first × (node field cost); interfaces take max fragment.
+ *
+ * Q1 (list): markets(20) × regions(30) ≈ 2 + 20 × (2 + 2 + 30×1) ≈ 682.
+ * Q2 (per market): optionDefinitions(10) × rateGroups(5) × rates(5)
+ *   rate node ≈ 2 (price + minValue MoneyV2); rates ≈ 2+5×2=12;
+ *   rateGroups ≈ 2+5×12=62; valueBased option ≈ 1+62=63 (interface max);
+ *   options ≈ 2+10×63=632; + delivery/shipping objects ≈ 635 (< 1000).
+ * rates(first) is 5 (not 10) so the interface-max product stays under 1000
+ * with headroom — see PR cost math.
  */
-const MARKETS_SHIPPING_QUERY = `#graphql
-  query PortugalMarketFreeShippingThreshold($first: Int!) {
+const MARKETS_REGION_LIST_QUERY = `#graphql
+  query PortugalMarketsRegionList($first: Int!) {
     markets(first: $first, type: REGION) {
       nodes {
         id
@@ -159,21 +167,29 @@ const MARKETS_SHIPPING_QUERY = `#graphql
         status
         conditions {
           regionsCondition {
-            regions(first: 50) {
+            regions(first: 30) {
               nodes {
-                __typename
                 ... on MarketRegionCountry {
                   code
-                  name
                 }
               }
             }
           }
         }
+      }
+    }
+  }
+`;
+
+const MARKET_SHIPPING_BY_ID_QUERY = `#graphql
+  query PortugalMarketShippingById($id: ID!) {
+    node(id: $id) {
+      ... on Market {
+        id
         delivery {
           shipping {
             isEnabled
-            optionDefinitions(first: 50) {
+            optionDefinitions(first: 10) {
               nodes {
                 __typename
                 id
@@ -188,9 +204,9 @@ const MARKETS_SHIPPING_QUERY = `#graphql
                 }
                 ... on DeliveryValueBasedOptionDefinition {
                   name
-                  rateGroups(first: 20) {
+                  rateGroups(first: 5) {
                     nodes {
-                      rates(first: 20) {
+                      rates(first: 5) {
                         nodes {
                           id
                           price { amount currencyCode }
@@ -608,36 +624,61 @@ async function fetchViaDeliveryProfiles(): Promise<PortugalFreeShippingDiscovery
   return discoveryFromSelection(selected, warning);
 }
 
-async function fetchViaMarketDrivenShipping(): Promise<PortugalFreeShippingDiscovery | null> {
-  let data: { markets: { nodes: MarketNode[] } };
+function isMarketsAccessDenied(error: ShopifyAdminError): boolean {
+  const details = error.details ?? [];
+  return details.some((detail) => detail.extensions?.code === "ACCESS_DENIED")
+    || /access denied|ACCESS_DENIED|read_markets/i.test(error.message)
+    || details.some((detail) => /read_markets|markets field/i.test(detail.message));
+}
+
+async function shopifyMarketsRequest<T>(query: string, variables?: Record<string, unknown>): Promise<T> {
   try {
-    data = await shopifyAdminRequest<{ markets: { nodes: MarketNode[] } }>(
-      MARKETS_SHIPPING_QUERY,
-      { first: 50 },
-    );
+    return await shopifyAdminRequest<T>(query, variables);
   } catch (error) {
-    if (error instanceof ShopifyAdminError) {
-      const details = error.details ?? [];
-      const accessDenied = details.some((detail) => detail.extensions?.code === "ACCESS_DENIED")
-        || /access denied|ACCESS_DENIED|read_markets/i.test(error.message)
-        || details.some((detail) => /read_markets|markets field/i.test(detail.message));
-      if (accessDenied) {
-        throw new ShopifyAdminError(
-          FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE,
-          error.details,
-        );
-      }
+    if (error instanceof ShopifyAdminError && isMarketsAccessDenied(error)) {
+      throw new ShopifyAdminError(
+        FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE,
+        error.details,
+      );
     }
     throw error;
   }
+}
 
-  const markets = data.markets.nodes;
-  if (!marketsIncludePortugal(markets)) {
+/** Load PT-covering markets, then fetch each market's shipping in a cheap follow-up. */
+async function fetchViaMarketDrivenShipping(): Promise<PortugalFreeShippingDiscovery | null> {
+  const list = await shopifyMarketsRequest<{ markets: { nodes: MarketNode[] } }>(
+    MARKETS_REGION_LIST_QUERY,
+    { first: 20 },
+  );
+
+  const listed = list.markets.nodes;
+  if (!marketsIncludePortugal(listed)) {
     throw new Error(FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE);
   }
 
+  const portugalMarkets = listed.filter((market) => {
+    if (market.status && market.status !== "ACTIVE") return false;
+    return marketRegionMeta(market).includesPt;
+  });
+
+  const hydrated: MarketNode[] = [];
+  for (const market of portugalMarkets) {
+    const detail = await shopifyMarketsRequest<{
+      node: {
+        id?: string;
+        delivery?: MarketNode["delivery"];
+      } | null;
+    }>(MARKET_SHIPPING_BY_ID_QUERY, { id: market.id });
+
+    hydrated.push({
+      ...market,
+      delivery: detail.node?.delivery ?? { shipping: null },
+    });
+  }
+
   const { selected, warning } = selectPortugalFreeShippingThreshold(
-    collectPortugalMarketFreeShippingCandidates(markets),
+    collectPortugalMarketFreeShippingCandidates(hydrated),
   );
   if (!selected) return null;
   return discoveryFromSelection(selected, warning);
