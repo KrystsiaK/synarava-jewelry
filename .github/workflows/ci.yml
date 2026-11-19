@@ -101,7 +101,7 @@ jobs:
             echo "Exempt: release PR (staging → main)"
             exit 0
           fi
-          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'graphify-out/')"
+          CHANGED="$(git diff --name-only "$BASE_SHA...$HEAD_SHA" -- 'graphify-out/')"
           if [ -z "$CHANGED" ]; then
             echo "OK: no graphify-out/ changes"
             exit 0
