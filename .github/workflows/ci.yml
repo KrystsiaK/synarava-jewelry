@@ -71,6 +71,55 @@ jobs:
               - 'scripts/sku-platform-production-plan-check.sh'
               - 'scripts/lib/railway-*.mjs'
 
+  # Feature PRs must not ship graphify-out/; refresh via dedicated maintainer PR.
+  graphify-out-guard:
+    name: Forbid graphify-out in feature PRs
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Fail if graphify-out changed (unless exempt)
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_REF: ${{ github.base_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          case "$PR_TITLE" in
+            "chore: refresh graphify"*)
+              echo "Exempt: PR title starts with 'chore: refresh graphify'"
+              exit 0
+              ;;
+          esac
+          if [ "$HEAD_REF" = "staging" ] && [ "$BASE_REF" = "main" ]; then
+            echo "Exempt: release PR (staging → main)"
+            exit 0
+          fi
+          CHANGED="$(git diff --name-only "$BASE_SHA" "$HEAD_SHA" -- 'graphify-out/')"
+          if [ -z "$CHANGED" ]; then
+            echo "OK: no graphify-out/ changes"
+            exit 0
+          fi
+          {
+            echo "::error::Feature PRs must not change graphify-out/."
+            echo "Changed files under graphify-out/:"
+            printf '%s\n' "$CHANGED"
+            echo ""
+            echo "Roll back before commit:"
+            echo "  git restore --staged --worktree graphify-out"
+            echo "Or never stage it:"
+            echo "  git add -A -- . ':!graphify-out'"
+            echo ""
+            echo "Maintainer refreshes the graph in a separate PR titled 'chore: refresh graphify'."
+          } >&2
+          exit 1
+
   quality:
     name: Quality Gates
     runs-on: ubuntu-latest
