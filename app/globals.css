@@ -303,9 +303,7 @@ html {
   outline: none;
 }
 
-.announcement-marquee__track:focus-visible {
-  box-shadow: inset 0 0 0 2px color-mix(in srgb, #f7f7f5 55%, transparent);
-}
+/* Marquee track is focusable for pause; no visible focus frame (storefront policy). */
 
 /* SR content while marquee animates — visually hidden, not display:none. */
 .announcement-marquee__static {
@@ -413,7 +411,26 @@ body {
   box-sizing: border-box;
 }
 
-:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+/*
+ * Storefront focus chrome — single shared kill for buttons/links.
+ * No outline / ring / box-shadow on a, button, [role=button|link|tab], summary.
+ * Inputs keep a focus indicator. .skip-link excluded (uses :focus reveal).
+ * Admin (.admin-terminal) is out of scope; its :focus-visible rules stay.
+ * WCAG 2.4.7 risk: without a focus indicator, keyboard users cannot see focus.
+ */
+body:not(:has(.admin-terminal)) :is(
+  a,
+  button,
+  [role="button"],
+  [role="link"],
+  [role="tab"],
+  summary
+):not(.skip-link):focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+:where(input, select, textarea, .skip-link):focus-visible {
   outline: 2px solid var(--color-accent);
   outline-offset: 3px;
 }
@@ -1640,10 +1657,7 @@ html[data-theme="light"] .site-nav-brand .brand-mark::before {
   opacity: 0.12;
 }
 
-.brand-mark:focus-visible {
-  outline: 2px solid currentColor;
-  outline-offset: 4px;
-}
+/* brand-mark is decorative inside links; focus chrome lives on the <a>. */
 
 .brand-wordmark {
   --brand-wordmark-height: 2.625rem;
@@ -2683,10 +2697,7 @@ html[data-theme="dark"] .ephemeral-toast {
   transform: scale(0.97);
 }
 
-.ephemeral-toast__dismiss:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--color-foreground) 45%, transparent);
-  outline-offset: 2px;
-}
+/* Toast dismiss is a button — covered by storefront focus kill above. */
 
 @keyframes ephemeral-toast-enter {
   from {

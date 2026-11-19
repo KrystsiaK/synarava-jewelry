@@ -72,7 +72,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
               aria-label={t("product.showImage", { current: index + 1, total: count })}
               aria-pressed={index === activeIndex}
               onClick={() => select(index)}
-              className="relative aspect-square w-[4.5rem] shrink-0 snap-start overflow-hidden border border-foreground/16 bg-surface transition-[border-color,opacity] duration-200 hover:border-foreground/55 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-couture-red aria-pressed:border-couture-red aria-pressed:opacity-100 md:w-full"
+              className="relative aspect-square w-[4.5rem] shrink-0 snap-start overflow-hidden border border-foreground/16 bg-surface transition-[border-color,opacity] duration-200 hover:border-foreground/55 aria-pressed:border-couture-red aria-pressed:opacity-100 md:w-full"
             >
               {failedSources.has(item.src) ? (
                 <span className="absolute inset-0 grid place-items-center text-xs text-foreground/55" aria-hidden="true">×</span>
@@ -97,7 +97,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
           type="button"
           aria-label={t("product.enlargeImage", { current: activeIndex + 1, total: count })}
           onClick={() => setLightboxOpen(true)}
-          className="group relative order-1 h-[clamp(20rem,50svh,32rem)] overflow-hidden bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-couture-red md:order-2 md:h-[min(70svh,42rem)]"
+          className="group relative order-1 h-[clamp(20rem,50svh,32rem)] overflow-hidden bg-surface md:order-2 md:h-[min(70svh,42rem)]"
         >
           {failedSources.has(active.src) ? (
             <span className="absolute inset-0 grid place-items-center text-sm text-foreground/55">{t("product.imageUnavailable")}</span>
@@ -187,7 +187,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
                   type="button"
                   onClick={() => setZoomed(false)}
                   aria-label={t("product.zoomOut")}
-                  className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                  className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black"
                 >
                   <ZoomIcon />
                 </button>
@@ -195,7 +195,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
               <button
                 type="button"
                 onClick={() => { setLightboxOpen(false); setZoomed(false); }}
-                className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="flex min-h-11 items-center gap-2 border border-white/35 bg-black/25 px-3 text-xs font-semibold uppercase tracking-[0.12em] transition-colors hover:bg-white hover:text-black"
                 aria-label={t("product.closeExpandedImage")}
               >
                 <CloseIcon /> <span className="hidden sm:inline">{t("product.close")}</span>
@@ -217,7 +217,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
 
 function GalleryArrow({ label, direction, onClick }: { label: string; direction: "left" | "right"; onClick: () => void }) {
   return (
-    <button data-component="GalleryArrow" type="button" aria-label={label} onClick={onClick} className="pointer-events-auto grid size-12 place-items-center border border-white/35 bg-black/30 transition-colors hover:bg-white hover:text-black focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:size-14">
+    <button data-component="GalleryArrow" type="button" aria-label={label} onClick={onClick} className="pointer-events-auto grid size-12 place-items-center border border-white/35 bg-black/30 transition-colors hover:bg-white hover:text-black md:size-14">
       <ArrowIcon direction={direction} />
     </button>
   );

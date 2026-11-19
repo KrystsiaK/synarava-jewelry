@@ -41,7 +41,7 @@ export function ProductCard({
     >
       <Link
         href={localePath(locale, `/products/${product.slug}`)}
-        className="group block cursor-pointer focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-foreground/40"
+        className="group block cursor-pointer"
       >
         <ProductGalleryMedia
           src={product.image}

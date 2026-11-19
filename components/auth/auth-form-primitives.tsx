@@ -141,7 +141,7 @@ export function PasswordInput({
           type="button"
           onClick={() => setVisible((v) => !v)}
           aria-label={visible ? t("auth.hidePassword") : t("auth.showPassword")}
-          className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-foreground/55 transition-colors hover:text-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-4px] focus-visible:outline-accent"
+          className="absolute right-1 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center text-foreground/55 transition-colors hover:text-foreground"
         >
           {visible ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
         </button>
