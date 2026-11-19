@@ -1,9 +1,12 @@
 /**
- * Read-only discovery of Portugal domestic free-shipping min subtotal
- * from delivery profiles (not automatic discounts).
+ * Read-only discovery of Portugal domestic free-shipping min subtotal.
  *
- * Selection is unambiguous:
- * 1. Prefer a zone that consists of PT only.
+ * Source depends on ShopFeatures.marketDrivenShipping:
+ * - true  → Market.delivery.shipping (API 2026-07; needs read_markets)
+ * - false → merchant deliveryProfiles (legacy; needs read_shipping)
+ *
+ * Selection is unambiguous and shared across both sources:
+ * 1. Prefer a zone/market that consists of PT only.
  * 2. Among remaining candidates, take the minimum amount (what a PT buyer sees).
  * 3. Never pick silently when several distinct amounts exist — return a warning.
  */
@@ -24,6 +27,14 @@ export const FREE_SHIPPING_THRESHOLD_NOT_FOUND_MESSAGE =
 export const FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE =
   "Missing Shopify permission: read_shipping (cannot read delivery profiles).";
 
+/** Admin-facing reason when market-driven shipping read is blocked by scopes. */
+export const FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE =
+  "Missing Shopify permission: read_markets (cannot read market-driven shipping).";
+
+/** Admin-facing reason when no market covers Portugal. */
+export const FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE =
+  "No Portugal (PT) market found in Shopify Markets.";
+
 export type FreeShippingThresholdRefreshResult = {
   window: FreeShippingThresholdWindow | null;
   error: string | null;
@@ -33,12 +44,33 @@ export type FreeShippingThresholdRefreshResult = {
 
 /** Map Shopify Admin errors to a stable admin reason (never “Not checked yet”). */
 export function freeShippingThresholdReadErrorMessage(error: unknown): string {
+  if (error instanceof Error) {
+    const trimmed = error.message.trim();
+    // Prefer already-normalized reasons before heuristic scope matching.
+    if (trimmed === FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE) {
+      return FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE;
+    }
+    if (trimmed === FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE) {
+      return FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE;
+    }
+    if (trimmed === FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE) {
+      return FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE;
+    }
+    if (trimmed === FREE_SHIPPING_THRESHOLD_NOT_FOUND_MESSAGE) {
+      return FREE_SHIPPING_THRESHOLD_NOT_FOUND_MESSAGE;
+    }
+  }
   if (error instanceof ShopifyAdminError) {
     const details = error.details ?? [];
     const accessDenied = details.some((detail) => detail.extensions?.code === "ACCESS_DENIED")
       || /access denied|not approved to access|ACCESS_DENIED/i.test(error.message);
-    const shippingScope = /read_shipping|deliveryProfiles|shipping/i.test(error.message)
-      || details.some((detail) => /read_shipping|deliveryProfiles|shipping/i.test(detail.message));
+    const marketsScope = /read_markets|markets field/i.test(error.message)
+      || details.some((detail) => /read_markets|markets field/i.test(detail.message));
+    if (accessDenied && marketsScope) {
+      return FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE;
+    }
+    const shippingScope = /read_shipping|deliveryProfiles|shipping object/i.test(error.message)
+      || details.some((detail) => /read_shipping|deliveryProfiles|shipping object/i.test(detail.message));
     if (accessDenied || shippingScope) {
       return FREE_SHIPPING_THRESHOLD_MISSING_SCOPE_MESSAGE;
     }
@@ -47,6 +79,16 @@ export function freeShippingThresholdReadErrorMessage(error: unknown): string {
   if (error instanceof Error && error.message.trim()) return error.message.trim();
   return "Free-shipping threshold Shopify refresh failed.";
 }
+
+const SHOP_FEATURES_QUERY = `#graphql
+  query ShopMarketDrivenShippingFeature {
+    shop {
+      features {
+        marketDrivenShipping
+      }
+    }
+  }
+`;
 
 const DELIVERY_PROFILES_QUERY = `#graphql
   query PortugalFreeShippingThreshold($first: Int!) {
@@ -103,6 +145,73 @@ const DELIVERY_PROFILES_QUERY = `#graphql
   }
 `;
 
+/**
+ * Market-driven shipping (Admin API 2026-07).
+ * Docs: Market.delivery.shipping.optionDefinitions[].freeDeliveryMinimumValue
+ * and DeliveryValueBasedRate (price 0 + minValue) as order-amount free rates.
+ */
+const MARKETS_SHIPPING_QUERY = `#graphql
+  query PortugalMarketFreeShippingThreshold($first: Int!) {
+    markets(first: $first, type: REGION) {
+      nodes {
+        id
+        name
+        status
+        conditions {
+          regionsCondition {
+            regions(first: 50) {
+              nodes {
+                __typename
+                ... on MarketRegionCountry {
+                  code
+                  name
+                }
+              }
+            }
+          }
+        }
+        delivery {
+          shipping {
+            isEnabled
+            optionDefinitions(first: 50) {
+              nodes {
+                __typename
+                id
+                currency
+                isActive
+                freeDeliveryMinimumValue {
+                  amount
+                  currencyCode
+                }
+                ... on DeliveryFlatRateOptionDefinition {
+                  name
+                }
+                ... on DeliveryValueBasedOptionDefinition {
+                  name
+                  rateGroups(first: 20) {
+                    nodes {
+                      rates(first: 20) {
+                        nodes {
+                          id
+                          price { amount currencyCode }
+                          minValue { amount currencyCode }
+                        }
+                      }
+                    }
+                  }
+                }
+                ... on DeliveryWeightBasedOptionDefinition {
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+`;
+
 type MoneyNode = { amount?: string | null; currencyCode?: string | null };
 
 type MethodNode = {
@@ -149,16 +258,59 @@ type ProfileEdge = {
   };
 };
 
-/** One free-rate condition that applies to a zone containing PT. */
+type MarketRegionNode = {
+  __typename?: string;
+  code?: string | null;
+  name?: string | null;
+};
+
+type MarketValueBasedRateNode = {
+  id: string;
+  price?: MoneyNode | null;
+  minValue?: MoneyNode | null;
+};
+
+type MarketOptionNode = {
+  __typename?: string;
+  id: string;
+  currency?: string | null;
+  isActive: boolean;
+  freeDeliveryMinimumValue?: MoneyNode | null;
+  name?: string | null;
+  rateGroups?: {
+    nodes: Array<{
+      rates?: { nodes: MarketValueBasedRateNode[] } | null;
+    }>;
+  } | null;
+};
+
+type MarketNode = {
+  id: string;
+  name: string;
+  status?: string | null;
+  conditions?: {
+    regionsCondition?: {
+      regions?: { nodes: MarketRegionNode[] } | null;
+    } | null;
+  } | null;
+  delivery?: {
+    shipping?: {
+      isEnabled: boolean;
+      optionDefinitions?: { nodes: MarketOptionNode[] } | null;
+    } | null;
+  } | null;
+};
+
+/** One free-rate condition that applies to a zone/market containing PT. */
 export type PortugalFreeShippingCandidate = {
   money: FreeShippingMoney;
   profileGid: string;
   profileName: string;
   zoneGid: string;
   zoneName: string;
-  /** ISO country codes on the zone (excludes rest-of-world). */
+  /** ISO country codes on the zone/market (excludes rest-of-world). */
   zoneCountryCodes: string[];
-  /** True when the zone is exactly Portugal (no other countries / ROW). */
+  /** True when the zone/market is exactly Portugal (no other countries / ROW). */
   isPtOnly: boolean;
   methodDefinitionGid: string;
   rateName: string;
@@ -194,6 +346,13 @@ function formatMoneyBrief(money: FreeShippingMoney): string {
   return `${money.amount} ${money.currencyCode}`;
 }
 
+function parseMoney(node: MoneyNode | null | undefined): FreeShippingMoney | null {
+  const amount = typeof node?.amount === "string" ? node.amount.trim() : "";
+  const currencyCode = typeof node?.currencyCode === "string" ? node.currencyCode.trim() : "";
+  if (!amount || !currencyCode) return null;
+  return { amount, currencyCode };
+}
+
 function zoneMeta(zone: ZoneEdge["node"]["zone"]): {
   codes: string[];
   isPtOnly: boolean;
@@ -205,6 +364,20 @@ function zoneMeta(zone: ZoneEdge["node"]["zone"]): {
     .filter((code) => code.length > 0);
   const includesPt = codes.includes("PT");
   const isPtOnly = includesPt && !hasRestOfWorld && codes.length === 1 && codes[0] === "PT";
+  return { codes, isPtOnly, includesPt };
+}
+
+function marketRegionMeta(market: MarketNode): {
+  codes: string[];
+  isPtOnly: boolean;
+  includesPt: boolean;
+} {
+  const regions = market.conditions?.regionsCondition?.regions?.nodes ?? [];
+  const codes = regions
+    .map((region) => (typeof region.code === "string" ? region.code.trim() : ""))
+    .filter((code) => code.length > 0);
+  const includesPt = codes.includes("PT");
+  const isPtOnly = includesPt && codes.length === 1 && codes[0] === "PT";
   return { codes, isPtOnly, includesPt };
 }
 
@@ -222,11 +395,10 @@ function freeRateCondition(method: MethodNode): {
     if (condition.operator !== "GREATER_THAN_OR_EQUAL_TO") continue;
     const criteria = condition.conditionCriteria;
     if (!criteria || criteria.__typename !== "MoneyV2") continue;
-    const minAmount = typeof criteria.amount === "string" ? criteria.amount.trim() : "";
-    const currencyCode = typeof criteria.currencyCode === "string" ? criteria.currencyCode.trim() : "";
-    if (!minAmount || !currencyCode) continue;
+    const money = parseMoney(criteria);
+    if (!money) continue;
     return {
-      money: { amount: minAmount, currencyCode },
+      money,
       conditionGid: condition.id,
     };
   }
@@ -273,6 +445,93 @@ export function collectPortugalFreeShippingCandidates(
 }
 
 /**
+ * Collect free-shipping order-amount thresholds from market-driven shipping.
+ * Sources per option: freeDeliveryMinimumValue, and value-based rates with price 0 + minValue.
+ */
+export function collectPortugalMarketFreeShippingCandidates(
+  markets: MarketNode[],
+): PortugalFreeShippingCandidate[] {
+  const candidates: PortugalFreeShippingCandidate[] = [];
+  const seen = new Set<string>();
+
+  const pushCandidate = (candidate: PortugalFreeShippingCandidate) => {
+    const key = [
+      candidate.profileGid,
+      candidate.methodDefinitionGid,
+      candidate.conditionGid,
+      moneyKey(candidate.money),
+    ].join("\0");
+    if (seen.has(key)) return;
+    seen.add(key);
+    candidates.push(candidate);
+  };
+
+  for (const market of markets) {
+    if (market.status && market.status !== "ACTIVE") continue;
+    const meta = marketRegionMeta(market);
+    if (!meta.includesPt) continue;
+
+    const shipping = market.delivery?.shipping;
+    // null shipping = inherits from parent; parent (broader) markets that include PT
+    // are collected separately when they define their own shipping.
+    if (!shipping || !shipping.isEnabled) continue;
+
+    const marketName = market.name.trim() || market.id;
+    for (const option of shipping.optionDefinitions?.nodes ?? []) {
+      if (!option.isActive) continue;
+      const rateName = (typeof option.name === "string" ? option.name.trim() : "") || option.id;
+
+      const freeMin = parseMoney(option.freeDeliveryMinimumValue);
+      if (freeMin) {
+        pushCandidate({
+          money: freeMin,
+          profileGid: market.id,
+          profileName: marketName,
+          zoneGid: market.id,
+          zoneName: marketName,
+          zoneCountryCodes: meta.codes,
+          isPtOnly: meta.isPtOnly,
+          methodDefinitionGid: option.id,
+          rateName,
+          conditionGid: `${option.id}:freeDeliveryMinimumValue`,
+        });
+      }
+
+      if (option.__typename !== "DeliveryValueBasedOptionDefinition") continue;
+      for (const group of option.rateGroups?.nodes ?? []) {
+        for (const rate of group.rates?.nodes ?? []) {
+          const priceAmount = Number.parseFloat(rate.price?.amount ?? "NaN");
+          if (!Number.isFinite(priceAmount) || priceAmount !== 0) continue;
+          const minValue = parseMoney(rate.minValue);
+          if (!minValue) continue;
+          pushCandidate({
+            money: minValue,
+            profileGid: market.id,
+            profileName: marketName,
+            zoneGid: market.id,
+            zoneName: marketName,
+            zoneCountryCodes: meta.codes,
+            isPtOnly: meta.isPtOnly,
+            methodDefinitionGid: option.id,
+            rateName,
+            conditionGid: rate.id,
+          });
+        }
+      }
+    }
+  }
+  return candidates;
+}
+
+/** True when any ACTIVE region market includes Portugal. */
+export function marketsIncludePortugal(markets: readonly MarketNode[]): boolean {
+  return markets.some((market) => {
+    if (market.status && market.status !== "ACTIVE") return false;
+    return marketRegionMeta(market).includesPt;
+  });
+}
+
+/**
  * Prefer PT-only zones; then minimum amount. Warn when several distinct amounts exist.
  * Tie-break equal amounts by profile / zone / rate name for stability.
  */
@@ -316,21 +575,10 @@ export function selectPortugalFreeShippingThreshold(
   return { selected, warning, distinctAmounts };
 }
 
-/**
- * Find Portugal free-rate min-subtotal via the single selection mechanism above.
- * Returns null when no matching condition exists (do not invent a threshold).
- */
-export async function fetchPortugalFreeShippingThreshold(): Promise<PortugalFreeShippingDiscovery | null> {
-  const data = await shopifyAdminRequest<{
-    deliveryProfiles: { edges: ProfileEdge[] };
-  }>(DELIVERY_PROFILES_QUERY, { first: 10 });
-
-  const profiles = data.deliveryProfiles.edges.map((edge) => edge.node);
-  const { selected, warning } = selectPortugalFreeShippingThreshold(
-    collectPortugalFreeShippingCandidates(profiles),
-  );
-  if (!selected) return null;
-
+function discoveryFromSelection(
+  selected: PortugalFreeShippingCandidate,
+  warning: string | null,
+): PortugalFreeShippingDiscovery {
   return {
     money: selected.money,
     window: { freeShippingMinSubtotal: selected.money },
@@ -345,6 +593,70 @@ export async function fetchPortugalFreeShippingThreshold(): Promise<PortugalFree
     conditionGid: selected.conditionGid,
     methodDefinitionGid: selected.methodDefinitionGid,
   };
+}
+
+async function fetchViaDeliveryProfiles(): Promise<PortugalFreeShippingDiscovery | null> {
+  const data = await shopifyAdminRequest<{
+    deliveryProfiles: { edges: ProfileEdge[] };
+  }>(DELIVERY_PROFILES_QUERY, { first: 10 });
+
+  const profiles = data.deliveryProfiles.edges.map((edge) => edge.node);
+  const { selected, warning } = selectPortugalFreeShippingThreshold(
+    collectPortugalFreeShippingCandidates(profiles),
+  );
+  if (!selected) return null;
+  return discoveryFromSelection(selected, warning);
+}
+
+async function fetchViaMarketDrivenShipping(): Promise<PortugalFreeShippingDiscovery | null> {
+  let data: { markets: { nodes: MarketNode[] } };
+  try {
+    data = await shopifyAdminRequest<{ markets: { nodes: MarketNode[] } }>(
+      MARKETS_SHIPPING_QUERY,
+      { first: 50 },
+    );
+  } catch (error) {
+    if (error instanceof ShopifyAdminError) {
+      const details = error.details ?? [];
+      const accessDenied = details.some((detail) => detail.extensions?.code === "ACCESS_DENIED")
+        || /access denied|ACCESS_DENIED|read_markets/i.test(error.message)
+        || details.some((detail) => /read_markets|markets field/i.test(detail.message));
+      if (accessDenied) {
+        throw new ShopifyAdminError(
+          FREE_SHIPPING_THRESHOLD_MISSING_MARKETS_SCOPE_MESSAGE,
+          error.details,
+        );
+      }
+    }
+    throw error;
+  }
+
+  const markets = data.markets.nodes;
+  if (!marketsIncludePortugal(markets)) {
+    throw new Error(FREE_SHIPPING_THRESHOLD_NO_PORTUGAL_MARKET_MESSAGE);
+  }
+
+  const { selected, warning } = selectPortugalFreeShippingThreshold(
+    collectPortugalMarketFreeShippingCandidates(markets),
+  );
+  if (!selected) return null;
+  return discoveryFromSelection(selected, warning);
+}
+
+/**
+ * Find Portugal free-rate min-subtotal via the single selection mechanism above.
+ * Returns null when no matching condition exists (do not invent a threshold).
+ * When market-driven shipping is on, never falls back to deliveryProfiles.
+ */
+export async function fetchPortugalFreeShippingThreshold(): Promise<PortugalFreeShippingDiscovery | null> {
+  const features = await shopifyAdminRequest<{
+    shop: { features: { marketDrivenShipping: boolean } };
+  }>(SHOP_FEATURES_QUERY);
+
+  if (features.shop.features.marketDrivenShipping) {
+    return fetchViaMarketDrivenShipping();
+  }
+  return fetchViaDeliveryProfiles();
 }
 
 /** Refresh-only helper used by the catalog Shopify waterfall. */
