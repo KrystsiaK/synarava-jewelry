@@ -5,11 +5,8 @@ import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cach
 import { Cormorant_Garamond, Hanken_Grotesk } from "next/font/google";
 import { MotionConfig } from "motion/react";
 
-import { AnnouncementBar } from "@/components/layout/announcement-bar";
 import { SiteFooter } from "@/components/layout/site-footer";
 import { SiteHeader } from "@/components/layout/site-header";
-import { ANNOUNCEMENT_BAR_COPY_KEY } from "@/lib/content/announcement-bar-fields";
-import { getAnnouncementBarSetting } from "@/lib/content/announcement-bar";
 import { ThemeProvider } from "@/components/theme/theme-provider";
 import { ThemeScript } from "@/components/theme/theme-script";
 import { WebVitalsReporter } from "@/components/telemetry/web-vitals-reporter";
@@ -161,9 +158,7 @@ export default async function RootLayout({
     metaPixelId: process.env.NEXT_PUBLIC_META_PIXEL_ID,
     claritySiteId: process.env.NEXT_PUBLIC_CLARITY_SITE_ID,
   });
-  const isAdminPath = typeof pathname === "string"
-    && (pathname === "/admin" || pathname.startsWith("/admin/"));
-  const [cartCount, isLoggedIn, storefrontCopy, commerceCopy, headerNavRaw, footerLinksRaw, contactEmails, announcementSetting] =
+  const [cartCount, isLoggedIn, storefrontCopy, commerceCopy, headerNavRaw, footerLinksRaw, contactEmails] =
     await Promise.all([
     // An unreachable/slow Shopify Storefront API must not block rendering of the
     // whole app (admin included) for a header badge that isn't essential to any page.
@@ -174,7 +169,6 @@ export default async function RootLayout({
     getHeaderNav(),
     getFooterLinks(),
     getFooterContactEmails(),
-    isAdminPath ? Promise.resolve(null) : getAnnouncementBarSetting(),
   ]);
   const [headerNav, footerLinks] = await Promise.all([
     filterLiveHeaderNav(headerNavRaw),
@@ -185,10 +179,6 @@ export default async function RootLayout({
     undefined,
     initialLocale,
   );
-  const announcementTemplate =
-    storefrontCopy[initialLocale]?.[ANNOUNCEMENT_BAR_COPY_KEY]
-    ?? storefrontCopy.en?.[ANNOUNCEMENT_BAR_COPY_KEY]
-    ?? t("announcement.bar");
 
   return (
     <html
@@ -247,14 +237,6 @@ export default async function RootLayout({
                 itself — a per-component audit isn't needed for new motion usage either. */}
             <MotionConfig reducedMotion="user">
               <EphemeralToastProvider surface="storefront">
-                {!isAdminPath && announcementSetting ? (
-                  <AnnouncementBar
-                    enabled={announcementSetting.enabled}
-                    threshold={announcementSetting.threshold}
-                    template={announcementTemplate}
-                    locale={initialLocale}
-                  />
-                ) : null}
                 <SiteHeader initialCartCount={cartCount} isLoggedIn={isLoggedIn} headerNav={headerNav} />
                 <div id="main-content" tabIndex={-1}>{children}</div>
                 <SiteFooter

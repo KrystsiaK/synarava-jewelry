@@ -1,5 +1,13 @@
 export { ArtifactButton, ArtifactLink, artifactButtonClasses } from "./artifact-button";
 export { AnimatedModal } from "./animated-modal";
+export {
+  AnnouncementMarquee,
+  ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S,
+  ANNOUNCEMENT_MARQUEE_SPEED_MIN_PX_PER_S,
+  ANNOUNCEMENT_MARQUEE_SPEED_MAX_PX_PER_S,
+  ANNOUNCEMENT_MARQUEE_GAP_EM,
+} from "./announcement-marquee";
+export type { AnnouncementMarqueeProps } from "./announcement-marquee";
 export { ArtifactPanel } from "./artifact-panel";
 export { BodyLead } from "./body-lead";
 export { CapsLabel } from "./caps-label";
