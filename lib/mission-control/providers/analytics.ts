@@ -13,13 +13,20 @@ import {
   fetchGaEventCounts,
   fetchGaTelemetryCounts,
   fetchGaVisitPulse,
+  fetchGaWeeklySummary,
 } from "@/lib/mission-control/analytics/ga-client";
 import { parseGaServiceAccountJson } from "@/lib/mission-control/analytics/ga-jwt";
 import {
-  buildGaAcquisitionReportsUrl,
+  buildGaIntelligentHomeUrl,
   formatVisitPulseMessage,
   type GaVisitPulse,
 } from "@/lib/mission-control/analytics/ga-visit-pulse";
+import {
+  formatConversionPct,
+  formatRevenue,
+  formatWeeklySummaryMessage,
+  type GaWeeklySummary,
+} from "@/lib/mission-control/analytics/ga-weekly-summary";
 import { safeHttpFailureReason } from "@/lib/mission-control/analytics/http-reason";
 import { formatAnalyticsMarkdownReport } from "@/lib/mission-control/analytics/report";
 import { buildTelemetryNotConfiguredNotice } from "@/lib/mission-control/analytics/telemetry-notice";
@@ -183,6 +190,8 @@ export async function getAnalyticsStatus(
       message: ANALYTICS_NOT_CONNECTED_MESSAGE,
       sources: { ga: "not_connected", clarity: "not_connected" },
       clarityDataAsOf: lastSuccess?.fetchedAt ?? null,
+      gaOpenUrl: null,
+      weeklySummary: null,
       limits: {
         clarityCallsUsedToday: budget.callsUsed,
         clarityBudgetPerDay: ANALYTICS_THRESHOLDS.clarityApiBudgetPerDay,
@@ -208,6 +217,7 @@ export async function getAnalyticsStatus(
     | Awaited<ReturnType<typeof fetchGaTelemetryCounts>>
     | undefined;
   let visitPulse = undefined as GaVisitPulse | undefined;
+  let weeklySummary = undefined as GaWeeklySummary | undefined;
   let clarityRows = undefined as
     | Awaited<ReturnType<typeof fetchClarityFrictionRows>>["rows"]
     | undefined;
@@ -226,7 +236,7 @@ export async function getAnalyticsStatus(
   let gaHref = HREF_FALLBACK;
 
   if (gaOk && sa && env.GA_PROPERTY_ID) {
-    gaHref = buildGaAcquisitionReportsUrl(env.GA_PROPERTY_ID);
+    gaHref = buildGaIntelligentHomeUrl(env.GA_PROPERTY_ID);
     const gaDeps = {
       propertyId: env.GA_PROPERTY_ID,
       serviceAccount: sa,
@@ -246,11 +256,13 @@ export async function getAnalyticsStatus(
         ? fetchGaTelemetryCounts(gaDeps)
         : Promise.resolve([] as Awaited<ReturnType<typeof fetchGaTelemetryCounts>>),
       fetchGaVisitPulse(gaDeps),
+      fetchGaWeeklySummary(gaDeps),
     ]);
 
     const eventsResult = settled[0];
     const telemetryResult = settled[1];
     const visitResult = settled[2];
+    const weeklyResult = settled[3];
 
     if (eventsResult.status === "fulfilled") {
       gaEvents = eventsResult.value;
@@ -258,10 +270,14 @@ export async function getAnalyticsStatus(
     if (visitResult.status === "fulfilled") {
       visitPulse = visitResult.value;
     }
+    if (weeklyResult.status === "fulfilled") {
+      weeklySummary = weeklyResult.value;
+    }
 
     const eventsOk = eventsResult.status === "fulfilled";
     const visitOk = visitResult.status === "fulfilled";
-    if (!eventsOk && !visitOk) {
+    const weeklyOk = weeklyResult.status === "fulfilled";
+    if (!eventsOk && !visitOk && !weeklyOk) {
       gaSource = "skipped";
       sourceIssues.push(
         sourceUnavailableIssue(
@@ -301,12 +317,25 @@ export async function getAnalyticsStatus(
           ),
         );
       }
+      if (!weeklyOk) {
+        sourceIssues.push(
+          sourceUnavailableIssue(
+            "source:ga_weekly_summary",
+            "ga",
+            "GA weekly summary (7d) unavailable this run",
+            safeHttpFailureReason(weeklyResult.reason),
+            now,
+            "GA4 → Reports → Intelligent insights",
+            "Confirm Analytics Data API accepts ecommercePurchases/purchaseRevenue/sessionSource/pagePath for this property.",
+          ),
+        );
+      }
     }
 
     if (telemetryEnabled) {
       if (telemetryResult.status === "fulfilled") {
         gaTelemetry = telemetryResult.value;
-      } else if (eventsOk || visitOk) {
+      } else if (eventsOk || visitOk || weeklyOk) {
         sourceIssues.push(
           sourceUnavailableIssue(
             "source:ga_telemetry",
@@ -389,14 +418,76 @@ export async function getAnalyticsStatus(
   });
   const issues = [...sourceIssues, ...detected];
   const level = worstLevelFromIssues(issues);
-  const message = visitPulse
-    ? formatVisitPulseMessage(visitPulse)
-    : issues.length === 0
-      ? "No analytics issues above threshold"
-      : `${issues.length} issue(s); worst=${level}`;
+  const message = weeklySummary
+    ? formatWeeklySummaryMessage(weeklySummary)
+    : visitPulse
+      ? formatVisitPulseMessage(visitPulse)
+      : issues.length === 0
+        ? "No analytics issues above threshold"
+        : `${issues.length} issue(s); worst=${level}`;
 
+  const weekPeriod = `last ${ANALYTICS_THRESHOLDS.visitPulseDays} days vs prior ${ANALYTICS_THRESHOLDS.visitPulseDays} (GA, consented)`;
   const figures: AnalyticsSnapshotPayload["figures"] = [];
-  if (visitPulse) {
+  if (weeklySummary) {
+    figures.push({
+      label: "GA users (7d)",
+      value: weeklySummary.current.users,
+      period: weekPeriod,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA sessions (7d)",
+      value: weeklySummary.current.sessions,
+      period: weekPeriod,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA purchases / orders (7d)",
+      value: weeklySummary.current.purchases,
+      period: weekPeriod,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA revenue (7d)",
+      value: formatRevenue(weeklySummary.current.revenue),
+      period: weekPeriod,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA conversion (7d)",
+      value: formatConversionPct(weeklySummary.current.conversionRate),
+      period: weekPeriod,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA users prior 7d",
+      value: weeklySummary.previous.users,
+      period: `prior ${ANALYTICS_THRESHOLDS.visitPulseDays} days (consented)`,
+      source: "ga",
+    });
+    figures.push({
+      label: "GA sessions prior 7d",
+      value: weeklySummary.previous.sessions,
+      period: `prior ${ANALYTICS_THRESHOLDS.visitPulseDays} days (consented)`,
+      source: "ga",
+    });
+    for (const [index, source] of weeklySummary.sources.entries()) {
+      figures.push({
+        label: `GA top source #${index + 1}`,
+        value: `${source.name} · ${source.sessions} sess · ${source.sharePct}%`,
+        period: weekPeriod,
+        source: "ga",
+      });
+    }
+    for (const [index, page] of weeklySummary.pages.entries()) {
+      figures.push({
+        label: `GA top page #${index + 1}`,
+        value: `${page.name} · ${page.sessions} sess · ${page.sharePct}%`,
+        period: weekPeriod,
+        source: "ga",
+      });
+    }
+  } else if (visitPulse) {
     figures.push({
       label: "GA sessions (7d)",
       value: visitPulse.current.sessions,
@@ -466,6 +557,8 @@ export async function getAnalyticsStatus(
       clarityNumOfDays: ANALYTICS_THRESHOLDS.clarityNumOfDays,
     },
     figures,
+    weeklySummary: weeklySummary ?? null,
+    gaOpenUrl: gaHref,
   });
 
   return toRecord(

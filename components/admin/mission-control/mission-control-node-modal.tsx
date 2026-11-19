@@ -58,7 +58,27 @@ function statusLabel(
   return node.kind === "info" ? "Reference" : "Not wired";
 }
 
-function IssueCard({ issue }: { issue: AnalyticsIssue }) {
+function GaOpenLink({ href }: { href: string }) {
+  return (
+    <a
+      className="mc-analytics-ga-link"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      Open in Google Analytics
+      <ExternalLink aria-hidden="true" />
+    </a>
+  );
+}
+
+function IssueCard({
+  issue,
+  gaOpenUrl,
+}: {
+  issue: AnalyticsIssue;
+  gaOpenUrl: string | null;
+}) {
   const numbers = Object.entries(issue.numbers)
     .map(([key, value]) => `${key}: ${value}`)
     .join(" · ");
@@ -94,7 +114,111 @@ function IssueCard({ issue }: { issue: AnalyticsIssue }) {
           </dd>
         </div>
       </dl>
+      {gaOpenUrl && issue.source === "ga" ? <GaOpenLink href={gaOpenUrl} /> : null}
     </article>
+  );
+}
+
+function formatDelta(current: number, previous: number): string {
+  if (previous <= 0) return current > 0 ? "▲ new" : "—";
+  const pct = Math.round(((current - previous) / previous) * 100);
+  if (pct > 0) return `▲ ${pct}%`;
+  if (pct < 0) return `▼ ${Math.abs(pct)}%`;
+  return "0%";
+}
+
+function WeeklySummaryPanel({
+  payload,
+  gaOpenUrl,
+}: {
+  payload: AnalyticsSnapshotPayload;
+  gaOpenUrl: string | null;
+}) {
+  const summary = payload.weeklySummary;
+  if (!summary) return null;
+  const period =
+    payload.figures.find((figure) => figure.label.startsWith("GA users"))
+      ?.period ?? "last 7 days vs prior 7 (GA, consented)";
+  const rows: Array<{ label: string; current: string; delta: string }> = [
+    {
+      label: "Users",
+      current: String(summary.current.users),
+      delta: formatDelta(summary.current.users, summary.previous.users),
+    },
+    {
+      label: "Sessions",
+      current: String(summary.current.sessions),
+      delta: formatDelta(summary.current.sessions, summary.previous.sessions),
+    },
+    {
+      label: "Orders",
+      current: String(summary.current.purchases),
+      delta: formatDelta(summary.current.purchases, summary.previous.purchases),
+    },
+    {
+      label: "Revenue",
+      current: String(summary.current.revenue),
+      delta: formatDelta(summary.current.revenue, summary.previous.revenue),
+    },
+    {
+      label: "Conversion",
+      current: `${(summary.current.conversionRate * 100).toFixed(2)}%`,
+      delta: formatDelta(
+        summary.current.conversionRate,
+        summary.previous.conversionRate,
+      ),
+    },
+  ];
+
+  return (
+    <section className="mc-analytics-summary" aria-label="GA weekly summary">
+      <header className="mc-analytics-summary__header">
+        <div>
+          <h3>GA weekly summary</h3>
+          <p>{period}</p>
+        </div>
+        {gaOpenUrl ? <GaOpenLink href={gaOpenUrl} /> : null}
+      </header>
+      <ul className="mc-analytics-summary__metrics">
+        {rows.map((row) => (
+          <li key={row.label}>
+            <span>{row.label}</span>
+            <strong>{row.current}</strong>
+            <em>{row.delta}</em>
+          </li>
+        ))}
+      </ul>
+      <div className="mc-analytics-summary__lists">
+        <div>
+          <h4>Top sources</h4>
+          {summary.sources.length === 0 ? (
+            <p>No sources in this window.</p>
+          ) : (
+            <ol>
+              {summary.sources.map((source) => (
+                <li key={source.name}>
+                  {source.name} · {source.sessions} · {source.sharePct}%
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+        <div>
+          <h4>Top pages</h4>
+          {summary.pages.length === 0 ? (
+            <p>No pages in this window.</p>
+          ) : (
+            <ol>
+              {summary.pages.map((page) => (
+                <li key={page.name}>
+                  {page.name} · {page.sessions} · {page.sharePct}%
+                </li>
+              ))}
+            </ol>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -102,13 +226,16 @@ function AnalyticsDetails({
   payload,
   report,
   widgetKey,
+  gaOpenUrl,
 }: {
   payload: AnalyticsSnapshotPayload;
   report: string | null;
   widgetKey: string;
+  gaOpenUrl: string | null;
 }) {
   return (
     <section className="mc-analytics-panel" aria-label="Analytics issues">
+      <WeeklySummaryPanel payload={payload} gaOpenUrl={gaOpenUrl} />
       <div className="mc-analytics-panel__notes">
         <p>{payload.gaConsentNote}</p>
         <p>{payload.clarityBotNote}</p>
@@ -147,7 +274,7 @@ function AnalyticsDetails({
           </p>
         ) : (
           payload.issues.map((issue) => (
-            <IssueCard key={issue.id} issue={issue} />
+            <IssueCard key={issue.id} issue={issue} gaOpenUrl={gaOpenUrl} />
           ))
         )}
       </div>
@@ -194,11 +321,16 @@ export function MissionControlNodeModal({
       ? readAnalyticsReportMarkdown(status?.counters)
       : null;
   const nonLiveLabel = statusLabel(node, status);
-  const openHref = status?.href?.trim() || env.href;
+  const openHref =
+    analyticsPayload?.gaOpenUrl?.trim() ||
+    status?.href?.trim() ||
+    env.href;
   const openLabel =
     env.label.startsWith("Открыть") || env.label.startsWith("Open")
       ? env.label
       : `Open ${env.label}`;
+  const gaOpenUrl =
+    openHref && openHref.includes("analytics.google.com") ? openHref : null;
 
   return (
     <aside
@@ -261,6 +393,7 @@ export function MissionControlNodeModal({
               payload={analyticsPayload}
               report={analyticsReport}
               widgetKey={node.widgetKey}
+              gaOpenUrl={gaOpenUrl}
             />
           ) : null}
           {showFix ? (
@@ -283,7 +416,11 @@ export function MissionControlNodeModal({
               className="mc-node-detail__open"
               href={openHref}
               target={openHref.startsWith("http") ? "_blank" : undefined}
-              rel={openHref.startsWith("http") ? "noreferrer" : undefined}
+              rel={
+                openHref.startsWith("http")
+                  ? "noopener noreferrer"
+                  : undefined
+              }
             >
               {openLabel}
               <ExternalLink aria-hidden="true" />

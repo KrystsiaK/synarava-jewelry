@@ -283,3 +283,9 @@ export function buildGaAcquisitionReportsUrl(propertyId: string): string {
   const id = propertyId.replace(/^properties\//, "").trim();
   return `https://analytics.google.com/analytics/web/#/p${id}/reports/explorer?r=user-acquisition-overview`;
 }
+
+/** GA4 intelligent home — preferred hub outbound link (property id is not secret). */
+export function buildGaIntelligentHomeUrl(propertyId: string): string {
+  const id = propertyId.replace(/^properties\//, "").trim();
+  return `https://analytics.google.com/analytics/web/#/p${id}/reports/intelligenthome`;
+}

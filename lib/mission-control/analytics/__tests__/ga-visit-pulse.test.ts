@@ -228,6 +228,17 @@ describe("buildGaAcquisitionReportsUrl", () => {
   });
 });
 
+describe("buildGaIntelligentHomeUrl", () => {
+  it("builds property intelligent home deep link", async () => {
+    const { buildGaIntelligentHomeUrl } = await import(
+      "@/lib/mission-control/analytics/ga-visit-pulse"
+    );
+    expect(buildGaIntelligentHomeUrl("123456789")).toBe(
+      "https://analytics.google.com/analytics/web/#/p123456789/reports/intelligenthome",
+    );
+  });
+});
+
 describe("admin traffic exclusion (PR #398)", () => {
   it("keeps admin path / session out of storefront analytics collection", () => {
     expect(
