@@ -1,6 +1,6 @@
 import "server-only";
 
-import type { ProductReviewStatus } from "@prisma/client";
+import { Prisma, type ProductReviewStatus } from "@prisma/client";
 
 import { db } from "@/lib/db";
 import { normalizeReviewEmail, publicAuthorName } from "@/lib/reviews/author";
@@ -20,7 +20,10 @@ export type UpsertLocalReviewInput = {
 
 export type UpsertLocalReviewOutcome = {
   reviews: ProductReviewsData;
-  /** Existing HIDDEN row left untouched — caller must return a neutral success. */
+  /**
+   * Existing row for (productId, authorEmail) left untouched — email is not
+   * verified on anonymous submit, so create-only. Caller returns neutral success.
+   */
   blockedHidden: boolean;
   /** True when the write made a PUBLISHED review visible on the storefront. */
   storefrontChanged: boolean;
@@ -47,10 +50,10 @@ async function listPublishedReviews(productId: string): Promise<ProductReviewsDa
 }
 
 /**
- * Upsert by (productId, authorEmail).
- * - Moderation on (default): create/update → PENDING.
- * - Moderation off: create/update → PUBLISHED immediately.
- * - HIDDEN rows are irreversible for the author: leave untouched.
+ * Create-only by (productId, authorEmail).
+ * - Moderation on (default): create → PENDING.
+ * - Moderation off: create → PUBLISHED immediately.
+ * - Any existing row (any status) is left untouched — anonymous email is unverified.
  */
 export async function upsertLocalProductReview(
   input: UpsertLocalReviewInput,
@@ -69,7 +72,8 @@ export async function upsertLocalProductReview(
     select: { status: true },
   });
 
-  if (existing?.status === "HIDDEN") {
+  // Any prior row: write nothing. Same neutral path for HIDDEN / PENDING / PUBLISHED.
+  if (existing) {
     return {
       reviews: await listPublishedReviews(input.productId),
       blockedHidden: true,
@@ -82,37 +86,33 @@ export async function upsertLocalProductReview(
     : "PUBLISHED";
   const now = new Date();
 
-  await db.productReview.upsert({
-    where: {
-      productId_authorEmail: {
+  try {
+    await db.productReview.create({
+      data: {
         productId: input.productId,
+        locale: input.locale,
+        rating: input.rating,
+        title: input.title,
+        body: input.body,
+        authorName,
         authorEmail,
+        status,
+        verifiedPurchase: false,
+        moderatedAt: status === "PUBLISHED" ? now : null,
+        moderatedBy: status === "PUBLISHED" ? "auto" : null,
       },
-    },
-    create: {
-      productId: input.productId,
-      locale: input.locale,
-      rating: input.rating,
-      title: input.title,
-      body: input.body,
-      authorName,
-      authorEmail,
-      status,
-      verifiedPurchase: false,
-      moderatedAt: status === "PUBLISHED" ? now : null,
-      moderatedBy: status === "PUBLISHED" ? "auto" : null,
-    },
-    update: {
-      locale: input.locale,
-      rating: input.rating,
-      title: input.title,
-      body: input.body,
-      authorName,
-      status,
-      moderatedAt: status === "PUBLISHED" ? now : null,
-      moderatedBy: status === "PUBLISHED" ? "auto" : null,
-    },
-  });
+    });
+  } catch (error) {
+    // Concurrent create on the same (productId, authorEmail) — treat as existing.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      return {
+        reviews: await listPublishedReviews(input.productId),
+        blockedHidden: true,
+        storefrontChanged: false,
+      };
+    }
+    throw error;
+  }
 
   return {
     reviews: await listPublishedReviews(input.productId),
