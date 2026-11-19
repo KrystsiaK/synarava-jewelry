@@ -27,10 +27,10 @@ Do not leave finished work only on `staging`, a feature branch, or a draft PR
 and wait for the user to merge.
 
 Day-to-day integration branch is `staging`. `main` advances via PR from
-`staging` (or a feature branch that already landed on staging). A GitHub Action
-syncs `staging` when `main` moves (fast-forward when possible, otherwise a
-non-destructive merge of main into staging), so hotfixes on `main` do not leave
-staging behind and staging tip commits are never overwritten.
+`staging` (or a feature branch that already landed on staging). After a release
+to `main`, the release manager manually opens a PR `main` → `staging` and merges
+it (no code changes in that PR — merge commit only) so hotfixes on `main` do not
+leave staging behind.
 
 ## Definition of done (shipping)
 
@@ -52,9 +52,9 @@ After code + tests (+ docs if needed) are complete:
    - Skip only if the branch still has unique commits not on staging, or the
      user asked to keep it.
 5. **Open/update a ready (non-draft) PR into `main`** from `staging`. Prefer a
-   **merge commit** when promoting; squash is tolerated because
-   `sync-main-to-staging` merges main into staging when histories diverge
-   (never force-resets staging). Do not open draft PRs.
+   **merge commit** when promoting; squash is tolerated — after merge to `main`,
+   open the manual `main` → `staging` PR (merge commit only) so staging catches
+   up. Do not open draft PRs.
 6. **Wait for CI/CD**, then **auto-merge when green** (enable auto-merge or
    merge once required checks pass). Confirm with a one-liner: commit SHA on
    `staging`, PR URL, and merge SHA on `main` when done.
