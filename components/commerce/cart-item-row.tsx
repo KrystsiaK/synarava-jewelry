@@ -73,7 +73,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
               type="submit"
               disabled={isBusy}
               aria-label={t("cart.decrease")}
-              className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+              className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
             >
               <span aria-hidden="true">−</span>
             </button>
@@ -87,7 +87,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
                 type="button"
                 aria-label={t("cart.increase")}
                 aria-disabled="true"
-                className="min-h-11 min-w-11 cursor-not-allowed border border-stroke px-3 py-2 text-sm text-foreground/35 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+                className="min-h-11 min-w-11 cursor-not-allowed border border-stroke px-3 py-2 text-sm text-foreground/35"
               >
                 <span aria-hidden="true">+</span>
               </button>
@@ -99,7 +99,7 @@ export function CartItemRow({ item }: CartItemRowProps) {
                 type="submit"
                 disabled={isBusy}
                 aria-label={t("cart.increase")}
-                className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:cursor-not-allowed disabled:opacity-50"
+                className="min-h-11 min-w-11 border border-stroke px-3 py-2 text-sm transition-colors hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <span aria-hidden="true">+</span>
               </button>

@@ -82,7 +82,7 @@ function AboutHero({
       </div>
 
       {backdrop.mode === "video" ? (
-        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-28 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-28 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70" />
       ) : null}
 
       <div className="about-hero-overlay absolute inset-0" />
@@ -186,7 +186,7 @@ function MovementStory({
         onPause={onPause}
       />
       <div className="about-movement-overlay absolute inset-0" />
-      <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-4 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white" />
+      <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute right-4 top-4 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70" />
       <div className="site-shell relative z-10 flex min-h-[100svh] items-end py-28 md:py-36">
         <DisplayHeading
           as="h2"

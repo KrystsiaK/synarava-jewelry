@@ -400,10 +400,12 @@ function HeroSection({
   return (
     <section data-component="HeroSection"
       ref={containerRef}
-      className="home-hero relative flex min-h-[108svh] w-full items-end overflow-x-clip bg-transparent px-5 pb-40 pt-24 md:min-h-[112vh] md:px-[4vw]"
+      /* Viewport-budget hero: exact height (not min) so short viewports cannot
+         grow past the fold; leaves room for sticky nav + in-flow marquee. */
+      className="home-hero relative flex h-[calc(100svh-var(--artifact-nav-height)-var(--announcement-marquee-height))] w-full items-end overflow-x-clip overflow-y-hidden bg-transparent px-5 pb-16 pt-20 md:px-[4vw] md:pb-20 md:pt-24"
     >
       <motion.div
-        className="absolute -right-[9%] top-[4.5rem] z-0 h-[75svh] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[86vh] md:w-[72%]"
+        className="absolute -right-[9%] top-[4.5rem] z-0 h-[min(75svh,calc(100%-4.5rem))] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[min(86vh,calc(100%-5.5rem))] md:w-[72%]"
         style={{
           clipPath: "polygon(13% 4%, 93% 0, 100% 84%, 78% 100%, 0 91%, 5% 23%)",
         }}
@@ -451,13 +453,14 @@ function HeroSection({
           diagonal clip-path excludes its own bottom-right corner, which would
           clip this button's default placement there. */}
       {activeVideoSrc ? (
-        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute bottom-6 right-6 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:bottom-10 md:right-[6%]" />
+        <VideoPlaybackButton isPlaying={isPlaying} onToggle={toggle} className="absolute bottom-6 right-6 z-20 grid size-11 place-items-center border border-white/35 bg-black/45 text-white transition-colors hover:bg-black/70 md:bottom-10 md:right-[6%]" />
       ) : null}
 
       <div className="home-hero-fade pointer-events-none absolute inset-x-0 bottom-0 z-[1] h-[58%]" aria-hidden="true" />
 
       <motion.div
-        className="relative z-10 w-full transform-gpu [backface-visibility:hidden] md:pl-[4vw]"
+        data-home-hero-copy
+        className="relative z-10 w-full transform-gpu pb-14 [backface-visibility:hidden] md:pb-16 md:pl-[4vw]"
         style={{ opacity: textOpacity, transform: textTransform }}
       >
         <div className="mb-5 flex items-center gap-4 md:mb-7">
@@ -493,17 +496,17 @@ function HeroSection({
       </motion.div>
 
       {/*
-        First-viewport rail: h-svh from the section top so the invite stays in
-        the opening screen even when the hero itself is taller than one view.
+        First-screen rail: fills the viewport-budget hero so the invite sits
+        above the in-flow marquee (not on a taller-than-viewport absolute rail).
       */}
       {!reduceMotion ? (
         <div
-          className="pointer-events-none absolute inset-x-0 top-0 z-20 h-[100dvh] min-[920px]:hidden"
+          className="pointer-events-none absolute inset-0 z-20 min-[920px]:hidden"
           aria-hidden="true"
         >
           <div
             data-home-scroll-invite
-            className="absolute bottom-6 left-1/2 flex -translate-x-1/2 flex-col items-center"
+            className="absolute bottom-5 left-1/2 flex -translate-x-1/2 flex-col items-center"
           >
             <span className="home-scroll-invite__capsule">
               <span className="home-scroll-invite__thumb" />
@@ -643,7 +646,7 @@ function ArchiveRecord({
           : "w-full md:w-3/4 h-[60vh] md:h-[80vh] relative z-10 mt-6 md:mt-0"
       }
     >
-      <div className="relative h-full w-full transition-[outline] group-focus-visible:outline-2 group-focus-visible:outline-offset-4 group-focus-visible:outline-couture-red">
+      <div className="relative h-full w-full">
         <ParallaxImage src={item.image} alt={item.imageAlt || item.title} clipPath={clipPath} />
         <span className="absolute bottom-7 right-7 z-10 inline-flex items-center gap-2 bg-[#09090a]/90 px-3 py-2 font-sans text-[0.62rem] font-semibold uppercase tracking-[0.16em] text-[#f9f8f6] transition-colors duration-300 group-hover:bg-[#09090a]">
           {viewCollection}
@@ -776,7 +779,7 @@ function EditShowcase({
               <Link
                 key={product.slug}
                 href={localePath(locale, `/products/${product.slug}`)}
-                className="edit-showcase-card group block focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
+                className="edit-showcase-card group block"
               >
                 <div className="edit-showcase-image relative aspect-[4/5] overflow-hidden bg-[#e3ddd5]">
                   <Image
@@ -806,7 +809,7 @@ function EditShowcase({
         <div className="mt-14 flex justify-end border-t border-[#171513]/20 pt-6 md:mt-20">
           <Link
             href={localePath(locale, "/shop")}
-            className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#b32636]"
+            className="edit-showcase-all-link group inline-flex min-h-11 items-center gap-2 font-sans text-[0.68rem] font-bold uppercase tracking-[0.16em] text-[#171513]"
           >
             {viewAllLabel || defaults.viewAllLabel}
             <ArrowRight className="size-3.5 transition-transform duration-200 ease-out group-hover:translate-x-1 motion-reduce:transition-none" aria-hidden="true" />
@@ -1306,7 +1309,7 @@ function FinalFooter({ title, contactLabel, contactEmail, showContact }: { title
       {showMailto ? (
         <a
           href={`mailto:${email}`}
-          className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red"
+          className="inline-block w-fit border-b border-couture-red pb-1 font-sans text-xs font-semibold tracking-[0.08em] text-stone-beige transition-colors hover:text-linen"
         >
           {contactLabel?.trim() || email}
         </a>
@@ -1396,7 +1399,7 @@ function CompactFinalCTA({
               </ArtifactLink>
               <Link
                 href={resolvedSecondaryCtaHref}
-                className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+                className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen active:scale-[0.98]"
               >
                 {resolvedSecondaryCtaLabel}
                 <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />
@@ -1620,13 +1623,13 @@ function DesktopFinalCTA({
           <div className="mt-9 flex flex-wrap items-center gap-6 md:mt-12">
             <PrimaryCtaButton
               href={resolvedCtaHref}
-              className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 focus-visible:outline-linen [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
+              className="min-h-16 gap-8 text-[0.7rem] tracking-[0.2em] hover:brightness-110 [clip-path:polygon(5%_0,100%_8%,94%_100%,0_86%)]"
             >
               {resolvedCtaLabel}
             </PrimaryCtaButton>
             <Link
               href={resolvedSecondaryCtaHref}
-              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-couture-red active:scale-[0.98]"
+              className="group inline-flex items-center gap-2 border-b border-linen/30 pb-1.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-stone-beige transition-colors hover:border-linen hover:text-linen active:scale-[0.98]"
             >
               {resolvedSecondaryCtaLabel}
               <ArrowRight className="size-3.5 transition-transform duration-200 group-hover:translate-x-0.5" />

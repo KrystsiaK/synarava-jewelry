@@ -414,7 +414,6 @@ export function FilterBar({
             className={cn(
               "relative inline-flex min-h-14 min-w-0 cursor-pointer items-center gap-3 px-3 text-left",
               "transition-[background-color,color,transform] duration-200 hover:bg-surface/70 active:scale-[0.97]",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent",
               activeCount > 0 ? "bg-couture-red/[0.045] text-couture-red" : "text-foreground",
             )}
           >

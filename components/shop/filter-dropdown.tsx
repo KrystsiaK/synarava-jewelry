@@ -56,7 +56,6 @@ export function FilterDropdown({
             disabled={disabled}
             className={cn(
               "inline-flex cursor-pointer items-center transition-[background-color,border-color,color,transform] duration-200",
-              "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-accent",
               "disabled:cursor-not-allowed disabled:opacity-40",
               "active:scale-[0.97]",
               triggerVariant === "toolbar"
