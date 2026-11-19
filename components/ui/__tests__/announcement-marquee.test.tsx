@@ -9,10 +9,38 @@ import {
   announcementMarqueeDurationSec,
 } from "../announcement-marquee";
 
+type ResizeObserverCallback = (entries: ResizeObserverEntry[], observer: ResizeObserver) => void;
+
 class ResizeObserverStub {
-  observe() {}
-  unobserve() {}
-  disconnect() {}
+  static lastInstance: ResizeObserverStub | null = null;
+  private readonly callback: ResizeObserverCallback;
+  private targets = new Set<Element>();
+
+  constructor(callback: ResizeObserverCallback) {
+    this.callback = callback;
+    ResizeObserverStub.lastInstance = this;
+  }
+
+  observe(target: Element) {
+    this.targets.add(target);
+  }
+
+  unobserve(target: Element) {
+    this.targets.delete(target);
+  }
+
+  disconnect() {
+    this.targets.clear();
+  }
+
+  /** Test helper: fire observer as if the observed node resized. */
+  dispatch() {
+    const entries = Array.from(this.targets).map((target) => ({
+      target,
+      contentRect: target.getBoundingClientRect(),
+    })) as ResizeObserverEntry[];
+    this.callback(entries, this as unknown as ResizeObserver);
+  }
 }
 
 describe("announcementMarqueeDurationSec", () => {
@@ -38,6 +66,7 @@ describe("announcementMarqueeCopies", () => {
 
 describe("AnnouncementMarquee", () => {
   beforeEach(() => {
+    ResizeObserverStub.lastInstance = null;
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
   });
 
@@ -68,5 +97,48 @@ describe("AnnouncementMarquee", () => {
     expect(root?.querySelectorAll(".announcement-marquee__cycle span")).toHaveLength(
       ANNOUNCEMENT_MARQUEE_COPIES_PER_HALF * 2,
     );
+  });
+
+  it("recalculates animation duration when cycle width changes (~30 px/s)", () => {
+    const text = "Free shipping in Portugal from €45.00";
+    render(<AnnouncementMarquee message={text} />);
+
+    const root = document.querySelector(".announcement-marquee") as HTMLElement;
+    const cycle = root.querySelector(".announcement-marquee__cycle") as HTMLElement;
+    expect(root).not.toBeNull();
+    expect(cycle).not.toBeNull();
+
+    const observer = ResizeObserverStub.lastInstance;
+    expect(observer).not.toBeNull();
+
+    vi.spyOn(cycle, "getBoundingClientRect").mockReturnValue({
+      width: 600,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    observer!.dispatch();
+    expect(root.style.getPropertyValue("--announcement-marquee-duration")).toBe("10s");
+    expect(announcementMarqueeDurationSec(600, ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S)).toBe(10);
+
+    vi.spyOn(cycle, "getBoundingClientRect").mockReturnValue({
+      width: 1200,
+      height: 40,
+      top: 0,
+      left: 0,
+      bottom: 40,
+      right: 1200,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect);
+    observer!.dispatch();
+    expect(root.style.getPropertyValue("--announcement-marquee-duration")).toBe("20s");
+    expect(announcementMarqueeDurationSec(1200, ANNOUNCEMENT_MARQUEE_SPEED_PX_PER_S)).toBe(20);
   });
 });

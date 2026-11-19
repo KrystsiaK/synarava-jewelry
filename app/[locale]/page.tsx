@@ -4,12 +4,9 @@ import {
   listCollections,
   type PageContent,
 } from "@/lib/content/catalog";
-import { getAnnouncementBarSetting } from "@/lib/content/announcement-bar";
-import { resolveAnnouncementBarText } from "@/lib/content/announcement-bar-display";
-import { ANNOUNCEMENT_BAR_COPY_KEY } from "@/lib/content/announcement-bar-fields";
 import { resolveHomeArchiveCollections } from "@/lib/content/home-archive-section";
+import { resolveStorefrontAnnouncementMessage } from "@/lib/content/resolve-storefront-announcement-message";
 import { listShopListingProducts } from "@/lib/content/shop-listing";
-import { getStorefrontCopy } from "@/lib/content/storefront-copy";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getSiteSeo } from "@/lib/content/site-seo";
 import { getServerTranslations } from "@/lib/i18n/server";
@@ -62,14 +59,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function Page() {
-  const { locale, t } = await getServerTranslations();
-  const [page, collectionData, videos, products, announcementSetting, storefrontCopy] = await Promise.all([
+  const { locale } = await getServerTranslations();
+  const [page, collectionData, videos, products, announcementMessage] = await Promise.all([
     getPageBySlug("home", locale),
     listCollections(locale),
     getSiteVideos(),
     listShopListingProducts(locale),
-    getAnnouncementBarSetting(),
-    getStorefrontCopy(),
+    // Shared cache() helper — same request as locale layout skips home mount.
+    resolveStorefrontAnnouncementMessage(),
   ]);
 
   const content: PageContent = page?.content ?? {};
@@ -83,17 +80,6 @@ export default async function Page() {
       imageAlt: c.heroImageAlt,
       href: localePath(locale, `/collections/${c.slug}`),
     }));
-
-  const announcementTemplate =
-    storefrontCopy[locale]?.[ANNOUNCEMENT_BAR_COPY_KEY]
-    ?? storefrontCopy.en?.[ANNOUNCEMENT_BAR_COPY_KEY]
-    ?? t("announcement.bar");
-  const announcementMessage = resolveAnnouncementBarText({
-    enabled: announcementSetting.enabled,
-    threshold: announcementSetting.threshold,
-    template: announcementTemplate,
-    locale,
-  });
 
   return (
     <HomePage

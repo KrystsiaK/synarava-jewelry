@@ -1,5 +1,10 @@
+import { headers } from "next/headers";
 import { notFound, permanentRedirect } from "next/navigation";
 
+import { AnnouncementMarquee } from "@/components/ui/announcement-marquee";
+import { REQUEST_PATHNAME_HEADER } from "@/lib/auth/admin-return-path";
+import { shouldMountLayoutAnnouncementMarquee } from "@/lib/content/announcement-marquee-placement";
+import { resolveStorefrontAnnouncementMessage } from "@/lib/content/resolve-storefront-announcement-message";
 import { getStorefrontLocales, getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { resolveLocaleRequestDisposition } from "@/lib/i18n/locale-retirement-redirect";
 
@@ -36,5 +41,21 @@ export default async function LocaleLayout({ children, params }: Props) {
     notFound();
   }
 
-  return children;
+  // Single exception gate for storefront marquee (home self-mounts; admin is
+  // outside this tree; unknown/404 paths are excluded by the allowlist).
+  const pathname = (await headers()).get(REQUEST_PATHNAME_HEADER);
+  const layoutMarquee = shouldMountLayoutAnnouncementMarquee(pathname)
+    ? await resolveStorefrontAnnouncementMessage()
+    : null;
+
+  if (!layoutMarquee) {
+    return children;
+  }
+
+  return (
+    <>
+      <AnnouncementMarquee message={layoutMarquee} />
+      {children}
+    </>
+  );
 }
