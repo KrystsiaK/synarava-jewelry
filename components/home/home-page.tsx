@@ -21,7 +21,7 @@ import { ease } from "@/lib/animation";
 import { RichText } from "@/components/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
-import { ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
+import { AnnouncementMarquee, ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
@@ -91,6 +91,8 @@ export interface HomePageProps {
   collections: CollectionItem[];
   products?: Pick<ShopListingProduct, "id" | "slug" | "title" | "sourceTitle" | "price" | "image" | "series" | "categoryName">[];
   heroVideoSrc?: string | string[];
+  /** Ready free-shipping marquee text (null/empty → no bar, no empty space). */
+  announcementMessage?: string | null;
 }
 
 type LexiconMaterial = {
@@ -1750,7 +1752,13 @@ function FinalCTA({
     : <CompactFinalCTA {...shared} />;
 }
 
-export function HomePage({ collections, products = [], heroVideoSrc, content }: HomePageProps) {
+export function HomePage({
+  collections,
+  products = [],
+  heroVideoSrc,
+  content,
+  announcementMessage = null,
+}: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const visibility = resolveHomeSectionVisibility(content);
   // Material lexicon is its own admin list — never derive cards from Featured collections.
@@ -1759,6 +1767,7 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
     () => resolveFinalCtaImages(products, content?.finalCtaProductIds, collections),
     [products, content?.finalCtaProductIds, collections],
   );
+  const marqueeMessage = announcementMessage?.trim() || "";
 
   return (
     <HomeScrollProvider>
@@ -1783,6 +1792,8 @@ export function HomePage({ collections, products = [], heroVideoSrc, content }: 
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
       /> : null}
+      {/* Free-shipping strip between hero and the next section — not under sticky header. */}
+      {marqueeMessage ? <AnnouncementMarquee message={marqueeMessage} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
       {visibility.edit ? <EditShowcase
         products={products}

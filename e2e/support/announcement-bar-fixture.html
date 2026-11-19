@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Announcement bar fixture</title>
+  <title>Announcement marquee fixture</title>
   <style>
     :root {
       --color-couture-red: #a6192e;
@@ -11,81 +11,125 @@
     }
     * { box-sizing: border-box; }
     body { margin: 0; background: #f7f7f5; color: #211d19; font-family: system-ui, sans-serif; }
-    .announcement-bar {
-      --announcement-bar-height: 2.25rem;
+    .fake-header {
+      position: sticky; top: 0; z-index: 50; height: 64px; display: flex;
+      align-items: center; padding: 0 1.25rem;
+      border-bottom: 1px solid rgba(33,29,25,0.12); background: transparent;
+      font-family: var(--font-serif); letter-spacing: 0.18em; font-size: 1.1rem;
+    }
+    .hero {
+      min-height: 70vh; display: grid; place-items: end start; padding: 2rem;
+      background: linear-gradient(160deg, #2a1a1c, #a6192e 70%);
+      color: #f7f7f5; font-family: var(--font-serif); font-size: 2rem;
+    }
+    .announcement-marquee {
+      --announcement-marquee-font-size: 1rem;
+      --announcement-marquee-height: calc(var(--announcement-marquee-font-size) * 2.75);
+      --announcement-marquee-gap: 7em;
+      --announcement-marquee-duration: 60s;
       position: relative;
-      height: var(--announcement-bar-height);
+      height: var(--announcement-marquee-height);
       overflow: hidden;
       background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
       color: #f7f7f5;
       font-family: var(--font-serif);
-      font-size: 0.8125rem;
+      font-size: var(--announcement-marquee-font-size);
+      font-weight: 600;
       letter-spacing: 0.04em;
-      line-height: 1;
-      border-bottom: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
+      line-height: 1.2;
+      border-block: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
     }
-    .announcement-bar__track { position: relative; height: 100%; outline: none; }
-    .announcement-bar__static {
+    @media (min-width: 768px) {
+      .announcement-marquee { --announcement-marquee-font-size: 1.25rem; }
+    }
+    .announcement-marquee__track { position: relative; height: 100%; outline: none; }
+    .announcement-marquee__static {
       position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0;
       overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
     }
-    .announcement-bar__marquee {
+    .announcement-marquee__marquee {
       height: 100%; overflow: hidden;
       mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
     }
-    .announcement-bar__cycle {
+    .announcement-marquee__cycle {
       display: flex; width: max-content; height: 100%; align-items: center;
-      animation: announcement-marquee 28s linear infinite;
+      animation: announcement-marquee var(--announcement-marquee-duration) linear infinite;
     }
-    .announcement-bar__cycle span {
-      flex: 0 0 auto; white-space: nowrap; padding-inline: 1.75rem;
+    .announcement-marquee__cycle span {
+      flex: 0 0 auto; white-space: nowrap;
+      padding-inline: calc(var(--announcement-marquee-gap) / 2);
+    }
+    .announcement-marquee__track:hover .announcement-marquee__cycle,
+    .announcement-marquee__track:focus-within .announcement-marquee__cycle {
+      animation-play-state: paused;
     }
     @keyframes announcement-marquee {
       from { transform: translateX(0); }
       to { transform: translateX(-50%); }
     }
     @media (prefers-reduced-motion: reduce) {
-      .announcement-bar__marquee { display: none; }
-      .announcement-bar__static {
+      .announcement-marquee__marquee { display: none; }
+      .announcement-marquee__static {
         position: static; width: auto; height: 100%; margin: 0; padding: 0 1rem;
         overflow: hidden; clip: auto; display: flex; align-items: center;
         justify-content: center; text-align: center; text-overflow: ellipsis;
       }
-      .announcement-bar__cycle { animation: none; }
+      .announcement-marquee__cycle { animation: none; }
     }
-    .fake-header {
-      height: 64px; display: flex; align-items: center; padding: 0 1.25rem;
-      border-bottom: 1px solid rgba(33,29,25,0.12); background: #f7f7f5;
-      font-family: var(--font-serif); letter-spacing: 0.18em; font-size: 1.1rem;
+    .next-section {
+      min-height: 40vh; padding: 2rem; background: #ececea;
+      font-family: var(--font-serif); font-size: 1.5rem;
     }
   </style>
 </head>
 <body>
-  <div class="announcement-bar">
-    <div class="announcement-bar__track" tabindex="0">
-      <p class="announcement-bar__static">Free shipping in Portugal from €45.00</p>
-      <div class="announcement-bar__marquee" aria-hidden="true">
-        <div class="announcement-bar__cycle">
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
-          <span>Free shipping in Portugal from €45.00</span>
+  <header class="fake-header">SYNARAVA</header>
+  <main class="home-experience">
+    <section data-component="HeroSection" class="hero">Hero</section>
+    <div class="announcement-marquee">
+      <div class="announcement-marquee__track" tabindex="0">
+        <p class="announcement-marquee__static">Free shipping in Portugal from €45.00</p>
+        <div class="announcement-marquee__marquee" aria-hidden="true">
+          <div class="announcement-marquee__cycle">
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+            <span>Free shipping in Portugal from €45.00</span>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-  <header class="fake-header">SYNARAVA</header>
+    <section data-component="ArchivePathway" class="next-section">Next section</section>
+  </main>
+  <script>
+    (function () {
+      var bar = document.querySelector(".announcement-marquee");
+      var cycle = document.querySelector(".announcement-marquee__cycle");
+      var SPEED = 30;
+      function applyDuration() {
+        if (!bar || !cycle) return;
+        var width = cycle.getBoundingClientRect().width;
+        if (width > 0) {
+          bar.style.setProperty("--announcement-marquee-duration", (width / 2 / SPEED) + "s");
+        }
+      }
+      applyDuration();
+      if (cycle && typeof ResizeObserver !== "undefined") {
+        new ResizeObserver(applyDuration).observe(cycle);
+      }
+    })();
+  </script>
 </body>
 </html>
