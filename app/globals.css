@@ -69,6 +69,27 @@
   --panel-blur: 2px;
   --panel-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --z-toast: 60;
+  /* Above overlapping home sections (ArchivePathway z-20); below sticky nav (50) / modals. */
+  --z-announcement-marquee: 30;
+  /* Sticky/fixed header block size — keeps home hero+marquee on the first viewport.
+     Prefer a slight under-shoot (banner fully on-fold) over clipping.
+     Compact header ~64.8px; desktop wordmark+links ~72.8px (≥1200px). */
+  --artifact-nav-height: 4.05rem;
+  --announcement-marquee-font-size: 1rem; /* 16px mobile (15–17) */
+  --announcement-marquee-height: calc(var(--announcement-marquee-font-size) * 2.75);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --announcement-marquee-font-size: 1.25rem; /* 20px desktop (18–22) */
+  }
+}
+
+/* Desktop header grows with wordmark + nav links (min-[1200px] in SiteHeader). */
+@media (min-width: 1200px) {
+  :root {
+    --artifact-nav-height: 4.55rem;
+  }
 }
 
 .modal-backdrop {
@@ -268,17 +289,17 @@ html {
 }
 
 /*
- * Home free-shipping marquee — height from font size, no CLS.
- * Lives between hero and the next home section (not under sticky header).
+ * Storefront free-shipping marquee — height from font size, no CLS.
+ * Home: between hero and next section (viewport-budget hero keeps it on-fold).
+ * Other allowlisted storefront pages: locale layout, immediately under header.
+ * z-index above overlapping sections (e.g. ArchivePathway z-20); below nav/modals.
  * Text #f7f7f5 on darkened couture-red → WCAG AA contrast.
  */
 .announcement-marquee {
-  --announcement-marquee-font-size: 1rem; /* 16px mobile (15–17) */
-  --announcement-marquee-height: calc(var(--announcement-marquee-font-size) * 2.75);
   --announcement-marquee-gap: 7em;
   --announcement-marquee-duration: 60s; /* fallback until width-measured */
   position: relative;
-  z-index: 1;
+  z-index: var(--z-announcement-marquee);
   height: var(--announcement-marquee-height);
   overflow: hidden;
   background: color-mix(in srgb, var(--color-couture-red) 88%, #1a0a0c);
@@ -289,12 +310,9 @@ html {
   letter-spacing: 0.04em;
   line-height: 1.2;
   border-block: 1px solid color-mix(in srgb, #f7f7f5 12%, transparent);
-}
-
-@media (min-width: 768px) {
-  .announcement-marquee {
-    --announcement-marquee-font-size: 1.25rem; /* 20px desktop (18–22) */
-  }
+  /* Ensure hit-testing wins over negatively-margined siblings in the same flow. */
+  isolation: isolate;
+  pointer-events: auto;
 }
 
 .announcement-marquee__track {
@@ -591,6 +609,15 @@ select {
 
 .artifact-nav[data-overlay="true"] {
   position: fixed;
+}
+
+/*
+ * Shop (and any overlay nav): header is fixed and out of flow.
+ * Locale-layout marquee is the first #main-content child — offset it by the
+ * nav height so it sits under the header, not beneath the glass.
+ */
+body:has(.artifact-nav[data-overlay="true"]) #main-content > .announcement-marquee {
+  margin-top: var(--artifact-nav-height);
 }
 
 /*
