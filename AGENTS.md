@@ -14,6 +14,13 @@ Rules:
 - If graphify-out/wiki/index.md exists, use it for broad navigation instead of raw source browsing.
 - Read graphify-out/GRAPH_REPORT.md only for broad architecture review or when query/path/explain do not surface enough context.
 
+### graphify bootstrap
+
+At the start of the first task in a session, run `scripts/setup-graphify.sh --check`.
+
+- **Local agents** (Filesystem boundary): NEVER run install. If check fails, send one message to the user with what is missing and the exact fix command (`scripts/setup-graphify.sh` or `scripts/setup-graphify.sh --cli-only`), then continue the task without graphify.
+- **Cloud agents** MAY run `scripts/setup-graphify.sh --cli-only` (CLI only; no merge-driver / hooks / graph build). Full setup (CLI + merge driver) is for humans / local clones: `scripts/setup-graphify.sh`.
+
 ## Filesystem boundary
 
 - Never create, modify, move, rename, or delete any file or directory outside `/Users/kirylkrystsia/WebstormProjects/synarava-jewelry`.
