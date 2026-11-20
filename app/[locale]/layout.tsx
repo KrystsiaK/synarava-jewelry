@@ -41,8 +41,8 @@ export default async function LocaleLayout({ children, params }: Props) {
     notFound();
   }
 
-  // Single exception gate for storefront marquee (home self-mounts; admin is
-  // outside this tree; unknown/404 paths are excluded by the allowlist).
+  // Single exception gate for storefront marquee (admin is outside this tree;
+  // About / unknown / 404 paths are excluded by the allowlist).
   const pathname = (await headers()).get(REQUEST_PATHNAME_HEADER);
   const layoutMarquee = shouldMountLayoutAnnouncementMarquee(pathname)
     ? await resolveStorefrontAnnouncementMessage()

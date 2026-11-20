@@ -21,7 +21,7 @@ import { ease } from "@/lib/animation";
 import { RichText } from "@/components/content/rich-text";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath, storefrontHref } from "@/lib/i18n/routing";
-import { AnnouncementMarquee, ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
+import { ArtifactLink, DisplayHeading, PrimaryCtaButton } from "@/components/ui";
 import { formatDisplayTitle } from "@/lib/ui/display-title-words";
 import { PerformanceVideo } from "@/components/media/performance-video";
 import { VideoPlaybackButton } from "@/components/media/video-playback-button";
@@ -91,8 +91,6 @@ export interface HomePageProps {
   collections: CollectionItem[];
   products?: Pick<ShopListingProduct, "id" | "slug" | "title" | "sourceTitle" | "price" | "image" | "series" | "categoryName">[];
   heroVideoSrc?: string | string[];
-  /** Ready free-shipping marquee text (null/empty → no bar, no empty space). */
-  announcementMessage?: string | null;
 }
 
 type LexiconMaterial = {
@@ -401,8 +399,8 @@ function HeroSection({
     <section data-component="HeroSection"
       ref={containerRef}
       /* Viewport-budget hero: exact height (not min) so short viewports cannot
-         grow past the fold; leaves room for sticky nav + in-flow marquee. */
-      className="home-hero relative flex h-[calc(100svh-var(--artifact-nav-height)-var(--announcement-marquee-height))] w-full items-end overflow-x-clip overflow-y-hidden bg-transparent px-5 pb-16 pt-20 md:px-[4vw] md:pb-20 md:pt-24"
+         grow past the fold; leaves room for sticky nav (layout marquee sits above). */
+      className="home-hero relative flex h-[calc(100svh-var(--artifact-nav-height))] w-full items-end overflow-x-clip overflow-y-hidden bg-transparent px-5 pb-16 pt-20 md:px-[4vw] md:pb-20 md:pt-24"
     >
       <motion.div
         className="absolute -right-[9%] top-[4.5rem] z-0 h-[min(75svh,calc(100%-4.5rem))] w-[96%] overflow-hidden transform-gpu [backface-visibility:hidden] md:-right-[2%] md:top-[5.5rem] md:h-[min(86vh,calc(100%-5.5rem))] md:w-[72%]"
@@ -1760,7 +1758,6 @@ export function HomePage({
   products = [],
   heroVideoSrc,
   content,
-  announcementMessage = null,
 }: HomePageProps) {
   const resolvedHeroVideoSrc = heroVideoSrc ?? content?.heroVideoSrc ?? content?.heroVideo;
   const visibility = resolveHomeSectionVisibility(content);
@@ -1770,7 +1767,6 @@ export function HomePage({
     () => resolveFinalCtaImages(products, content?.finalCtaProductIds, collections),
     [products, content?.finalCtaProductIds, collections],
   );
-  const marqueeMessage = announcementMessage?.trim() || "";
 
   return (
     <HomeScrollProvider>
@@ -1795,8 +1791,6 @@ export function HomePage({
         ctaLabel={content?.ctaLabel}
         ctaHref={content?.ctaHref}
       /> : null}
-      {/* Free-shipping strip between hero and the next section — not under sticky header. */}
-      {marqueeMessage ? <AnnouncementMarquee message={marqueeMessage} /> : null}
       {visibility.archive ? <ArchivePathway collections={collections} sectionLabel={content?.archiveSectionLabel} /> : null}
       {visibility.edit ? <EditShowcase
         products={products}
