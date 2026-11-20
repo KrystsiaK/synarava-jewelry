@@ -7,8 +7,8 @@ import {
 
 /**
  * CI seed enables announcement-bar-v1 with a threshold amount.
- * Home: between hero and next section (viewport-budget hero keeps it on-fold).
- * Other storefront routes: locale layout, immediately under header.
+ * Allowlisted storefront (incl. home): locale layout, under header.
+ * About / admin / unknown: no banner.
  * Human: wire `e2e/announcement-bar.spec.ts` into the Playwright CI step
  * (bots must not edit `.github/workflows/ci.yml`).
  */
@@ -16,7 +16,6 @@ import {
 const STOREFRONT_ROUTES = [
   "/en",
   "/en/shop",
-  "/en/about",
 ] as const;
 
 async function firstProductPath(page: import("@playwright/test").Page): Promise<string | null> {
@@ -27,7 +26,7 @@ async function firstProductPath(page: import("@playwright/test").Page): Promise<
 }
 
 test.describe("announcement marquee (storefront)", () => {
-  test("home: sits between hero and next section; first-screen fit; hit-testing", async ({ page }) => {
+  test("home: under header above hero; first-screen fit; exactly one marquee", async ({ page }) => {
     for (const viewport of [
       { width: 1920, height: 1080 },
       { width: 1440, height: 900 },
@@ -48,38 +47,17 @@ test.describe("announcement marquee (storefront)", () => {
       await expect(hero).toBeVisible();
       await expect(header).toBeVisible();
 
-      const order = await page.evaluate(() => {
-        const main = document.querySelector("main.home-experience");
-        if (!main) return null;
-        const children = Array.from(main.children);
-        const heroEl = main.querySelector('[data-component="HeroSection"]');
-        const barEl = main.querySelector(".announcement-marquee");
-        if (!heroEl || !barEl) return null;
-        const heroIndex = children.indexOf(heroEl as Element);
-        const barIndex = children.indexOf(barEl as Element);
-        const afterBar = children[barIndex + 1] as HTMLElement | undefined;
-        return {
-          heroIndex,
-          barIndex,
-          nextComponent: afterBar?.getAttribute("data-component") ?? null,
-        };
-      });
-      expect(order).not.toBeNull();
-      expect(order!.barIndex).toBe(order!.heroIndex + 1);
-      expect(order!.nextComponent).not.toBeNull();
-
       const geometry = await page.evaluate(() => {
         const banner = document.querySelector(".announcement-marquee");
         const heroEl = document.querySelector('[data-component="HeroSection"]');
         const media = heroEl?.querySelector(".home-hero-media") as HTMLElement | null;
         const copy = document.querySelector("[data-home-hero-copy]");
         const invite = document.querySelector("[data-home-scroll-invite]");
-        const next = banner?.nextElementSibling as HTMLElement | null;
         const nav = document.querySelector("header.artifact-nav");
-        if (!banner || !heroEl || !next || !nav) return { error: "missing" as const };
+        const main = document.querySelector("#main-content");
+        if (!banner || !heroEl || !nav || !main) return { error: "missing" as const };
         const b = banner.getBoundingClientRect();
         const h = heroEl.getBoundingClientRect();
-        const n = next.getBoundingClientRect();
         const navBox = nav.getBoundingClientRect();
         const mediaBox = media?.getBoundingClientRect() ?? null;
         const copyBox = copy?.getBoundingClientRect() ?? null;
@@ -94,11 +72,12 @@ test.describe("announcement marquee (storefront)", () => {
         return {
           bannerTop: b.top,
           bannerBottom: b.bottom,
+          heroTop: h.top,
           heroBottom: h.bottom,
-          nextTop: n.top,
           viewportHeight: window.innerHeight,
           mediaTop: mediaBox?.top ?? null,
           navBottom: navBox.bottom,
+          bannerIsMainChild: banner.parentElement === main,
           overlapsHeader: overlaps(b, navBox),
           copyOverlapsBanner: copyBox ? overlaps(copyBox, b) : false,
           inviteOverlapsBanner: inviteBox ? overlaps(inviteBox, b) : false,
@@ -113,9 +92,10 @@ test.describe("announcement marquee (storefront)", () => {
       });
       expect(geometry).not.toHaveProperty("error");
       if ("error" in geometry) throw new Error("missing geometry");
-      expect(geometry.bannerTop).toBeGreaterThanOrEqual(geometry.heroBottom - 1);
-      expect(geometry.nextTop).toBeGreaterThanOrEqual(geometry.bannerBottom - 1);
-      expect(geometry.bannerBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
+      expect(geometry.bannerIsMainChild).toBe(true);
+      expect(geometry.bannerTop).toBeGreaterThanOrEqual(geometry.navBottom - 1);
+      expect(geometry.heroTop).toBeGreaterThanOrEqual(geometry.bannerBottom - 1);
+      expect(geometry.heroBottom).toBeLessThanOrEqual(geometry.viewportHeight + 1);
       expect(geometry.overlapsHeader).toBe(false);
       expect(geometry.copyOverlapsBanner).toBe(false);
       expect(geometry.inviteOverlapsBanner).toBe(false);
@@ -178,29 +158,30 @@ test.describe("announcement marquee (storefront)", () => {
       { width: 390, height: 844 },
     ] as const) {
       await page.setViewportSize(viewport);
-      for (const path of ["/en/shop", "/en/about"] as const) {
-        await page.goto(path);
-        const geometry = await page.evaluate(() => {
-          const banner = document.querySelector(".announcement-marquee");
-          const nav = document.querySelector("header.artifact-nav");
-          if (!banner || !nav) return { error: "missing" as const };
-          const b = banner.getBoundingClientRect();
-          const n = nav.getBoundingClientRect();
-          const main = document.querySelector("#main-content");
-          const mainBox = main?.getBoundingClientRect();
-          return {
-            bannerTop: b.top,
-            navBottom: n.bottom,
-            position: getComputedStyle(banner).position,
-            mainTop: mainBox?.top ?? null,
-          };
-        });
-        expect(geometry).not.toHaveProperty("error");
-        if ("error" in geometry) throw new Error("missing geometry");
-        expect(geometry.position).toBe("relative");
-        expect(geometry.bannerTop).toBeGreaterThanOrEqual(geometry.navBottom - 1);
-      }
+      await page.goto("/en/shop");
+      const geometry = await page.evaluate(() => {
+        const banner = document.querySelector(".announcement-marquee");
+        const nav = document.querySelector("header.artifact-nav");
+        if (!banner || !nav) return { error: "missing" as const };
+        const b = banner.getBoundingClientRect();
+        const n = nav.getBoundingClientRect();
+        const main = document.querySelector("#main-content");
+        const mainBox = main?.getBoundingClientRect();
+        return {
+          bannerTop: b.top,
+          navBottom: n.bottom,
+          position: getComputedStyle(banner).position,
+          mainTop: mainBox?.top ?? null,
+        };
+      });
+      expect(geometry).not.toHaveProperty("error");
+      if ("error" in geometry) throw new Error("missing geometry");
+      expect(geometry.position).toBe("relative");
+      expect(geometry.bannerTop).toBeGreaterThanOrEqual(geometry.navBottom - 1);
     }
+
+    await page.goto("/en/about");
+    await expect(page.locator(".announcement-marquee")).toHaveCount(0);
 
     await page.goto("/en/this-route-should-404-for-marquee");
     await expect(page.locator(".announcement-marquee")).toHaveCount(0);

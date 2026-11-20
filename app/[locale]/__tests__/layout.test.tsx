@@ -89,12 +89,16 @@ describe("generateStaticParams", () => {
 });
 
 describe("LocaleLayout", () => {
-  it("renders children for a published locale without layout marquee on home", async () => {
+  it("mounts layout marquee on home", async () => {
     mocks.headersGet.mockReturnValue("/en");
     const result = await LocaleLayout({ children: "content", params: Promise.resolve({ locale: "pt" }) });
     const kids = childrenOf(result);
     expect(kids).toContain("content");
-    expect(mocks.resolveStorefrontAnnouncementMessage).not.toHaveBeenCalled();
+    expect(mocks.resolveStorefrontAnnouncementMessage).toHaveBeenCalledTimes(1);
+    const marquee = kids.find(
+      (child) => isValidElement(child) && child.props && (child.props as { message?: string }).message,
+    ) as ReactElement<{ message: string }> | undefined;
+    expect(marquee?.props.message).toBe("Free shipping from €45");
   });
 
   it("mounts layout marquee on allowlisted storefront routes", async () => {
@@ -107,6 +111,14 @@ describe("LocaleLayout", () => {
       (child) => isValidElement(child) && child.props && (child.props as { message?: string }).message,
     ) as ReactElement<{ message: string }> | undefined;
     expect(marquee?.props.message).toBe("Free shipping from €45");
+  });
+
+  it("skips layout marquee on about", async () => {
+    mocks.headersGet.mockReturnValue("/en/about");
+    const result = await LocaleLayout({ children: "about", params: Promise.resolve({ locale: "en" }) });
+    const kids = childrenOf(result);
+    expect(kids).toEqual(["about"]);
+    expect(mocks.resolveStorefrontAnnouncementMessage).not.toHaveBeenCalled();
   });
 
   it("skips layout marquee when message resolves empty", async () => {
