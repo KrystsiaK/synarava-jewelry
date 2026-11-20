@@ -290,8 +290,7 @@ html {
 
 /*
  * Storefront free-shipping marquee — height from font size, no CLS.
- * Home: between hero and next section (viewport-budget hero keeps it on-fold).
- * Other allowlisted storefront pages: locale layout, immediately under header.
+ * Allowlisted storefront pages (incl. home): locale layout, under header.
  * z-index above overlapping sections (e.g. ArchivePathway z-20); below nav/modals.
  * Text #f7f7f5 on darkened couture-red → WCAG AA contrast.
  */
@@ -618,6 +617,14 @@ select {
  */
 body:has(.artifact-nav[data-overlay="true"]) #main-content > .announcement-marquee {
   margin-top: var(--artifact-nav-height);
+}
+
+/*
+ * Home: layout marquee sits above the hero. When the bar is present, shrink the
+ * viewport-budget hero so nav + bar + hero still equal one screen (no scroll).
+ */
+#main-content:has(> .announcement-marquee) .home-hero {
+  height: calc(100svh - var(--artifact-nav-height) - var(--announcement-marquee-height));
 }
 
 /*

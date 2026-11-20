@@ -5,7 +5,6 @@ import {
   type PageContent,
 } from "@/lib/content/catalog";
 import { resolveHomeArchiveCollections } from "@/lib/content/home-archive-section";
-import { resolveStorefrontAnnouncementMessage } from "@/lib/content/resolve-storefront-announcement-message";
 import { listShopListingProducts } from "@/lib/content/shop-listing";
 import { getSiteVideos } from "@/lib/site-videos";
 import { getSiteSeo } from "@/lib/content/site-seo";
@@ -60,13 +59,11 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export default async function Page() {
   const { locale } = await getServerTranslations();
-  const [page, collectionData, videos, products, announcementMessage] = await Promise.all([
+  const [page, collectionData, videos, products] = await Promise.all([
     getPageBySlug("home", locale),
     listCollections(locale),
     getSiteVideos(),
     listShopListingProducts(locale),
-    // Shared cache() helper — same request as locale layout skips home mount.
-    resolveStorefrontAnnouncementMessage(),
   ]);
 
   const content: PageContent = page?.content ?? {};
@@ -98,7 +95,6 @@ export default async function Page() {
         categoryName: product.categoryName,
       }))}
       heroVideoSrc={[videos.homeBeads, videos.homeModel, videos.braceletFilm, videos.materialsFilm]}
-      announcementMessage={announcementMessage}
     />
   );
 }

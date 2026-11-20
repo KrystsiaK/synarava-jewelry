@@ -4,9 +4,9 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Structural guard: the free-shipping marquee must stay above overlapping home
- * sections (ArchivePathway uses relative z-20 + negative margin) so hover/click
- * hit-testing reaches `.announcement-marquee`. Banner stays below sticky nav (50).
+ * Structural guard: layout-owned free-shipping marquee stays above overlapping
+ * home sections (ArchivePathway uses relative z-20 + negative margin) for
+ * hit-testing, and below sticky nav (50). Home no longer self-mounts.
  */
 describe("announcement marquee stacking guard", () => {
   const pageSource = readFileSync(
@@ -39,20 +39,24 @@ describe("announcement marquee stacking guard", () => {
     );
   });
 
-  it("uses viewport-budget hero height instead of taller-than-viewport min-heights", () => {
+  it("uses viewport-budget hero height without announcement subtraction", () => {
     expect(pageSource).toContain(
-      "h-[calc(100svh-var(--artifact-nav-height)-var(--announcement-marquee-height))]",
+      "h-[calc(100svh-var(--artifact-nav-height))]",
     );
+    expect(pageSource).not.toContain("--announcement-marquee-height");
+    // Layout marquee above home: CSS restores fold-fit when the bar is present.
+    expect(cssSource).toContain("#main-content:has(> .announcement-marquee) .home-hero");
     expect(pageSource).not.toMatch(/min-h-\[108svh\]/);
     expect(pageSource).not.toMatch(/md:min-h-\[112vh\]/);
   });
 
-  it("keeps a single layout exception list and home self-mount", () => {
+  it("keeps a single layout exception list; home does not self-mount", () => {
     expect(placementSource).toContain("STOREFRONT_ANNOUNCEMENT_LAYOUT_PATHS");
-    expect(placementSource).toContain('return "home"');
+    expect(placementSource).not.toContain('return "home"');
     expect(placementSource).toContain("isAdminRequestPath");
     expect(localeLayoutSource).toContain("shouldMountLayoutAnnouncementMarquee");
     expect(localeLayoutSource).toContain("resolveStorefrontAnnouncementMessage");
-    expect(pageSource).toContain("<AnnouncementMarquee");
+    expect(localeLayoutSource).toContain("<AnnouncementMarquee");
+    expect(pageSource).not.toContain("<AnnouncementMarquee");
   });
 });
