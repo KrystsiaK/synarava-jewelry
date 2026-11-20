@@ -40,10 +40,10 @@ import {
   formDataHasMetafieldTranslationFields,
   mergeCustomMetafieldsIntoList,
   mergeMetafieldTranslations,
-  metafieldTranslationsFromSnapshot,
   metafieldTranslationTouchesFromForm,
   parseCustomMetafieldsForm,
   parseCustomMetafieldTranslationsForm,
+  storefrontMetafieldTranslations,
 } from "@/lib/shopify/product-metafields-shared";
 import { isShopifyConfigured } from "@/lib/shopify/config";
 import { deleteShopifyProduct } from "@/lib/shopify/product-sync";
@@ -674,7 +674,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   // touched identities (including empties) clear without wiping untouched keys.
   const metafieldTranslations = parsedMetafieldTranslations
     ? mergeMetafieldTranslations(
-      metafieldTranslationsFromSnapshot(before?.extras ?? before?.shopifySnapshot),
+      // OUR extras win; shopifySnapshot only seeds gaps (never the other way).
+      storefrontMetafieldTranslations(before?.extras, before?.shopifySnapshot),
       parsedMetafieldTranslations,
       metafieldTranslationTouchesFromForm(formData),
     )

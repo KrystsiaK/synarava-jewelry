@@ -75,8 +75,9 @@ export function characteristicOverlayFromMetafieldTranslations(
 }
 
 /**
- * Storefront metafield locale overlays: OUR `workingSnapshot` wins, then last
- * Shopify pull. Admin Save writes PT/RU into working only until the next Pull.
+ * Storefront metafield locale overlays: OUR `extras` (Save) wins, then last
+ * Shopify observation on `shopifySnapshot`. Pull never copies Shopify overlays
+ * into Synarava extras — divergence is CONFLICT until human Take Shopify.
  */
 export function storefrontMetafieldTranslations(
   workingSnapshot: unknown,

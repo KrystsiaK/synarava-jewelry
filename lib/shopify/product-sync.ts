@@ -398,10 +398,21 @@ async function shopifySnapshotOnlyWrite(remote: ShopifyProduct) {
   return withMetafieldTranslations(snap, translations) as Prisma.InputJsonValue;
 }
 
-/** Shopify observation + extras orphans agree after successful human pull/push (ADR-0009). */
-async function agreedProjectionWrite(remote: ShopifyProduct) {
+/**
+ * Shopify observation + commerce extras orphans after human pull/push (ADR-0009).
+ * Preserves Synarava `extras.metafieldTranslations` (locale overlays) — same
+ * contract as ProductTranslation: pull never silent-overwrites locale copy.
+ */
+async function agreedProjectionWrite(remote: ShopifyProduct, existingExtras?: unknown) {
   const withTranslations = await shopifySnapshotOnlyWrite(remote);
-  const extras = productExtrasFromShopifySnapshot(withTranslations);
+  const fromShopify = productExtrasFromShopifySnapshot(withTranslations);
+  const { metafieldTranslationsFromSnapshot } = await import(
+    "@/lib/shopify/product-metafields-shared"
+  );
+  const localOverlays = metafieldTranslationsFromSnapshot(existingExtras);
+  const extras = Object.keys(localOverlays).length > 0
+    ? { ...fromShopify, metafieldTranslations: localOverlays }
+    : fromShopify;
   return {
     shopifySnapshot: withTranslations,
     extras: Object.keys(extras).length > 0
@@ -858,7 +869,7 @@ async function savePulledProduct(
     return { productId: existingById.id, status: "LOCAL_CHANGES" as const };
   }
 
-  const projectionWrite = await agreedProjectionWrite(remote);
+  const projectionWrite = await agreedProjectionWrite(remote, existing?.extras);
   const stockByVariantId = Object.fromEntries(
     remote.variants.nodes.map((variant) => [
       variant.id,
@@ -1564,9 +1575,8 @@ export async function adoptShopifyProjectionField(
   const { metafieldTranslationsFromSnapshot, withMetafieldTranslations } = await import(
     "@/lib/shopify/product-metafields-shared"
   );
-  const preservedTranslations = metafieldTranslationsFromSnapshot(
-    product.extras ?? product.shopifySnapshot,
-  );
+  // Prefer OUR extras only — never seed Synarava overlays from shopifySnapshot.
+  const preservedTranslations = metafieldTranslationsFromSnapshot(product.extras);
   const nextExtras = extractProductExtrasFromWorkingSnapshot(
     withMetafieldTranslations(canonicalizeShopifyProjection(nextWorking), preservedTranslations),
   );
@@ -2186,7 +2196,7 @@ export async function pushProductToShopify(
         imageUrl: item.image?.url ?? item.preview?.image?.url,
       })),
     });
-    const settledProjection = await agreedProjectionWrite(settled.product);
+    const settledProjection = await agreedProjectionWrite(settled.product, product.extras);
     const productUpdate = {
       shopifyProductId: settled.product.id,
       shopifyHandle: settled.product.handle,

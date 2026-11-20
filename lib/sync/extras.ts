@@ -76,9 +76,17 @@ export function extractProductExtrasFromWorkingSnapshot(working: unknown): Produ
   return Object.keys(extras).length > 0 ? extras : null;
 }
 
-/** Merge Shopify observation orphans into extras after Pull/Apply agree. */
+/**
+ * Merge Shopify observation orphans into extras after Pull/Apply agree.
+ * Locale metafield overlays stay Synarava SoT until an explicit Take Shopify
+ * for those fields — never seed/replace them from the Shopify window here.
+ */
 export function productExtrasFromShopifySnapshot(shopify: unknown): ProductExtras {
-  return extractProductExtrasFromWorkingSnapshot(shopify) ?? {};
+  const extras = extractProductExtrasFromWorkingSnapshot(shopify) ?? {};
+  if (!("metafieldTranslations" in extras)) return extras;
+  const rest = { ...extras };
+  delete rest.metafieldTranslations;
+  return rest;
 }
 
 export function parseProductExtras(raw: unknown): ProductExtras {
