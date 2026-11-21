@@ -5,6 +5,7 @@ import { getAdminCatalogData } from "@/lib/content/catalog";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import { ProductIncomingUpdateMarker } from "@/components/admin/products/product-incoming-update-marker";
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import { isAiContentEnabled } from "@/lib/ai/config";
 import { getCatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals-server";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
 
@@ -69,6 +70,7 @@ export default async function EditProductPage({
         collections={collections}
         translationLocales={translationLocales}
         initialConflictSignals={conflictSignals}
+        aiContentEnabled={isAiContentEnabled()}
       />
     </div>
   );
