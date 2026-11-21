@@ -81,4 +81,23 @@ describe("validateAndNormalizeDraftLocales", () => {
     const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
     expect(result!.warnings.some((w) => /silver/i.test(w.message))).toBe(false);
   });
+
+  it("warns for silver when facts only have silver-plated compound", () => {
+    const platedFacts: ProductContentFacts = {
+      ...baseFacts,
+      materialLine: "silver-plated brass",
+      characteristics: [
+        { key: "material", label: "Material", value: "silver-plated brass" },
+      ],
+    };
+    const raw = JSON.stringify({
+      locales: {
+        en: {
+          shortDescription: "Solid silver band.",
+        },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, platedFacts, ["en"]);
+    expect(result!.warnings.some((w) => /silver/i.test(w.message))).toBe(true);
+  });
 });

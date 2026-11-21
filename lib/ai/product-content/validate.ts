@@ -81,17 +81,46 @@ function clampPlain(value: string, max: number): string {
   return value.slice(0, max).trimEnd();
 }
 
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/** Truncated roots that must match as token prefixes (e.g. гипоаллерген → гипоаллергенный). */
+const CLAIM_STEM_TERMS = new Set([
+  "hipoalergénic",
+  "hipoalergenic",
+  "гипоаллерген",
+  "водонепроницаем",
+  "сертифиц",
+  "драгоценн",
+]);
+
+/**
+ * Hyphen continues a compound token so "silver" does not match "silver-plated".
+ * Stem terms match a token prefix only.
+ */
+export function claimTermPresent(haystack: string, term: string): boolean {
+  const t = term.toLowerCase();
+  const escaped = escapeRegExp(t);
+  const flags = "iu";
+  if (CLAIM_STEM_TERMS.has(t)) {
+    return new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}`, flags).test(haystack);
+  }
+  return new RegExp(`(?<![\\p{L}\\p{N}_-])${escaped}(?![\\p{L}\\p{N}_-])`, flags).test(
+    haystack,
+  );
+}
+
 function collectClaimWarnings(
   locale: AiLocale,
   field: AiField,
   text: string,
   corpus: string,
 ): ProductContentDraft["warnings"] {
-  const lower = text.toLowerCase();
   const warnings: ProductContentDraft["warnings"] = [];
   for (const { term, label } of CLAIM_GUARD_TERMS) {
-    if (!lower.includes(term.toLowerCase())) continue;
-    if (corpus.includes(term.toLowerCase())) continue;
+    if (!claimTermPresent(text, term)) continue;
+    if (claimTermPresent(corpus, term)) continue;
     warnings.push({
       locale,
       field,

@@ -177,6 +177,7 @@ async function main() {
   const started = Date.now();
 
   let response;
+  let body;
   try {
     response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
@@ -198,12 +199,13 @@ async function main() {
         }),
       },
     );
+    // Keep abort coverage while the body streams (same window as gemini.ts).
+    body = await response.json();
   } finally {
     clearTimeout(timer);
   }
 
   const latencyMs = Date.now() - started;
-  const body = await response.json();
   if (!response.ok) {
     console.error("Gemini error:", body?.error?.message ?? response.status);
     process.exit(1);
