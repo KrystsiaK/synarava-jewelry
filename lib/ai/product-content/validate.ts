@@ -1,5 +1,3 @@
-import { z } from "zod";
-
 import {
   normalizeRichTextForStorage,
   plainTextFromRichText,
@@ -10,31 +8,12 @@ import type {
   ProductContentDraft,
 } from "@/lib/ai/product-content/contract";
 import { factsCorpus, type ProductContentFacts } from "@/lib/ai/product-content/facts";
+import { productContentLocalesSchema } from "@/lib/ai/product-content/schema";
+
+export { productContentLocalesSchema, geminiLocalesSchema } from "@/lib/ai/product-content/schema";
 
 const SEO_TITLE_MAX = 60;
 const SEO_DESCRIPTION_MAX = 160;
-
-const localeFieldsSchema = z
-  .object({
-    title: z.string().optional(),
-    shortDescription: z.string().optional(),
-    description: z.string().optional(),
-    seoTitle: z.string().optional(),
-    seoDescription: z.string().optional(),
-  })
-  .strict();
-
-export const geminiLocalesSchema = z
-  .object({
-    locales: z
-      .object({
-        en: localeFieldsSchema.optional(),
-        pt: localeFieldsSchema.optional(),
-        ru: localeFieldsSchema.optional(),
-      })
-      .strict(),
-  })
-  .strict();
 
 /** Claim words that must appear in product facts when used in generated copy. */
 export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
@@ -137,20 +116,23 @@ export type ValidatedLocales = {
 
 /**
  * Zod-parse + sanitize + claim-guard. Never throws — returns null on invalid JSON/shape.
+ * Accepts raw JSON text or already-parsed unknown.
  */
 export function validateAndNormalizeDraftLocales(
-  rawText: string,
+  raw: string | unknown,
   facts: ProductContentFacts,
   requestedLocales: AiLocale[],
 ): ValidatedLocales | null {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(rawText);
-  } catch {
-    return null;
+  let parsed: unknown = raw;
+  if (typeof raw === "string") {
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
   }
 
-  const result = geminiLocalesSchema.safeParse(parsed);
+  const result = productContentLocalesSchema.safeParse(parsed);
   if (!result.success) return null;
 
   const corpus = factsCorpus(facts);

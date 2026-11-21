@@ -1,9 +1,10 @@
 import { checkRateLimit } from "@/lib/auth/rate-limit";
 import {
+  estimateCostUsd,
   getRateLimitOpts,
+  GEMINI_TIMEOUT_MS,
   isAiContentEnabled,
 } from "@/lib/ai/config";
-import { generateStructuredJson } from "@/lib/ai/gemini";
 import {
   assertMonthlyBudgetAvailable,
   writeAiGenerationAudit,
@@ -17,10 +18,15 @@ import {
   type ProductForFacts,
 } from "@/lib/ai/product-content/facts";
 import {
+  ContentProviderNotConfiguredError,
+  getContentProvider,
+  type ContentProvider,
+} from "@/lib/ai/product-content/provider";
+import {
   buildSystemInstruction,
   buildUserPrompt,
-  PRODUCT_CONTENT_RESPONSE_SCHEMA,
 } from "@/lib/ai/product-content/prompt";
+import { PRODUCT_CONTENT_RESPONSE_SCHEMA } from "@/lib/ai/product-content/schema";
 import { validateAndNormalizeDraftLocales } from "@/lib/ai/product-content/validate";
 import { db } from "@/lib/db";
 
@@ -88,13 +94,39 @@ async function loadProductForFacts(productId: string): Promise<
   });
 }
 
+function mapProviderError(error: unknown): GenerateResult {
+  if (error instanceof ContentProviderNotConfiguredError) {
+    return {
+      ok: false,
+      code: "disabled",
+      message: error.message,
+    };
+  }
+  if (error instanceof Error && error.name === "AbortError") {
+    return {
+      ok: false,
+      code: "timeout",
+      message: error.message || "Provider request timed out",
+    };
+  }
+  const message = error instanceof Error ? error.message : "Provider request failed";
+  const lower = message.toLowerCase();
+  if (lower.includes("timeout") || lower.includes("aborted")) {
+    return { ok: false, code: "timeout", message };
+  }
+  return { ok: false, code: "provider_error", message };
+}
+
 /**
  * Core generate flow (read-only Product load; sole write = AuditLog).
+ * Uses ContentProvider stub until architect picks the benchmark winner.
  */
 export async function generateProductContent(input: {
   productId: string;
   locales: AiLocale[];
   actor: AdminActor;
+  /** Optional override (tests / future wiring). Defaults to getContentProvider(). */
+  provider?: ContentProvider;
 }): Promise<GenerateResult> {
   if (!isAiContentEnabled()) {
     return {
@@ -145,21 +177,25 @@ export async function generateProductContent(input: {
   }
 
   const facts = buildProductContentFacts(product);
-  const gemini = await generateStructuredJson({
-    systemInstruction: buildSystemInstruction(locales),
-    userPrompt: buildUserPrompt(facts, locales),
-    responseJsonSchema: PRODUCT_CONTENT_RESPONSE_SCHEMA as unknown as Record<string, unknown>,
-  });
+  const provider = input.provider ?? getContentProvider();
 
-  if (!gemini.ok) {
-    return {
-      ok: false,
-      code: gemini.code === "disabled" ? "disabled" : gemini.code,
-      message: gemini.message,
-    };
+  let providerResult: Awaited<ReturnType<ContentProvider>>;
+  try {
+    providerResult = await provider({
+      system: buildSystemInstruction(locales),
+      user: buildUserPrompt(facts, locales),
+      jsonSchema: PRODUCT_CONTENT_RESPONSE_SCHEMA as unknown as object,
+      timeoutMs: GEMINI_TIMEOUT_MS,
+    });
+  } catch (error) {
+    return mapProviderError(error);
   }
 
-  const validated = validateAndNormalizeDraftLocales(gemini.text, facts, locales);
+  const validated = validateAndNormalizeDraftLocales(
+    providerResult.json,
+    facts,
+    locales,
+  );
   if (!validated) {
     return {
       ok: false,
@@ -168,16 +204,21 @@ export async function generateProductContent(input: {
     };
   }
 
+  const costUsd = estimateCostUsd(
+    providerResult.usage.inputTokens,
+    providerResult.usage.outputTokens,
+  );
+
   await writeAiGenerationAudit({
     productId: product.id,
     adminUsername: input.actor.username,
     adminSessionId: input.actor.sessionId,
     usage: {
-      model: gemini.model,
-      inputTokens: gemini.inputTokens,
-      outputTokens: gemini.outputTokens,
-      costUsd: gemini.costUsd,
-      latencyMs: gemini.latencyMs,
+      model: providerResult.usage.model,
+      inputTokens: providerResult.usage.inputTokens,
+      outputTokens: providerResult.usage.outputTokens,
+      costUsd,
+      latencyMs: providerResult.usage.latencyMs,
       productId: product.id,
       locales,
     },
@@ -191,11 +232,11 @@ export async function generateProductContent(input: {
       locales: validated.locales,
       warnings: validated.warnings,
       usage: {
-        model: gemini.model,
-        inputTokens: gemini.inputTokens,
-        outputTokens: gemini.outputTokens,
-        costUsd: gemini.costUsd,
-        latencyMs: gemini.latencyMs,
+        model: providerResult.usage.model,
+        inputTokens: providerResult.usage.inputTokens,
+        outputTokens: providerResult.usage.outputTokens,
+        costUsd,
+        latencyMs: providerResult.usage.latencyMs,
       },
     },
   };

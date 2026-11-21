@@ -3,7 +3,7 @@ import type { ProductContentFacts } from "@/lib/ai/product-content/facts";
 
 /**
  * Tone/terms from PRODUCT.md: quiet, ceremonial, precise; editorial/museum-like;
- * never fabricate product claims.
+ * never fabricate product claims. Provider-agnostic.
  */
 export function buildSystemInstruction(locales: AiLocale[]): string {
   const localeLine = locales.join(", ");
@@ -31,49 +31,3 @@ export function buildUserPrompt(facts: ProductContentFacts, locales: AiLocale[])
     "Omit en.title always. Prefer leaving a field empty over inventing.",
   ].join("\n");
 }
-
-export const PRODUCT_CONTENT_RESPONSE_SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  required: ["locales"],
-  properties: {
-    locales: {
-      type: "object",
-      additionalProperties: false,
-      properties: {
-        en: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
-        },
-        pt: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
-        },
-        ru: {
-          type: "object",
-          additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
-        },
-      },
-    },
-  },
-} as const;

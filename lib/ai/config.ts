@@ -3,14 +3,18 @@
  *
  * Expected names (add to the repo env example file when protect-env hook allows):
  * - GEMINI_API_KEY
- * - GEMINI_MODEL
+ * - GEMINI_MODEL (bench / legacy helper only until winner)
+ * - ANTHROPIC_API_KEY (bench only)
+ * - OPENAI_API_KEY (bench only)
  * - AI_CONTENT_ENABLED
+ * - AI_CONTENT_MODEL (reserved — set after architect picks winner)
  * - AI_MONTHLY_BUDGET_USD
  * - AI_RATE_LIMIT_MAX (optional; default 20)
  * - AI_RATE_LIMIT_WINDOW_MS (optional; default 3_600_000)
  *
- * Default model: gemini-3.1-flash-lite
- * Cite: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite
+ * Production ContentProvider is a stub until the benchmark winner is wired.
+ * Bench model ids (not production): gemini-3.1-flash-lite, claude-haiku-5-5,
+ * claude-sonnet-5-5, gpt-5-nano.
  */
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";

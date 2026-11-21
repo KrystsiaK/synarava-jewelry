@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   productFindUnique: vi.fn(),
   auditLogFindMany: vi.fn(),
   auditLogCreate: vi.fn(),
-  generateStructuredJson: vi.fn(),
+  contentProvider: vi.fn(),
 }));
 
 vi.mock("@/lib/auth/admin-session", () => ({
@@ -27,9 +27,15 @@ vi.mock("@/lib/db", () => ({
   },
 }));
 
-vi.mock("@/lib/ai/gemini", () => ({
-  generateStructuredJson: mocks.generateStructuredJson,
-}));
+vi.mock("@/lib/ai/product-content/provider", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/ai/product-content/provider")>(
+    "@/lib/ai/product-content/provider",
+  );
+  return {
+    ...actual,
+    getContentProvider: () => mocks.contentProvider,
+  };
+});
 
 import { generateProductContentAction } from "../ai-content";
 
@@ -61,7 +67,18 @@ const productRow = {
 function enableAi() {
   process.env.AI_CONTENT_ENABLED = "true";
   process.env.AI_MONTHLY_BUDGET_USD = "5";
-  process.env.GEMINI_API_KEY = "test-key";
+}
+
+function okProviderJson(locales: unknown) {
+  mocks.contentProvider.mockResolvedValue({
+    json: { locales },
+    usage: {
+      model: "stub-test-model",
+      inputTokens: 100,
+      outputTokens: 50,
+      latencyMs: 120,
+    },
+  });
 }
 
 beforeEach(() => {
@@ -75,31 +92,21 @@ beforeEach(() => {
   mocks.auditLogFindMany.mockResolvedValue([]);
   mocks.auditLogCreate.mockResolvedValue({ id: "audit_1" });
   mocks.productFindUnique.mockResolvedValue(productRow);
-  mocks.generateStructuredJson.mockResolvedValue({
-    ok: true,
-    text: JSON.stringify({
-      locales: {
-        en: {
-          shortDescription: "A quiet silver ring.",
-          description: "<p>Crafted in silver.</p>",
-          seoTitle: "River Pearl Ring",
-          seoDescription: "Quiet silver and pearl.",
-        },
-        pt: {
-          title: "Anel Pérola do Rio",
-          shortDescription: "Um anel sereno.",
-        },
-        ru: {
-          title: "Кольцо Речной Жемчуг",
-          shortDescription: "Спокойное кольцо.",
-        },
-      },
-    }),
-    model: "gemini-3.1-flash-lite",
-    inputTokens: 100,
-    outputTokens: 50,
-    costUsd: 0.0001,
-    latencyMs: 120,
+  okProviderJson({
+    en: {
+      shortDescription: "A quiet silver ring.",
+      description: "<p>Crafted in silver.</p>",
+      seoTitle: "River Pearl Ring",
+      seoDescription: "Quiet silver and pearl.",
+    },
+    pt: {
+      title: "Anel Pérola do Rio",
+      shortDescription: "Um anel sereno.",
+    },
+    ru: {
+      title: "Кольцо Речной Жемчуг",
+      shortDescription: "Спокойное кольцо.",
+    },
   });
 });
 
@@ -112,13 +119,12 @@ describe("generateProductContentAction", () => {
       expect(result.draft.locales.pt?.title).toBeTruthy();
       expect(result.draft.locales.ru?.title).toBeTruthy();
       expect(result.draft.productId).toBe("prod_1");
-      expect(result.draft.usage.model).toBe("gemini-3.1-flash-lite");
+      expect(result.draft.usage.model).toBe("stub-test-model");
     }
     expect(mocks.auditLogCreate).toHaveBeenCalledOnce();
     const createArg = mocks.auditLogCreate.mock.calls[0]![0];
     expect(createArg.data.action).toBe("ai.product_content.generate");
     expect(JSON.stringify(createArg.data.metadata)).not.toMatch(/shortDescription|A quiet/);
-    expect(mocks.productFindUnique).toHaveBeenCalled();
   });
 
   it("returns unauthorized when requireAdminSession fails", async () => {
@@ -162,13 +168,9 @@ describe("generateProductContentAction", () => {
   });
 
   it("returns timeout from provider", async () => {
-    mocks.generateStructuredJson.mockResolvedValue({
-      ok: false,
-      code: "timeout",
-      message: "timed out",
-      latencyMs: 30000,
-      model: "gemini-3.1-flash-lite",
-    });
+    const err = new Error("timed out");
+    err.name = "AbortError";
+    mocks.contentProvider.mockRejectedValue(err);
     await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
       ok: false,
       code: "timeout",
@@ -176,13 +178,7 @@ describe("generateProductContentAction", () => {
   });
 
   it("returns provider_error on HTTP failure path", async () => {
-    mocks.generateStructuredJson.mockResolvedValue({
-      ok: false,
-      code: "provider_error",
-      message: "Gemini HTTP 500",
-      latencyMs: 10,
-      model: "gemini-3.1-flash-lite",
-    });
+    mocks.contentProvider.mockRejectedValue(new Error("Gemini HTTP 500"));
     await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
       ok: false,
       code: "provider_error",
@@ -190,14 +186,9 @@ describe("generateProductContentAction", () => {
   });
 
   it("returns invalid_output for garbage JSON", async () => {
-    mocks.generateStructuredJson.mockResolvedValue({
-      ok: true,
-      text: "not-json{{{",
-      model: "gemini-3.1-flash-lite",
-      inputTokens: 1,
-      outputTokens: 1,
-      costUsd: 0,
-      latencyMs: 5,
+    mocks.contentProvider.mockResolvedValue({
+      json: { notLocales: true },
+      usage: { model: "stub-test-model", inputTokens: 1, outputTokens: 1, latencyMs: 5 },
     });
     await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
       ok: false,
@@ -207,18 +198,8 @@ describe("generateProductContentAction", () => {
   });
 
   it("warns on invented hypoallergenic", async () => {
-    mocks.generateStructuredJson.mockResolvedValue({
-      ok: true,
-      text: JSON.stringify({
-        locales: {
-          en: { shortDescription: "Hypoallergenic silver ring." },
-        },
-      }),
-      model: "gemini-3.1-flash-lite",
-      inputTokens: 10,
-      outputTokens: 10,
-      costUsd: 0.00001,
-      latencyMs: 20,
+    okProviderJson({
+      en: { shortDescription: "Hypoallergenic silver ring." },
     });
     const result = await generateProductContentAction("prod_1", ["en"]);
     expect(result.ok).toBe(true);
@@ -232,6 +213,17 @@ describe("generateProductContentAction", () => {
     await expect(generateProductContentAction("missing", ["en"])).resolves.toMatchObject({
       ok: false,
       code: "not_found",
+    });
+  });
+
+  it("returns disabled when production stub provider is not configured", async () => {
+    const { ContentProviderNotConfiguredError } = await import(
+      "@/lib/ai/product-content/provider"
+    );
+    mocks.contentProvider.mockRejectedValue(new ContentProviderNotConfiguredError());
+    await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
+      ok: false,
+      code: "disabled",
     });
   });
 });

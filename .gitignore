@@ -103,3 +103,6 @@ packages/*/dist/
 graphify-out/.graphify_build_state.json
 graphify-out/.graphify_labels.json.sig
 graphify-out/.graphify_labels.pending.json
+
+# AI provider benchmark raw texts (never commit)
+.artifacts/

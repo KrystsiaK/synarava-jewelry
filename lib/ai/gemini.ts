@@ -57,7 +57,10 @@ function extractText(body: GeminiResponseBody): string | null {
 }
 
 /**
- * Sole Gemini provider: REST generateContent only (no SDK).
+ * Low-level Gemini REST helper (generateContent, no SDK).
+ * NOT the production ContentProvider — production uses the stub in
+ * `lib/ai/product-content/provider.ts` until the benchmark winner is chosen.
+ * Bench adapters live under `scripts/ai/bench/`.
  * Never logs the API key or request body.
  */
 export async function generateStructuredJson(
