@@ -39,6 +39,8 @@ export async function assertMonthlyBudgetAvailable(
   return { ok: true };
 }
 
+export type AiAuditOutcome = "ok" | "invalid_output";
+
 export type AiUsageAuditMetadata = {
   model: string;
   inputTokens: number;
@@ -47,6 +49,8 @@ export type AiUsageAuditMetadata = {
   latencyMs: number;
   productId: string;
   locales: string[];
+  /** Present whenever the provider returned usage (success or invalid_output). */
+  outcome: AiAuditOutcome;
 };
 
 /** Sole DB write for AI generation — usage only, never product texts. */

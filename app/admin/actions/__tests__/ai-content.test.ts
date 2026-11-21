@@ -73,7 +73,7 @@ function okProviderJson(locales: unknown) {
   mocks.contentProvider.mockResolvedValue({
     json: { locales },
     usage: {
-      model: "stub-test-model",
+      model: "gemini-3.1-flash-lite",
       inputTokens: 100,
       outputTokens: 50,
       latencyMs: 120,
@@ -119,11 +119,14 @@ describe("generateProductContentAction", () => {
       expect(result.draft.locales.pt?.title).toBeTruthy();
       expect(result.draft.locales.ru?.title).toBeTruthy();
       expect(result.draft.productId).toBe("prod_1");
-      expect(result.draft.usage.model).toBe("stub-test-model");
+      expect(result.draft.usage.model).toBe("gemini-3.1-flash-lite");
+      expect(result.draft.usage.costUsd).toBeGreaterThan(0);
     }
     expect(mocks.auditLogCreate).toHaveBeenCalledOnce();
     const createArg = mocks.auditLogCreate.mock.calls[0]![0];
     expect(createArg.data.action).toBe("ai.product_content.generate");
+    expect(createArg.data.metadata.outcome).toBe("ok");
+    expect(createArg.data.metadata.costUsd).toBeGreaterThan(0);
     expect(JSON.stringify(createArg.data.metadata)).not.toMatch(/shortDescription|A quiet/);
   });
 
@@ -185,16 +188,32 @@ describe("generateProductContentAction", () => {
     });
   });
 
-  it("returns invalid_output for garbage JSON", async () => {
+  it("invalid_output still writes AuditLog and costUsd counts toward monthly sum", async () => {
     mocks.contentProvider.mockResolvedValue({
       json: { notLocales: true },
-      usage: { model: "stub-test-model", inputTokens: 1, outputTokens: 1, latencyMs: 5 },
+      usage: {
+        model: "gemini-3.1-flash-lite",
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+        latencyMs: 5,
+      },
     });
     await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
       ok: false,
       code: "invalid_output",
     });
-    expect(mocks.auditLogCreate).not.toHaveBeenCalled();
+    expect(mocks.auditLogCreate).toHaveBeenCalledOnce();
+    const meta = mocks.auditLogCreate.mock.calls[0]![0].data.metadata as {
+      outcome: string;
+      costUsd: number;
+    };
+    expect(meta.outcome).toBe("invalid_output");
+    // 1M in @ $0.25 + 1M out @ $1.50 = $1.75
+    expect(meta.costUsd).toBe(1.75);
+
+    mocks.auditLogFindMany.mockResolvedValue([{ metadata: meta }]);
+    const { sumMonthlyAiSpendUsd } = await import("@/lib/ai/product-content/budget");
+    await expect(sumMonthlyAiSpendUsd()).resolves.toBe(1.75);
   });
 
   it("warns on invented hypoallergenic", async () => {

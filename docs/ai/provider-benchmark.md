@@ -1,13 +1,14 @@
 # AI product content — provider benchmark
 
 **Status:** scaffolding + probe (no winner declared)
-**Generated:** 2026-11-21T23:39:16.367Z
+**Generated:** 2026-11-21T23:51:14.661Z
 **Hard budget:** $1.50
 **Spent this run:** $0.000000
 **Products:** _none_
 **Locales:** EN, PT-PT, RU
 
 Production `ContentProvider` remains a **stub** until the architect picks a winner. Bench adapters live only under `scripts/ai/bench/`.
+Prompt / schema / validate / price table: reused from `lib/ai/**`.
 
 ## Pre-run model card
 
@@ -44,5 +45,5 @@ _No raw artifacts (all models skipped or no products)._
 - OpenAI pick: `gpt-5-nano` — cheapest first-party model with structured outputs on [OpenAI pricing](https://developers.openai.com/api/docs/pricing) at capture ($0.05 / $0.40 per 1M).
 - Claude: `output_config.format = json_schema`, `effort: "low"`, no temperature.
 - Gemini: REST `generateContent` + `responseJsonSchema`.
-- Same facts / system / user / schema for every model×product cell.
+- Same facts / system / user / schema for every model×product cell (from `lib/ai`).
 - **Do not treat this file as a winner decision.**

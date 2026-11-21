@@ -1,35 +1,9 @@
 import {
-  estimateCostUsd,
   getGeminiApiKey,
   getGeminiModel,
   GEMINI_TIMEOUT_MS,
 } from "@/lib/ai/config";
-
-export type GeminiStructuredResult =
-  | {
-      ok: true;
-      text: string;
-      model: string;
-      inputTokens: number;
-      outputTokens: number;
-      costUsd: number;
-      latencyMs: number;
-    }
-  | {
-      ok: false;
-      code: "timeout" | "provider_error" | "invalid_output" | "disabled";
-      message: string;
-      latencyMs: number;
-      model: string;
-    };
-
-export type GeminiGenerateParams = {
-  systemInstruction: string;
-  userPrompt: string;
-  responseJsonSchema: Record<string, unknown>;
-  signal?: AbortSignal;
-  timeoutMs?: number;
-};
+import type { ContentProvider } from "@/lib/ai/product-content/provider";
 
 type GeminiUsageMetadata = {
   promptTokenCount?: number;
@@ -57,33 +31,25 @@ function extractText(body: GeminiResponseBody): string | null {
 }
 
 /**
- * Low-level Gemini REST helper (generateContent, no SDK).
- * NOT the production ContentProvider — production uses the stub in
- * `lib/ai/product-content/provider.ts` until the benchmark winner is chosen.
- * Bench adapters live under `scripts/ai/bench/`.
- * Never logs the API key or request body.
+ * Gemini REST ContentProvider (generateContent, no SDK).
+ * Matches `ContentProvider` exactly — returns `{ json, usage }` and throws on
+ * transport / HTTP / timeout failures. Cost is computed outside via `config.estimateCostUsd`.
+ *
+ * NOT wired into production `getContentProvider()` — production stays on the stub
+ * until the architect picks a benchmark winner. Bench adapters live under
+ * `scripts/ai/bench/`. Never logs the API key or request body.
  */
-export async function generateStructuredJson(
-  params: GeminiGenerateParams,
-): Promise<GeminiStructuredResult> {
+export const geminiContentProvider: ContentProvider = async (input) => {
   const model = getGeminiModel();
   const started = Date.now();
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    return {
-      ok: false,
-      code: "disabled",
-      message: "GEMINI_API_KEY is not configured",
-      latencyMs: Date.now() - started,
-      model,
-    };
+    throw new Error("GEMINI_API_KEY is not configured");
   }
 
-  const timeoutMs = params.timeoutMs ?? GEMINI_TIMEOUT_MS;
+  const timeoutMs = input.timeoutMs > 0 ? input.timeoutMs : GEMINI_TIMEOUT_MS;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  const onExternalAbort = () => controller.abort();
-  params.signal?.addEventListener("abort", onExternalAbort);
 
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
 
@@ -97,18 +63,18 @@ export async function generateStructuredJson(
       signal: controller.signal,
       body: JSON.stringify({
         systemInstruction: {
-          parts: [{ text: params.systemInstruction }],
+          parts: [{ text: input.system }],
         },
         contents: [
           {
             role: "user",
-            parts: [{ text: params.userPrompt }],
+            parts: [{ text: input.user }],
           },
         ],
         generationConfig: {
           temperature: 0.35,
           responseMimeType: "application/json",
-          responseJsonSchema: params.responseJsonSchema,
+          responseJsonSchema: input.jsonSchema,
         },
       }),
     });
@@ -118,13 +84,7 @@ export async function generateStructuredJson(
     try {
       body = (await response.json()) as GeminiResponseBody;
     } catch {
-      return {
-        ok: false,
-        code: "invalid_output",
-        message: "Provider returned non-JSON body",
-        latencyMs,
-        model,
-      };
+      throw new Error("Provider returned non-JSON body");
     }
 
     if (!response.ok) {
@@ -132,61 +92,45 @@ export async function generateStructuredJson(
         typeof body.error?.message === "string" && body.error.message.trim()
           ? body.error.message.trim()
           : `Gemini HTTP ${response.status}`;
-      return {
-        ok: false,
-        code: "provider_error",
-        message: providerMessage,
-        latencyMs,
-        model,
-      };
+      throw new Error(providerMessage);
     }
 
     const text = extractText(body);
     if (!text) {
-      return {
-        ok: false,
-        code: "invalid_output",
-        message: "Gemini response missing text candidates",
-        latencyMs,
-        model,
-      };
+      throw new Error("Gemini response missing text candidates");
+    }
+
+    let json: unknown;
+    try {
+      json = JSON.parse(text) as unknown;
+    } catch {
+      // Still return usage so generate can AuditLog invalid_output.
+      json = text;
     }
 
     const inputTokens = Math.max(0, body.usageMetadata?.promptTokenCount ?? 0);
     const outputTokens = Math.max(0, body.usageMetadata?.candidatesTokenCount ?? 0);
 
     return {
-      ok: true,
-      text,
-      model,
-      inputTokens,
-      outputTokens,
-      costUsd: estimateCostUsd(inputTokens, outputTokens),
-      latencyMs,
+      json,
+      usage: {
+        model,
+        inputTokens,
+        outputTokens,
+        latencyMs,
+      },
     };
   } catch (error) {
-    const latencyMs = Date.now() - started;
     const aborted =
       controller.signal.aborted ||
       (error instanceof Error && error.name === "AbortError");
     if (aborted) {
-      return {
-        ok: false,
-        code: "timeout",
-        message: `Gemini request timed out after ${timeoutMs}ms`,
-        latencyMs,
-        model,
-      };
+      const err = new Error(`Gemini request timed out after ${timeoutMs}ms`);
+      err.name = "AbortError";
+      throw err;
     }
-    return {
-      ok: false,
-      code: "provider_error",
-      message: error instanceof Error ? error.message : "Gemini request failed",
-      latencyMs,
-      model,
-    };
+    throw error instanceof Error ? error : new Error("Gemini request failed");
   } finally {
     clearTimeout(timeoutId);
-    params.signal?.removeEventListener("abort", onExternalAbort);
   }
-}
+};

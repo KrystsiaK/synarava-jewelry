@@ -191,24 +191,20 @@ export async function generateProductContent(input: {
     return mapProviderError(error);
   }
 
+  const costUsd = estimateCostUsd(
+    providerResult.usage.model,
+    providerResult.usage.inputTokens,
+    providerResult.usage.outputTokens,
+  );
+
   const validated = validateAndNormalizeDraftLocales(
     providerResult.json,
     facts,
     locales,
   );
-  if (!validated) {
-    return {
-      ok: false,
-      code: "invalid_output",
-      message: "Model returned invalid JSON for product content schema",
-    };
-  }
 
-  const costUsd = estimateCostUsd(
-    providerResult.usage.inputTokens,
-    providerResult.usage.outputTokens,
-  );
-
+  // If the provider returned usage, always AuditLog — including invalid_output —
+  // so costUsd counts toward the monthly budget sum.
   await writeAiGenerationAudit({
     productId: product.id,
     adminUsername: input.actor.username,
@@ -221,8 +217,17 @@ export async function generateProductContent(input: {
       latencyMs: providerResult.usage.latencyMs,
       productId: product.id,
       locales,
+      outcome: validated ? "ok" : "invalid_output",
     },
   });
+
+  if (!validated) {
+    return {
+      ok: false,
+      code: "invalid_output",
+      message: "Model returned invalid JSON for product content schema",
+    };
+  }
 
   return {
     ok: true,
