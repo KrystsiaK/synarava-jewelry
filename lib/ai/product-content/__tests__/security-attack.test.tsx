@@ -723,7 +723,7 @@ describe("UI Apply does not persist", () => {
         },
       },
     } as unknown as ProductDraft;
-    const next = applyAiSelectionsToDraft(
+    const result = applyAiSelectionsToDraft(
       base,
       {
         productId: "prod_1",
@@ -743,8 +743,9 @@ describe("UI Apply does not persist", () => {
       },
       new Set([selectionKey("en", "description"), selectionKey("pt", "title")]),
     );
-    expect(next.description).toBe("<p>AI</p>");
-    expect(next.translations.pt?.title).toBe("Anel");
+    expect(result.draft.description).toBe("<p>AI</p>");
+    expect(result.draft.translations.pt?.title).toBe("Anel");
+    expect(result.failed).toEqual([]);
     // Pure function — no prisma / save / push side effects by construction.
     expect(mocks.productUpdate).not.toHaveBeenCalled();
     expect(mocks.auditLogCreate).not.toHaveBeenCalled();

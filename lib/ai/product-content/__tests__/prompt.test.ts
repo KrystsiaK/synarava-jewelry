@@ -47,6 +47,16 @@ describe("prompt glossary + anti-cliché + editor", () => {
     expect(system).toMatch(/prompt-injection/i);
   });
 
+  it("instructs gold-tone / dourado / золотистые for coating-only PVD/plating", () => {
+    const system = buildSystemInstruction(["en", "pt", "ru"]);
+    expect(system).toMatch(/gold-tone/i);
+    expect(system).toMatch(/dourado/i);
+    expect(system).toMatch(/золотист/i);
+    expect(system).toMatch(/silver-tone|prateado|серебрист/i);
+    expect(system).toMatch(/PVD|plating|plated|coating/i);
+    expect(system).toMatch(/solid gold|14K|18K|925/i);
+  });
+
   it("user prompt reminds glossary", () => {
     const user = buildUserPrompt(facts, ["en", "pt", "ru"]);
     expect(user).toMatch(/broche/);
