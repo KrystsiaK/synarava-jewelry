@@ -243,12 +243,13 @@ export function EditProductForm({
       formDraftOverride ?? productToDraft(currentProduct, translationLocales),
       aiLocales,
     );
-    const next = applyAiSelectionsToDraft(base, aiDraft, selected);
-    setFormDraftOverride(next);
+    const result = applyAiSelectionsToDraft(base, aiDraft, selected);
+    setFormDraftOverride(result.draft);
     setFieldsRevision((value) => value + 1);
     window.setTimeout(() => {
       recomputeDirtyFromForm();
     }, 0);
+    return { applied: result.applied, failed: result.failed };
   }
 
   useEffect(() => {

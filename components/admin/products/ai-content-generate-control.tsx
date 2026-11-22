@@ -7,6 +7,7 @@ import { generateProductContentAction } from "@/app/admin/actions/ai-content";
 import {
   AI_LOCALES,
   fingerprintAiSourceFields,
+  formatFailedApplyMessage,
   type AiFieldSelectionKey,
 } from "@/components/admin/products/ai-content-apply";
 import { toastMessageForGenerateError } from "@/components/admin/products/ai-content-errors";
@@ -29,6 +30,11 @@ const LOCALE_LABELS: Record<AiLocale, string> = {
   ru: "Русский",
 };
 
+export type AiApplySelectionsReport = {
+  applied: readonly AiFieldSelectionKey[];
+  failed: readonly AiFieldSelectionKey[];
+};
+
 export type AiContentGenerateControlProps = {
   productId: string;
   /** ISO string of product.updatedAt — stale-guard baseline. */
@@ -40,7 +46,7 @@ export type AiContentGenerateControlProps = {
   onApplySelections: (
     draft: ProductContentDraft,
     selected: ReadonlySet<AiFieldSelectionKey>,
-  ) => void;
+  ) => AiApplySelectionsReport | void;
 };
 
 /**
@@ -107,9 +113,16 @@ export function AiContentGenerateControl({
 
   function handleApply(selected: ReadonlySet<AiFieldSelectionKey>) {
     if (!draft) return;
-    const applied = draft;
-    pushToast({ message: "AI fields applied to the form. Review and Save when ready.", tone: "success" });
-    onApplySelections(applied, selected);
+    const report = onApplySelections(draft, selected);
+    const failed = report?.failed ?? [];
+    if (failed.length > 0) {
+      pushToast({ message: formatFailedApplyMessage(failed), tone: "error" });
+    } else {
+      pushToast({
+        message: "AI fields applied to the form. Review and Save when ready.",
+        tone: "success",
+      });
+    }
     setPreviewOpen(false);
     setDraft(null);
   }

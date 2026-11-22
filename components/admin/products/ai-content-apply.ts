@@ -4,6 +4,7 @@ import type {
   ProductContentDraft,
 } from "@/lib/ai/product-content/contract";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
+import { emptyLocaleDraft } from "@/components/admin/products/product-helpers";
 import type { ProductDraft, ProductLocaleDraft } from "@/components/admin/products/product-types";
 
 export const AI_FIELDS: readonly AiField[] = [
@@ -139,6 +140,17 @@ function withLocaleField(
   return { ...localeDraft, seoDescription: value };
 }
 
+function ensureLocaleTranslation(base: ProductDraft, locale: AiLocale): ProductDraft {
+  if (locale === "en" || base.translations[locale]) return base;
+  return {
+    ...base,
+    translations: {
+      ...base.translations,
+      [locale]: emptyLocaleDraft(),
+    },
+  };
+}
+
 function writeDraftField(
   base: ProductDraft,
   locale: AiLocale,
@@ -153,15 +165,32 @@ function writeDraftField(
     if (field === "seoDescription") return { ...base, seoDescription: value };
     return base;
   }
-  const existing = base.translations[locale];
-  if (!existing) return base;
+  const withLocale = ensureLocaleTranslation(base, locale);
+  const existing = withLocale.translations[locale] ?? emptyLocaleDraft();
   return {
-    ...base,
+    ...withLocale,
     translations: {
-      ...base.translations,
+      ...withLocale.translations,
       [locale]: withLocaleField(existing, field, value),
     },
   };
+}
+
+function readDraftAiField(draft: ProductDraft, locale: AiLocale, field: AiField): string {
+  if (locale === "en") {
+    if (field === "title") return draft.name;
+    if (field === "shortDescription") return draft.shortDescription;
+    if (field === "description") return draft.description;
+    if (field === "seoTitle") return draft.seoTitle;
+    return draft.seoDescription;
+  }
+  const localeDraft = draft.translations[locale];
+  if (!localeDraft) return "";
+  if (field === "title") return localeDraft.title;
+  if (field === "shortDescription") return localeDraft.shortDescription;
+  if (field === "description") return localeDraft.description;
+  if (field === "seoTitle") return localeDraft.seoTitle;
+  return localeDraft.seoDescription;
 }
 
 /** Pull current AI-target field values from the live form into a draft copy. */
@@ -178,35 +207,64 @@ export function syncAiFieldsFromForm(
   for (const locale of locales) {
     for (const field of AI_FIELDS) {
       if (isEnTitle(locale, field)) continue;
-      if (locale !== "en" && !next.translations[locale]) continue;
+      if (locale !== "en") next = ensureLocaleTranslation(next, locale);
       next = writeDraftField(next, locale, field, readCurrentAiField(form, locale, field));
     }
   }
   return next;
 }
 
+export type ApplyAiSelectionsResult = {
+  draft: ProductDraft;
+  applied: AiFieldSelectionKey[];
+  failed: AiFieldSelectionKey[];
+};
+
 /** Immutable merge of checked AI fields into the product form draft. Never writes EN title. */
 export function applyAiSelectionsToDraft(
   base: ProductDraft,
   draft: ProductContentDraft,
   selected: ReadonlySet<AiFieldSelectionKey>,
-): ProductDraft {
+): ApplyAiSelectionsResult {
   let next: ProductDraft = {
     ...base,
     translations: { ...base.translations },
   };
+  const applied: AiFieldSelectionKey[] = [];
+  const failed: AiFieldSelectionKey[] = [];
 
   for (const key of selected) {
     const parsed = parseSelectionKey(key);
-    if (!parsed) continue;
+    if (!parsed) {
+      failed.push(key as AiFieldSelectionKey);
+      continue;
+    }
     const { locale, field } = parsed;
     if (isEnTitle(locale, field)) continue;
     const proposed = draft.locales[locale]?.[field];
-    if (proposed == null) continue;
+    if (proposed == null) {
+      failed.push(key);
+      continue;
+    }
     next = writeDraftField(next, locale, field, proposed);
+    if (readDraftAiField(next, locale, field) === proposed) {
+      applied.push(key);
+    } else {
+      failed.push(key);
+    }
   }
 
-  return next;
+  return { draft: next, applied, failed };
+}
+
+/** Human-readable list for apply failure toasts. */
+export function formatFailedApplyMessage(failed: readonly AiFieldSelectionKey[]): string {
+  const labels = failed.map((key) => {
+    const parsed = parseSelectionKey(key);
+    if (!parsed) return key;
+    return `${parsed.locale.toUpperCase()} ${fieldLabel(parsed.field)}`;
+  });
+  return `Could not apply: ${labels.join(", ")}`;
 }
 
 export function formatUsageLine(usage: ProductContentDraft["usage"]): string {

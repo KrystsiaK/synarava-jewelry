@@ -65,7 +65,10 @@ vi.mock("@/lib/admin/preserve-scroll", () => ({
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
 import { AiContentPreviewModal } from "@/components/admin/products/ai-content-preview-modal";
-import { STALE_APPLY_MESSAGE } from "@/components/admin/products/ai-content-apply";
+import {
+  STALE_APPLY_MESSAGE,
+  selectionKey,
+} from "@/components/admin/products/ai-content-apply";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 import { createRef } from "react";
 
@@ -392,6 +395,129 @@ describe("EditProductForm AI wiring", () => {
     await waitFor(() => {
       expect(screen.queryByRole("dialog", { name: "AI content preview" })).not.toBeInTheDocument();
     });
+  });
+
+  it("Apply on product without ProductTranslation fills PT/RU FormData and persists on Save", async () => {
+    const user = userEvent.setup();
+    const draft = makeOkDraft({
+      warnings: [],
+      locales: {
+        en: {
+          description: "<p>AI EN description</p>",
+          seoTitle: "AI EN SEO",
+          seoDescription: "AI EN SEO desc",
+        },
+        pt: {
+          title: "Anel Lava AI",
+          description: "<p>Descrição PT AI</p>",
+          seoTitle: "SEO PT AI",
+        },
+        ru: {
+          title: "Кольцо Лава AI",
+          description: "<p>Описание RU AI</p>",
+          seoTitle: "SEO RU AI",
+        },
+      },
+    });
+    mocks.generateProductContentAction.mockResolvedValue({ ok: true, draft });
+    mocks.saveProductAction.mockResolvedValue({
+      success: "Saved.",
+      product: makeProduct({ translations: [] }),
+    });
+
+    const { container } = render(
+      <EditProductForm
+        product={makeProduct({ translations: [] })}
+        collections={[]}
+        translationLocales={[
+          { code: "pt", label: "Português" },
+          { code: "ru", label: "Русский" },
+        ]}
+        aiContentEnabled
+      />,
+    );
+
+    await user.click(screen.getByTestId("ai-content-generate-button"));
+    await user.click(screen.getByTestId("ai-content-confirm-generate"));
+    await screen.findByRole("dialog", { name: "AI content preview" });
+    await user.click(screen.getByTestId("ai-content-apply"));
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog", { name: "AI content preview" })).not.toBeInTheDocument();
+    });
+
+    const form = container.querySelector("form");
+    expect(form).toBeTruthy();
+    const formData = new FormData(form!);
+    expect(formData.get("ptTitle")).toBe("Anel Lava AI");
+    expect(formData.get("ptDescription")).toBe("<p>Descrição PT AI</p>");
+    expect(formData.get("ruTitle")).toBe("Кольцо Лава AI");
+    expect(formData.get("ruSeoTitle")).toBe("SEO RU AI");
+
+    await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
+    const confirm = screen.queryByRole("button", { name: "Yes, save changes" });
+    if (confirm) await user.click(confirm);
+
+    await waitFor(() => {
+      expect(mocks.saveProductAction).toHaveBeenCalled();
+    });
+    const saved = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
+    expect(saved.get("ptTitle")).toBe("Anel Lava AI");
+    expect(saved.get("ptDescription")).toBe("<p>Descrição PT AI</p>");
+    expect(saved.get("ruTitle")).toBe("Кольцо Лава AI");
+    expect(saved.get("ruSeoTitle")).toBe("SEO RU AI");
+  });
+
+  it("error toast lists selected fields that failed to apply", async () => {
+    const user = userEvent.setup();
+    const formRef = createRef<HTMLFormElement>();
+    const draft = makeOkDraft({
+      warnings: [],
+      locales: {
+        en: { description: "<p>AI EN</p>" },
+        // pt title proposed; seoTitle intentionally absent so a forced selection fails
+        pt: { title: "Anel" },
+      },
+    });
+
+    render(
+      <form ref={formRef}>
+        <AiContentGenerateControl
+          productId="product-1"
+          productUpdatedAt="2026-01-02T00:00:00.000Z"
+          availableLocales={["en", "pt", "ru"]}
+          formRef={formRef}
+          getCurrent={() => ""}
+          onApplySelections={() => ({
+            applied: [selectionKey("en", "description")],
+            failed: [selectionKey("pt", "seoTitle"), selectionKey("ru", "title")],
+          })}
+        />
+      </form>,
+    );
+
+    // Drive apply through the preview by mocking generate + clicking Apply with
+    // checkboxes; here we unit-test handleApply via preview when draft is set.
+    mocks.generateProductContentAction.mockResolvedValue({ ok: true, draft });
+    await user.click(screen.getByTestId("ai-content-generate-button"));
+    await user.click(screen.getByTestId("ai-content-confirm-generate"));
+    await screen.findByRole("dialog", { name: "AI content preview" });
+
+    // Uncheck auto-checked fields except we need a selection that will fail —
+    // the parent reports failed keys from onApplySelections.
+    await user.click(screen.getByTestId("ai-content-apply"));
+
+    await waitFor(() => {
+      expect(mocks.pushToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          tone: "error",
+          message: expect.stringMatching(/pt.*seo|ru.*title|Could not apply/i),
+        }),
+      );
+    });
+    expect(mocks.pushToast).not.toHaveBeenCalledWith(
+      expect.objectContaining({ tone: "success" }),
+    );
   });
 
   it("blocks apply when draft sourceUpdatedAt is behind product.updatedAt", async () => {
