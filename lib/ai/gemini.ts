@@ -91,10 +91,13 @@ export const geminiContentProvider: ContentProvider = async (input) => {
     }
 
     if (!response.ok) {
-      const providerMessage =
+      const detail =
         typeof body.error?.message === "string" && body.error.message.trim()
           ? body.error.message.trim()
-          : `Gemini HTTP ${response.status}`;
+          : body.error?.status?.trim() || "";
+      const providerMessage = detail
+        ? `Gemini HTTP ${response.status}: ${detail}`
+        : `Gemini HTTP ${response.status}`;
       throw new Error(providerMessage);
     }
 

@@ -176,4 +176,49 @@ describe("validateAndNormalizeDraftLocales", () => {
     const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
     expect(result!.warnings.some((w) => /cliché/i.test(w.message))).toBe(true);
   });
+
+  it("invented commerce: warns pair/set/warranty/gift box across EN/PT/RU", () => {
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "Sold as a pair or set with gift box and warranty." },
+        pt: { title: "Anel", shortDescription: "Vendido em par, conjunto com garantia." },
+        ru: { title: "Кольцо", shortDescription: "Пара в комплект, одна гарантия." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en", "pt", "ru"]);
+    const messages = (result?.warnings ?? []).map((w) => w.message);
+    expect(messages.some((m) => /"pair"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"set"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"gift box"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"warranty"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"par"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"conjunto"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"garantia"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"пара"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"комплект"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"одна"/i.test(m))).toBe(true);
+    expect(messages.some((m) => /"гарантия"/i.test(m))).toBe(true);
+  });
+
+  it("invented commerce: no warning when pair/warranty present in facts", () => {
+    const pairFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Quiet Pair Earrings",
+      materialLine: "925 sterling silver pair with warranty card",
+      characteristics: [
+        {
+          key: "material",
+          label: "Material",
+          value: "925 sterling silver pair with warranty card",
+        },
+      ],
+    };
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "A quiet pair with warranty." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, pairFacts, ["en"]);
+    expect(result!.warnings.filter((w) => /pair|warranty/i.test(w.message))).toEqual([]);
+  });
 });

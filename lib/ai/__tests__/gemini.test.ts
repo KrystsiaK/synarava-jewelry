@@ -78,6 +78,30 @@ describe("geminiContentProvider", () => {
     expect(result.usage.outputTokens).toBe(4096);
   });
 
+  it("throws Gemini HTTP 429 with quota detail for rate_limited mapping", async () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 429,
+      json: async () => ({
+        error: {
+          message: "You exceeded your current quota",
+          status: "RESOURCE_EXHAUSTED",
+          code: 429,
+        },
+      }),
+    });
+
+    const { geminiContentProvider } = await import("@/lib/ai/gemini");
+    await expect(
+      geminiContentProvider({
+        system: "sys",
+        user: "user",
+        jsonSchema: { type: "object" },
+        timeoutMs: 5_000,
+      }),
+    ).rejects.toThrow(/429|quota/i);
+  });
+
   it("throws ContentProviderNotConfiguredError without API key", async () => {
     delete process.env.GEMINI_API_KEY;
     const { geminiContentProvider } = await import("@/lib/ai/gemini");

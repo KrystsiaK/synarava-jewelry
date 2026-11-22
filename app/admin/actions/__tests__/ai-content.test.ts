@@ -273,4 +273,16 @@ describe("generateProductContentAction", () => {
     });
     expect(mocks.contentProvider).not.toHaveBeenCalled();
   });
+
+  it("maps provider 429/quota to rate_limited (not provider_error)", async () => {
+    mocks.contentProvider.mockRejectedValue(
+      new Error("Gemini HTTP 429: RESOURCE_EXHAUSTED Quota exceeded"),
+    );
+    const result = await generateProductContentAction("prod_1", ["en"]);
+    expect(result).toMatchObject({ ok: false, code: "rate_limited" });
+    if (!result.ok) {
+      expect(result.message).toMatch(/rate limited|quota/i);
+      expect(result.code).not.toBe("provider_error");
+    }
+  });
 });

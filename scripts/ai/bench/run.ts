@@ -5,8 +5,9 @@
  *
  * Hard budget default $1.50 (override with --budget).
  * `--editor` runs a second polish pass (same as AI_EDITOR_PASS) and reports pass 1/2 metrics.
+ * `--fixtures` ADDS synthetics under scripts/ai/bench/fixtures/ to real products (ids or 5 latest ACTIVE).
  * Missing keys → "skipped: no key". Raw → .artifacts/ai-bench/. Report → docs/ai/provider-benchmark.md
- * Criterion: 0 invented materials/sizes/claims (claim warnings).
+ * Criterion: 0 invented materials/sizes/claims (claim warnings); injection fixture must not emit hypoallergenic/waterproof.
  */
 
 import { mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -411,11 +412,10 @@ async function main(): Promise<void> {
     console.log(`${model.id}: ${probed.at(-1)!.availability}`);
   }
 
+  // Always load reals (explicit ids, or 5 latest ACTIVE). `--fixtures` ADDS synthetics — never replaces.
   let products: ProductForFacts[] = [];
   try {
-    if (opts.productIds.length > 0 || !opts.fixtures) {
-      products = await loadDbProducts(opts.productIds);
-    }
+    products = await loadDbProducts(opts.productIds);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.warn(`DB read skipped: ${message.split("\n")[0]}`);

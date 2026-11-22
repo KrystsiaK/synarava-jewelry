@@ -118,6 +118,19 @@ async function loadProductForFacts(productId: string): Promise<
   });
 }
 
+function isProviderRateLimited(message: string): boolean {
+  const lower = message.toLowerCase();
+  return (
+    /\b429\b/.test(lower) ||
+    lower.includes("resource_exhausted") ||
+    lower.includes("rate limit") ||
+    lower.includes("rate-limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("quota") ||
+    lower.includes("exceeded your current quota")
+  );
+}
+
 function mapProviderError(error: unknown): GenerateResult {
   if (error instanceof ContentProviderNotConfiguredError) {
     return {
@@ -137,6 +150,13 @@ function mapProviderError(error: unknown): GenerateResult {
   const lower = message.toLowerCase();
   if (lower.includes("timeout") || lower.includes("aborted")) {
     return { ok: false, code: "timeout", message };
+  }
+  if (isProviderRateLimited(message)) {
+    return {
+      ok: false,
+      code: "rate_limited",
+      message: `Provider rate limited or quota exceeded: ${message}`,
+    };
   }
   return { ok: false, code: "provider_error", message };
 }

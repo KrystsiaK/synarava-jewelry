@@ -49,6 +49,19 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "pearl", label: "pearl" },
   { term: "pérola", label: "pérola" },
   { term: "жемчуг", label: "жемчуг" },
+  // Invented commerce / quantity / packaging / warranty (EN / PT / RU)
+  { term: "single", label: "single" },
+  { term: "pair", label: "pair" },
+  { term: "set", label: "set" },
+  { term: "par", label: "par" },
+  { term: "conjunto", label: "conjunto" },
+  { term: "пара", label: "пара" },
+  { term: "одна", label: "одна" },
+  { term: "комплект", label: "комплект" },
+  { term: "gift box", label: "gift box" },
+  { term: "warranty", label: "warranty" },
+  { term: "garantia", label: "garantia" },
+  { term: "гарантия", label: "гарантия" },
 ];
 
 /** Cross-language material synonyms — any member present in facts covers the group. */
@@ -61,6 +74,9 @@ const CLAIM_SYNONYM_GROUPS: string[][] = [
   ["waterproof", "à prova de água", "водонепроницаем"],
   ["certified", "certificado", "сертифиц"],
   ["gemstone", "gemstones", "pedra preciosa", "драгоценн"],
+  ["pair", "par", "пара"],
+  ["set", "conjunto", "комплект"],
+  ["warranty", "garantia", "гарантия"],
 ];
 
 const TEST_SOURCE_PATTERNS: RegExp[] = [

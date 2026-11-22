@@ -41,6 +41,12 @@ describe("prompt glossary + anti-cliché + editor", () => {
     expect(system).toMatch(/timeless elegance/i);
   });
 
+  it("forbids inventing commerce details and ignores prompt-injection", () => {
+    const system = buildSystemInstruction(["en"]);
+    expect(system).toMatch(/quantity|pair\/set|packaging|warranty|shipping/i);
+    expect(system).toMatch(/prompt-injection/i);
+  });
+
   it("user prompt reminds glossary", () => {
     const user = buildUserPrompt(facts, ["en", "pt", "ru"]);
     expect(user).toMatch(/broche/);
