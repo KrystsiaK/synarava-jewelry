@@ -49,6 +49,8 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "pearl", label: "pearl" },
   { term: "pérola", label: "pérola" },
   { term: "жемчуг", label: "жемчуг" },
+  { term: "pearl-effect", label: "pearl-effect" },
+  { term: "жемчужн", label: "жемчужный" },
   // Invented commerce / quantity / packaging / warranty (EN / PT / RU)
   { term: "single", label: "single" },
   { term: "pair", label: "pair" },
@@ -62,18 +64,49 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "warranty", label: "warranty" },
   { term: "garantia", label: "garantia" },
   { term: "гарантия", label: "гарантия" },
+  // Extra material / gem EN–PT–RU (audit)
+  { term: "steel", label: "steel" },
+  { term: "aço", label: "aço" },
+  { term: "сталь", label: "сталь" },
+  { term: "brass", label: "brass" },
+  { term: "latão", label: "latão" },
+  { term: "латунь", label: "латунь" },
+  { term: "titanium", label: "titanium" },
+  { term: "titânio", label: "titânio" },
+  { term: "титан", label: "титан" },
+  { term: "crystal", label: "crystal" },
+  { term: "cristal", label: "cristal" },
+  { term: "кристалл", label: "кристалл" },
 ];
 
 /** Cross-language material synonyms — any member present in facts covers the group. */
 const CLAIM_SYNONYM_GROUPS: string[][] = [
   ["gold", "ouro", "золото", "золота"],
   ["silver", "prata", "серебро", "серебра"],
-  ["pearl", "pérola", "жемчуг"],
+  [
+    "pearl",
+    "pérola",
+    "жемчуг",
+    "жемчужн",
+    "pearl-effect",
+    "pearl effect",
+    "crystal pearl",
+    "artificial pearl",
+    "artificial pearls",
+    "freshwater pearl",
+    "cultured pearl",
+    "pérola de efeito",
+    "efeito pérola",
+  ],
   ["diamond", "diamante", "бриллиант"],
   ["hypoallergenic", "hipoalergénic", "hipoalergenic", "гипоаллерген"],
   ["waterproof", "à prova de água", "водонепроницаем"],
   ["certified", "certificado", "сертифиц"],
   ["gemstone", "gemstones", "pedra preciosa", "драгоценн"],
+  ["steel", "aço", "сталь", "stainless", "316l"],
+  ["brass", "latão", "латунь"],
+  ["titanium", "titânio", "титан"],
+  ["crystal", "cristal", "кристалл"],
   ["pair", "par", "пара"],
   ["set", "conjunto", "комплект"],
   ["warranty", "garantia", "гарантия"],
@@ -100,6 +133,7 @@ const CLAIM_STEM_TERMS = new Set([
   "водонепроницаем",
   "сертифиц",
   "драгоценн",
+  "жемчужн",
 ]);
 
 function trimField(value: string | undefined): string | undefined {
@@ -125,6 +159,37 @@ export function normalizeClaimText(text: string): string {
     .toLowerCase()
     .replace(/(\d+)\s*[-–—]?\s*k(?:arat|t)?\b/giu, "$1k")
     .replace(/(\d+)\s*[-–—]?\s*к(?:арат)?\b/giu, "$1k");
+}
+
+/**
+ * Normalize measures so 11mm = 11 mm = 11 мм, 1,5 = 1.5, cm/см, g/г.
+ * Applied to both generated copy and the facts corpus before number checks.
+ */
+export function normalizeMeasureText(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/(\d),(\d)/g, "$1.$2")
+    .replace(/(\d+(?:\.\d+)?)\s*(?:мм|mm)\b/giu, "$1mm")
+    .replace(/(\d+(?:\.\d+)?)\s*(?:см|cm)\b/giu, "$1cm")
+    .replace(/(\d+(?:\.\d+)?)\s*(?:кг|kg)\b/giu, "$1kg")
+    .replace(/(\d+(?:\.\d+)?)\s*(?:г|g)\b/giu, "$1g")
+    .replace(/(\d+)\s*[-–—]?\s*k(?:arat|t)?\b/giu, "$1k")
+    .replace(/(\d+)\s*[-–—]?\s*к(?:арат)?\b/giu, "$1k");
+}
+
+const MEASURE_TOKEN_RE = /\d+(?:\.\d+)?(?:mm|cm|kg|g|k)?/giu;
+
+function measureCoveredByFacts(normalizedCorpus: string, token: string): boolean {
+  if (!token) return true;
+  if (normalizedCorpus.includes(token)) return true;
+  // Bare number covered when corpus has same number with any known unit (or bare).
+  const bare = token.replace(/(?:mm|cm|kg|g|k)$/u, "");
+  if (!bare || bare === token) return false;
+  if (normalizedCorpus.includes(bare)) return true;
+  return new RegExp(
+    `(?<![\\d.])${escapeRegExp(bare)}(?:mm|cm|kg|g|k)?(?![\\d.])`,
+    "u",
+  ).test(normalizedCorpus);
 }
 
 /**
@@ -238,7 +303,7 @@ function collectRuForeignLatinWarnings(
   return warnings;
 }
 
-/** Numbers / sizes / karat figures in copy must appear in facts. */
+/** Numbers / sizes / karat figures in copy must appear in facts (HTML-stripped corpus). */
 function collectUnsupportedNumberWarnings(
   locale: AiLocale,
   field: AiField,
@@ -246,16 +311,15 @@ function collectUnsupportedNumberWarnings(
   corpus: string,
 ): ProductContentDraft["warnings"] {
   const warnings: ProductContentDraft["warnings"] = [];
-  const normalizedCorpus = normalizeClaimText(corpus);
-  const matches = text.match(/\d+(?:[.,]\d+)?(?:\s*(?:mm|cm|k|кт))?/giu) ?? [];
+  const normalizedCorpus = normalizeMeasureText(normalizeClaimText(corpus));
+  const normalizedText = normalizeMeasureText(normalizeClaimText(text));
+  const matches = normalizedText.match(MEASURE_TOKEN_RE) ?? [];
   for (const raw of matches) {
-    const token = normalizeClaimText(raw.replace(/\s+/g, ""));
+    const token = raw.toLowerCase();
     if (!token) continue;
-    // Bare single digits often appear in lists — still require presence when multi-digit or unit.
+    // Bare single digits often appear in lists — skip.
     if (/^\d$/.test(token)) continue;
-    if (normalizedCorpus.includes(token)) continue;
-    // Also accept with space variants already normalized (18k).
-    if (claimTermPresent(corpus, token)) continue;
+    if (measureCoveredByFacts(normalizedCorpus, token)) continue;
     warnings.push({
       locale,
       field,

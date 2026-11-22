@@ -230,9 +230,36 @@ function loadFixtures(): ProductForFacts[] {
     .filter((f) => f.endsWith(".json"))
     .sort();
   return files.map((file) => {
-    const raw = JSON.parse(readFileSync(join(FIXTURES_DIR, file), "utf8")) as ProductForFacts;
-    return raw;
+    const raw = JSON.parse(readFileSync(join(FIXTURES_DIR, file), "utf8")) as Partial<ProductForFacts> & {
+      name: string;
+    };
+    // Bench artifacts may omit id — keep empty rather than inventing a commerce id.
+    return {
+      id: typeof raw.id === "string" ? raw.id : "",
+      name: raw.name,
+      productType: raw.productType ?? null,
+      materialLine: raw.materialLine ?? null,
+      shortDescription: raw.shortDescription ?? null,
+      description: raw.description ?? null,
+      seoTitle: raw.seoTitle ?? null,
+      seoDescription: raw.seoDescription ?? null,
+      details: raw.details ?? {},
+      characteristics: raw.characteristics ?? [],
+      collections: raw.collections ?? [],
+      translations: raw.translations ?? [],
+    };
   });
+}
+
+function isQuotaExhaustedError(error: unknown): boolean {
+  const message = (error instanceof Error ? error.message : String(error)).toLowerCase();
+  return (
+    /\b429\b/.test(message) ||
+    message.includes("resource_exhausted") ||
+    message.includes("quota") ||
+    message.includes("rate limit") ||
+    message.includes("too many requests")
+  );
 }
 
 async function loadDbProducts(ids: string[]): Promise<ProductForFacts[]> {
@@ -347,7 +374,7 @@ function writeReport(input: {
     "**Status:** Stage C — production winner Gemini 3.1 Flash-Lite; bench remains for regression",
     `**Generated:** ${now}`,
     `**Hard budget:** $${input.budget.toFixed(2)}`,
-    `**Spent this run:** $${input.spent.toFixed(6)}${input.stoppedEarly ? " — **stopped early (budget)**" : ""}`,
+    `**Spent this run:** $${input.spent.toFixed(6)}${input.stoppedEarly ? " — **stopped early (budget or quota)**" : ""}`,
     `**Models:** ${input.models.join(", ")}`,
     `**Repeat:** ${input.repeat}`,
     `**Editor pass:** ${input.editor ? "on (--editor)" : "off"}`,
@@ -377,6 +404,7 @@ function writeReport(input: {
     "- Gemini: REST `generateContent` + `responseJsonSchema` + `maxOutputTokens`.",
     "- Fixtures: `scripts/ai/bench/fixtures/` (no DB writes).",
     "- `--editor`: second polish call; pass1/pass2 columns show latency, $, cliché and warning counts.",
+    "- First provider **429 / quota** → status `quota exhausted`, stop further calls.",
     "",
   ].join("\n");
 
@@ -432,17 +460,18 @@ async function main(): Promise<void> {
 
   let spent = 0;
   let stoppedEarly = false;
+  let quotaExhausted = false;
   const rows: MetricRow[] = [];
   const system = buildSystemInstruction(LOCALES);
 
   for (let rep = 1; rep <= opts.repeat; rep += 1) {
     for (const product of products) {
-      if (stoppedEarly) break;
+      if (stoppedEarly || quotaExhausted) break;
       const facts = buildProductContentFacts(product);
       const user = buildUserPrompt(facts, LOCALES);
 
       for (const model of models) {
-        if (stoppedEarly) break;
+        if (stoppedEarly || quotaExhausted) break;
         const key = process.env[model.envKey]?.trim();
         if (!key) {
           rows.push({
@@ -562,18 +591,26 @@ async function main(): Promise<void> {
                   finalValidated = validated2;
                 }
               } catch (editorError) {
-                pass2 = {
-                  status: `editor skipped: ${
-                    editorError instanceof Error ? editorError.message : String(editorError)
-                  }`,
-                };
-                status = "ok (editor skipped)";
+                if (isQuotaExhaustedError(editorError)) {
+                  quotaExhausted = true;
+                  stoppedEarly = true;
+                  pass2 = { status: "quota exhausted" };
+                  status = "quota exhausted";
+                  console.error("quota exhausted — stopping further provider calls");
+                } else {
+                  pass2 = {
+                    status: `editor skipped: ${
+                      editorError instanceof Error ? editorError.message : String(editorError)
+                    }`,
+                  };
+                  status = "ok (editor skipped)";
+                }
               }
             }
           }
 
           const finalW = countWarnings(finalValidated?.warnings);
-          const artifactRel = `.artifacts/ai-bench/${model.id}__${product.id}__r${rep}.json`;
+          const artifactRel = `.artifacts/ai-bench/${model.id}__${product.id || "noid"}__r${rep}.json`;
           writeFileSync(
             join(ROOT, artifactRel),
             JSON.stringify(
@@ -616,13 +653,30 @@ async function main(): Promise<void> {
           });
           if (spent >= opts.budget) stoppedEarly = true;
         } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          if (isQuotaExhaustedError(error)) {
+            quotaExhausted = true;
+            stoppedEarly = true;
+            console.error("quota exhausted — stopping further provider calls");
+            rows.push({
+              modelId: model.id,
+              productId: product.id,
+              productName: product.name,
+              status: "quota exhausted",
+              schemaOk: "no",
+              error: message,
+              artifactPath: "",
+              repeat: rep,
+            });
+            break;
+          }
           rows.push({
             modelId: model.id,
             productId: product.id,
             productName: product.name,
             status: "error",
             schemaOk: "no",
-            error: error instanceof Error ? error.message : String(error),
+            error: message,
             artifactPath: "",
             repeat: rep,
           });

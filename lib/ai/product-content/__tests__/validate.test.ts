@@ -221,4 +221,95 @@ describe("validateAndNormalizeDraftLocales", () => {
     const result = validateAndNormalizeDraftLocales(raw, pairFacts, ["en"]);
     expect(result!.warnings.filter((w) => /pair|warranty/i.test(w.message))).toEqual([]);
   });
+
+  it("numeric guard: HTML facts 11 mm covers 11mm / 11 мм / 1,5cm", () => {
+    const htmlFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Crystal Pearl Bracelet",
+      productType: "Bracelet",
+      materialLine: "Pearl-effect crystal",
+      description: "<p>Bead diameter <strong>11 mm</strong>. Length 18 cm. Weight 12 г.</p>",
+      detailsAttributes: [{ label: "Alt", value: "1,5 cm accent" }],
+      characteristics: [
+        { key: "material", label: "Material", value: "pearl-effect crystal" },
+        { key: "bead", label: "Bead", value: "11мм" },
+      ],
+    };
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "Quiet 11mm pearl bracelet, 18cm long, about 12g." },
+        pt: { title: "Pulseira", shortDescription: "Pérola de efeito, 11 mm, 1,5cm detalhe." },
+        ru: { title: "Браслет", shortDescription: "Жемчужный браслет 11 мм, 12 г." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, htmlFacts, ["en", "pt", "ru"]);
+    expect(result!.warnings.filter((w) => /unsupported number/i.test(w.message))).toEqual([]);
+    expect(
+      result!.warnings.filter((w) => /pearl|pérola|жемчуг|pearl-effect/i.test(w.message)),
+    ).toEqual([]);
+  });
+
+  it("bracelet regression fixture facts → 0 false number/pearl warnings", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { buildProductContentFacts } = await import("@/lib/ai/product-content/facts");
+    const rawFixture = JSON.parse(
+      readFileSync(
+        join(process.cwd(), "scripts/ai/bench/fixtures/fixture-bracelet-pearl-measures.json"),
+        "utf8",
+      ),
+    ) as {
+      name: string;
+      productType: string | null;
+      materialLine: string | null;
+      description: string | null;
+      details: unknown;
+      characteristics: Array<{
+        key: string;
+        label: string;
+        textValue: string | null;
+        numberValue: number | null;
+        booleanValue: boolean | null;
+        unit: string | null;
+      }>;
+      collections: Array<{ collection: { name: string } }>;
+      translations: [];
+    };
+    expect(rawFixture).not.toHaveProperty("id");
+    const facts = buildProductContentFacts({
+      id: "",
+      name: rawFixture.name,
+      productType: rawFixture.productType,
+      materialLine: rawFixture.materialLine,
+      shortDescription: null,
+      description: rawFixture.description,
+      seoTitle: null,
+      seoDescription: null,
+      details: rawFixture.details,
+      characteristics: rawFixture.characteristics,
+      collections: rawFixture.collections,
+      translations: rawFixture.translations,
+    });
+    const draft = JSON.stringify({
+      locales: {
+        en: {
+          shortDescription: "Quiet pearl bracelet with 11mm beads, 18 cm length, 12g.",
+        },
+        pt: {
+          title: "Pulseira",
+          shortDescription: "Pulseira com pérola de efeito, contas de 11 mm.",
+        },
+        ru: {
+          title: "Браслет",
+          shortDescription: "Браслет с жемчужным эффектом, бусины 11 мм.",
+        },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(draft, facts, ["en", "pt", "ru"]);
+    expect(result).not.toBeNull();
+    expect(result!.warnings.filter((w) => /unsupported number/i.test(w.message))).toEqual([]);
+    expect(
+      result!.warnings.filter((w) => /pearl|pérola|жемчуг|pearl-effect/i.test(w.message)),
+    ).toEqual([]);
+  });
 });

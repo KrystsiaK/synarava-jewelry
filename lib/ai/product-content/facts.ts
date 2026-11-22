@@ -1,5 +1,6 @@
 import { getMaxInputChars } from "@/lib/ai/config";
 import { parseProductDetails } from "@/lib/content/product-details";
+import { plainTextFromRichText } from "@/lib/content/rich-text";
 
 export type ProductContentFacts = {
   productId: string;
@@ -110,7 +111,7 @@ export function buildProductContentFacts(product: ProductForFacts): ProductConte
   };
 }
 
-/** Flatten facts into a single searchable string for claim-guard. */
+/** Flatten facts into a single searchable string for claim/number guards (HTML stripped). */
 export function factsCorpus(facts: ProductContentFacts): string {
   const chunks: string[] = [
     facts.name,
@@ -132,7 +133,8 @@ export function factsCorpus(facts: ProductContentFacts): string {
       t.seoDescription ?? "",
     ]),
   ];
-  return chunks.join("\n").toLowerCase();
+  // Strip HTML so measures inside <p>11 mm</p> match generated "11mm" / "11 мм".
+  return plainTextFromRichText(chunks.join("\n")).toLowerCase();
 }
 
 export function measureFactsChars(facts: ProductContentFacts): number {

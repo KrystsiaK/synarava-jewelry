@@ -1,0 +1,51 @@
+{
+  "name": "Crystal Pearl Bracelet",
+  "productType": "Bracelet",
+  "materialLine": "Pearl-effect crystal / stainless steel 316L",
+  "shortDescription": null,
+  "seoTitle": null,
+  "seoDescription": null,
+  "description": "<p>Quiet bracelet with pearl-effect beads.</p><p>Bead diameter <strong>11 mm</strong>. Strand about 18 cm. Weight ~12 г.</p>",
+  "details": {
+    "attributes": [
+      { "label": "Bead size", "value": "11мм" },
+      { "label": "Finish", "value": "pearl-effect" }
+    ]
+  },
+  "characteristics": [
+    {
+      "key": "material",
+      "label": "Material",
+      "textValue": "pearl-effect crystal",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": null
+    },
+    {
+      "key": "bead_size",
+      "label": "Bead size",
+      "textValue": "11",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": "mm"
+    },
+    {
+      "key": "length",
+      "label": "Length",
+      "textValue": "18",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": "cm"
+    },
+    {
+      "key": "weight",
+      "label": "Weight",
+      "textValue": "12",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": "г"
+    }
+  ],
+  "collections": [{ "collection": { "name": "Quiet Forms" } }],
+  "translations": []
+}
