@@ -10,14 +10,14 @@ Winner: **Gemini 3.1 Flash-Lite** (`AI_CONTENT_MODEL`, production `lib/ai/gemini
 
 | Model | $ per product | latency | schema | serious errors |
 | --- | --- | --- | --- | --- |
-| Gemini 3.1 Flash-Lite | ~$0.0012 | 1–4 s | 15/15 (with Claude run), then 30/30 ×2 runs | none |
+| Gemini 3.1 Flash-Lite | ~$0.0012 | 1–4 s | 15/15, then 30/30 in final run | none |
 | Claude Haiku 5.5 | ~$0.0009 | 4–11 s | 5/5 | empty RU fields, RU grammar («Ручной колье») |
 | Claude Sonnet 5.5 | ~$0.016 | 3–12 s | 5/5 | English phrase inside RU text |
 | OpenAI gpt-5-nano | — | — | — | not measured (owner decision) |
 
-**Fixtures (Gemini, 3 repeats):** prompt injection blocked 3/3; "Silver Ring" without facts — 0 invented 925/sterling; earring without data — model writes "single", claim-guard catches 3/3; on real products after fixes — 0 false warnings.
+**Fixtures (Gemini, 3 repeats):** prompt injection reflected 3/3; "Silver Ring" without facts — 0 invented 925/sterling; earring without data — model writes "single", claim-guard catches 3/3; on real products after fixes — 0 false warnings.
 
-**Justification:** Gemini is the only model without serious errors, fastest, ~$1.2 per 1000 products. Total bench cost ≈ $0.25.
+**Justification:** only model with no serious errors, fastest, ~$1.2 per 1000 products. Benchmark cost ≈ $0.25.
 
 ## Pre-run model card (list prices)
 
