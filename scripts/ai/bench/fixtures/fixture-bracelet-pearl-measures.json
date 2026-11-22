@@ -5,10 +5,12 @@
   "shortDescription": null,
   "seoTitle": null,
   "seoDescription": null,
-  "description": "<p>Quiet bracelet with pearl-effect beads.</p><p>Bead diameter <strong>11 mm</strong>. Strand about 18 cm. Weight ~12 г.</p>",
+  "description": "<p>Quiet bracelet with pearl-effect beads.</p><p>Bead diameter <strong>11 mm</strong>. Inner circumference about <strong>24 cm</strong>. Charm drop <strong>3 cm</strong>. Weight ~12 г.</p>",
   "details": {
     "attributes": [
       { "label": "Bead size", "value": "11мм" },
+      { "label": "Circumference", "value": "24 cm" },
+      { "label": "Charm", "value": "3cm" },
       { "label": "Finish", "value": "pearl-effect" }
     ]
   },
@@ -28,24 +30,27 @@
       "numberValue": null,
       "booleanValue": null,
       "unit": "mm"
-    },
-    {
-      "key": "length",
-      "label": "Length",
-      "textValue": "18",
-      "numberValue": null,
-      "booleanValue": null,
-      "unit": "cm"
-    },
-    {
-      "key": "weight",
-      "label": "Weight",
-      "textValue": "12",
-      "numberValue": null,
-      "booleanValue": null,
-      "unit": "г"
     }
   ],
   "collections": [{ "collection": { "name": "Quiet Forms" } }],
-  "translations": []
+  "translations": [
+    {
+      "locale": "pt",
+      "title": "Pulseira pérola de efeito",
+      "shortDescription": "Contas 11 mm; circunferência 24 cm; charme 3 cm.",
+      "description": "<p>Acabamento efeito pérola. Diâmetro 11 mm. Circunferência 24 cm. Pendente 3 cm.</p>",
+      "materialLine": "cristal efeito pérola / aço inoxidável 316L",
+      "seoTitle": null,
+      "seoDescription": null
+    },
+    {
+      "locale": "ru",
+      "title": "Браслет с жемчужным эффектом",
+      "shortDescription": "Бусины 11 мм; окружность 24 см; подвеска 3 см.",
+      "description": "<p>Жемчужный эффект. Диаметр 11 мм. Окружность 24 см. Подвеска 3 см.</p>",
+      "materialLine": "кристалл с жемчужным эффектом / сталь 316L",
+      "seoTitle": null,
+      "seoDescription": null
+    }
+  ]
 }

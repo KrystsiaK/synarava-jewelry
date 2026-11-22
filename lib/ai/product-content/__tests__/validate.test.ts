@@ -273,9 +273,18 @@ describe("validateAndNormalizeDraftLocales", () => {
         unit: string | null;
       }>;
       collections: Array<{ collection: { name: string } }>;
-      translations: [];
+      translations: Array<{
+        locale: string;
+        title: string;
+        shortDescription: string | null;
+        description: string | null;
+        materialLine: string | null;
+        seoTitle: string | null;
+        seoDescription: string | null;
+      }>;
     };
     expect(rawFixture).not.toHaveProperty("id");
+    expect(rawFixture.translations.length).toBeGreaterThan(0);
     const facts = buildProductContentFacts({
       id: "",
       name: rawFixture.name,
@@ -293,23 +302,32 @@ describe("validateAndNormalizeDraftLocales", () => {
     const draft = JSON.stringify({
       locales: {
         en: {
-          shortDescription: "Quiet pearl bracelet with 11mm beads, 18 cm length, 12g.",
+          shortDescription:
+            "Quiet pearl bracelet with 11 mm beads, 24 cm circumference, 3 cm charm.",
         },
         pt: {
           title: "Pulseira",
-          shortDescription: "Pulseira com pérola de efeito, contas de 11 mm.",
+          shortDescription:
+            "Pulseira com efeito pérola, contas de 11 mm, circunferência 24 cm, charme 3 cm.",
         },
         ru: {
           title: "Браслет",
-          shortDescription: "Браслет с жемчужным эффектом, бусины 11 мм.",
+          shortDescription:
+            "Браслет с жемчужным эффектом, бусины 11 мм, окружность 24 см, подвеска 3 см.",
         },
       },
     });
     const result = validateAndNormalizeDraftLocales(draft, facts, ["en", "pt", "ru"]);
     expect(result).not.toBeNull();
+    const falseNumbers = result!.warnings.filter((w) =>
+      /unsupported number "(?:11 mm|24 cm|3 cm|11mm|24cm|3cm|11 мм|24 см|3 см)"/i.test(
+        w.message,
+      ),
+    );
     expect(result!.warnings.filter((w) => /unsupported number/i.test(w.message))).toEqual([]);
+    expect(falseNumbers).toEqual([]);
     expect(
-      result!.warnings.filter((w) => /pearl|pérola|жемчуг|pearl-effect/i.test(w.message)),
+      result!.warnings.filter((w) => /pearl|pérola|жемчуг|pearl-effect|efeito/i.test(w.message)),
     ).toEqual([]);
   });
 });

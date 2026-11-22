@@ -97,6 +97,7 @@ const CLAIM_SYNONYM_GROUPS: string[][] = [
     "cultured pearl",
     "pérola de efeito",
     "efeito pérola",
+    "жемчужный эффект",
   ],
   ["diamond", "diamante", "бриллиант"],
   ["hypoallergenic", "hipoalergénic", "hipoalergenic", "гипоаллерген"],
