@@ -189,6 +189,11 @@ export async function generateProductContent(input: {
   provider?: ContentProvider;
   /** Test override for editor pass (defaults to isAiEditorPassEnabled()). */
   editorPass?: boolean;
+  /**
+   * Script-only: skip AuditLog write (M4 evaluate). Default false.
+   * Admin UI / server actions must never pass true.
+   */
+  dryRun?: boolean;
 }): Promise<GenerateResult> {
   if (!isAiContentEnabled()) {
     return {
@@ -290,21 +295,23 @@ export async function generateProductContent(input: {
       firstResult.usage.inputTokens,
       firstResult.usage.outputTokens,
     );
-    await writeAiGenerationAudit({
-      productId: product.id,
-      adminUsername: input.actor.username,
-      adminSessionId: input.actor.sessionId,
-      usage: {
-        model: firstResult.usage.model,
-        inputTokens: firstResult.usage.inputTokens,
-        outputTokens: firstResult.usage.outputTokens,
-        costUsd,
-        latencyMs: firstResult.usage.latencyMs,
+    if (!input.dryRun) {
+      await writeAiGenerationAudit({
         productId: product.id,
-        locales,
-        outcome: "invalid_output",
-      },
-    });
+        adminUsername: input.actor.username,
+        adminSessionId: input.actor.sessionId,
+        usage: {
+          model: firstResult.usage.model,
+          inputTokens: firstResult.usage.inputTokens,
+          outputTokens: firstResult.usage.outputTokens,
+          costUsd,
+          latencyMs: firstResult.usage.latencyMs,
+          productId: product.id,
+          locales,
+          outcome: "invalid_output",
+        },
+      });
+    }
     return {
       ok: false,
       code: "invalid_output",
@@ -355,21 +362,23 @@ export async function generateProductContent(input: {
     combinedUsage.outputTokens,
   );
 
-  await writeAiGenerationAudit({
-    productId: product.id,
-    adminUsername: input.actor.username,
-    adminSessionId: input.actor.sessionId,
-    usage: {
-      model: combinedUsage.model,
-      inputTokens: combinedUsage.inputTokens,
-      outputTokens: combinedUsage.outputTokens,
-      costUsd,
-      latencyMs: combinedUsage.latencyMs,
+  if (!input.dryRun) {
+    await writeAiGenerationAudit({
       productId: product.id,
-      locales,
-      outcome: "ok",
-    },
-  });
+      adminUsername: input.actor.username,
+      adminSessionId: input.actor.sessionId,
+      usage: {
+        model: combinedUsage.model,
+        inputTokens: combinedUsage.inputTokens,
+        outputTokens: combinedUsage.outputTokens,
+        costUsd,
+        latencyMs: combinedUsage.latencyMs,
+        productId: product.id,
+        locales,
+        outcome: "ok",
+      },
+    });
+  }
 
   return {
     ok: true,

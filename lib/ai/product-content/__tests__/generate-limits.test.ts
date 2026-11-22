@@ -138,4 +138,49 @@ describe("generateProductContent input/output ceilings", () => {
     }
     expect(mocks.contentProvider).toHaveBeenCalledOnce();
   });
+
+  it("dryRun skips AuditLog write on success", async () => {
+    mocks.productFindUnique.mockResolvedValue({
+      id: "prod_dry",
+      name: "Dry Ring",
+      productType: "Ring",
+      materialLine: "925 sterling silver",
+      shortDescription: "Quiet.",
+      description: "<p>Quiet form.</p>",
+      seoTitle: "Dry Ring",
+      seoDescription: "Quiet silver ring.",
+      details: {},
+      updatedAt: new Date("2026-11-01T00:00:00.000Z"),
+      characteristics: [],
+      collections: [],
+      translations: [],
+    });
+    mocks.contentProvider.mockResolvedValue({
+      json: {
+        locales: {
+          en: {
+            shortDescription: "Quiet silver.",
+            description: "<p>A quiet silver ring.</p>",
+            seoTitle: "Dry Ring | Synarava",
+            seoDescription: "Quiet silver ring for everyday wear.",
+          },
+        },
+      },
+      usage: {
+        model: "gemini-3.1-flash-lite",
+        inputTokens: 20,
+        outputTokens: 40,
+        latencyMs: 12,
+      },
+    });
+
+    const result = await generateProductContent({
+      productId: "prod_dry",
+      locales: ["en"],
+      actor,
+      dryRun: true,
+    });
+    expect(result.ok).toBe(true);
+    expect(mocks.auditLogCreate).not.toHaveBeenCalled();
+  });
 });
