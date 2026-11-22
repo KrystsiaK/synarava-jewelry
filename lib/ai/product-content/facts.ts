@@ -1,6 +1,11 @@
 import { getMaxInputChars } from "@/lib/ai/config";
+import type { AiField, AiLocale, ProductContentDraft } from "@/lib/ai/product-content/contract";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
+
+/** Shown in AI preview when instruction-smuggling was stripped from source facts. */
+export const SOURCE_INJECTION_SCRUB_MESSAGE =
+  "source contained instructions; removed before generation";
 
 export type ProductContentFacts = {
   productId: string;
@@ -109,45 +114,158 @@ export function scrubPromptInjectionText(text: string | null): string | null {
   return kept.join(" ").trim();
 }
 
+function textWasScrubbed(before: string | null | undefined, after: string | null | undefined): boolean {
+  const b = (before ?? "").trim();
+  const a = (after ?? "").trim();
+  return b.length > 0 && b !== a;
+}
+
+function pushScrubWarning(
+  warnings: ProductContentDraft["warnings"],
+  locale: AiLocale,
+  field: AiField,
+  sourcePath?: string,
+): void {
+  const message = sourcePath
+    ? `${SOURCE_INJECTION_SCRUB_MESSAGE} (${sourcePath})`
+    : SOURCE_INJECTION_SCRUB_MESSAGE;
+  // One warning per locale+field+message — avoid duplicates for multi-attr scrubs.
+  if (warnings.some((w) => w.locale === locale && w.field === field && w.message === message)) {
+    return;
+  }
+  warnings.push({ locale, field, message });
+}
+
+function parseTranslationLocale(locale: string): AiLocale | null {
+  if (locale === "en" || locale === "pt" || locale === "ru") return locale;
+  return null;
+}
+
+export type ScrubPromptInjectionResult = {
+  facts: ProductContentFacts;
+  warnings: ProductContentDraft["warnings"];
+};
+
 /**
  * Scrub instruction-smuggling from free-text fact fields before prompt + claim corpus.
  * Structured keys (productId, productType) are left intact; name falls back to "".
+ * When anything is stripped, returns preview warnings (field + locale when known).
  */
-export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): ProductContentFacts {
+export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): ScrubPromptInjectionResult {
+  const warnings: ProductContentDraft["warnings"] = [];
+
   const scrubName = scrubPromptInjectionText(facts.name);
-  return {
-    ...facts,
-    name: scrubName ?? "",
-    materialLine: scrubPromptInjectionText(facts.materialLine),
-    shortDescription: scrubPromptInjectionText(facts.shortDescription),
-    description: scrubPromptInjectionText(facts.description),
-    seoTitle: scrubPromptInjectionText(facts.seoTitle),
-    seoDescription: scrubPromptInjectionText(facts.seoDescription),
-    detailsAttributes: facts.detailsAttributes
-      .map((a) => ({
-        label: scrubPromptInjectionText(a.label) ?? "",
-        value: scrubPromptInjectionText(a.value) ?? "",
-      }))
-      .filter((a) => a.label.length > 0 || a.value.length > 0),
-    characteristics: facts.characteristics
-      .map((c) => ({
-        ...c,
-        label: scrubPromptInjectionText(c.label) ?? c.key,
-        value: scrubPromptInjectionText(c.value) ?? "",
-      }))
-      .filter((c) => c.value.length > 0),
-    collections: facts.collections
-      .map((name) => scrubPromptInjectionText(name))
-      .filter((name): name is string => typeof name === "string" && name.length > 0),
-    translations: facts.translations.map((t) => ({
+  if (textWasScrubbed(facts.name, scrubName)) {
+    pushScrubWarning(warnings, "en", "shortDescription", "name");
+  }
+
+  const materialLine = scrubPromptInjectionText(facts.materialLine);
+  if (textWasScrubbed(facts.materialLine, materialLine)) {
+    pushScrubWarning(warnings, "en", "shortDescription", "materialLine");
+  }
+
+  const shortDescription = scrubPromptInjectionText(facts.shortDescription);
+  if (textWasScrubbed(facts.shortDescription, shortDescription)) {
+    pushScrubWarning(warnings, "en", "shortDescription");
+  }
+
+  const description = scrubPromptInjectionText(facts.description);
+  if (textWasScrubbed(facts.description, description)) {
+    pushScrubWarning(warnings, "en", "description");
+  }
+
+  const seoTitle = scrubPromptInjectionText(facts.seoTitle);
+  if (textWasScrubbed(facts.seoTitle, seoTitle)) {
+    pushScrubWarning(warnings, "en", "seoTitle");
+  }
+
+  const seoDescription = scrubPromptInjectionText(facts.seoDescription);
+  if (textWasScrubbed(facts.seoDescription, seoDescription)) {
+    pushScrubWarning(warnings, "en", "seoDescription");
+  }
+
+  const detailsAttributes = facts.detailsAttributes
+    .map((a) => {
+      const label = scrubPromptInjectionText(a.label) ?? "";
+      const value = scrubPromptInjectionText(a.value) ?? "";
+      if (textWasScrubbed(a.label, label) || textWasScrubbed(a.value, value)) {
+        pushScrubWarning(warnings, "en", "description", "details");
+      }
+      return { label, value };
+    })
+    .filter((a) => a.label.length > 0 || a.value.length > 0);
+
+  const characteristics = facts.characteristics
+    .map((c) => {
+      const label = scrubPromptInjectionText(c.label) ?? c.key;
+      const value = scrubPromptInjectionText(c.value) ?? "";
+      if (textWasScrubbed(c.label, label) || textWasScrubbed(c.value, value)) {
+        pushScrubWarning(warnings, "en", "description", `characteristics.${c.key}`);
+      }
+      return { ...c, label, value };
+    })
+    .filter((c) => c.value.length > 0);
+
+  const collections = facts.collections.flatMap((name) => {
+    const next = scrubPromptInjectionText(name);
+    if (textWasScrubbed(name, next)) {
+      pushScrubWarning(warnings, "en", "description", "collections");
+    }
+    return typeof next === "string" && next.length > 0 ? [next] : [];
+  });
+
+  const translations = facts.translations.map((t) => {
+    const locale = parseTranslationLocale(t.locale) ?? "en";
+    const title = scrubPromptInjectionText(t.title) ?? "";
+    if (textWasScrubbed(t.title, title)) {
+      pushScrubWarning(warnings, locale, locale === "en" ? "shortDescription" : "title");
+    }
+    const tShort = scrubPromptInjectionText(t.shortDescription);
+    if (textWasScrubbed(t.shortDescription, tShort)) {
+      pushScrubWarning(warnings, locale, "shortDescription");
+    }
+    const tDesc = scrubPromptInjectionText(t.description);
+    if (textWasScrubbed(t.description, tDesc)) {
+      pushScrubWarning(warnings, locale, "description");
+    }
+    const tMaterial = scrubPromptInjectionText(t.materialLine);
+    if (textWasScrubbed(t.materialLine, tMaterial)) {
+      pushScrubWarning(warnings, locale, "shortDescription", "materialLine");
+    }
+    const tSeoTitle = scrubPromptInjectionText(t.seoTitle);
+    if (textWasScrubbed(t.seoTitle, tSeoTitle)) {
+      pushScrubWarning(warnings, locale, "seoTitle");
+    }
+    const tSeoDesc = scrubPromptInjectionText(t.seoDescription);
+    if (textWasScrubbed(t.seoDescription, tSeoDesc)) {
+      pushScrubWarning(warnings, locale, "seoDescription");
+    }
+    return {
       ...t,
-      title: scrubPromptInjectionText(t.title) ?? "",
-      shortDescription: scrubPromptInjectionText(t.shortDescription),
-      description: scrubPromptInjectionText(t.description),
-      materialLine: scrubPromptInjectionText(t.materialLine),
-      seoTitle: scrubPromptInjectionText(t.seoTitle),
-      seoDescription: scrubPromptInjectionText(t.seoDescription),
-    })),
+      title,
+      shortDescription: tShort,
+      description: tDesc,
+      materialLine: tMaterial,
+      seoTitle: tSeoTitle,
+      seoDescription: tSeoDesc,
+    };
+  });
+
+  return {
+    facts: {
+      ...facts,
+      name: scrubName ?? "",
+      materialLine,
+      shortDescription,
+      description,
+      seoTitle,
+      seoDescription,
+      detailsAttributes,
+      characteristics,
+      collections,
+      translations,
+    },
+    warnings,
   };
 }
 

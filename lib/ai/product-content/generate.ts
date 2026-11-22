@@ -230,9 +230,8 @@ export async function generateProductContent(input: {
   }
 
   // Scrub instruction-smuggling before prompt + claim corpus (defense in depth).
-  const prepared = truncateFactsForPrompt(
-    scrubPromptInjectionFromFacts(buildProductContentFacts(product)),
-  );
+  const scrubbed = scrubPromptInjectionFromFacts(buildProductContentFacts(product));
+  const prepared = truncateFactsForPrompt(scrubbed.facts);
   if (!prepared.ok) {
     return {
       ok: false,
@@ -242,9 +241,12 @@ export async function generateProductContent(input: {
   }
 
   const facts = prepared.facts;
-  const sourceWarnings: ProductContentDraft["warnings"] = prepared.truncated
-    ? [{ locale: "en", field: "description", message: "source truncated" }]
-    : [];
+  const sourceWarnings: ProductContentDraft["warnings"] = [
+    ...scrubbed.warnings,
+    ...(prepared.truncated
+      ? [{ locale: "en" as const, field: "description" as const, message: "source truncated" }]
+      : []),
+  ];
 
   const editorPass = input.editorPass ?? isAiEditorPassEnabled();
   const estimatedAdditionalUsd = estimateGenerationCeilingCostUsd(prepared.inputChars, {
