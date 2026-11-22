@@ -1,3 +1,4 @@
+import { getMaxInputChars } from "@/lib/ai/config";
 import { parseProductDetails } from "@/lib/content/product-details";
 
 export type ProductContentFacts = {
@@ -132,4 +133,145 @@ export function factsCorpus(facts: ProductContentFacts): string {
     ]),
   ];
   return chunks.join("\n").toLowerCase();
+}
+
+export function measureFactsChars(facts: ProductContentFacts): number {
+  return JSON.stringify(facts).length;
+}
+
+/** Truncate at paragraph / sentence boundary when possible. */
+export function truncateAtParagraphBoundary(text: string, maxLen: number): string {
+  if (text.length <= maxLen) return text;
+  const slice = text.slice(0, maxLen);
+  const breaks = ["\n\n", "\n", ". ", "。", "! ", "? "];
+  let cut = -1;
+  for (const marker of breaks) {
+    const idx = slice.lastIndexOf(marker);
+    if (idx > maxLen * 0.4) {
+      cut = Math.max(cut, idx + marker.length);
+    }
+  }
+  return (cut > 0 ? slice.slice(0, cut) : slice).trimEnd();
+}
+
+function essentialFactsSkeleton(facts: ProductContentFacts): ProductContentFacts {
+  return {
+    productId: facts.productId,
+    name: facts.name,
+    productType: facts.productType,
+    materialLine: facts.materialLine,
+    shortDescription: null,
+    description: null,
+    seoTitle: null,
+    seoDescription: null,
+    detailsAttributes: [],
+    characteristics: facts.characteristics,
+    collections: [],
+    translations: [],
+  };
+}
+
+export type FactsTruncateResult =
+  | { ok: true; facts: ProductContentFacts; truncated: boolean; inputChars: number }
+  | { ok: false; message: string };
+
+/**
+ * Fit facts under AI_MAX_INPUT_CHARS (default 12000).
+ * Truncates long fields at paragraph boundaries. If name+characteristics alone
+ * exceed the budget → invalid_output (caller must not invoke the provider).
+ */
+export function truncateFactsForPrompt(
+  facts: ProductContentFacts,
+  maxChars = getMaxInputChars(),
+): FactsTruncateResult {
+  if (measureFactsChars(facts) <= maxChars) {
+    return { ok: true, facts, truncated: false, inputChars: measureFactsChars(facts) };
+  }
+
+  const essential = essentialFactsSkeleton(facts);
+  if (measureFactsChars(essential) > maxChars) {
+    return {
+      ok: false,
+      message: "Product facts exceed AI_MAX_INPUT_CHARS even after keeping only name and characteristics",
+    };
+  }
+
+  let next: ProductContentFacts = {
+    ...essential,
+    collections: facts.collections,
+    detailsAttributes: facts.detailsAttributes,
+    shortDescription: facts.shortDescription,
+    description: facts.description,
+    seoTitle: facts.seoTitle,
+    seoDescription: facts.seoDescription,
+    translations: facts.translations,
+  };
+
+  const shrinkable: Array<() => void> = [
+    () => {
+      next = { ...next, translations: [] };
+    },
+    () => {
+      next = { ...next, seoTitle: null, seoDescription: null };
+    },
+    () => {
+      next = { ...next, detailsAttributes: [] };
+    },
+    () => {
+      next = { ...next, collections: [] };
+    },
+    () => {
+      if (next.shortDescription && next.shortDescription.length > 200) {
+        next = {
+          ...next,
+          shortDescription: truncateAtParagraphBoundary(next.shortDescription, 200),
+        };
+      }
+    },
+    () => {
+      if (next.description) {
+        const budget = Math.max(400, maxChars - measureFactsChars({ ...next, description: null }));
+        next = {
+          ...next,
+          description: truncateAtParagraphBoundary(next.description, budget),
+        };
+      }
+    },
+    () => {
+      next = { ...next, shortDescription: null, description: null };
+    },
+  ];
+
+  for (const step of shrinkable) {
+    if (measureFactsChars(next) <= maxChars) break;
+    step();
+  }
+
+  // Final hard clamp on description if still over.
+  if (measureFactsChars(next) > maxChars && next.description) {
+    const overhead = measureFactsChars({ ...next, description: "" });
+    const room = Math.max(0, maxChars - overhead - 20);
+    next = {
+      ...next,
+      description: room > 0 ? truncateAtParagraphBoundary(next.description, room) : null,
+    };
+  }
+
+  if (measureFactsChars(next) > maxChars) {
+    next = essentialFactsSkeleton(facts);
+  }
+
+  if (measureFactsChars(next) > maxChars) {
+    return {
+      ok: false,
+      message: "Product facts exceed AI_MAX_INPUT_CHARS even after keeping only name and characteristics",
+    };
+  }
+
+  return {
+    ok: true,
+    facts: next,
+    truncated: true,
+    inputChars: measureFactsChars(next),
+  };
 }

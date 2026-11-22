@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import type { ProductContentFacts } from "@/lib/ai/product-content/facts";
-import { validateAndNormalizeDraftLocales } from "@/lib/ai/product-content/validate";
+import {
+  normalizeClaimText,
+  validateAndNormalizeDraftLocales,
+} from "@/lib/ai/product-content/validate";
 
 const baseFacts: ProductContentFacts = {
   productId: "p1",
@@ -99,5 +102,78 @@ describe("validateAndNormalizeDraftLocales", () => {
     });
     const result = validateAndNormalizeDraftLocales(raw, platedFacts, ["en"]);
     expect(result!.warnings.some((w) => /silver/i.test(w.message))).toBe(true);
+  });
+
+  it("2a: warns empty locale output", () => {
+    const raw = JSON.stringify({ locales: { en: { shortDescription: "  " } } });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
+    expect(result!.warnings.some((w) => /empty locale output/i.test(w.message))).toBe(true);
+  });
+
+  it("2b: warns RU foreign latin not in facts", () => {
+    const raw = JSON.stringify({
+      locales: {
+        ru: { shortDescription: "Кольцо with brooch details" },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["ru"]);
+    expect(result!.warnings.some((w) => /RU foreign latin/i.test(w.message))).toBe(true);
+  });
+
+  it("2c: warns test-source leakage", () => {
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "lorem ipsum quiet ring" },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
+    expect(result!.warnings.some((w) => /test-source/i.test(w.message))).toBe(true);
+  });
+
+  it("2d: warns unsupported numbers not in facts", () => {
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "Sized at 17 mm for quiet wear." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
+    expect(result!.warnings.some((w) => /unsupported number/i.test(w.message))).toBe(true);
+  });
+
+  it("3: brooch with 18K gold PVD in facts → 0 gold warnings", () => {
+    const broochFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "River Brooch",
+      productType: "Brooch",
+      materialLine: "18K gold PVD",
+      characteristics: [
+        { key: "material", label: "Material", value: "18K gold PVD" },
+      ],
+    };
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "Quiet 18k gold brooch with PVD finish." },
+        pt: { title: "Broche", shortDescription: "Broche em ouro 18K." },
+        ru: { title: "Брошь", shortDescription: "Брошь с золото 18K." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, broochFacts, ["en", "pt", "ru"]);
+    expect(result!.warnings.filter((w) => /gold|ouro|золото/i.test(w.message))).toEqual([]);
+  });
+
+  it("normalizeClaimText unifies 18K variants", () => {
+    expect(normalizeClaimText("18-K Gold")).toContain("18k");
+    expect(normalizeClaimText("18 K gold")).toContain("18k");
+    expect(normalizeClaimText("18k gold")).toContain("18k");
+  });
+
+  it("9: warns cliché phrases", () => {
+    const raw = JSON.stringify({
+      locales: {
+        en: { shortDescription: "A ring of timeless elegance." },
+      },
+    });
+    const result = validateAndNormalizeDraftLocales(raw, baseFacts, ["en"]);
+    expect(result!.warnings.some((w) => /cliché/i.test(w.message))).toBe(true);
   });
 });

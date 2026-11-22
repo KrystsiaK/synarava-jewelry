@@ -1,9 +1,12 @@
 import { checkRateLimit } from "@/lib/auth/rate-limit";
 import {
   estimateCostUsd,
+  estimateGenerationCeilingCostUsd,
+  getAiContentModel,
   getRateLimitOpts,
   GEMINI_TIMEOUT_MS,
   isAiContentEnabled,
+  isAiEditorPassEnabled,
 } from "@/lib/ai/config";
 import {
   assertMonthlyBudgetAvailable,
@@ -12,9 +15,11 @@ import {
 import type {
   AiLocale,
   GenerateResult,
+  ProductContentDraft,
 } from "@/lib/ai/product-content/contract";
 import {
   buildProductContentFacts,
+  truncateFactsForPrompt,
   type ProductForFacts,
 } from "@/lib/ai/product-content/facts";
 import {
@@ -23,6 +28,8 @@ import {
   type ContentProvider,
 } from "@/lib/ai/product-content/provider";
 import {
+  buildEditorSystemInstruction,
+  buildEditorUserPrompt,
   buildSystemInstruction,
   buildUserPrompt,
 } from "@/lib/ai/product-content/prompt";
@@ -37,6 +44,13 @@ export type AdminActor = {
   sessionId: string;
 };
 
+type ProviderUsage = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+};
+
 function normalizeLocales(locales: AiLocale[]): AiLocale[] {
   const unique: AiLocale[] = [];
   for (const locale of locales) {
@@ -44,6 +58,16 @@ function normalizeLocales(locales: AiLocale[]): AiLocale[] {
     if (!unique.includes(locale)) unique.push(locale);
   }
   return unique;
+}
+
+function sumUsage(a: ProviderUsage, b: ProviderUsage | null): ProviderUsage {
+  if (!b) return a;
+  return {
+    model: a.model || b.model,
+    inputTokens: a.inputTokens + b.inputTokens,
+    outputTokens: a.outputTokens + b.outputTokens,
+    latencyMs: a.latencyMs + b.latencyMs,
+  };
 }
 
 async function loadProductForFacts(productId: string): Promise<
@@ -119,14 +143,17 @@ function mapProviderError(error: unknown): GenerateResult {
 
 /**
  * Core generate flow (read-only Product load; sole write = AuditLog).
- * Uses ContentProvider stub until architect picks the benchmark winner.
+ * Production ContentProvider = Gemini (AI_CONTENT_MODEL).
+ * Optional second editor pass when AI_EDITOR_PASS is on.
  */
 export async function generateProductContent(input: {
   productId: string;
   locales: AiLocale[];
   actor: AdminActor;
-  /** Optional override (tests / future wiring). Defaults to getContentProvider(). */
+  /** Optional override (tests). Defaults to getContentProvider(). */
   provider?: ContentProvider;
+  /** Test override for editor pass (defaults to isAiEditorPassEnabled()). */
+  editorPass?: boolean;
 }): Promise<GenerateResult> {
   if (!isAiContentEnabled()) {
     return {
@@ -158,15 +185,6 @@ export async function generateProductContent(input: {
     };
   }
 
-  const budget = await assertMonthlyBudgetAvailable();
-  if (!budget.ok) {
-    return {
-      ok: false,
-      code: "budget_exhausted",
-      message: `Monthly AI budget exhausted (spent $${budget.spent.toFixed(4)} / $${budget.budget})`,
-    };
-  }
-
   const product = await loadProductForFacts(input.productId);
   if (!product) {
     return {
@@ -176,14 +194,43 @@ export async function generateProductContent(input: {
     };
   }
 
-  const facts = buildProductContentFacts(product);
-  const provider = input.provider ?? getContentProvider();
+  const prepared = truncateFactsForPrompt(buildProductContentFacts(product));
+  if (!prepared.ok) {
+    return {
+      ok: false,
+      code: "invalid_output",
+      message: prepared.message,
+    };
+  }
 
-  let providerResult: Awaited<ReturnType<ContentProvider>>;
+  const facts = prepared.facts;
+  const sourceWarnings: ProductContentDraft["warnings"] = prepared.truncated
+    ? [{ locale: "en", field: "description", message: "source truncated" }]
+    : [];
+
+  const editorPass = input.editorPass ?? isAiEditorPassEnabled();
+  const estimatedAdditionalUsd = estimateGenerationCeilingCostUsd(prepared.inputChars, {
+    editorPass,
+    model: getAiContentModel(),
+  });
+  const budget = await assertMonthlyBudgetAvailable(estimatedAdditionalUsd);
+  if (!budget.ok) {
+    return {
+      ok: false,
+      code: "budget_exhausted",
+      message: `Monthly AI budget exhausted (spent $${budget.spent.toFixed(4)} / $${budget.budget})`,
+    };
+  }
+
+  const provider = input.provider ?? getContentProvider();
+  const system = buildSystemInstruction(locales);
+  const user = buildUserPrompt(facts, locales);
+
+  let firstResult: Awaited<ReturnType<ContentProvider>>;
   try {
-    providerResult = await provider({
-      system: buildSystemInstruction(locales),
-      user: buildUserPrompt(facts, locales),
+    firstResult = await provider({
+      system,
+      user,
       jsonSchema: PRODUCT_CONTENT_RESPONSE_SCHEMA as unknown as object,
       timeoutMs: GEMINI_TIMEOUT_MS,
     });
@@ -191,37 +238,33 @@ export async function generateProductContent(input: {
     return mapProviderError(error);
   }
 
-  const costUsd = estimateCostUsd(
-    providerResult.usage.model,
-    providerResult.usage.inputTokens,
-    providerResult.usage.outputTokens,
-  );
-
-  const validated = validateAndNormalizeDraftLocales(
-    providerResult.json,
+  const firstValidated = validateAndNormalizeDraftLocales(
+    firstResult.json,
     facts,
     locales,
   );
 
-  // If the provider returned usage, always AuditLog — including invalid_output —
-  // so costUsd counts toward the monthly budget sum.
-  await writeAiGenerationAudit({
-    productId: product.id,
-    adminUsername: input.actor.username,
-    adminSessionId: input.actor.sessionId,
-    usage: {
-      model: providerResult.usage.model,
-      inputTokens: providerResult.usage.inputTokens,
-      outputTokens: providerResult.usage.outputTokens,
-      costUsd,
-      latencyMs: providerResult.usage.latencyMs,
+  if (!firstValidated) {
+    const costUsd = estimateCostUsd(
+      firstResult.usage.model,
+      firstResult.usage.inputTokens,
+      firstResult.usage.outputTokens,
+    );
+    await writeAiGenerationAudit({
       productId: product.id,
-      locales,
-      outcome: validated ? "ok" : "invalid_output",
-    },
-  });
-
-  if (!validated) {
+      adminUsername: input.actor.username,
+      adminSessionId: input.actor.sessionId,
+      usage: {
+        model: firstResult.usage.model,
+        inputTokens: firstResult.usage.inputTokens,
+        outputTokens: firstResult.usage.outputTokens,
+        costUsd,
+        latencyMs: firstResult.usage.latencyMs,
+        productId: product.id,
+        locales,
+        outcome: "invalid_output",
+      },
+    });
     return {
       ok: false,
       code: "invalid_output",
@@ -229,19 +272,78 @@ export async function generateProductContent(input: {
     };
   }
 
+  let finalLocales = firstValidated.locales;
+  let finalWarnings = [...sourceWarnings, ...firstValidated.warnings];
+  let secondUsage: ProviderUsage | null = null;
+
+  if (editorPass) {
+    try {
+      const editorResult = await provider({
+        system: buildEditorSystemInstruction(locales),
+        user: buildEditorUserPrompt(facts, firstValidated.locales, locales),
+        jsonSchema: PRODUCT_CONTENT_RESPONSE_SCHEMA as unknown as object,
+        timeoutMs: GEMINI_TIMEOUT_MS,
+      });
+      secondUsage = editorResult.usage;
+
+      const editorValidated = validateAndNormalizeDraftLocales(
+        editorResult.json,
+        facts,
+        locales,
+      );
+      if (!editorValidated) {
+        finalWarnings = [
+          ...finalWarnings,
+          { locale: "en", field: "description", message: "editor skipped" },
+        ];
+      } else {
+        finalLocales = editorValidated.locales;
+        finalWarnings = [...sourceWarnings, ...editorValidated.warnings];
+      }
+    } catch {
+      finalWarnings = [
+        ...finalWarnings,
+        { locale: "en", field: "description", message: "editor skipped" },
+      ];
+    }
+  }
+
+  const combinedUsage = sumUsage(firstResult.usage, secondUsage);
+  const costUsd = estimateCostUsd(
+    combinedUsage.model,
+    combinedUsage.inputTokens,
+    combinedUsage.outputTokens,
+  );
+
+  await writeAiGenerationAudit({
+    productId: product.id,
+    adminUsername: input.actor.username,
+    adminSessionId: input.actor.sessionId,
+    usage: {
+      model: combinedUsage.model,
+      inputTokens: combinedUsage.inputTokens,
+      outputTokens: combinedUsage.outputTokens,
+      costUsd,
+      latencyMs: combinedUsage.latencyMs,
+      productId: product.id,
+      locales,
+      outcome: "ok",
+    },
+  });
+
   return {
     ok: true,
     draft: {
       productId: product.id,
       sourceUpdatedAt: product.updatedAt.toISOString(),
-      locales: validated.locales,
-      warnings: validated.warnings,
+      locales: finalLocales,
+      warnings: finalWarnings,
       usage: {
-        model: providerResult.usage.model,
-        inputTokens: providerResult.usage.inputTokens,
-        outputTokens: providerResult.usage.outputTokens,
+        model: combinedUsage.model,
+        inputTokens: combinedUsage.inputTokens,
+        outputTokens: combinedUsage.outputTokens,
         costUsd,
-        latencyMs: providerResult.usage.latencyMs,
+        latencyMs: combinedUsage.latencyMs,
       },
     },
   };

@@ -1,9 +1,13 @@
 import {
+  getAiContentModel,
   getGeminiApiKey,
-  getGeminiModel,
+  getMaxOutputTokens,
   GEMINI_TIMEOUT_MS,
 } from "@/lib/ai/config";
-import type { ContentProvider } from "@/lib/ai/product-content/provider";
+import {
+  ContentProviderNotConfiguredError,
+  type ContentProvider,
+} from "@/lib/ai/product-content/provider";
 
 type GeminiUsageMetadata = {
   promptTokenCount?: number;
@@ -31,23 +35,21 @@ function extractText(body: GeminiResponseBody): string | null {
 }
 
 /**
- * Gemini REST ContentProvider (generateContent, no SDK).
- * Matches `ContentProvider` exactly — returns `{ json, usage }` and throws on
- * transport / HTTP / timeout failures. Cost is computed outside via `config.estimateCostUsd`.
- *
- * NOT wired into production `getContentProvider()` — production stays on the stub
- * until the architect picks a benchmark winner. Bench adapters live under
- * `scripts/ai/bench/`. Never logs the API key or request body.
+ * Production Gemini REST ContentProvider (generateContent, no SDK).
+ * Model from AI_CONTENT_MODEL (default gemini-3.1-flash-lite).
+ * Cost is computed outside via `config.estimateCostUsd`.
+ * Bench adapters remain under `scripts/ai/bench/`. Never logs the API key.
  */
 export const geminiContentProvider: ContentProvider = async (input) => {
-  const model = getGeminiModel();
+  const model = getAiContentModel();
   const started = Date.now();
   const apiKey = getGeminiApiKey();
   if (!apiKey) {
-    throw new Error("GEMINI_API_KEY is not configured");
+    throw new ContentProviderNotConfiguredError("GEMINI_API_KEY is not configured");
   }
 
   const timeoutMs = input.timeoutMs > 0 ? input.timeoutMs : GEMINI_TIMEOUT_MS;
+  const maxOutputTokens = getMaxOutputTokens();
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
@@ -73,6 +75,7 @@ export const geminiContentProvider: ContentProvider = async (input) => {
         ],
         generationConfig: {
           temperature: 0.35,
+          maxOutputTokens,
           responseMimeType: "application/json",
           responseJsonSchema: input.jsonSchema,
         },
@@ -95,6 +98,16 @@ export const geminiContentProvider: ContentProvider = async (input) => {
       throw new Error(providerMessage);
     }
 
+    const inputTokens = Math.max(0, body.usageMetadata?.promptTokenCount ?? 0);
+    const outputTokens = Math.max(0, body.usageMetadata?.candidatesTokenCount ?? 0);
+    const usage = { model, inputTokens, outputTokens, latencyMs };
+
+    const finishReason = body.candidates?.[0]?.finishReason?.toUpperCase() ?? "";
+    if (finishReason === "MAX_TOKENS") {
+      // Force schema failure → generate returns invalid_output but still AuditLogs usage.
+      return { json: { __truncated: true, finishReason: "MAX_TOKENS" }, usage };
+    }
+
     const text = extractText(body);
     if (!text) {
       throw new Error("Gemini response missing text candidates");
@@ -104,23 +117,12 @@ export const geminiContentProvider: ContentProvider = async (input) => {
     try {
       json = JSON.parse(text) as unknown;
     } catch {
-      // Still return usage so generate can AuditLog invalid_output.
       json = text;
     }
 
-    const inputTokens = Math.max(0, body.usageMetadata?.promptTokenCount ?? 0);
-    const outputTokens = Math.max(0, body.usageMetadata?.candidatesTokenCount ?? 0);
-
-    return {
-      json,
-      usage: {
-        model,
-        inputTokens,
-        outputTokens,
-        latencyMs,
-      },
-    };
+    return { json, usage };
   } catch (error) {
+    if (error instanceof ContentProviderNotConfiguredError) throw error;
     const aborted =
       controller.signal.aborted ||
       (error instanceof Error && error.name === "AbortError");

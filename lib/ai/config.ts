@@ -3,25 +3,27 @@
  *
  * Expected names (add to the repo env example file when protect-env hook allows):
  * - GEMINI_API_KEY
- * - GEMINI_MODEL (bench / gemini ContentProvider helper only until winner)
+ * - GEMINI_MODEL (legacy alias; prefer AI_CONTENT_MODEL)
  * - ANTHROPIC_API_KEY (bench only)
  * - OPENAI_API_KEY (bench only)
  * - AI_CONTENT_ENABLED
- * - AI_CONTENT_MODEL (reserved — set after architect picks winner)
+ * - AI_CONTENT_MODEL (production model; default gemini-3.1-flash-lite)
+ * - AI_MAX_OUTPUT_TOKENS (default 4096)
+ * - AI_MAX_INPUT_CHARS (default 12000)
+ * - AI_EDITOR_PASS (default 0; set 1/true to run second editorial polish call)
  * - AI_MONTHLY_BUDGET_USD
  * - AI_RATE_LIMIT_MAX (optional; default 20)
  * - AI_RATE_LIMIT_WINDOW_MS (optional; default 3_600_000)
- *
- * Production ContentProvider is a stub until the benchmark winner is wired.
- * Bench model ids (not production): gemini-3.1-flash-lite, claude-haiku-5-5,
- * claude-sonnet-5-5, gpt-5-nano.
  */
 
 export const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite";
+export const DEFAULT_AI_CONTENT_MODEL = DEFAULT_GEMINI_MODEL;
 export const GEMINI_TIMEOUT_MS = 30_000;
 export const DEFAULT_MONTHLY_BUDGET_USD = 5;
 export const DEFAULT_RATE_LIMIT_MAX = 20;
 export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
+export const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
+export const DEFAULT_MAX_INPUT_CHARS = 12_000;
 export const AI_AUDIT_ACTION = "ai.product_content.generate";
 
 /**
@@ -96,8 +98,34 @@ export function getGeminiApiKey(): string | undefined {
   return key || undefined;
 }
 
+/** Production model id (AI_CONTENT_MODEL → GEMINI_MODEL → default). */
+export function getAiContentModel(): string {
+  return (
+    process.env.AI_CONTENT_MODEL?.trim() ||
+    process.env.GEMINI_MODEL?.trim() ||
+    DEFAULT_AI_CONTENT_MODEL
+  );
+}
+
+/** @deprecated Prefer getAiContentModel() */
 export function getGeminiModel(): string {
-  return process.env.GEMINI_MODEL?.trim() || DEFAULT_GEMINI_MODEL;
+  return getAiContentModel();
+}
+
+export function getMaxOutputTokens(): number {
+  const raw = Number(process.env.AI_MAX_OUTPUT_TOKENS?.trim());
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_MAX_OUTPUT_TOKENS;
+}
+
+export function getMaxInputChars(): number {
+  const raw = Number(process.env.AI_MAX_INPUT_CHARS?.trim());
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : DEFAULT_MAX_INPUT_CHARS;
+}
+
+/** Second editorial polish pass (default off). */
+export function isAiEditorPassEnabled(): boolean {
+  const raw = process.env.AI_EDITOR_PASS?.trim().toLowerCase();
+  return raw === "1" || raw === "true" || raw === "yes" || raw === "on";
 }
 
 export function getMonthlyBudgetUsd(): number {
@@ -130,4 +158,22 @@ export function estimateCostUsd(
   const input = (Math.max(0, inputTokens) / 1_000_000) * price.inputUsdPer1M;
   const output = (Math.max(0, outputTokens) / 1_000_000) * price.outputUsdPer1M;
   return Math.round((input + output) * 1_000_000) / 1_000_000;
+}
+
+/** Ceiling estimate: inputChars/4 + maxOutputTokens against the price table. */
+export function estimateCeilingCostUsd(inputChars: number, model = getAiContentModel()): number {
+  const inputTokens = Math.ceil(Math.max(0, inputChars) / 4);
+  return estimateCostUsd(model, inputTokens, getMaxOutputTokens());
+}
+
+/**
+ * Ceiling for a full generate (1 or 2 provider calls when AI_EDITOR_PASS is on).
+ * Spec 8c/10: budget check uses call-count × single-call ceiling.
+ */
+export function estimateGenerationCeilingCostUsd(
+  inputChars: number,
+  options?: { editorPass?: boolean; model?: string },
+): number {
+  const calls = (options?.editorPass ?? isAiEditorPassEnabled()) ? 2 : 1;
+  return estimateCeilingCostUsd(inputChars, options?.model ?? getAiContentModel()) * calls;
 }

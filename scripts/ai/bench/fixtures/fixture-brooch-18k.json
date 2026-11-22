@@ -1,0 +1,25 @@
+{
+  "id": "fixture_brooch_18k",
+  "name": "River Brooch",
+  "productType": "Brooch",
+  "materialLine": "18K gold PVD",
+  "shortDescription": "A quiet ceremonial brooch.",
+  "description": "<p>Form in 18K gold PVD.</p>",
+  "seoTitle": null,
+  "seoDescription": null,
+  "details": {
+    "attributes": [{ "label": "Finish", "value": "18K gold PVD" }]
+  },
+  "characteristics": [
+    {
+      "key": "material",
+      "label": "Material",
+      "textValue": "18K gold PVD",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": null
+    }
+  ],
+  "collections": [{ "collection": { "name": "Quiet Forms" } }],
+  "translations": []
+}

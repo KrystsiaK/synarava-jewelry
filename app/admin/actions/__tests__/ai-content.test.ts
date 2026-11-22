@@ -235,7 +235,7 @@ describe("generateProductContentAction", () => {
     });
   });
 
-  it("returns disabled when production stub provider is not configured", async () => {
+  it("returns disabled when Gemini API key is missing", async () => {
     const { ContentProviderNotConfiguredError } = await import(
       "@/lib/ai/product-content/provider"
     );
@@ -244,5 +244,33 @@ describe("generateProductContentAction", () => {
       ok: false,
       code: "disabled",
     });
+  });
+
+  it("8a: MAX_TOKENS-style invalid json still AuditLogs usage", async () => {
+    mocks.contentProvider.mockResolvedValue({
+      json: { __truncated: true, finishReason: "MAX_TOKENS" },
+      usage: {
+        model: "gemini-3.1-flash-lite",
+        inputTokens: 200,
+        outputTokens: 4096,
+        latencyMs: 50,
+      },
+    });
+    await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
+      ok: false,
+      code: "invalid_output",
+    });
+    expect(mocks.auditLogCreate).toHaveBeenCalledOnce();
+    expect(mocks.auditLogCreate.mock.calls[0]![0].data.metadata.outcome).toBe("invalid_output");
+  });
+
+  it("8c: refuses when ceiling estimate would exhaust monthly budget", async () => {
+    process.env.AI_MONTHLY_BUDGET_USD = "0.0001";
+    mocks.auditLogFindMany.mockResolvedValue([{ metadata: { costUsd: 0 } }]);
+    await expect(generateProductContentAction("prod_1", ["en"])).resolves.toMatchObject({
+      ok: false,
+      code: "budget_exhausted",
+    });
+    expect(mocks.contentProvider).not.toHaveBeenCalled();
   });
 });
