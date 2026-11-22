@@ -36,11 +36,14 @@ export function ProductEditRoute({
   collections,
   translationLocales,
   initialConflictSignals,
+  aiContentEnabled = false,
 }: {
   product: SavedProductPayload;
   collections: CollectionOption[];
   translationLocales: AdminTranslationLocale[];
   initialConflictSignals?: CatalogConflictSignals;
+  /** Server-computed `isAiContentEnabled()` — when false the Generate with AI control stays hidden. */
+  aiContentEnabled?: boolean;
 }) {
   const router = useRouter();
 
@@ -50,6 +53,7 @@ export function ProductEditRoute({
       collections={collections}
       translationLocales={translationLocales}
       initialConflictSignals={initialConflictSignals}
+      aiContentEnabled={aiContentEnabled}
       onUpdated={() => refreshPreservingScroll(router)}
       onDeleted={() => {
         router.push("/admin/products");

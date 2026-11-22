@@ -1,0 +1,33 @@
+{
+  "id": "fixture_ring_925",
+  "name": "River Pearl Ring",
+  "productType": "Ring",
+  "materialLine": "925 sterling silver",
+  "shortDescription": "A quiet silver ring with pearl.",
+  "description": "<p>Crafted in 925 sterling silver with pearl.</p>",
+  "seoTitle": null,
+  "seoDescription": null,
+  "details": {
+    "attributes": [{ "label": "Stone", "value": "Pearl" }]
+  },
+  "characteristics": [
+    {
+      "key": "material",
+      "label": "Material",
+      "textValue": "925 sterling silver",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": null
+    },
+    {
+      "key": "stone",
+      "label": "Stone",
+      "textValue": "Pearl",
+      "numberValue": null,
+      "booleanValue": null,
+      "unit": null
+    }
+  ],
+  "collections": [{ "collection": { "name": "Quiet Forms" } }],
+  "translations": []
+}

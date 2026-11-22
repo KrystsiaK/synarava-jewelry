@@ -62,11 +62,19 @@ import {
   productToDraft,
   PRODUCT_SAVE_FAILURE_MESSAGE,
 } from "@/components/admin/products/product-helpers";
-import type { CollectionOption, ProductRecord } from "@/components/admin/products/product-types";
+import {
+  applyAiSelectionsToDraft,
+  readCurrentAiField,
+  syncAiFieldsFromForm,
+  type AiFieldSelectionKey,
+} from "@/components/admin/products/ai-content-apply";
+import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
+import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
 import type { ProductSyncInspection } from "@/lib/shopify/product-sync";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
+import type { AiLocale, ProductContentDraft } from "@/lib/ai/product-content/contract";
 
 const EMPTY_SIGNALS: CatalogConflictSignals = {
   state: "ready",
@@ -84,6 +92,21 @@ function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminL
   return [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
 }
 
+function asAiLocales(translationLocales: AdminTranslationLocale[]): AiLocale[] {
+  const locales: AiLocale[] = ["en"];
+  for (const { code } of translationLocales) {
+    if (code === "pt" || code === "ru") locales.push(code);
+  }
+  return locales;
+}
+
+function productUpdatedAtIso(product: ProductRecord): string {
+  const value = product.updatedAt;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string") return value;
+  return "";
+}
+
 export function EditProductForm({
   product,
   collections,
@@ -92,6 +115,7 @@ export function EditProductForm({
   highlighted = false,
   translationLocales = [{ code: "pt", label: "Português" }],
   initialConflictSignals = EMPTY_SIGNALS,
+  aiContentEnabled = false,
 }: {
   product: ProductRecord;
   collections: CollectionOption[];
@@ -101,6 +125,8 @@ export function EditProductForm({
   /** Every non-English locale to render a tab for. Defaults to Portuguese only, matching every editor's behavior before the registry drove this. */
   translationLocales?: AdminTranslationLocale[];
   initialConflictSignals?: CatalogConflictSignals;
+  /** Server feature flag — when false the Generate with AI control is hidden. */
+  aiContentEnabled?: boolean;
 }) {
   const [state, setState] = useState<ProductActionState>({});
   const [isPending, startTransition] = useTransition();
@@ -115,6 +141,8 @@ export function EditProductForm({
   const [conflictViewScope, setConflictViewScope] = useState<CatalogConflictViewScope>({ kind: "product", productId: product.id });
   const [activeSection, setActiveSection] = useState<ProductEditorSection>("essentials");
   const [fieldsRevision, setFieldsRevision] = useState(0);
+  const [formDraftOverride, setFormDraftOverride] = useState<ProductDraft | null>(null);
+  const [aiOverlayEpoch, setAiOverlayEpoch] = useState("");
   const localeTabs = productLocaleTabs(translationLocales);
   const [activeLocale, selectLocale] = useAdminActiveLocale(`product:${product.id}`, localeTabs);
   const rowRef = useRef<HTMLDivElement>(null);
@@ -123,7 +151,15 @@ export function EditProductForm({
   const baselineRef = useRef<FormData | null>(null);
   const validation = useAdminFormValidation<ProductFieldName>({ formRef });
   const currentProduct = state.product ?? product;
-  const draft = productToDraft(currentProduct, translationLocales);
+  const productUpdatedAt = productUpdatedAtIso(currentProduct);
+  const productEpoch = `${currentProduct.id}:${productUpdatedAt}`;
+  // Drop AI overlay when the saved product identity/timestamp changes (render-time adjust).
+  if (aiOverlayEpoch !== productEpoch) {
+    setAiOverlayEpoch(productEpoch);
+    if (formDraftOverride) setFormDraftOverride(null);
+  }
+  const draft = formDraftOverride ?? productToDraft(currentProduct, translationLocales);
+  const aiLocales = asAiLocales(translationLocales);
   const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
@@ -197,6 +233,23 @@ export function EditProductForm({
     if (!highlighted || !rowRef.current) return;
     rowRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [highlighted]);
+
+  function handleAiApplySelections(
+    aiDraft: ProductContentDraft,
+    selected: ReadonlySet<AiFieldSelectionKey>,
+  ) {
+    const base = syncAiFieldsFromForm(
+      formRef.current,
+      formDraftOverride ?? productToDraft(currentProduct, translationLocales),
+      aiLocales,
+    );
+    const next = applyAiSelectionsToDraft(base, aiDraft, selected);
+    setFormDraftOverride(next);
+    setFieldsRevision((value) => value + 1);
+    window.setTimeout(() => {
+      recomputeDirtyFromForm();
+    }, 0);
+  }
 
   useEffect(() => {
     const header = workspaceHeaderRef.current;
@@ -595,6 +648,16 @@ export function EditProductForm({
 
                     <div hidden={activeSection === "media" || activeSection === "metafields"}>
                       <div hidden={activeSection === "passport"}>
+                        {aiContentEnabled && activeSection === "essentials" ? (
+                          <AiContentGenerateControl
+                            productId={currentProduct.id}
+                            productUpdatedAt={productUpdatedAt}
+                            availableLocales={aiLocales}
+                            formRef={formRef}
+                            getCurrent={(locale, field) => readCurrentAiField(formRef.current, locale, field)}
+                            onApplySelections={handleAiApplySelections}
+                          />
+                        ) : null}
                         <ProductFormFields
                           key={`${currentProduct.id}-${fieldsRevision}`}
                           draft={draft}
