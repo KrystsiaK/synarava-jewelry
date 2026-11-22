@@ -36,6 +36,20 @@ describe("AdminButton", () => {
     expect(button).toHaveAttribute("data-busy", "true");
   });
 
+  it("busy replaces leadingIcon with a spinning Loader2 and keeps the label", () => {
+    render(
+      <AdminButton busy leadingIcon={<span data-testid="icon">★</span>}>
+        Generating…
+      </AdminButton>,
+    );
+
+    const button = screen.getByRole("button", { name: "Generating…" });
+    expect(button).toHaveTextContent("Generating…");
+    expect(screen.getByTestId("admin-button-busy-spinner")).toHaveClass("animate-spin");
+    expect(screen.getByTestId("admin-button-busy-spinner")).toHaveAttribute("aria-hidden", "true");
+    expect(screen.queryByTestId("icon")).not.toBeInTheDocument();
+  });
+
   it("renders a leading icon before the label", () => {
     render(
       <AdminButton leadingIcon={<span data-testid="icon">★</span>}>

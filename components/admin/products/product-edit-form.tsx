@@ -614,23 +614,35 @@ export function EditProductForm({
                 dirtySections={dirtySections}
                 conflictSections={conflictSections}
                 aside={
-                  currentProduct.shopifyProductId && activeSection !== "shopify" ? (
-                    <SyncConflictIndicator
-                      checkIconOnly
-                      label={
-                        isSharedSection(activeSection)
-                          ? `shared · ${activeSection}`
-                          : `${activeLocaleLabel} · ${activeSection}`
-                      }
-                      count={sectionConflictCount}
-                      onOpen={() => openConflicts({
-                        kind: "productSection",
-                        productId: currentProduct.id,
-                        locale: syncLocale,
-                        section: activeSection,
-                      })}
-                    />
-                  ) : null
+                  <>
+                    {aiContentEnabled && activeSection === "essentials" ? (
+                      <AiContentGenerateControl
+                        productId={currentProduct.id}
+                        productUpdatedAt={productUpdatedAt}
+                        availableLocales={aiLocales}
+                        formRef={formRef}
+                        getCurrent={(locale, field) => readCurrentAiField(formRef.current, locale, field)}
+                        onApplySelections={handleAiApplySelections}
+                      />
+                    ) : null}
+                    {currentProduct.shopifyProductId && activeSection !== "shopify" ? (
+                      <SyncConflictIndicator
+                        checkIconOnly
+                        label={
+                          isSharedSection(activeSection)
+                            ? `shared · ${activeSection}`
+                            : `${activeLocaleLabel} · ${activeSection}`
+                        }
+                        count={sectionConflictCount}
+                        onOpen={() => openConflicts({
+                          kind: "productSection",
+                          productId: currentProduct.id,
+                          locale: syncLocale,
+                          section: activeSection,
+                        })}
+                      />
+                    ) : null}
+                  </>
                 }
               >
                 <div className="adm-inset-x grid gap-4 py-4">
@@ -649,16 +661,6 @@ export function EditProductForm({
 
                     <div hidden={activeSection === "media" || activeSection === "metafields"}>
                       <div hidden={activeSection === "passport"}>
-                        {aiContentEnabled && activeSection === "essentials" ? (
-                          <AiContentGenerateControl
-                            productId={currentProduct.id}
-                            productUpdatedAt={productUpdatedAt}
-                            availableLocales={aiLocales}
-                            formRef={formRef}
-                            getCurrent={(locale, field) => readCurrentAiField(formRef.current, locale, field)}
-                            onApplySelections={handleAiApplySelections}
-                          />
-                        ) : null}
                         <ProductFormFields
                           key={`${currentProduct.id}-${fieldsRevision}`}
                           draft={draft}

@@ -49,8 +49,12 @@ export type AiContentGenerateControlProps = {
   ) => AiApplySelectionsReport | void;
 };
 
+export function formatGeneratingStatus(locales: readonly AiLocale[]): string {
+  return `Generating ${locales.map((locale) => locale.toUpperCase()).join(" · ")}…`;
+}
+
 /**
- * Essentials-section control: pick locales → generate → preview → apply to form.
+ * Product-tab header control: pick locales → generate → preview → apply to form.
  */
 export function AiContentGenerateControl({
   productId,
@@ -67,7 +71,9 @@ export function AiContentGenerateControl({
   const [fingerprintAtGenerate, setFingerprintAtGenerate] = useState("");
   const [fingerprintNow, setFingerprintNow] = useState("");
   const [localesAtGenerate, setLocalesAtGenerate] = useState<AiLocale[]>([]);
-  const [pending, startTransition] = useTransition();
+  const [generatingLocales, setGeneratingLocales] = useState<AiLocale[]>([]);
+  const [generating, setGenerating] = useState(false);
+  const [, startTransition] = useTransition();
   const pickerTitleId = useId();
 
   const localesForPicker = AI_LOCALES.filter((locale) => availableLocales.includes(locale));
@@ -97,17 +103,24 @@ export function AiContentGenerateControl({
     }
     const fingerprint = fingerprintAiSourceFields(formRef.current, locales);
     setPickerOpen(false);
+    setGenerating(true);
+    setGeneratingLocales(locales);
     startTransition(async () => {
-      const result = await generateProductContentAction(productId, locales);
-      if (!result.ok) {
-        pushToast({ message: toastMessageForGenerateError(result), tone: "error" });
-        return;
+      try {
+        const result = await generateProductContentAction(productId, locales);
+        if (!result.ok) {
+          pushToast({ message: toastMessageForGenerateError(result), tone: "error" });
+          return;
+        }
+        setLocalesAtGenerate(locales);
+        setFingerprintAtGenerate(fingerprint);
+        setFingerprintNow(fingerprint);
+        setDraft(result.draft);
+        setPreviewOpen(true);
+      } finally {
+        setGenerating(false);
+        setGeneratingLocales([]);
       }
-      setLocalesAtGenerate(locales);
-      setFingerprintAtGenerate(fingerprint);
-      setFingerprintNow(fingerprint);
-      setDraft(result.draft);
-      setPreviewOpen(true);
     });
   }
 
@@ -147,20 +160,29 @@ export function AiContentGenerateControl({
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-2" data-testid="ai-content-generate">
-        <p className="text-xs text-[var(--adm-muted)]">
-          Draft multilingual copy from product facts. Apply fills the form only — Save is still yours.
-        </p>
+      <div
+        className="flex flex-col items-end gap-1"
+        data-testid="ai-content-generate"
+      >
         <AdminButton
           type="button"
           variant="secondary"
-          busy={pending}
+          busy={generating}
           onClick={openPicker}
           leadingIcon={<Sparkles className="size-3.5" aria-hidden="true" />}
           data-testid="ai-content-generate-button"
         >
-          {pending ? "Generating…" : "Generate with AI"}
+          {generating ? "Generating…" : "Generate with AI"}
         </AdminButton>
+        {generating && generatingLocales.length > 0 ? (
+          <p
+            className="text-xs text-[var(--adm-muted)]"
+            aria-live="polite"
+            data-testid="ai-content-generating-status"
+          >
+            {formatGeneratingStatus(generatingLocales)}
+          </p>
+        ) : null}
       </div>
 
       <AdminModal
@@ -192,7 +214,7 @@ export function AiContentGenerateControl({
           </AdminButton>
           <AdminButton
             variant="primary"
-            busy={pending}
+            busy={generating}
             disabled={picked.size === 0}
             onClick={runGenerate}
             data-testid="ai-content-confirm-generate"

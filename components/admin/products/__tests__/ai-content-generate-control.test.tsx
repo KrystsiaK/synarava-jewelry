@@ -293,6 +293,46 @@ describe("AiContentGenerateControl", () => {
     });
   });
 
+  it("shows busy Generating… and aria-live locale status while pending", async () => {
+    const user = userEvent.setup();
+    const formRef = createRef<HTMLFormElement>();
+    let resolveGenerate: (value: GenerateResult) => void = () => undefined;
+    mocks.generateProductContentAction.mockImplementation(
+      () => new Promise<GenerateResult>((resolve) => {
+        resolveGenerate = resolve;
+      }),
+    );
+
+    render(
+      <form ref={formRef}>
+        <AiContentGenerateControl
+          productId="product-1"
+          productUpdatedAt="2026-01-02T00:00:00.000Z"
+          availableLocales={["en", "pt", "ru"]}
+          formRef={formRef}
+          getCurrent={() => ""}
+          onApplySelections={() => undefined}
+        />
+      </form>,
+    );
+
+    await user.click(screen.getByTestId("ai-content-generate-button"));
+    await user.click(screen.getByTestId("ai-content-confirm-generate"));
+
+    await waitFor(() => {
+      expect(screen.getByTestId("ai-content-generate-button")).toHaveTextContent("Generating…");
+      expect(screen.getByTestId("ai-content-generate-button")).toHaveAttribute("aria-busy", "true");
+      expect(screen.getByTestId("ai-content-generating-status")).toHaveAttribute("aria-live", "polite");
+      expect(screen.getByTestId("ai-content-generating-status")).toHaveTextContent(
+        "Generating EN · PT · RU…",
+      );
+    });
+
+    resolveGenerate({ ok: true, draft: makeOkDraft({ warnings: [] }) });
+    await screen.findByRole("dialog", { name: "AI content preview" });
+    expect(screen.queryByTestId("ai-content-generating-status")).not.toBeInTheDocument();
+  });
+
   it("maps budget_exhausted, timeout, provider_error, invalid_output, disabled", async () => {
     const user = userEvent.setup();
     const formRef = createRef<HTMLFormElement>();
@@ -346,6 +386,26 @@ describe("EditProductForm AI wiring", () => {
   it("hides Generate with AI unless aiContentEnabled", () => {
     render(<EditProductForm product={makeProduct()} collections={[]} />);
     expect(screen.queryByTestId("ai-content-generate-button")).not.toBeInTheDocument();
+  });
+
+  it("places Generate with AI in the Product section header, not in the field flow", () => {
+    render(
+      <EditProductForm
+        product={makeProduct()}
+        collections={[]}
+        translationLocales={[{ code: "pt", label: "Português" }]}
+        aiContentEnabled
+      />,
+    );
+
+    const generate = screen.getByTestId("ai-content-generate");
+    const header = document.querySelector(".adm-product-section-header");
+    expect(header).toBeTruthy();
+    expect(header!.contains(generate)).toBe(true);
+    // Not flush against the first SHOPIFY-owned Title field in the body flow.
+    const title = screen.getByRole("textbox", { name: /^Title/i });
+    expect(title.closest(".adm-product-section-header")).toBeNull();
+    expect(generate.compareDocumentPosition(title) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it("shows the control when enabled and apply does not call save or push", async () => {
