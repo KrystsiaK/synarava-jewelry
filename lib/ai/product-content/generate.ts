@@ -19,6 +19,7 @@ import type {
 } from "@/lib/ai/product-content/contract";
 import {
   buildProductContentFacts,
+  scrubPromptInjectionFromFacts,
   truncateFactsForPrompt,
   type ProductForFacts,
 } from "@/lib/ai/product-content/facts";
@@ -131,34 +132,48 @@ function isProviderRateLimited(message: string): boolean {
   );
 }
 
+/** Strip API keys / bearer tokens from provider errors before they reach the client. */
+export function redactProviderSecrets(message: string): string {
+  const key = process.env.GEMINI_API_KEY?.trim();
+  let next = message;
+  if (key && key.length > 0) {
+    next = next.split(key).join("[redacted]");
+  }
+  next = next.replace(/\bAIza[0-9A-Za-z_-]{20,}\b/g, "[redacted]");
+  next = next.replace(/\bsk-[A-Za-z0-9_-]{10,}\b/g, "[redacted]");
+  next = next.replace(/(api[_-]?key|token|bearer)\s*[:=]\s*["']?[^\s"'&,}]+/gi, "$1=[redacted]");
+  return next;
+}
+
 function mapProviderError(error: unknown): GenerateResult {
   if (error instanceof ContentProviderNotConfiguredError) {
     return {
       ok: false,
       code: "disabled",
-      message: error.message,
+      message: "AI content provider is not configured",
     };
   }
   if (error instanceof Error && error.name === "AbortError") {
     return {
       ok: false,
       code: "timeout",
-      message: error.message || "Provider request timed out",
+      message: "Provider request timed out",
     };
   }
-  const message = error instanceof Error ? error.message : "Provider request failed";
+  const raw = error instanceof Error ? error.message : "Provider request failed";
+  const message = redactProviderSecrets(raw);
   const lower = message.toLowerCase();
   if (lower.includes("timeout") || lower.includes("aborted")) {
-    return { ok: false, code: "timeout", message };
+    return { ok: false, code: "timeout", message: "Provider request timed out" };
   }
   if (isProviderRateLimited(message)) {
     return {
       ok: false,
       code: "rate_limited",
-      message: `Provider rate limited or quota exceeded: ${message}`,
+      message: "Provider rate limited or quota exceeded",
     };
   }
-  return { ok: false, code: "provider_error", message };
+  return { ok: false, code: "provider_error", message: "Provider request failed" };
 }
 
 /**
@@ -214,7 +229,9 @@ export async function generateProductContent(input: {
     };
   }
 
-  const prepared = truncateFactsForPrompt(buildProductContentFacts(product));
+  // Scrub instruction-smuggling before prompt + claim corpus (defense in depth).
+  const scrubbed = scrubPromptInjectionFromFacts(buildProductContentFacts(product));
+  const prepared = truncateFactsForPrompt(scrubbed.facts);
   if (!prepared.ok) {
     return {
       ok: false,
@@ -224,9 +241,12 @@ export async function generateProductContent(input: {
   }
 
   const facts = prepared.facts;
-  const sourceWarnings: ProductContentDraft["warnings"] = prepared.truncated
-    ? [{ locale: "en", field: "description", message: "source truncated" }]
-    : [];
+  const sourceWarnings: ProductContentDraft["warnings"] = [
+    ...scrubbed.warnings,
+    ...(prepared.truncated
+      ? [{ locale: "en" as const, field: "description" as const, message: "source truncated" }]
+      : []),
+  ];
 
   const editorPass = input.editorPass ?? isAiEditorPassEnabled();
   const estimatedAdditionalUsd = estimateGenerationCeilingCostUsd(prepared.inputChars, {

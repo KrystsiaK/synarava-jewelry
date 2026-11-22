@@ -42,6 +42,7 @@ const MUST_REQUIRE_ADMIN = [
   "pullSingleProductFromShopifyAction",
   "assignProductSkuAction",
   "uploadProductMediaAction",
+  "generateProductContentAction",
 ] as const;
 
 function exportedAsyncNames(source: string): string[] {
