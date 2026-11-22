@@ -9,6 +9,12 @@ const mocks = vi.hoisted(() => ({
   pushToast: vi.fn(),
   saveProductAction: vi.fn(),
   pushSingleProductToShopifyAction: vi.fn(),
+  /**
+   * When true, `productToDraft` returns `translations: {}` (no ProductTranslation
+   * buckets) and sync does not invent them — so Apply must create PT/RU via
+   * writeDraftField. Guards the silent-skip bug.
+   */
+  draftWithoutTranslations: false,
 }));
 
 vi.mock("@/app/admin/actions/ai-content", () => ({
@@ -61,6 +67,40 @@ vi.mock("@/app/admin/actions/sku-assign", () => ({
 vi.mock("@/lib/admin/preserve-scroll", () => ({
   refreshPreservingScroll: vi.fn(),
 }));
+
+vi.mock("@/components/admin/products/product-helpers", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/admin/products/product-helpers")>();
+  return {
+    ...actual,
+    productToDraft(
+      ...args: Parameters<typeof actual.productToDraft>
+    ): ReturnType<typeof actual.productToDraft> {
+      const draft = actual.productToDraft(...args);
+      if (!mocks.draftWithoutTranslations) return draft;
+      // Product has no ProductTranslation rows — do not pre-seed locale buckets.
+      return { ...draft, translations: {} };
+    },
+  };
+});
+
+vi.mock("@/components/admin/products/ai-content-apply", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/components/admin/products/ai-content-apply")>();
+  return {
+    ...actual,
+    syncAiFieldsFromForm(
+      form: Parameters<typeof actual.syncAiFieldsFromForm>[0],
+      base: Parameters<typeof actual.syncAiFieldsFromForm>[1],
+      locales?: Parameters<typeof actual.syncAiFieldsFromForm>[2],
+    ) {
+      if (!mocks.draftWithoutTranslations) {
+        return actual.syncAiFieldsFromForm(form, base, locales);
+      }
+      // Keep the bug precondition: sync must not invent missing PT/RU buckets.
+      // Apply's writeDraftField is responsible for creating them.
+      return base;
+    },
+  };
+});
 
 import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
@@ -381,6 +421,7 @@ describe("EditProductForm AI wiring", () => {
     mocks.pushToast.mockReset();
     mocks.saveProductAction.mockReset();
     mocks.pushSingleProductToShopifyAction.mockReset();
+    mocks.draftWithoutTranslations = false;
   });
 
   it("hides Generate with AI unless aiContentEnabled", () => {
@@ -458,6 +499,9 @@ describe("EditProductForm AI wiring", () => {
   });
 
   it("Apply on product without ProductTranslation fills PT/RU FormData and persists on Save", async () => {
+    // Bug precondition: no ProductTranslation rows AND draft.translations is {}
+    // (productToDraft must not pre-seed buckets — see draftWithoutTranslations mock).
+    mocks.draftWithoutTranslations = true;
     const user = userEvent.setup();
     const draft = makeOkDraft({
       warnings: [],
