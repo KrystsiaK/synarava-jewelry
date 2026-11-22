@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/ui";
 
@@ -17,7 +18,7 @@ export type AdminButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: AdminButtonVariant;
   /** Disables the control and sets `aria-busy`. Callers own busy label copy. */
   busy?: boolean;
-  /** Optional glyph before the label (gap comes from `.adm-btn-*`). */
+  /** Optional glyph before the label (gap comes from `.adm-btn-*`). Replaced by spinner when busy. */
   leadingIcon?: ReactNode;
   children?: ReactNode;
 };
@@ -37,6 +38,9 @@ export function AdminButton({
   ...props
 }: AdminButtonProps) {
   const isDisabled = Boolean(disabled || busy);
+  const icon = busy
+    ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" data-testid="admin-button-busy-spinner" />
+    : leadingIcon;
 
   return (
     <button
@@ -49,7 +53,7 @@ export function AdminButton({
       className={cn(VARIANT_CLASS[variant], className)}
       {...props}
     >
-      {leadingIcon}
+      {icon}
       {children}
     </button>
   );

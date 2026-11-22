@@ -180,16 +180,84 @@ describe("ai-content-apply", () => {
     base.name = "Keep Me";
     base.description = "old";
     const draft = makeDraft();
-    const next = applyAiSelectionsToDraft(
+    const result = applyAiSelectionsToDraft(
       base,
       draft,
       new Set([selectionKey("en", "description"), selectionKey("pt", "title")]),
     );
-    expect(next.name).toBe("Keep Me");
-    expect(next.description).toBe("<p>EN desc</p>");
-    expect(next.seoTitle).toBe("");
-    expect(next.translations.pt.title).toBe("Anel PT");
-    expect(next.translations.pt.description).toBe("");
+    expect(result.draft.name).toBe("Keep Me");
+    expect(result.draft.description).toBe("<p>EN desc</p>");
+    expect(result.draft.seoTitle).toBe("");
+    expect(result.draft.translations.pt.title).toBe("Anel PT");
+    expect(result.draft.translations.pt.description).toBe("");
+    expect(result.failed).toEqual([]);
+    expect(result.applied).toEqual(
+      expect.arrayContaining([
+        selectionKey("en", "description"),
+        selectionKey("pt", "title"),
+      ]),
+    );
+  });
+
+  it("creates missing PT/RU translations from emptyLocaleDraft instead of silently skipping", () => {
+    const base = emptyProductDraft();
+    base.translations = {};
+    const draft = makeDraft({
+      locales: {
+        en: { description: "<p>EN desc</p>", seoTitle: "EN SEO" },
+        pt: { title: "Anel PT", description: "<p>PT desc</p>", seoTitle: "PT SEO" },
+        ru: { title: "Кольцо RU", seoTitle: "RU SEO" },
+      },
+    });
+    const selected = new Set([
+      selectionKey("en", "description"),
+      selectionKey("pt", "title"),
+      selectionKey("pt", "description"),
+      selectionKey("ru", "title"),
+      selectionKey("ru", "seoTitle"),
+    ]);
+    const result = applyAiSelectionsToDraft(base, draft, selected);
+    expect(result.failed).toEqual([]);
+    expect(result.draft.description).toBe("<p>EN desc</p>");
+    expect(result.draft.translations.pt).toBeDefined();
+    expect(result.draft.translations.pt.title).toBe("Anel PT");
+    expect(result.draft.translations.pt.description).toBe("<p>PT desc</p>");
+    expect(result.draft.translations.ru).toBeDefined();
+    expect(result.draft.translations.ru.title).toBe("Кольцо RU");
+    expect(result.draft.translations.ru.seoTitle).toBe("RU SEO");
+    // emptyLocaleDraft shape — not an invented partial
+    expect(result.draft.translations.pt).toMatchObject({
+      localizedHandle: "",
+      materialLine: "",
+      reviewed: false,
+      syncStatus: "NOT_APPLICABLE",
+    });
+  });
+
+  it("reports selected fields that could not be applied", () => {
+    const base = emptyProductDraft();
+    const draft = makeDraft({
+      locales: {
+        en: { description: "<p>EN</p>" },
+        pt: { title: "Anel" },
+      },
+    });
+    const result = applyAiSelectionsToDraft(
+      base,
+      draft,
+      new Set([
+        selectionKey("en", "description"),
+        selectionKey("pt", "seoTitle"), // selected but no proposed value
+        selectionKey("ru", "title"), // selected but no proposed value
+      ]),
+    );
+    expect(result.applied).toEqual([selectionKey("en", "description")]);
+    expect(result.failed).toEqual(
+      expect.arrayContaining([
+        selectionKey("pt", "seoTitle"),
+        selectionKey("ru", "title"),
+      ]),
+    );
   });
 
   it("formats usage for the modal footer", () => {

@@ -131,7 +131,8 @@ export function getProductEditorDetails(details: unknown, characteristics: Produ
   };
 }
 
-function emptyLocaleDraft(): ProductLocaleDraft {
+/** Empty locale bucket used by `productToDraft` / `emptyDraft` for a new translation. */
+export function emptyLocaleDraft(): ProductLocaleDraft {
   return {
     localizedHandle: "", title: "", shortDescription: "", description: "", materialLine: "",
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "", symbolismBody2: "",
