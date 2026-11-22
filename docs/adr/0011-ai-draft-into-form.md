@@ -14,21 +14,23 @@ Catalog copy (short description, description, SEO, locale titles) is expensive t
 1. **Draft into form only** — Generate returns a draft preview; Apply merges selected fields into **form state**. Persist happens only on human **Save**. Generate never writes Product / ProductTranslation.
 2. **Sole generate write = AuditLog** — usage telemetry (`costUsd`, tokens, latency, outcome). No new tables or product columns for AI.
 3. **Compatible with ADR-0008 / ADR-0009** — nothing automatic writes Synarava content; Shopify compare/Apply path unchanged.
-4. **Provider = Gemini 3.1 Flash-Lite** — chosen after Stage B/C bench + owner pick (see table). Production wire: `lib/ai/gemini.ts` + `AI_CONTENT_MODEL`.
+4. **Provider = Gemini 3.1 Flash-Lite** — chosen after live Stage B/C bench (see table + [`docs/ai/provider-benchmark.md`](../ai/provider-benchmark.md) Decision). Production wire: `lib/ai/gemini.ts` + `AI_CONTENT_MODEL`.
 5. **Editor pass off by default** — `AI_EDITOR_PASS` opt-in; fail-soft keeps first draft.
 
 ## Bench summary (Gemini / Haiku / Sonnet)
 
-List prices from `MODEL_PRICE_TABLE` (`lib/ai/config.ts`, captured 2026-11-21). Live latency / error cells are filled from owner bench runs of `scripts/ai/bench/run.mjs`; agent CI skipped keys. **OpenAI was not measured** (owner decision).
+Live measurements from `scripts/ai/bench/run.mjs` (owner-run). **OpenAI was not measured** (owner decision). Full Decision section: [`docs/ai/provider-benchmark.md`](../ai/provider-benchmark.md).
 
-| Model | $/1M in | $/1M out | Structured JSON | Live latency | Live errors | Role |
-| --- | ---: | ---: | --- | --- | --- | --- |
-| Gemini 3.1 Flash-Lite | 0.25 | 1.50 | yes | owner bench | owner bench | **production winner** |
-| Claude Haiku 5.5 | 0.10 | 0.50 | yes | owner bench | owner bench | measured in Stage B design; not production |
-| Claude Sonnet 5.5 | 2.00 | 10.00 | yes | owner bench | owner bench | measured in Stage B design; not production |
-| OpenAI (e.g. gpt-5-nano) | 0.05 | 0.40 | yes | **not measured** | **not measured** | out of scope per owner |
+| Model | $ per product | latency | schema | serious errors |
+| --- | --- | --- | --- | --- |
+| Gemini 3.1 Flash-Lite | ~$0.0012 | 1–4 s | 15/15 (with Claude run), then 30/30 ×2 runs | none |
+| Claude Haiku 5.5 | ~$0.0009 | 4–11 s | 5/5 | empty RU fields, RU grammar («Ручной колье») |
+| Claude Sonnet 5.5 | ~$0.016 | 3–12 s | 5/5 | English phrase inside RU text |
+| OpenAI gpt-5-nano | — | — | — | not measured (owner decision) |
 
-Winner rationale: Gemini Flash-Lite balances structured-output support, list price, and Synarava ops fit (single `GEMINI_API_KEY`, REST `generateContent`, no Anthropic SDK in production). Re-bench before changing production model/provider.
+**Fixtures (Gemini, 3 repeats):** prompt injection blocked 3/3; "Silver Ring" without facts — 0 invented 925/sterling; earring without data — model writes "single", claim-guard catches 3/3; on real products after fixes — 0 false warnings.
+
+**Justification:** Gemini is the only model without serious errors, fastest, ~$1.2 per 1000 products. Total bench cost ≈ $0.25.
 
 ## Alternatives Considered
 

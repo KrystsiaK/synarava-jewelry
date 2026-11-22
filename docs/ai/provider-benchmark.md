@@ -1,49 +1,37 @@
 # AI product content — provider benchmark
 
-**Status:** scaffolding + probe (no winner declared)
-**Generated:** 2026-11-21T23:51:14.661Z
-**Hard budget:** $1.50
-**Spent this run:** $0.000000
-**Products:** _none_
+**Status:** decision recorded (Gemini 3.1 Flash-Lite = production)
 **Locales:** EN, PT-PT, RU
+**Runner:** `scripts/ai/bench/run.mjs` (adapters under `scripts/ai/bench/`; prompt / schema / validate / price table from `lib/ai/**`)
 
-Production `ContentProvider` remains a **stub** until the architect picks a winner. Bench adapters live only under `scripts/ai/bench/`.
-Prompt / schema / validate / price table: reused from `lib/ai/**`.
+## Decision
 
-## Pre-run model card
+Winner: **Gemini 3.1 Flash-Lite** (`AI_CONTENT_MODEL`, production `lib/ai/gemini.ts`). See also [ADR-0011](../adr/0011-ai-draft-into-form.md).
 
-| Model | ID | Availability | Price in/out ($/1M) | Structured output | Price source |
-|---|---|---|---|---|---|
-| Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite` | skipped: no key | $0.25 / $1.5 | yes | https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite (+ public list $0.25/$1.50) |
-| Claude Haiku 5.5 | `claude-haiku-5-5` | skipped: no key | $0.1 / $0.5 | yes | https://platform.claude.com/docs/en/models/haiku-5-5/overview (≤100k prompt tier) |
-| Claude Sonnet 5.5 | `claude-sonnet-5-5` | skipped: no key | $2 / $10 | yes | https://platform.claude.com/docs/en/models/sonnet-5-5/overview |
-| OpenAI gpt-5-nano (cheapest structured) | `gpt-5-nano` | skipped: no key | $0.05 / $0.4 | yes | https://developers.openai.com/api/docs/pricing — cheapest first-party model with structured outputs at capture |
+| Model | $ per product | latency | schema | serious errors |
+| --- | --- | --- | --- | --- |
+| Gemini 3.1 Flash-Lite | ~$0.0012 | 1–4 s | 15/15 (with Claude run), then 30/30 ×2 runs | none |
+| Claude Haiku 5.5 | ~$0.0009 | 4–11 s | 5/5 | empty RU fields, RU grammar («Ручной колье») |
+| Claude Sonnet 5.5 | ~$0.016 | 3–12 s | 5/5 | English phrase inside RU text |
+| OpenAI gpt-5-nano | — | — | — | not measured (owner decision) |
 
-## Metrics
+**Fixtures (Gemini, 3 repeats):** prompt injection blocked 3/3; "Silver Ring" without facts — 0 invented 925/sterling; earring without data — model writes "single", claim-guard catches 3/3; on real products after fixes — 0 false warnings.
 
-| model | productId | name | status | schema ok | latencyMs | tokens in | tokens out | costUsd | claim warnings | error |
-|---|---|---|---|---|---|---|---|---|---|---|
-| gemini-3.1-flash-lite | (none) | (no products) | skipped: no key |  |  |  |  |  |  |  |
-| claude-haiku-5-5 | (none) | (no products) | skipped: no key |  |  |  |  |  |  |  |
-| claude-sonnet-5-5 | (none) | (no products) | skipped: no key |  |  |  |  |  |  |  |
-| gpt-5-nano | (none) | (no products) | skipped: no key |  |  |  |  |  |  |  |
+**Justification:** Gemini is the only model without serious errors, fastest, ~$1.2 per 1000 products. Total bench cost ≈ $0.25.
 
-## Human score sheet (empty — fill manually)
+## Pre-run model card (list prices)
 
-| model | product | factual errors (human) | quality EN (1–5) | quality PT-PT (1–5) | quality RU (1–5) | brand (1–5) | edit minutes |
-|---|---|---|---|---|---|---|---|
-| _no successful outputs_ | | | | | | | |
-
-## Side-by-side raw texts
-
-Raw JSON outputs are written under `.artifacts/ai-bench/` (gitignored), not committed:
-
-_No raw artifacts (all models skipped or no products)._
+| Model | ID | Price in/out ($/1M) | Structured output | Price source |
+|---|---|---|---|---|
+| Gemini 3.1 Flash-Lite | `gemini-3.1-flash-lite` | $0.25 / $1.5 | yes | https://ai.google.dev/gemini-api/docs/models/gemini-3.1-flash-lite (+ public list $0.25/$1.50) |
+| Claude Haiku 5.5 | `claude-haiku-5-5` | $0.1 / $0.5 | yes | https://platform.claude.com/docs/en/models/haiku-5-5/overview (≤100k prompt tier) |
+| Claude Sonnet 5.5 | `claude-sonnet-5-5` | $2 / $10 | yes | https://platform.claude.com/docs/en/models/sonnet-5-5/overview |
+| OpenAI gpt-5-nano (cheapest structured) | `gpt-5-nano` | $0.05 / $0.4 | yes | https://developers.openai.com/api/docs/pricing — cheapest first-party model with structured outputs at capture |
 
 ## Notes
 
-- OpenAI pick: `gpt-5-nano` — cheapest first-party model with structured outputs on [OpenAI pricing](https://developers.openai.com/api/docs/pricing) at capture ($0.05 / $0.40 per 1M).
+- OpenAI stayed out of the winner comparison (owner decision) — do not treat `gpt-*` as production-ready without a new bench + ADR update.
 - Claude: `output_config.format = json_schema`, `effort: "low"`, no temperature.
 - Gemini: REST `generateContent` + `responseJsonSchema`.
 - Same facts / system / user / schema for every model×product cell (from `lib/ai`).
-- **Do not treat this file as a winner decision.**
+- Raw JSON outputs (if retained) live under `.artifacts/ai-bench/` (gitignored), not committed.
