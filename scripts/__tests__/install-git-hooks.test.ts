@@ -21,6 +21,7 @@ function makeTempRepo(): string {
   temps.push(dir);
   execFileSync("git", ["init"], { cwd: dir, stdio: "ignore" });
   mkdirSync(join(dir, ".githooks"), { recursive: true });
+  mkdirSync(join(dir, "scripts"), { recursive: true });
   writeFileSync(join(dir, ".githooks/pre-push"), readFileSync(PRE_PUSH_SRC));
   writeFileSync(join(dir, "scripts/install-git-hooks.mjs"), readFileSync(INSTALL_SCRIPT));
   return dir;
