@@ -140,7 +140,7 @@ describe("validateAndNormalizeDraftLocales", () => {
     expect(result!.warnings.some((w) => /unsupported number/i.test(w.message))).toBe(true);
   });
 
-  it("3: brooch with 18K gold PVD in facts → 0 gold warnings", () => {
+  it("3: brooch with 18K gold PVD in facts → 0 invented-claim gold warnings when PVD/tone kept", () => {
     const broochFacts: ProductContentFacts = {
       ...baseFacts,
       name: "River Brooch",
@@ -153,12 +153,88 @@ describe("validateAndNormalizeDraftLocales", () => {
     const raw = JSON.stringify({
       locales: {
         en: { shortDescription: "Quiet 18k gold brooch with PVD finish." },
-        pt: { title: "Broche", shortDescription: "Broche em ouro 18K." },
-        ru: { title: "Брошь", shortDescription: "Брошь с золото 18K." },
+        pt: { title: "Broche dourado", shortDescription: "Broche com acabamento PVD ouro 18K." },
+        ru: { title: "Золотистая брошь", shortDescription: "Брошь с PVD-покрытием 18K." },
       },
     });
     const result = validateAndNormalizeDraftLocales(raw, broochFacts, ["en", "pt", "ru"]);
-    expect(result!.warnings.filter((w) => /gold|ouro|золото/i.test(w.message))).toEqual([]);
+    expect(result!.warnings.filter((w) => /Possible invented claim "(gold|ouro|золото)"/i.test(w.message))).toEqual([]);
+    expect(result!.warnings.filter((w) => /misleading metal claim/i.test(w.message))).toEqual([]);
+  });
+
+  it("coating-only 18K gold PVD: Gold Hoop Earrings warns; Gold-Tone ok", () => {
+    const coatingFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Hoop Earrings",
+      productType: "Earrings",
+      materialLine: "18K gold PVD",
+      characteristics: [
+        { key: "material", label: "Material", value: "18K gold PVD" },
+      ],
+    };
+    const warn = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { en: { title: "skip", shortDescription: "Gold Hoop Earrings" } } }),
+      coatingFacts,
+      ["en"],
+    );
+    expect(warn!.warnings.some((w) => /misleading metal claim/i.test(w.message))).toBe(true);
+
+    const ok = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { en: { shortDescription: "Gold-Tone Hoop Earrings" } } }),
+      coatingFacts,
+      ["en"],
+    );
+    expect(ok!.warnings.filter((w) => /misleading metal claim/i.test(w.message))).toEqual([]);
+  });
+
+  it("coating-only: золотые серьги warns; золотистые ok", () => {
+    const coatingFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Hoop Earrings",
+      materialLine: "18K gold PVD",
+      characteristics: [{ key: "material", label: "Material", value: "18K gold PVD" }],
+    };
+    const warn = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { ru: { title: "золотые серьги" } } }),
+      coatingFacts,
+      ["ru"],
+    );
+    expect(warn!.warnings.some((w) => /misleading metal claim/i.test(w.message))).toBe(true);
+
+    const ok = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { ru: { title: "золотистые серьги" } } }),
+      coatingFacts,
+      ["ru"],
+    );
+    expect(ok!.warnings.filter((w) => /misleading metal claim/i.test(w.message))).toEqual([]);
+  });
+
+  it("solid 18K gold facts: Gold Hoop Earrings is ok", () => {
+    const solidFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Hoop Earrings",
+      materialLine: "solid 18K gold",
+      characteristics: [{ key: "material", label: "Material", value: "solid 18K gold" }],
+    };
+    const result = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { en: { shortDescription: "Gold Hoop Earrings" } } }),
+      solidFacts,
+      ["en"],
+    );
+    expect(result!.warnings.filter((w) => /misleading metal claim/i.test(w.message))).toEqual([]);
+  });
+
+  it("product title test… → source looks like test data", () => {
+    const testFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "test…",
+    };
+    const result = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { en: { shortDescription: "Quiet hoop." } } }),
+      testFacts,
+      ["en"],
+    );
+    expect(result!.warnings.some((w) => w.message === "source looks like test data")).toBe(true);
   });
 
   it("normalizeClaimText unifies 18K variants", () => {

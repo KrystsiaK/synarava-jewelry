@@ -141,6 +141,34 @@ const TEST_SOURCE_PATTERNS: RegExp[] = [
   /\bxxx+\b/iu,
 ];
 
+/** Product name/title that looks like placeholder / test SKU data. */
+const SOURCE_TEST_TITLE_PATTERNS: RegExp[] = [
+  /^test\b/iu,
+  /\btest[\s.…_-]*$/iu,
+  /\btest[\s_-]*product\b/iu,
+  /\blorem\s+ipsum\b/iu,
+  /\bplaceholder\b/iu,
+  /\bdummy\b/iu,
+];
+
+const COATING_MARKERS_RE = /\b(?:pvd|plating|plated|coating|galvaniz\w*|покрыт\w*)\b/iu;
+const SOLID_GOLD_FACTS_RE =
+  /\bsolid\s+(?:\d+\s*k(?:arat|t)?\s+)?gold\b|\bsolid\s+ouro\b|\bсплошн\w*\s+золот/iu;
+const SOLID_SILVER_FACTS_RE =
+  /\bsolid\s+(?:sterling\s+)?silver\b|\bsolid\s+prata\b|\b925\b|\bsterling\b|\bсплошн\w*\s+серебр/iu;
+const GOLD_IN_FACTS_RE = /\bgold\b|\bouro\b|\bзолот/iu;
+const SILVER_IN_FACTS_RE = /\bsilver\b|\bprata\b|\bсеребр/iu;
+
+/** Qualifiers that make a metal mention coating/tone-safe when nearby. */
+const METAL_SAFE_NEARBY_RE =
+  /(?:gold|silver)[\s-]?tone|\bdourad\w*|\bpratead\w*|\bзолотист\w*|\bсеребрист\w*|\bpvd\b|\bplating\b|\bplated\b|\bcoating\b|\bпокрыт\w*/iu;
+
+/** Solid-sounding product adjectives (not tone/finish). Cyrillic-safe boundaries. */
+const GOLD_SOLID_ADJECTIVE_RE =
+  /(?<![\p{L}\p{N}_])(?:gold(?![\s-]?tone)(?![\p{L}\p{N}_-])|ouro(?![\p{L}\p{N}_-])|золот(?!ист))/giu;
+const SILVER_SOLID_ADJECTIVE_RE =
+  /(?<![\p{L}\p{N}_])(?:silver(?![\s-]?tone)(?![\p{L}\p{N}_-])|prata(?![\p{L}\p{N}_-])|серебрян\w*|серебр(?!ист))/giu;
+
 /** Truncated roots that must match as token prefixes. */
 const CLAIM_STEM_TERMS = new Set([
   "hipoalergénic",
@@ -294,6 +322,81 @@ function collectTestSourceWarnings(
   return [];
 }
 
+function sourceTitleLooksLikeTestData(name: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  return SOURCE_TEST_TITLE_PATTERNS.some((pattern) => pattern.test(trimmed));
+}
+
+/** Source product name/title looks like placeholder test data. */
+export function collectSourceTestDataWarnings(
+  facts: ProductContentFacts,
+): ProductContentDraft["warnings"] {
+  if (!sourceTitleLooksLikeTestData(facts.name)) return [];
+  return [
+    {
+      locale: "en",
+      field: "shortDescription",
+      message: "source looks like test data",
+    },
+  ];
+}
+
+function factsAreCoatingOnlyMetal(
+  corpus: string,
+  metal: "gold" | "silver",
+): boolean {
+  const c = normalizeClaimText(corpus);
+  const hasMetal = metal === "gold" ? GOLD_IN_FACTS_RE.test(c) : SILVER_IN_FACTS_RE.test(c);
+  if (!hasMetal) return false;
+  if (!COATING_MARKERS_RE.test(c)) return false;
+  const hasSolid =
+    metal === "gold" ? SOLID_GOLD_FACTS_RE.test(c) : SOLID_SILVER_FACTS_RE.test(c);
+  return !hasSolid;
+}
+
+/**
+ * True when copy uses a solid metal adjective without nearby tone/PVD/покрыт
+ * qualifiers — for coating-only facts.
+ */
+export function hasMisleadingSolidMetalAdjective(
+  text: string,
+  metal: "gold" | "silver",
+): boolean {
+  const normalized = normalizeClaimText(text);
+  const adjRe = metal === "gold" ? GOLD_SOLID_ADJECTIVE_RE : SILVER_SOLID_ADJECTIVE_RE;
+  adjRe.lastIndex = 0;
+  for (const match of normalized.matchAll(adjRe)) {
+    const index = match.index ?? 0;
+    const window = normalized.slice(
+      Math.max(0, index - 48),
+      index + match[0].length + 48,
+    );
+    if (METAL_SAFE_NEARBY_RE.test(window)) continue;
+    return true;
+  }
+  return false;
+}
+
+function collectMisleadingMetalWarnings(
+  locale: AiLocale,
+  field: AiField,
+  text: string,
+  corpus: string,
+): ProductContentDraft["warnings"] {
+  const warnings: ProductContentDraft["warnings"] = [];
+  for (const metal of ["gold", "silver"] as const) {
+    if (!factsAreCoatingOnlyMetal(corpus, metal)) continue;
+    if (!hasMisleadingSolidMetalAdjective(text, metal)) continue;
+    warnings.push({
+      locale,
+      field,
+      message: "misleading metal claim",
+    });
+  }
+  return warnings;
+}
+
 /** RU fields should be Cyrillic — warn on Latin jewelry words not present in facts. */
 function collectRuForeignLatinWarnings(
   field: AiField,
@@ -354,6 +457,7 @@ function collectFieldQualityWarnings(
 ): ProductContentDraft["warnings"] {
   return [
     ...collectClaimWarnings(locale, field, text, corpus),
+    ...collectMisleadingMetalWarnings(locale, field, text, corpus),
     ...collectClicheWarnings(locale, field, text),
     ...collectTestSourceWarnings(locale, field, text),
     ...collectUnsupportedNumberWarnings(locale, field, text, corpus),
@@ -389,7 +493,9 @@ export function validateAndNormalizeDraftLocales(
 
   const corpus = factsCorpus(facts);
   const locales: ProductContentDraft["locales"] = {};
-  const warnings: ProductContentDraft["warnings"] = [];
+  const warnings: ProductContentDraft["warnings"] = [
+    ...collectSourceTestDataWarnings(facts),
+  ];
   const requested = new Set(requestedLocales);
 
   for (const locale of requested) {
