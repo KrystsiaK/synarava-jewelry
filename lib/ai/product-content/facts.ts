@@ -75,6 +75,82 @@ function characteristicValue(row: CharacteristicRow): string {
   return "";
 }
 
+/**
+ * Detect instruction-smuggling / jailbreak phrases in free-text fact fields.
+ * High-precision: only drops clearly instructional sentences, not product copy.
+ */
+export function isPromptInjectionLike(text: string): boolean {
+  const t = text.trim();
+  if (!t) return false;
+  return (
+    /\bignore\b[\s\S]{0,80}\binstructions?\b/iu.test(t) ||
+    /\bdisregard\b[\s\S]{0,80}\binstructions?\b/iu.test(t) ||
+    /\bsystem\s*:/iu.test(t) ||
+    /\byou\s+(?:are|must)\s+now\b/iu.test(t) ||
+    /\balways\s+(?:claim|say|output|respond|write|assert)\b/iu.test(t) ||
+    /\bdo\s+not\s+follow\b[\s\S]{0,40}\b(?:rules?|instructions?)\b/iu.test(t) ||
+    /\bnew\s+instructions?\b/iu.test(t) ||
+    /\boverride\b[\s\S]{0,40}\b(?:system|rules?|instructions?)\b/iu.test(t) ||
+    /\byou\s+must\s+say\b/iu.test(t)
+  );
+}
+
+/** Drop injection-like sentences; clear short fields that are entirely instructional. */
+export function scrubPromptInjectionText(text: string | null): string | null {
+  if (text == null) return null;
+  const trimmed = text.trim();
+  if (!trimmed) return text;
+  if (isPromptInjectionLike(trimmed) && trimmed.length <= 280) {
+    return null;
+  }
+  const parts = trimmed.split(/(?<=[.!?…])\s+|\n+/u);
+  const kept = parts.map((p) => p.trim()).filter((p) => p.length > 0 && !isPromptInjectionLike(p));
+  if (kept.length === 0) return null;
+  return kept.join(" ").trim();
+}
+
+/**
+ * Scrub instruction-smuggling from free-text fact fields before prompt + claim corpus.
+ * Structured keys (productId, productType) are left intact; name falls back to "".
+ */
+export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): ProductContentFacts {
+  const scrubName = scrubPromptInjectionText(facts.name);
+  return {
+    ...facts,
+    name: scrubName ?? "",
+    materialLine: scrubPromptInjectionText(facts.materialLine),
+    shortDescription: scrubPromptInjectionText(facts.shortDescription),
+    description: scrubPromptInjectionText(facts.description),
+    seoTitle: scrubPromptInjectionText(facts.seoTitle),
+    seoDescription: scrubPromptInjectionText(facts.seoDescription),
+    detailsAttributes: facts.detailsAttributes
+      .map((a) => ({
+        label: scrubPromptInjectionText(a.label) ?? "",
+        value: scrubPromptInjectionText(a.value) ?? "",
+      }))
+      .filter((a) => a.label.length > 0 || a.value.length > 0),
+    characteristics: facts.characteristics
+      .map((c) => ({
+        ...c,
+        label: scrubPromptInjectionText(c.label) ?? c.key,
+        value: scrubPromptInjectionText(c.value) ?? "",
+      }))
+      .filter((c) => c.value.length > 0),
+    collections: facts.collections
+      .map((name) => scrubPromptInjectionText(name))
+      .filter((name): name is string => typeof name === "string" && name.length > 0),
+    translations: facts.translations.map((t) => ({
+      ...t,
+      title: scrubPromptInjectionText(t.title) ?? "",
+      shortDescription: scrubPromptInjectionText(t.shortDescription),
+      description: scrubPromptInjectionText(t.description),
+      materialLine: scrubPromptInjectionText(t.materialLine),
+      seoTitle: scrubPromptInjectionText(t.seoTitle),
+      seoDescription: scrubPromptInjectionText(t.seoDescription),
+    })),
+  };
+}
+
 /** Build prompt facts — product/catalog only; never reviews/orders/customers. */
 export function buildProductContentFacts(product: ProductForFacts): ProductContentFacts {
   const details = parseProductDetails(product.details);

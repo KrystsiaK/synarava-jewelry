@@ -43,6 +43,12 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "gemstones", label: "gemstones" },
   { term: "pedra preciosa", label: "pedra preciosa" },
   { term: "драгоценн", label: "драгоценный камень" },
+  { term: "stone", label: "stone" },
+  { term: "stones", label: "stones" },
+  { term: "pedra", label: "pedra" },
+  { term: "pedras", label: "pedras" },
+  { term: "камень", label: "камень" },
+  { term: "камни", label: "камни" },
   { term: "diamond", label: "diamond" },
   { term: "diamante", label: "diamante" },
   { term: "бриллиант", label: "бриллиант" },
@@ -51,7 +57,7 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "жемчуг", label: "жемчуг" },
   { term: "pearl-effect", label: "pearl-effect" },
   { term: "жемчужн", label: "жемчужный" },
-  // Invented commerce / quantity / packaging / warranty (EN / PT / RU)
+  // Invented commerce / quantity / packaging / warranty / delivery (EN / PT / RU)
   { term: "single", label: "single" },
   { term: "pair", label: "pair" },
   { term: "set", label: "set" },
@@ -64,6 +70,13 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "warranty", label: "warranty" },
   { term: "garantia", label: "garantia" },
   { term: "гарантия", label: "гарантия" },
+  { term: "delivery", label: "delivery" },
+  { term: "shipping", label: "shipping" },
+  { term: "entrega", label: "entrega" },
+  { term: "envio", label: "envio" },
+  { term: "frete", label: "frete" },
+  { term: "доставка", label: "доставка" },
+  { term: "доставк", label: "доставка" },
   // Extra material / gem EN–PT–RU (audit)
   { term: "steel", label: "steel" },
   { term: "aço", label: "aço" },
@@ -104,6 +117,7 @@ const CLAIM_SYNONYM_GROUPS: string[][] = [
   ["waterproof", "à prova de água", "водонепроницаем"],
   ["certified", "certificado", "сертифиц"],
   ["gemstone", "gemstones", "pedra preciosa", "драгоценн"],
+  ["stone", "stones", "pedra", "pedras", "камень", "камни"],
   ["steel", "aço", "сталь", "stainless", "316l"],
   ["brass", "latão", "латунь"],
   ["titanium", "titânio", "титан"],
@@ -111,6 +125,7 @@ const CLAIM_SYNONYM_GROUPS: string[][] = [
   ["pair", "par", "пара"],
   ["set", "conjunto", "комплект"],
   ["warranty", "garantia", "гарантия"],
+  ["delivery", "shipping", "entrega", "envio", "frete", "доставка", "доставк"],
 ];
 
 const TEST_SOURCE_PATTERNS: RegExp[] = [
@@ -135,6 +150,7 @@ const CLAIM_STEM_TERMS = new Set([
   "сертифиц",
   "драгоценн",
   "жемчужн",
+  "доставк",
 ]);
 
 function trimField(value: string | undefined): string | undefined {
