@@ -16,4 +16,15 @@ describe("AdminShopifySyncSignal source guard", () => {
     expect(source).toContain("setRun(null)");
     expect(source).toMatch(/poll failure/i);
   });
+
+  it("surfaces run.error under the badge and uses yellow languages-missing state", () => {
+    const source = readFileSync(
+      path.join(process.cwd(), "components/admin/translations/admin-shopify-sync-signal.tsx"),
+      "utf8",
+    );
+    expect(source).toContain("adm-sync-signal__detail");
+    expect(source).toContain("Languages missing in Shopify");
+    expect(source).toContain("isLanguagesMissingReconcileWarning");
+    expect(source).toContain("syncSignalDetail");
+  });
 });

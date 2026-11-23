@@ -7,6 +7,11 @@ import { db } from "@/lib/db";
 import { getPublishedStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { hasShopifyAdminConfig } from "@/lib/shopify/admin";
 import { loadReconcileSubject } from "@/lib/shopify/reconciliation-source";
+import {
+  partitionReconcileLocalesForShop,
+  shopRegistryLocalesMissingWarning,
+} from "@/lib/shopify/shop-locale-write-gate";
+import { getShopifyShopLocalesSnapshot } from "@/lib/shopify/shop-locales-cache";
 import { sourceContentAsRemoteValues } from "@/lib/shopify/source-content";
 import {
   planReconcile,
@@ -566,8 +571,8 @@ export async function runTranslationReconciliation({
   }
 
   const availableLocales = await reconcileLocales();
-  const locales = scope?.locale ? [scope.locale] : availableLocales;
-  if (locales.some((locale) => !availableLocales.includes(locale))) {
+  const requestedLocales = scope?.locale ? [scope.locale] : availableLocales;
+  if (requestedLocales.some((locale) => !availableLocales.includes(locale))) {
     const failed = {
       status: "FAILED" as const,
       checkedCount: 0,
@@ -577,11 +582,32 @@ export async function runTranslationReconciliation({
     if (!closeOwnRun) throw new Error(failed.error);
     return { run: await finishRun(runId, failed), reused: false };
   }
+
+  // Same shopLocales source as the write gate (#483). Registry locales absent
+  // from the shop are skipped (not failures) and surface a factual warning.
+  const shopSnapshot = await getShopifyShopLocalesSnapshot().catch(() => null);
+  const { checkLocales: locales, missingLocales } = partitionReconcileLocalesForShop({
+    registryLocales: requestedLocales,
+    enabledShopifyLocales: shopSnapshot?.localeCodes ?? null,
+  });
+  const missingWarning = missingLocales.length > 0 && shopSnapshot
+    ? shopRegistryLocalesMissingWarning({
+      shopDomain: shopSnapshot.shopDomain,
+      shopLocales: shopSnapshot.localeCodes,
+      missingRegistryLocales: missingLocales,
+    })
+    : null;
+
   // translatableContent (the source/EN copy) comes back from
   // fetchResourceTranslationState regardless of which locale is requested —
   // the query just needs some valid, non-default one to ask translations()
-  // for. Any currently-published translation locale works.
-  const [anyTranslationLocale] = availableLocales.filter((locale) => locale !== "en");
+  // for. Prefer a shop-enabled locale so EN reads do not fail on missing PT/RU.
+  const shopNonDefault = (shopSnapshot?.localeCodes ?? []).filter(
+    (locale) => locale.trim().toLowerCase() !== "en",
+  );
+  const anyTranslationLocale = locales.find((locale) => locale !== "en")
+    ?? shopNonDefault[0]
+    ?? availableLocales.find((locale) => locale !== "en");
 
   try {
     const bindings = await db.shopifyTranslationBinding.findMany({
@@ -638,9 +664,12 @@ export async function runTranslationReconciliation({
       await heartbeatCatalogCheckRun(runId);
     }
 
-    const error = failures.length > 0
+    const failureError = failures.length > 0
       ? `${failures.length} check${failures.length === 1 ? "" : "s"} could not be completed. ${failures.slice(0, 3).join(" ")}`
       : null;
+    // Missing shop locales are a warning on SUCCEEDED — never PARTIAL/FAILED by themselves.
+    const error = failureError
+      ?? missingWarning;
     const status: ReconcileRunStatus = failures.length === 0 ? "SUCCEEDED" : checkedCount > 0 ? "PARTIAL" : "FAILED";
 
     if (!closeOwnRun) {
