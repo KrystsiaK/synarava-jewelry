@@ -10,7 +10,9 @@ export type AdminAuditEntityType =
   | "POST"
   | "CATEGORY"
   | "TAG"
-  | "STOREFRONT_LOCALE";
+  | "STOREFRONT_LOCALE"
+  | "CONTENT_IDEA"
+  | "COMPETITOR_OBSERVATION";
 
 export type AdminRecordHistoryItem = {
   id: string;
