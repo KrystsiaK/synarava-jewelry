@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   fetchResourceTranslationState: vi.fn(),
   planReconcile: vi.fn(),
   projectRemoteTranslationWithMetadata: vi.fn(),
+  getShopifyShopLocalesSnapshot: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -35,6 +36,9 @@ vi.mock("@/lib/shopify/translations", () => ({
 vi.mock("@/lib/shopify/translation-reconciliation", () => ({
   planReconcile: mocks.planReconcile,
   projectRemoteTranslationWithMetadata: mocks.projectRemoteTranslationWithMetadata,
+}));
+vi.mock("@/lib/shopify/shop-locales-cache", () => ({
+  getShopifyShopLocalesSnapshot: mocks.getShopifyShopLocalesSnapshot,
 }));
 // Two published, non-default locales — proves the reconcile sweep loops
 // over every registered target locale, not a hardcoded Portuguese pair.
@@ -71,6 +75,16 @@ function runRow(overrides: Partial<Record<string, unknown>> = {}) {
 
 beforeEach(() => {
   vi.clearAllMocks();
+  // Default: shop has every registry locale — preserves prior full-sweep tests.
+  mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+    shopDomain: "example.myshopify.com",
+    locales: [
+      { locale: "en", name: "English", primary: true, published: true },
+      { locale: "pt-PT", name: "Portuguese", primary: false, published: true },
+      { locale: "ru", name: "Russian", primary: false, published: true },
+    ],
+    localeCodes: ["en", "pt-PT", "ru"],
+  });
   // createOrReuseRun's advisory lock uses the interactive-transaction form
   // (a callback); persistDifferences' retire+insert uses the
   // array-of-promises form. Both go through this one $transaction mock.
@@ -200,6 +214,103 @@ describe("runTranslationReconciliation", () => {
     const retireIndex = mocks.executeRaw.mock.calls.indexOf(retireCall!);
     const insertIndex = mocks.executeRaw.mock.calls.indexOf(insertCall!);
     expect(retireIndex).toBeLessThan(insertIndex);
+  });
+
+  it("skips registry locales missing from the shop — SUCCEEDED with warning, zero pt-PT fetches", async () => {
+    mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+      shopDomain: "example.myshopify.com",
+      locales: [
+        { locale: "en", name: "English", primary: true, published: true },
+        { locale: "ru", name: "Russian", primary: false, published: true },
+      ],
+      localeCodes: ["en", "ru"],
+    });
+    mocks.findMany.mockResolvedValue([{
+      id: "binding-1",
+      shopifyResourceId: "gid://shopify/Product/1",
+      entityId: "product-1",
+      createdAt: new Date(),
+    }]);
+    mocks.loadReconcileSubject.mockResolvedValue({
+      rootEntityType: "PRODUCT",
+      rootEntityId: "product-1",
+      label: "Ring",
+      registry: { entity: "product", fields: [] },
+      local: {},
+    });
+    mocks.fetchResourceTranslationState.mockResolvedValue({ translatableContent: [], translations: [] });
+    mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
+    mocks.planReconcile.mockReturnValue({ differences: [] });
+    const warning =
+      "Shopify store example.myshopify.com has locales [en, ru]; registry locales not in shop: [pt-PT]";
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "SUCCEEDED",
+      checkedCount: 2,
+      differenceCount: 0,
+      error: warning,
+    })]);
+
+    const result = await runTranslationReconciliation({ trigger: "MANUAL" });
+
+    expect(result).toMatchObject({
+      run: { status: "SUCCEEDED", checkedCount: 2, error: warning },
+      reused: false,
+    });
+    const fetchedLocales = mocks.fetchResourceTranslationState.mock.calls.map((call) => call[1]);
+    expect(fetchedLocales).not.toContain("pt-PT");
+    expect(fetchedLocales).toEqual(["ru", "ru"]); // en reads source via shop-enabled ru
+    expect(mocks.loadReconcileSubject.mock.calls.map((call) => call[1])).toEqual(["en", "ru"]);
+    // finishRun must persist the warning on SUCCEEDED (not PARTIAL).
+    const finishCall = mocks.executeRaw.mock.calls.find(
+      ([query]) => typeof query === "object" && query !== null && "sql" in query
+        && String((query as { sql: string }).sql).includes('CAST(? AS "ShopifyReconcileStatus")'),
+    );
+    expect(finishCall).toBeTruthy();
+    expect((finishCall as [{ values: unknown[] }])[0].values).toEqual(
+      expect.arrayContaining(["SUCCEEDED", 2, 0, warning]),
+    );
+  });
+
+  it("marks PARTIAL with API error text when a real fetch fails (still skips missing shop locales)", async () => {
+    mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+      shopDomain: "example.myshopify.com",
+      locales: [
+        { locale: "en", name: "English", primary: true, published: true },
+        { locale: "ru", name: "Russian", primary: false, published: true },
+      ],
+      localeCodes: ["en", "ru"],
+    });
+    mocks.findMany.mockResolvedValue([{
+      id: "binding-1",
+      shopifyResourceId: "gid://shopify/Product/1",
+      entityId: "product-1",
+      createdAt: new Date(),
+    }]);
+    mocks.loadReconcileSubject.mockResolvedValue({
+      rootEntityType: "PRODUCT",
+      rootEntityId: "product-1",
+      label: "Ring",
+      registry: { entity: "product", fields: [] },
+      local: {},
+    });
+    mocks.fetchResourceTranslationState
+      .mockResolvedValueOnce({ translatableContent: [], translations: [] }) // en via ru
+      .mockRejectedValueOnce(new Error("Shopify Admin API 429: throttled"));
+    mocks.projectRemoteTranslationWithMetadata.mockReturnValue({ values: {}, metadata: {} });
+    mocks.planReconcile.mockReturnValue({ differences: [] });
+    mocks.queryRaw.mockResolvedValueOnce([runRow({
+      status: "PARTIAL",
+      checkedCount: 1,
+      differenceCount: 0,
+      error: "1 check could not be completed. product-1 (ru): Shopify Admin API 429: throttled",
+    })]);
+
+    const result = await runTranslationReconciliation({ trigger: "MANUAL" });
+
+    expect(result.run?.status).toBe("PARTIAL");
+    expect(result.run?.error).toMatch(/could not be completed/);
+    expect(result.run?.error).toMatch(/throttled/);
+    expect(mocks.fetchResourceTranslationState.mock.calls.map((call) => call[1])).not.toContain("pt-PT");
   });
 
   it("does not lose existing conflicts when the insert half of persistDifferences fails — retire and insert roll back together", async () => {
