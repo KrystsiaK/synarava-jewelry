@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.portugaljewels.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 582,
+ "rows": [
+  {
+   "url": "https://www.portugaljewels.com/products/brincos-a-rainha-l-em-prata-dourada",
+   "fetchedAt": "2026-11-23T01:15:16.584Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos à Rainha L em Prata Dourada",
+   "price": 159,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "GERA00210A",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.portugaljewels.com/products/colar-coracao-de-viana-25cm-em-prata-dourada",
+   "fetchedAt": "2026-11-23T01:15:18.351Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colar Coração de Viana 2,5cm em Prata Dourada",
+   "price": 65,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "GNCV00100A",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.portugaljewels.com/products/alfinete-camafeu-com-marcassites-em-prata-e-ouro",
+   "fetchedAt": "2026-11-23T01:15:20.166Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Alfinete Camafeu com Marcassites em Prata e Ouro",
+   "price": 229,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "STMC00380A",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.portugaljewels.com/products/anel-caramujo-verde-e-vermelho-em-prata-dourada",
+   "fetchedAt": "2026-11-23T01:15:21.936Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Anel Caramujo Verde e Vermelho em Prata Dourada",
+   "price": 59,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "GRTP00113G",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.portugaljewels.com/products/pulseira-cinco-coracoes-de-viana-em-prata-dourada",
+   "fetchedAt": "2026-11-23T01:15:23.720Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pulseira Cinco Corações de Viana em Prata Dourada",
+   "price": 99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "GSCV00204A",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.portugaljewels.com/products/necklace-mina-in-gold-plated-silver",
+   "fetchedAt": "2026-11-23T01:15:25.446Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colar Mina em Prata Dourada",
+   "price": 229,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "GNFG00957T",
+   "image": true,
+   "brand": "PORTUGAL JEWELS",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  }
+ ]
+}

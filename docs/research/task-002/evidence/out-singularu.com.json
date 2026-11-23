@@ -1,0 +1,91 @@
+{
+ "origin": "https://singularu.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 934,
+ "rows": [
+  {
+   "url": "https://singularu.com/products/pulsera-monogram-silver",
+   "fetchedAt": "2026-11-23T01:15:16.121Z",
+   "status": 200,
+   "jsonLd": false,
+   "price": null,
+   "currency": null,
+   "availability": null,
+   "sku": null,
+   "image": false,
+   "brand": null,
+   "fields": ""
+  },
+  {
+   "url": "https://singularu.com/products/collar-big-rope-acero-oro",
+   "fetchedAt": "2026-11-23T01:15:18.185Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colar Big Rope Aço Banho de Ouro",
+   "price": 17.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "ZCOBIRO316A00XX",
+   "image": true,
+   "brand": "SINGULARU",
+   "fields": "@context,@type,name,url,image,description,sku,brand,offers"
+  },
+  {
+   "url": "https://singularu.com/products/pendiente-suelto-starlight-plata-oro",
+   "fetchedAt": "2026-11-23T01:15:20.099Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brinco Individual Starlight Prata Banho de Ouro",
+   "price": 12.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "ZPSSTHT925A00XX",
+   "image": true,
+   "brand": "SINGULARU",
+   "fields": "@context,@type,name,url,image,description,sku,brand,offers"
+  },
+  {
+   "url": "https://singularu.com/products/pulsera-amulet-amatista-acero-oro",
+   "fetchedAt": "2026-11-23T01:15:21.978Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pulseira Amulet Amatista Aço Banho de Ouro",
+   "price": 17.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "ZPUAMAM316A00XX",
+   "image": true,
+   "brand": "SINGULARU",
+   "fields": "@context,@type,name,url,image,description,sku,brand,offers"
+  },
+  {
+   "url": "https://singularu.com/products/pulsera-link-rainbow-enamel-acero-oro",
+   "fetchedAt": "2026-11-23T01:15:23.867Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pulseira Link Rainbow Enamel Aço Banho de Ouro",
+   "price": 32.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "ZPULIER316A00XX",
+   "image": true,
+   "brand": "SINGULARU",
+   "fields": "@context,@type,name,url,image,description,sku,brand,offers"
+  },
+  {
+   "url": "https://singularu.com/products/anillo-gota-stones-oro",
+   "fetchedAt": "2026-11-23T01:15:25.764Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Anel Gota Stones Banho de Ouro",
+   "price": 24.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "ZANGOST100A00XX",
+   "image": true,
+   "brand": "SINGULARU",
+   "fields": "@context,@type,name,url,image,description,sku,brand,offers"
+  }
+ ]
+}

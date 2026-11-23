@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.pilgrim.net",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 1000,
+ "rows": [
+  {
+   "url": "https://www.pilgrim.net/products/242003",
+   "fetchedAt": "2026-11-23T01:15:16.196Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "ORIGINAL crystal earstuds silver-plated",
+   "price": 10.47,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "242003",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,color,additionalProperty,image,offers"
+  },
+  {
+   "url": "https://www.pilgrim.net/products/132126011",
+   "fetchedAt": "2026-11-23T01:15:18.052Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "NOMAD 2-in-1 coin necklace silver-plated",
+   "price": 31.47,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "132126011",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,additionalProperty,image,offers"
+  },
+  {
+   "url": "https://www.pilgrim.net/products/282326013",
+   "fetchedAt": "2026-11-23T01:15:19.874Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "APRIL medium-size hoop earrings silver-plated",
+   "price": 17.47,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "282326013",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,additionalProperty,image,offers"
+  },
+  {
+   "url": "https://www.pilgrim.net/products/132446003",
+   "fetchedAt": "2026-11-23T01:15:21.686Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "INTENT earrings silver-plated",
+   "price": 24.47,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "132446003",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,additionalProperty,image,offers"
+  },
+  {
+   "url": "https://www.pilgrim.net/products/752513111",
+   "fetchedAt": "2026-11-23T01:15:23.461Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "ALEXIA sunglasses black",
+   "price": 34.97,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "752513111",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,color,additionalProperty,image,offers"
+  },
+  {
+   "url": "https://www.pilgrim.net/products/402532005",
+   "fetchedAt": "2026-11-23T01:15:25.291Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "CHARM clover pendant, gold-plated",
+   "price": 9.98,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "402532005",
+   "image": true,
+   "brand": "Pilgrim",
+   "fields": "@context,@type,@id,name,url,description,brand,category,material,additionalProperty,image,offers"
+  }
+ ]
+}

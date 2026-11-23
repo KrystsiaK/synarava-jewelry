@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.aristocrazy.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 1,
+ "productUrls": 990,
+ "rows": [
+  {
+   "url": "https://www.aristocrazy.com/products/colgante-de-plata-925-con-circulo-de-topacios-blancos-j04993-01-wt-st",
+   "fetchedAt": "2026-11-23T01:15:47.705Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colgante de plata 925 con círculo de topacios blancos",
+   "price": 104.3,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "J04993-01-WT_ST",
+   "image": true,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.aristocrazy.com/products/anillo-de-oro-amarillo-de-9k-con-zafiros-azules-j04066-02-bs",
+   "fetchedAt": "2026-11-23T01:15:49.461Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Anillo de oro amarillo de 9K con zafiros azules",
+   "price": 183.2,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,hasVariant,name,productGroupID,url"
+  },
+  {
+   "url": "https://www.aristocrazy.com/products/colgante-bicolor-de-plata-925-y-plata-925-banada-en-oro-amarillo-de-18k-con-formas-geometricas-j04916-09-st",
+   "fetchedAt": "2026-11-23T01:15:51.253Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colgante bicolor de plata 925 y plata 925 bañada en oro amarillo de 18K con formas geométricas",
+   "price": 125.3,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "J04916-09_ST",
+   "image": true,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.aristocrazy.com/products/charm-de-plata-925-banada-en-oro-amarillo-de-18k-y-topacios-blancos-inicial-u-j05046-02-wt-u",
+   "fetchedAt": "2026-11-23T01:15:52.995Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Charm de plata 925 bañada en oro amarillo de 18K y topacios blancos inicial U",
+   "price": 47.2,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,hasVariant,name,productGroupID,url"
+  },
+  {
+   "url": "https://www.aristocrazy.com/products/cadena-rolo-65-cm-de-plata-925-rodiada-j06117-01-65-st",
+   "fetchedAt": "2026-11-23T01:15:54.818Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Cadena roló 65 cm de plata 925 rodiada",
+   "price": 79.2,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "J06117-01-65_ST",
+   "image": true,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.aristocrazy.com/products/collar-de-plata-925-con-granates-y-perla-j06501-01-wp-gar-st",
+   "fetchedAt": "2026-11-23T01:15:56.581Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Collar de plata 925 con granates y perla",
+   "price": 104.3,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "J06501-01-WP-GAR_ST",
+   "image": true,
+   "brand": "Aristocrazy",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  }
+ ]
+}

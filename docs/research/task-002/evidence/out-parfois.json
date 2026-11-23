@@ -1,0 +1,104 @@
+{
+ "origin": "https://www.parfois.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 8,
+ "productUrls": 7280,
+ "rows": [
+  {
+   "url": "https://www.parfois.com/es/es/looks/comprar-el-look/GG17.html",
+   "fetchedAt": "2026-11-23T01:15:48.957Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Comprar el look",
+   "price": null,
+   "currency": null,
+   "availability": null,
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/es/es/ropa/tops-y-camisetas/camiseta-de-escote-en-pico/248453_TL.html",
+   "fetchedAt": "2026-11-23T01:15:51.315Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Camiseta de escote en pico",
+   "price": 15.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/es/es/bisuteria/anillos/anillo-abierto-con-piedras-redondeadas/250087_HM.html",
+   "fetchedAt": "2026-11-23T01:15:53.667Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Anillo abierto con piedras redondeadas",
+   "price": 25.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/es/es/ropa/ponchos-y-kimonos/poncho-de-punto-jacquard-estampado-animal/251625_DM.html",
+   "fetchedAt": "2026-11-23T01:15:55.781Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Poncho de punto jacquard estampado animal",
+   "price": 32.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/es/es/bisuteria/pendientes/pendientes-de-aro/pendientes-perla-de-agua-dulce-bano-de-oro-18k/252984_GD.html",
+   "fetchedAt": "2026-11-23T01:15:57.794Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pendientes perla de agua dulce baño de oro 18k",
+   "price": 19.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/es/es/looks/comprar-el-look/STL_Party48.html",
+   "fetchedAt": "2026-11-23T01:15:59.977Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Comprar el look",
+   "price": null,
+   "currency": null,
+   "availability": null,
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  }
+ ]
+}

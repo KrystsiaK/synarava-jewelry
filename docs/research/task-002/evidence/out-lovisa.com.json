@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.lovisa.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 1000,
+ "rows": [
+  {
+   "url": "https://www.lovisa.com/products/rtcz-rh-round-stne-3-band-rg",
+   "fetchedAt": "2026-11-23T01:15:16.564Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pink Cubic Zirconia 3 Ring Stack Pack",
+   "price": 25.99,
+   "currency": "USD",
+   "availability": "InStock",
+   "sku": "51057954",
+   "image": true,
+   "brand": "Lovisa USA",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers,aggregateRating"
+  },
+  {
+   "url": "https://www.lovisa.com/products/8std-sg-small-plain-ball-stud",
+   "fetchedAt": "2026-11-23T01:15:18.426Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Miniature Stud In Gold",
+   "price": 2,
+   "currency": "USD",
+   "availability": "InStock",
+   "sku": "50561346",
+   "image": true,
+   "brand": "J40A",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers,aggregateRating"
+  },
+  {
+   "url": "https://www.lovisa.com/products/rtcz-sg-cz-circ-stne-srrnd-rg",
+   "fetchedAt": "2026-11-23T01:15:20.235Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Gold Cubic Zirconia Circle Stone Surround Ring",
+   "price": 2,
+   "currency": "USD",
+   "availability": "OutOfStock",
+   "sku": "50952298",
+   "image": true,
+   "brand": "Lovisa US",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers"
+  },
+  {
+   "url": "https://www.lovisa.com/products/rt5f-ag-lrg-sml-leaf-wrap-rg",
+   "fetchedAt": "2026-11-23T01:15:22.088Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Antique Gold Large & Small Leaf Wrap Ring",
+   "price": 2,
+   "currency": "USD",
+   "availability": "InStock",
+   "sku": "50809592",
+   "image": true,
+   "brand": "G12G",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers,aggregateRating"
+  },
+  {
+   "url": "https://www.lovisa.com/products/8std-rg-sml-plain-hoop-er",
+   "fetchedAt": "2026-11-23T01:15:23.882Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Rose Gold Mini Plain Hoop Earrings",
+   "price": 2,
+   "currency": "USD",
+   "availability": "InStock",
+   "sku": "50562299",
+   "image": true,
+   "brand": "J60G",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers,aggregateRating"
+  },
+  {
+   "url": "https://www.lovisa.com/products/val4-sg-pearl-hoop-er",
+   "fetchedAt": "2026-11-23T01:15:25.694Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Pearl Hoop Earrings",
+   "price": 3,
+   "currency": "USD",
+   "availability": "OutOfStock",
+   "sku": "51095192",
+   "image": true,
+   "brand": "Lovisa US",
+   "fields": "@context,@type,name,image,description,url,brand,sku,gtin13,mpn,offers"
+  }
+ ]
+}

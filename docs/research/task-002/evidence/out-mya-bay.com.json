@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.mya-bay.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 851,
+ "rows": [
+  {
+   "url": "https://www.mya-bay.com/products/boucles-d-oreilles-bollywood-queen-bo-243",
+   "fetchedAt": "2026-11-23T01:15:16.300Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "BOUCLES D'OREILLES - BOLLYWOOD QUEEN",
+   "price": 48,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,hasVariant,name,productGroupID,url"
+  },
+  {
+   "url": "https://www.mya-bay.com/products/collier-trefle-boho-co-288-g",
+   "fetchedAt": "2026-11-23T01:15:18.063Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "COLLIER - TREFLE BOHO",
+   "price": 75,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "CO-288.G",
+   "image": true,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.mya-bay.com/products/bracelet-red-corazon-br-371-g",
+   "fetchedAt": "2026-11-23T01:15:19.784Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "BRACELET - RED CORAZON",
+   "price": 24,
+   "currency": "EUR",
+   "availability": "OutOfStock",
+   "sku": "BR-371.G",
+   "image": true,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.mya-bay.com/products/bracelet-bandana-love-br-186",
+   "fetchedAt": "2026-11-23T01:15:21.566Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "BRACELET - BANDANA LOVE",
+   "price": 10.8,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "BR-186.G",
+   "image": true,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.mya-bay.com/products/bague-white-lotus-cuff-ba-408",
+   "fetchedAt": "2026-11-23T01:15:23.360Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "BAGUE - WHITE LOTUS CUFF",
+   "price": 75,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "BA-408.G",
+   "image": true,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  },
+  {
+   "url": "https://www.mya-bay.com/products/earcuff-frame-ea-50",
+   "fetchedAt": "2026-11-23T01:15:25.090Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "EARCUFF - FRAME",
+   "price": 45,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "EA-50.G",
+   "image": true,
+   "brand": "Mya-Bay",
+   "fields": "@context,@id,@type,brand,category,description,gtin,image,name,offers,sku,url"
+  }
+ ]
+}
