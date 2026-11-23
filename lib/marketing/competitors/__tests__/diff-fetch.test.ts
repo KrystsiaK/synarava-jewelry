@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { decideObservationDiff } from "@/lib/marketing/competitors/diff";
 import {
   assertSafeTargetUrl,
+  isBlockedResolvedIp,
   OffHostRedirectError,
   SsrfGuardError,
 } from "@/lib/marketing/competitors/fetch";
@@ -77,5 +78,15 @@ describe("SSRF / host allowlist", () => {
   it("OffHostRedirectError is distinct", () => {
     const err = new OffHostRedirectError("left host");
     expect(err.code).toBe("off_host_redirect");
+  });
+
+  it("blocks private / metadata resolved IPs", () => {
+    expect(isBlockedResolvedIp("127.0.0.1")).toBe(true);
+    expect(isBlockedResolvedIp("10.0.0.1")).toBe(true);
+    expect(isBlockedResolvedIp("172.16.5.1")).toBe(true);
+    expect(isBlockedResolvedIp("192.168.1.1")).toBe(true);
+    expect(isBlockedResolvedIp("169.254.169.254")).toBe(true);
+    expect(isBlockedResolvedIp("8.8.8.8")).toBe(false);
+    expect(isBlockedResolvedIp("::1")).toBe(true);
   });
 });

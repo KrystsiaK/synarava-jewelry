@@ -126,7 +126,6 @@ export function validateMarketingIdeas(input: {
     const citedSignalCorpus = signalIds
       .map((id) => signalCorpus.get(id) ?? "")
       .join("\n");
-    const combinedForCompetitor = `${productCorpus}\n${citedSignalCorpus}`;
 
     const textBlob = [raw.hook, raw.script, raw.caption, ...raw.shotList].join(
       "\n",
@@ -135,10 +134,8 @@ export function validateMarketingIdeas(input: {
     for (const { term, label: claimLabel } of CLAIM_GUARD_TERMS) {
       if (!claimTermPresent(textBlob, term)) continue;
       if (corpusHasClaim(productCorpus, term)) continue;
-      if (corpusHasClaim(combinedForCompetitor, term) && signalIds.length > 0) {
-        // Allowed only when a cited signal carries the claim (competitor context).
-        if (corpusHasClaim(citedSignalCorpus, term)) continue;
-      }
+      // Competitor claims allowed only when a cited signal carries them.
+      if (signalIds.length > 0 && corpusHasClaim(citedSignalCorpus, term)) continue;
       claimFail = claimLabel;
       break;
     }

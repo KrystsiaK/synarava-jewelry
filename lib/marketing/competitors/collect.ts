@@ -122,14 +122,17 @@ async function scanDomain(
   }
 
   const toFetch = ordered.slice(0, MAX_FETCHES_PER_DOMAIN);
-  const latest = await latestByUrl(toFetch);
+  // Prefetch latest rows for all known URLs (incl. removal detection), not only toFetch.
+  const latest = await latestByUrl(ordered);
 
   // Removed: URL missing from a successfully read sitemap, or we detect 404/410 below.
   if (sitemapOk) {
     for (const url of priorUrls) {
       if (sitemapSet.has(url)) continue;
-      const prev = latest.get(url) ?? (await latestByUrl([url])).get(url);
-      const decision = decideObservationDiff({ prior: prev, removed: true });
+      const decision = decideObservationDiff({
+        prior: latest.get(url),
+        removed: true,
+      });
       if (!decision.write) continue;
       await db.competitorObservation.create({
         data: {

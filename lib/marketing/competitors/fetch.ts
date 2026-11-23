@@ -1,3 +1,6 @@
+import { lookup } from "node:dns/promises";
+import { isIP } from "node:net";
+
 import {
   isAllowedCompetitorHost,
   normalizeCompetitorHost,
@@ -21,6 +24,57 @@ export class SsrfGuardError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "SsrfGuardError";
+  }
+}
+
+/** True for loopback / private / link-local / metadata ranges (IPv4 + IPv6). */
+export function isBlockedResolvedIp(ip: string): boolean {
+  const version = isIP(ip);
+  if (version === 4) {
+    const parts = ip.split(".").map(Number);
+    const [a, b] = parts;
+    if (a === undefined || b === undefined) return true;
+    if (a === 10) return true;
+    if (a === 127) return true;
+    if (a === 0) return true;
+    if (a === 169 && b === 254) return true;
+    if (a === 172 && b >= 16 && b <= 31) return true;
+    if (a === 192 && b === 168) return true;
+    if (a === 100 && b >= 64 && b <= 127) return true; // CGNAT
+    return false;
+  }
+  if (version === 6) {
+    const lower = ip.toLowerCase();
+    if (lower === "::1" || lower === "::") return true;
+    if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // ULA
+    if (lower.startsWith("fe80:")) return true;
+    // IPv4-mapped
+    if (lower.startsWith(":ffff:")) {
+      const mapped = lower.slice(7);
+      if (isIP(mapped) === 4) return isBlockedResolvedIp(mapped);
+    }
+    return false;
+  }
+  return true;
+}
+
+async function assertResolvedIpSafe(hostname: string): Promise<void> {
+  // Literal IP in the URL host — check directly.
+  if (isIP(hostname)) {
+    if (isBlockedResolvedIp(hostname)) {
+      throw new SsrfGuardError(`Blocked IP literal: ${hostname}`);
+    }
+    return;
+  }
+  let address: string;
+  try {
+    const result = await lookup(hostname, { all: false });
+    address = result.address;
+  } catch {
+    throw new SsrfGuardError(`DNS lookup failed for ${hostname}`);
+  }
+  if (isBlockedResolvedIp(address)) {
+    throw new SsrfGuardError(`Resolved to blocked IP ${address} for ${hostname}`);
   }
 }
 
@@ -74,6 +128,7 @@ async function readCappedBody(res: Response): Promise<Buffer> {
 
 /**
  * Fetch with manual redirects; every hop must stay on the target host (SSRF guard).
+ * DNS resolution is checked against private/metadata ranges before each request.
  */
 export async function fetchCompetitorUrl(
   url: string,
@@ -87,6 +142,9 @@ export async function fetchCompetitorUrl(
     : deadline;
 
   for (let hop = 0; hop < 8; hop += 1) {
+    const parsed = new URL(current);
+    await assertResolvedIpSafe(parsed.hostname);
+
     const res = await fetch(current, {
       method: "GET",
       redirect: "manual",
