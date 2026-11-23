@@ -7,7 +7,10 @@ import { writeAuditLog } from "@/app/admin/actions/shared";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { checkRateLimit } from "@/lib/auth/rate-limit";
 import { db } from "@/lib/db";
-import { scanAllCompetitors } from "@/lib/marketing/competitors/collect";
+import {
+  scanAllCompetitors,
+  truncateScanErrors,
+} from "@/lib/marketing/competitors/collect";
 import { generateMarketingIdeas } from "@/lib/marketing/ideas/generate";
 import { COMPETITOR_TARGETS } from "@/lib/marketing/competitors/targets";
 
@@ -32,20 +35,48 @@ async function requireMarketingAdmin(): Promise<
   }
 }
 
+export type ScanDomainSummary = {
+  domain: string;
+  written: number;
+  fetched: number;
+  unparsed: number;
+  skippedRobots: number;
+  sitemapComplete: boolean;
+  errors: string[];
+  firstError: string | null;
+};
+
 export type ScanCompetitorsActionResult =
   | {
       ok: true;
       writtenTotal: number;
       unparsedTotal: number;
       durationMs: number;
-      domains: Array<{
-        domain: string;
-        written: number;
-        fetched: number;
-        unparsed: number;
-      }>;
+      domains: ScanDomainSummary[];
     }
   | { ok: false; code: "unauthorized" | "rate_limited" | "error"; message: string };
+
+function toDomainSummary(d: {
+  domain: string;
+  written: number;
+  fetched: number;
+  unparsed: number;
+  skippedRobots: number;
+  sitemapComplete: boolean;
+  errors: string[];
+}): ScanDomainSummary {
+  const errors = truncateScanErrors(d.errors);
+  return {
+    domain: d.domain,
+    written: d.written,
+    fetched: d.fetched,
+    unparsed: d.unparsed,
+    skippedRobots: d.skippedRobots,
+    sitemapComplete: d.sitemapComplete,
+    errors,
+    firstError: errors[0] ?? null,
+  };
+}
 
 /** Manual competitor scan — admin + 3/hour rate limit. */
 export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResult> {
@@ -62,6 +93,7 @@ export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResu
 
   try {
     const result = await scanAllCompetitors();
+    const domains = result.domains.map(toDomainSummary);
     await writeAuditLog({
       action: "marketing.competitors.scan",
       entityType: "COMPETITOR_OBSERVATION",
@@ -72,12 +104,14 @@ export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResu
         unparsedTotal: result.unparsedTotal,
         durationMs: result.durationMs,
         truncated: result.truncated,
-        domains: result.domains.map((d) => ({
+        domains: domains.map((d) => ({
           domain: d.domain,
           written: d.written,
           fetched: d.fetched,
           unparsed: d.unparsed,
           skippedRobots: d.skippedRobots,
+          sitemapComplete: d.sitemapComplete,
+          errors: d.errors,
         })),
       },
       metadata: { domainCount: COMPETITOR_TARGETS.length },
@@ -88,12 +122,7 @@ export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResu
       writtenTotal: result.writtenTotal,
       unparsedTotal: result.unparsedTotal,
       durationMs: result.durationMs,
-      domains: result.domains.map((d) => ({
-        domain: d.domain,
-        written: d.written,
-        fetched: d.fetched,
-        unparsed: d.unparsed,
-      })),
+      domains,
     };
   } catch (error) {
     return {

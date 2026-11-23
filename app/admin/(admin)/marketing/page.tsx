@@ -1,6 +1,8 @@
 import { MarketingCms } from "@/components/admin/marketing/marketing-cms";
 import { requireAdminSession } from "@/lib/auth/admin-session";
+import { sumMonthlyAiSpendUsd } from "@/lib/ai/product-content/budget";
 import {
+  getLastCompetitorScanSummary,
   listApprovedIdeasCalendar,
   listCompetitorObservations,
   listContentIdeas,
@@ -20,17 +22,20 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
   const raw = (await searchParams) ?? {};
   const kind = asString(raw.kind) ?? "all";
 
-  const [observations, ideas, calendar, products] = await Promise.all([
-    listCompetitorObservations({
-      kind:
-        kind === "initial" || kind === "changed" || kind === "removed" || kind === "all"
-          ? kind
-          : "all",
-    }),
-    listContentIdeas(),
-    listApprovedIdeasCalendar(),
-    listProductOptionsForMarketing(),
-  ]);
+  const [observations, ideas, calendar, products, lastScan, monthlyAiSpendUsd] =
+    await Promise.all([
+      listCompetitorObservations({
+        kind:
+          kind === "initial" || kind === "changed" || kind === "removed" || kind === "all"
+            ? kind
+            : "all",
+      }),
+      listContentIdeas(),
+      listApprovedIdeasCalendar(),
+      listProductOptionsForMarketing(),
+      getLastCompetitorScanSummary(),
+      sumMonthlyAiSpendUsd(),
+    ]);
 
   return (
     <div className="space-y-8">
@@ -46,6 +51,8 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
       <MarketingCms
         initialKind={kind}
         products={products}
+        lastScan={lastScan}
+        monthlyAiSpendUsd={monthlyAiSpendUsd}
         initialObservations={observations.map((row) => ({
           id: row.id,
           brand: row.brand,

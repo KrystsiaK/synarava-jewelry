@@ -7,6 +7,12 @@ export type CompetitorTarget = {
   productPath: RegExp;
   label: string;
   tier: CompetitorTier;
+  /**
+   * When set, robots Sitemap URLs containing this path prefix are preferred
+   * (and used exclusively when any match). Multi-locale SFCC catalogs list
+   * every locale; we only need the locale that matches productPath.
+   */
+  sitemapPathPrefer?: string;
 };
 
 const PRODUCT_SHOPIFY = /\/products\/[^/]+\/?$/i;
@@ -79,6 +85,7 @@ export const COMPETITOR_TARGETS: readonly CompetitorTarget[] = [
     productPath: PRODUCT_PARFOIS,
     label: "Parfois",
     tier: "benchmark",
+    sitemapPathPrefer: "/pt/pt/",
   },
   {
     host: "pdpaola.com",

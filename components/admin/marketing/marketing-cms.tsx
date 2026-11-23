@@ -52,6 +52,25 @@ export type MarketingCalendarWeek = {
 
 export type MarketingProductOption = { id: string; name: string };
 
+export type MarketingLastScanDomain = {
+  domain: string;
+  fetched: number;
+  written: number;
+  unparsed: number;
+  skippedRobots: number;
+  sitemapComplete: boolean;
+  firstError: string | null;
+};
+
+export type MarketingLastScan = {
+  createdAt: string;
+  writtenTotal: number;
+  unparsedTotal: number;
+  durationMs: number;
+  truncated: boolean;
+  domains: MarketingLastScanDomain[];
+};
+
 type TabId = "observations" | "ideas" | "calendar";
 
 const TABS = [
@@ -76,12 +95,16 @@ export function MarketingCms({
   initialIdeas,
   initialCalendar,
   products,
+  lastScan = null,
+  monthlyAiSpendUsd = 0,
   initialKind = "all",
 }: {
   initialObservations: MarketingObservationRow[];
   initialIdeas: MarketingIdeaRow[];
   initialCalendar: MarketingCalendarWeek[];
   products: MarketingProductOption[];
+  lastScan?: MarketingLastScan | null;
+  monthlyAiSpendUsd?: number;
   initialKind?: string;
 }) {
   const { pushToast } = useAdminToast();
@@ -93,6 +116,10 @@ export function MarketingCms({
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [generateCost, setGenerateCost] = useState<{
+    costUsd: number;
+    model: string;
+  } | null>(null);
   const [pending, startTransition] = useTransition();
 
   const filteredObservations = useMemo(() => {
@@ -164,8 +191,18 @@ export function MarketingCms({
         plannedFor: idea.plannedFor.toISOString(),
       }));
       setIdeas((prev) => [...mapped, ...prev]);
+      setGenerateCost({
+        costUsd: result.usage.costUsd,
+        model: result.usage.model,
+      });
+      const lowCountWarning = result.warnings.find((w) =>
+        /^only \d+ valid ideas$/.test(w),
+      );
+      if (lowCountWarning) {
+        setError(lowCountWarning);
+      }
       pushToast({
-        message: `Saved ${mapped.length} draft ideas${result.warnings.length ? ` (${result.warnings.length} warnings)` : ""}`,
+        message: `Saved ${mapped.length} draft ideas · $${result.usage.costUsd.toFixed(4)} (${result.usage.model})${result.warnings.length ? ` · ${result.warnings.length} warnings` : ""}`,
         tone: "success",
       });
       setTab("ideas");
@@ -279,6 +316,67 @@ export function MarketingCms({
                 </AdminButton>
               </div>
 
+              {lastScan ? (
+                <div
+                  className="space-y-2 text-sm"
+                  data-component="MarketingLastScanSummary"
+                >
+                  <p style={{ color: "var(--adm-muted)" }}>
+                    Last scan{" "}
+                    {new Date(lastScan.createdAt)
+                      .toISOString()
+                      .slice(0, 16)
+                      .replace("T", " ")}{" "}
+                    UTC · {lastScan.writtenTotal} written · {lastScan.unparsedTotal}{" "}
+                    unparsed · {lastScan.durationMs}ms
+                    {lastScan.truncated ? " · truncated" : ""}
+                  </p>
+                  <div className="overflow-x-auto">
+                    <table className="w-full min-w-[720px] text-left text-xs">
+                      <thead>
+                        <tr style={{ color: "var(--adm-muted)" }}>
+                          <th className="py-1 pr-2 font-medium">Domain</th>
+                          <th className="py-1 pr-2 font-medium">Fetched</th>
+                          <th className="py-1 pr-2 font-medium">Written</th>
+                          <th className="py-1 pr-2 font-medium">Unparsed</th>
+                          <th className="py-1 pr-2 font-medium">Skipped robots</th>
+                          <th className="py-1 pr-2 font-medium">Sitemap</th>
+                          <th className="py-1 font-medium">First error</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {lastScan.domains.map((d) => (
+                          <tr
+                            key={d.domain}
+                            className="border-t"
+                            style={{ borderColor: "var(--adm-border)" }}
+                          >
+                            <td className="py-1 pr-2">{d.domain}</td>
+                            <td className="py-1 pr-2">{d.fetched}</td>
+                            <td className="py-1 pr-2">{d.written}</td>
+                            <td className="py-1 pr-2">{d.unparsed}</td>
+                            <td className="py-1 pr-2">{d.skippedRobots}</td>
+                            <td className="py-1 pr-2">
+                              {d.sitemapComplete ? "complete" : "incomplete"}
+                            </td>
+                            <td
+                              className="py-1 break-all"
+                              style={{ color: d.firstError ? "var(--adm-danger, #b33)" : "var(--adm-muted)" }}
+                            >
+                              {d.firstError ?? "—"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-xs" style={{ color: "var(--adm-muted)" }}>
+                  No prior scan summary yet.
+                </p>
+              )}
+
               <div className="overflow-x-auto">
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <thead>
@@ -355,6 +453,14 @@ export function MarketingCms({
                 <AdminButton variant="primary" busy={pending} onClick={runGenerate}>
                   Generate ideas
                 </AdminButton>
+                <p className="text-xs" style={{ color: "var(--adm-muted)" }}>
+                  AI spend this month: ${monthlyAiSpendUsd.toFixed(4)}
+                </p>
+                {generateCost ? (
+                  <p className="text-xs" data-component="MarketingGenerateCost">
+                    Last generate: ${generateCost.costUsd.toFixed(4)} · {generateCost.model}
+                  </p>
+                ) : null}
               </div>
 
               <div className="space-y-4">

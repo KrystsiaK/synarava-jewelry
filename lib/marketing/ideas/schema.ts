@@ -5,7 +5,7 @@ export const MARKETING_IDEAS_RESPONSE_SCHEMA = {
   properties: {
     ideas: {
       type: "array",
-      minItems: 1,
+      minItems: 10,
       items: {
         type: "object",
         additionalProperties: false,
