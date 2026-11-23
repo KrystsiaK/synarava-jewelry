@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.tous.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 13,
+ "productUrls": 29930,
+ "rows": [
+  {
+   "url": "https://www.tous.com/fr-fr/p/505869-C.html",
+   "fetchedAt": "2026-11-23T01:15:48.786Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Regalo de cumpleaños MYTOUS",
+   "price": 0,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "505869",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  },
+  {
+   "url": "https://www.tous.com/es-es/camiseta-bold-bear-casual-blanco/p/20020565-C.html",
+   "fetchedAt": "2026-11-23T01:15:50.620Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Camiseta Bold Bear Casual blanco",
+   "price": 19,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "20020565-C",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  },
+  {
+   "url": "https://www.tous.com/gr-el/p/20024934-C.html",
+   "fetchedAt": "2026-11-23T01:15:52.519Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Cap-style baseball cap for babies and children",
+   "price": 27,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "20024934-C",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  },
+  {
+   "url": "https://www.tous.com/de-de/armband-hold-oval-aus-18%C2%A0kt-vergoldetem-silber-mit-grunem-quarzit/p/1004218300-C.html",
+   "fetchedAt": "2026-11-23T01:15:54.417Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Armband Hold Oval aus 18 kt vergoldetem Silber mit grünem Quarzit",
+   "price": 69,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "1004218300",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  },
+  {
+   "url": "https://www.tous.com/it-it/collana-lunga-in-gomma-con-orsetto-in-argento-da-18%C2%A0mm-tous-bold-motif/p/1004568200-C.html",
+   "fetchedAt": "2026-11-23T01:15:56.235Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Collana lunga in gomma con orsetto in argento da 18 mm TOUS Bold Motif",
+   "price": 89,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "1004568200",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  },
+  {
+   "url": "https://www.tous.com/fr-fr/sac-a-bandouliere-noir-tous-puffy-bear/p/2002355551-C.html",
+   "fetchedAt": "2026-11-23T01:15:58.167Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Sac à bandoulière noir TOUS Puffy Bear",
+   "price": 89,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "2002355551",
+   "image": true,
+   "brand": "TOUS",
+   "fields": "@context,@type,name,description,sku,mpn,gtin13,brand,category,image,offers,hasMerchantReturnPolicy"
+  }
+ ]
+}

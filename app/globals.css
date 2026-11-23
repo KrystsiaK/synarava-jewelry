@@ -2842,6 +2842,15 @@ html[data-theme="dark"] .ephemeral-toast {
   font-weight: 700;
 }
 
+.adm-sync-signal-stack {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.28rem;
+  min-width: 0;
+  max-width: min(22rem, 46vw);
+}
+
 .adm-sync-signal {
   --adm-sync-color: var(--adm-accent);
   display: inline-flex;
@@ -2863,10 +2872,31 @@ html[data-theme="dark"] .ephemeral-toast {
   --adm-sync-color: var(--adm-success);
 }
 
+.adm-sync-signal[data-state="languages-missing"] {
+  --adm-sync-color: var(--adm-warning);
+}
+
 .adm-sync-signal[data-state="failed"],
 .adm-sync-signal[data-state="disconnected"],
 .adm-sync-signal[data-state="unavailable"] {
   --adm-sync-color: var(--adm-danger);
+}
+
+.adm-sync-signal__detail {
+  margin: 0;
+  max-width: 100%;
+  padding: 0 0.12rem;
+  font-size: 0.62rem;
+  font-weight: 650;
+  line-height: 1.35;
+  letter-spacing: 0.01em;
+  color: color-mix(in srgb, var(--adm-muted) 72%, var(--adm-ink));
+  text-align: right;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
 }
 
 .adm-sync-signal__link,

@@ -5,13 +5,15 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useAdminShopifyCheckControls } from "@/components/admin/translations/admin-shopify-check-context";
-import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
 import { formatAdminDateTime } from "@/lib/format/admin-date";
+import { isLanguagesMissingReconcileWarning } from "@/lib/shopify/shop-locale-write-gate";
+import type { ReconcileRunSummary } from "@/lib/shopify/reconciliation-run";
 
-type SyncSignalState =
+export type SyncSignalState =
   | { kind: "checking"; label: "Checking Shopify…" }
   | { kind: "current"; label: string }
   | { kind: "failed"; label: "Check failed" }
+  | { kind: "languages-missing"; label: "Languages missing in Shopify" }
   | { kind: "disconnected"; label: "Shopify disconnected" };
 
 function formatCheckedAt(iso: string | null | undefined): string | null {
@@ -27,7 +29,8 @@ function isActiveRunStatus(status: ReconcileRunSummary["status"] | undefined): b
   return status === "QUEUED" || status === "RUNNING";
 }
 
-function signalState(
+/** Pure signal derivation — exported for mutation-proof unit tests. */
+export function signalState(
   run: ReconcileRunSummary | null,
   connected: boolean,
   requestError: string | null,
@@ -40,6 +43,9 @@ function signalState(
   if (requestError || run?.status === "FAILED" || run?.status === "PARTIAL") {
     return { kind: "failed", label: "Check failed" };
   }
+  if (run?.status === "SUCCEEDED" && isLanguagesMissingReconcileWarning(run.error)) {
+    return { kind: "languages-missing", label: "Languages missing in Shopify" };
+  }
   if (!run || isActiveRunStatus(run.status)) {
     return { kind: "checking", label: "Checking Shopify…" };
   }
@@ -48,6 +54,19 @@ function signalState(
     kind: "current",
     label: when ? `Shopify current ${when}` : "Shopify current",
   };
+}
+
+/** Error / warning text for tooltip and the line under the badge. */
+export function syncSignalDetail(
+  run: ReconcileRunSummary | null,
+  requestError: string | null,
+  stateKind: SyncSignalState["kind"],
+): string | null {
+  if (requestError) return requestError;
+  if (stateKind === "failed" || stateKind === "languages-missing") {
+    return run?.error ?? null;
+  }
+  return null;
 }
 
 async function readResponse(response: Response) {
@@ -98,6 +117,8 @@ export function AdminShopifySyncSignal({
       : isChecking
         ? ({ kind: "checking", label: "Checking Shopify…" } as const)
         : signalState(run, connected, requestError);
+
+  const detail = syncSignalDetail(run, requestError, state.kind);
 
   const poll = useCallback(async (candidate: ReconcileRunSummary | null) => {
     let current = candidate;
@@ -181,46 +202,52 @@ export function AdminShopifySyncSignal({
     }
   }
 
-  const title = requestError
-    ?? run?.error
+  const title = detail
     ?? (run?.completedAt
       ? `Last checked ${formatCheckedAt(run.completedAt)}`
       : connected
         ? "Shopify catalog sync runs once when the admin session opens."
         : "Shopify Admin API credentials are not configured.");
 
-  // Failed (including first AUTO error) is always retryable via the label or refresh.
-  const failedClickable = state.kind === "failed";
+  // Failed / languages-missing are always retryable via the label or refresh.
+  const retryClickable = state.kind === "failed" || state.kind === "languages-missing";
   const refreshDisabled = state.kind === "checking" || state.kind === "disconnected";
 
   return (
-    <div className="adm-sync-signal" data-state={state.kind} title={title}>
-      {failedClickable ? (
+    <div className="adm-sync-signal-stack">
+      <div className="adm-sync-signal" data-state={state.kind} title={title}>
+        {retryClickable ? (
+          <button
+            type="button"
+            className="adm-sync-signal__link"
+            aria-label={`${state.label}. Retry check.`}
+            onClick={() => void checkNow()}
+          >
+            <span className="adm-sync-signal__dot" aria-hidden="true" />
+            <span className="adm-sync-signal__label">{state.label}</span>
+          </button>
+        ) : (
+          <span className="adm-sync-signal__link" aria-label={state.label}>
+            <span className="adm-sync-signal__dot" aria-hidden="true" />
+            <span className="adm-sync-signal__label">{state.label}</span>
+          </span>
+        )}
         <button
           type="button"
-          className="adm-sync-signal__link"
-          aria-label={`${state.label}. Retry check.`}
+          className="adm-sync-signal__refresh"
+          aria-label="Check Shopify sync now"
+          disabled={refreshDisabled}
           onClick={() => void checkNow()}
         >
-          <span className="adm-sync-signal__dot" aria-hidden="true" />
-          <span className="adm-sync-signal__label">{state.label}</span>
+          <RefreshCw size={13} aria-hidden="true" />
         </button>
-      ) : (
-        <span className="adm-sync-signal__link" aria-label={state.label}>
-          <span className="adm-sync-signal__dot" aria-hidden="true" />
-          <span className="adm-sync-signal__label">{state.label}</span>
-        </span>
-      )}
-      <button
-        type="button"
-        className="adm-sync-signal__refresh"
-        aria-label="Check Shopify sync now"
-        disabled={refreshDisabled}
-        onClick={() => void checkNow()}
-      >
-        <RefreshCw size={13} aria-hidden="true" />
-      </button>
-      <span className="sr-only" role="status" aria-live="polite">{state.label}</span>
+        <span className="sr-only" role="status" aria-live="polite">{state.label}</span>
+      </div>
+      {detail ? (
+        <p className="adm-sync-signal__detail" title={detail}>
+          {detail}
+        </p>
+      ) : null}
     </div>
   );
 }
