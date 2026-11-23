@@ -98,6 +98,32 @@ export async function addStorefrontLanguage(input: {
   return { success: `Added ${code} as Draft and enabled it in Shopify (unpublished).` };
 }
 
+/**
+ * Enable a registered language in Shopify (unpublished) when write_locales is
+ * granted. No automation from Confirm — operator chooses Enable in Shopify.
+ */
+export async function enableStorefrontLanguageInShopify(code: string): Promise<LanguageActionResult> {
+  const locale = await db.storefrontLocale.findUnique({ where: { code } });
+  if (!locale) return { error: `Locale "${code}" not found.` };
+  if (locale.isDefault) return { error: "The default locale is already the Shopify primary." };
+
+  const canWrite = await hasWriteLocalesScope().catch(() => false);
+  if (!canWrite) {
+    return {
+      error: "Enabling a Shopify locale requires write_locales. Add the scope, then retry.",
+      requiresWriteLocales: true,
+    };
+  }
+
+  try {
+    await shopLocaleEnable(locale.shopifyLocale);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : String(error) };
+  }
+
+  return { success: `Enabled ${code} in Shopify (${locale.shopifyLocale}, unpublished).` };
+}
+
 export async function hideStorefrontLanguage(code: string): Promise<LanguageActionResult> {
   const locale = await db.storefrontLocale.findUnique({ where: { code } });
   if (!locale) return { error: `Locale "${code}" not found.` };

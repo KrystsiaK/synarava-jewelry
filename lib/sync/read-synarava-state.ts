@@ -17,6 +17,8 @@ import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
+import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
+import { getEnabledShopifyLocaleCodes } from "@/lib/shopify/shop-locales-cache";
 import {
   deriveFreeShippingThresholdWindow,
   readAnnouncementBarSetting,
@@ -135,13 +137,21 @@ export async function readSynaravaStateForCompare(
   scope: RefreshShopifyStateScope,
   options?: { adminUsername?: string; checkedAt?: string | null },
 ): Promise<SyncCompareInput> {
-  const [differences, productPresence, collectionPresence, locales, run] = await Promise.all([
-    getLatestReconcileDifferences(),
-    getLatestCatalogPresenceDifferences(),
-    getLatestCollectionPresenceDifferences(),
-    getStorefrontLocales(),
-    getLatestReconcileRun(),
-  ]);
+  const connected = hasShopifyAdminConfig();
+  const [differences, productPresence, collectionPresence, locales, run, enabledShopifyLocales, canWriteShopifyLocales] =
+    await Promise.all([
+      getLatestReconcileDifferences(),
+      getLatestCatalogPresenceDifferences(),
+      getLatestCollectionPresenceDifferences(),
+      getStorefrontLocales(),
+      getLatestReconcileRun(),
+      connected
+        ? getEnabledShopifyLocaleCodes().catch(() => new Set<string>())
+        : Promise.resolve(null),
+      connected
+        ? hasWriteLocalesScope().catch(() => false)
+        : Promise.resolve(false),
+    ]);
 
   let commerceWindows: SyncCommerceWindow[] = [];
   if (scope.kind === "product") {
@@ -187,7 +197,9 @@ export async function readSynaravaStateForCompare(
     productPresence: includeProductPresence ? productPresence : [],
     collectionPresence: includeCollectionPresence ? collectionPresence : [],
     locales: localeRefs,
-    connected: hasShopifyAdminConfig(),
+    enabledShopifyLocales,
+    canWriteShopifyLocales,
+    connected,
     checkedAt: options?.checkedAt
       ?? (run?.status === "SUCCEEDED" && (run.trigger === "AUTO" || run.trigger === "MANUAL")
         ? run.completedAt

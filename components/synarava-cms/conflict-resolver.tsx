@@ -10,6 +10,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { AlertTriangle, ArrowRight, GitCompareArrows, Languages, LoaderCircle, X } from "lucide-react";
 
+import { enableLanguageInShopifyAction } from "@/app/admin/actions/languages";
 import { AdminButton } from "@/components/admin/shared/admin-button";
 import { AdminCheckboxControl } from "@/components/admin/shared/admin-checkbox-field";
 import { useAdminShopifyCheckRunning } from "@/components/admin/translations/admin-shopify-check-context";
@@ -403,30 +404,46 @@ export function ConflictRow({
         )}
       </div>
       {wholeRecord || field.blockedReason ? (
-        <p className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
-          {wholeRecord && canKeepOurs && canTakeShopify
-            ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
-            : field.blockedReason
-              ? (
-                <>
-                  {directions.length === 0 && !wholeRecord
-                    ? `Cannot choose here: ${field.blockedReason}`
-                    : field.blockedReason}
-                  {productHref ? (
-                    <>
-                      {" "}
-                      <Link
-                        href={productHref}
-                        className="font-semibold text-[var(--adm-fg)] underline underline-offset-2"
-                      >
-                        Open product
-                      </Link>
-                    </>
-                  ) : null}
-                </>
-              )
-              : "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."}
-        </p>
+        <div className="mt-3 rounded-lg bg-[color-mix(in_srgb,var(--adm-conflict)_12%,transparent)] p-3 text-xs text-[var(--adm-muted)]">
+          <p>
+            {wholeRecord && canKeepOurs && canTakeShopify
+              ? "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."
+              : field.blockedReason
+                ? (
+                  <>
+                    {directions.length === 0 && !wholeRecord
+                      ? `Cannot choose here: ${field.blockedReason}`
+                      : field.blockedReason}
+                    {productHref ? (
+                      <>
+                        {" "}
+                        <Link
+                          href={productHref}
+                          className="font-semibold text-[var(--adm-fg)] underline underline-offset-2"
+                        >
+                          Open product
+                        </Link>
+                      </>
+                    ) : null}
+                  </>
+                )
+                : "Choosing a side syncs the whole product commerce record (preview lists every field that will change)."}
+          </p>
+          {field.blockedOffer && field.scope.kind === "LOCALE" ? (
+            <div className="mt-2">
+              <AdminButton
+                variant="ghost"
+                disabled={busy}
+                onClick={() => {
+                  const localeCode = field.scope.kind === "LOCALE" ? field.scope.code : null;
+                  if (localeCode) void enableLanguageInShopifyAction(localeCode);
+                }}
+              >
+                {field.blockedOffer.label}
+              </AdminButton>
+            </div>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

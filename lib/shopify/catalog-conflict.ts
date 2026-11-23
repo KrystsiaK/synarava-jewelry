@@ -30,6 +30,8 @@ export type CatalogConflictField = {
   shopifyFingerprint: string;
   allowedDirections: CatalogConflictDirection[];
   blockedReason: string | null;
+  /** Enable-in-Shopify offer when push blocked for a missing shop locale (write_locales). */
+  blockedOffer?: import("@/lib/shopify/shop-locale-write-gate").ShopifyLocaleEnableOffer | null;
   /** Shopify projection path for COMMERCE rows. */
   path?: string | null;
   /** Field-contract key from SyncLeaf. */

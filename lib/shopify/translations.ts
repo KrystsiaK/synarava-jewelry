@@ -1,6 +1,12 @@
 import "server-only";
 
+import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
+import {
+  mapInvalidShopifyLocaleError,
+  planShopifyLocaleTranslationWrite,
+} from "@/lib/shopify/shop-locale-write-gate";
+import { getEnabledShopifyLocaleCodes } from "@/lib/shopify/shop-locales-cache";
 
 export type TranslatableContent = {
   key: string;
@@ -247,6 +253,13 @@ async function removeTranslationKeys(resourceId: string, locale: string, transla
   }
 }
 
+async function displayCodeForShopifyLocale(shopifyLocale: string): Promise<string> {
+  if (shopifyLocale.toLowerCase() === "en") return "en";
+  const locales = await getStorefrontLocales();
+  const match = locales.find((entry) => entry.shopifyLocale.toLowerCase() === shopifyLocale.toLowerCase());
+  return match?.code ?? shopifyLocale;
+}
+
 /**
  * Registers non-blank values against `resourceId` for `locale` and clears
  * (via translationsRemove) any key whose value is blank. Fetches a fresh
@@ -255,6 +268,9 @@ async function removeTranslationKeys(resourceId: string, locale: string, transla
  * rather than force-writing. This is the primitive Task 7's reconcile
  * engine and every non-Product resource adapter (Collection, Page,
  * metaobjects) builds on.
+ *
+ * Gates on shop-enabled locales (shared write plan with compare leaves).
+ * Invalid-locale Shopify userErrors map to the same human reason.
  */
 export async function registerTranslations({
   resourceId,
@@ -265,6 +281,19 @@ export async function registerTranslations({
   locale: string;
   values: Partial<Record<string, string>>;
 }) {
+  const displayCode = await displayCodeForShopifyLocale(locale);
+  const enabledShopifyLocales = await getEnabledShopifyLocaleCodes().catch(() => null);
+  if (enabledShopifyLocales) {
+    const writePlan = planShopifyLocaleTranslationWrite({
+      shopifyLocale: locale,
+      displayCode,
+      enabledShopifyLocales,
+    });
+    if (!writePlan.allowPush) {
+      throw new ShopifyAdminError(writePlan.blockedReason ?? "Locale is not enabled in the Shopify store.");
+    }
+  }
+
   const clearedKeys = Object.entries(values)
     .filter(([, value]) => !value?.trim())
     .map(([key]) => key);
@@ -293,7 +322,9 @@ export async function registerTranslations({
       return { registeredKeys: data.translationsRegister.translations.map((translation) => translation.key) };
     }
     if (attempt === 0 && isDigestError(errors)) continue;
-    throw new ShopifyAdminError(errors.map((error) => error.message).join("; "));
+    throw new ShopifyAdminError(
+      errors.map((error) => mapInvalidShopifyLocaleError(error.message, displayCode)).join("; "),
+    );
   }
 
   throw new ShopifyAdminError("Shopify translation registration failed after refreshing content digests.");

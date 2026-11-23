@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 
 import { fetchShopifyLocales, type ShopifyShopLocale } from "./admin";
+import { invalidateShopifyShopLocalesCache } from "./shop-locales-cache";
 
 export type StorefrontLocaleSyncResult = {
   /** Registry rows whose `isPublished`/`shopifyUpdatedAt` were refreshed. `routeSegment`, `code`, and `shopifyLocale` are never touched. */
@@ -67,5 +68,7 @@ export async function syncStorefrontLocalesFromShopify(): Promise<StorefrontLoca
   const registeredShopifyLocales = new Set(registryRows.map((row) => row.shopifyLocale.toLowerCase()));
   const unmatched = shopifyLocales.filter((entry) => !registeredShopifyLocales.has(entry.locale.toLowerCase()));
 
+  // Keep the write-gate cache aligned with Markets after Check Shopify.
+  invalidateShopifyShopLocalesCache();
   return { updated, unmatched, orphaned };
 }
