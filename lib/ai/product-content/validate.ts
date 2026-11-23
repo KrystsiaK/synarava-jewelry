@@ -26,10 +26,13 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "prata", label: "prata" },
   { term: "серебро", label: "серебро" },
   { term: "серебра", label: "серебра" },
+  { term: "проба", label: "проба" },
   { term: "gold", label: "gold" },
   { term: "ouro", label: "ouro" },
   { term: "золото", label: "золото" },
   { term: "золота", label: "золота" },
+  { term: "позолота", label: "позолота" },
+  { term: "позолочен", label: "позолота" },
   { term: "18k", label: "18K" },
   { term: "hypoallergenic", label: "hypoallergenic" },
   { term: "hipoalergénic", label: "hipoalergénico" },
@@ -97,7 +100,9 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
 /** Cross-language material synonyms — any member present in facts covers the group. */
 const CLAIM_SYNONYM_GROUPS: string[][] = [
   ["gold", "ouro", "золото", "золота"],
+  ["позолота", "позолочен", "gold-plated", "gold plated", "gilt"],
   ["silver", "prata", "серебро", "серебра"],
+  ["925", "проба"],
   [
     "pearl",
     "pérola",
@@ -181,6 +186,7 @@ const CLAIM_STEM_TERMS = new Set([
   "драгоценн",
   "жемчужн",
   "доставк",
+  "позолочен",
 ]);
 
 function trimField(value: string | undefined): string | undefined {

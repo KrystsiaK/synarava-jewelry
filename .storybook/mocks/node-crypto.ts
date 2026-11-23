@@ -24,3 +24,13 @@ export const createHmac = unavailableDigest;
 export const randomUUID = () => "00000000-0000-4000-8000-000000000000";
 export const createPublicKey = () => ({});
 export const verify = () => false;
+
+/** JWT signing is never exercised in stories; return a inert signer. */
+export function createSign(_algorithm = "RSA-SHA256") {
+  void _algorithm;
+  return {
+    update: () => createSign(),
+    end: () => createSign(),
+    sign: () => Buffer.from("storybook-sign-unavailable"),
+  };
+}

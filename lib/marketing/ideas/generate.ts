@@ -24,6 +24,12 @@ import {
 } from "@/lib/ai/product-content/provider";
 import { checkRateLimit } from "@/lib/auth/rate-limit";
 import { db } from "@/lib/db";
+import {
+  formatPriorIdeasPromptSection,
+  summarizePriorIdea,
+  takePriorIdeas,
+  type PriorContentIdea,
+} from "@/lib/marketing/ideas/memory";
 import { validateManualNotes } from "@/lib/marketing/ideas/notes";
 import { MARKETING_IDEAS_RESPONSE_SCHEMA } from "@/lib/marketing/ideas/schema";
 import {
@@ -114,15 +120,19 @@ function buildSystemInstruction(): string {
   return [
     "You generate Instagram Reels ideas for Synarava fashion jewelry.",
     "Use ONLY the provided product facts and market signals. Never invent materials, certifications, or competitor claims.",
-    "Locales: en (English) and pt (European Portuguese / PT-PT).",
-    "Return JSON matching the schema. Produce 12 ideas balanced across en and pt (about 6 each).",
-    "Each idea: hook, script, shotList, caption, weekSlot 1-4, productIds from the input list, signalIds only from provided signal ids (may be empty).",
+    "Each idea is ONE Reel with bilingual audience copy.",
+    "Owner-facing fields MUST be Russian: whyRu (1–2 sentences: why this idea and which product fact/note it uses), script, shotList.",
+    "Audience-facing fields MUST include both English and European Portuguese (PT-PT): hook.en, hook.pt, caption.en, caption.pt.",
+    "Return JSON matching the schema. Produce 12 ideas (min 10).",
+    "Each idea: whyRu, hook{en,pt}, script, shotList, caption{en,pt}, weekSlot 1-4, productIds from the input list, signalIds only from provided signal ids (may be empty).",
+    "Do NOT repeat hooks, locations, or angles listed under Already planned.",
   ].join(" ");
 }
 
 function buildUserPrompt(input: {
   products: Array<{ id: string; factsText: string }>;
   signals: MarketSignal[];
+  priorSection: string;
 }): string {
   const productBlock = input.products
     .map((p) => `### Product ${p.id}\n${p.factsText}`)
@@ -137,7 +147,9 @@ function buildUserPrompt(input: {
           )
           .join("\n\n");
   return [
-    "Generate 12 Reels ideas balanced across en and pt (about 6 each).",
+    "Generate 12 Reels ideas. Owner text in Russian; audience hook+caption in en and pt.",
+    "",
+    input.priorSection,
     "",
     "## Products",
     productBlock,
@@ -174,6 +186,32 @@ async function writeUsageAudit(input: {
       adminSessionId: input.actor.sessionId,
     },
   });
+}
+
+/** Last ≤30 ContentIdea rows overlapping selected productIds (any status). */
+export async function loadPriorIdeasForProducts(
+  productIds: readonly string[],
+): Promise<PriorContentIdea[]> {
+  if (productIds.length === 0) return [];
+  const rows = await db.contentIdea.findMany({
+    where: {
+      OR: productIds.map((id) => ({ productIds: { has: id } })),
+      status: { in: ["draft", "approved", "rejected"] },
+    },
+    orderBy: { createdAt: "desc" },
+    take: 30,
+    select: {
+      id: true,
+      status: true,
+      hook: true,
+      script: true,
+      shotList: true,
+      caption: true,
+      whyRu: true,
+      productIds: true,
+    },
+  });
+  return takePriorIdeas(rows, 30);
 }
 
 export async function generateMarketingIdeas(
@@ -267,7 +305,15 @@ export async function generateMarketingIdeas(
     });
   }
 
-  const user = buildUserPrompt({ products: promptProducts, signals });
+  const priorRows = await loadPriorIdeasForProducts(productIds);
+  const priorIdeas = priorRows.map(summarizePriorIdea);
+  const priorSection = formatPriorIdeasPromptSection(priorIdeas);
+
+  const user = buildUserPrompt({
+    products: promptProducts,
+    signals,
+    priorSection,
+  });
   const ceiling = estimateCeilingCostUsd(user.length);
   const budget = await assertMonthlyBudgetAvailable(ceiling);
   if (!budget.ok) {
@@ -311,6 +357,7 @@ export async function generateMarketingIdeas(
     allowedSignalIds,
     productFactsCorpus,
     signals,
+    priorIdeas,
   });
 
   let usageOutcome: "ok" | "invalid_output" = "invalid_output";
@@ -336,9 +383,9 @@ export async function generateMarketingIdeas(
         const row = await tx.contentIdea.create({
           data: {
             status: "draft",
-            locale: idea.locale,
             productIds: idea.productIds,
             signalIds: idea.signalIds,
+            whyRu: idea.whyRu,
             hook: idea.hook,
             script: idea.script,
             shotList: idea.shotList,

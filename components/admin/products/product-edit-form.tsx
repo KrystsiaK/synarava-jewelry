@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable no-restricted-syntax -- legacy admin form still uses raw/hidden inputs; migrate to synarava-cms in a dedicated PR */
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";

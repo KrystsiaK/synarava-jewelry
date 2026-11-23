@@ -85,10 +85,15 @@ export async function getLastCompetitorScanSummary(): Promise<LastScanSummary | 
 export async function listCompetitorObservations(input?: {
   kind?: ObservationKindFilter;
   take?: number;
+  /** Inclusive lower bound on fetchedAt. */
+  since?: Date | null;
 }) {
   const kind = input?.kind && input.kind !== "all" ? input.kind : undefined;
   const rows = await db.competitorObservation.findMany({
-    where: kind ? { kind } : undefined,
+    where: {
+      ...(kind ? { kind } : {}),
+      ...(input?.since ? { fetchedAt: { gte: input.since } } : {}),
+    },
     orderBy: { fetchedAt: "desc" },
     take: input?.take ?? 200,
   });
@@ -98,6 +103,8 @@ export async function listCompetitorObservations(input?: {
     price: row.price?.toString() ?? null,
   }));
 }
+
+export { brandForDomain };
 
 export async function listContentIdeas(input?: {
   status?: "draft" | "approved" | "rejected";

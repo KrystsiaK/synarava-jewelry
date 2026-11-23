@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable no-restricted-syntax -- MC hub focus <select> is canvas chrome, not a form field; migrate with hub redesign */
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Clock3, Expand, Focus, Maximize2, Minimize2, RadioTower, RotateCcw, ShieldAlert } from "lucide-react";
