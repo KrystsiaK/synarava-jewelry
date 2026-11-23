@@ -3,9 +3,13 @@
  * Two states only: Shopify vs Synarava. No third “base” window.
  */
 
+import type { ShopifyLocaleEnableOffer } from "@/lib/shopify/shop-locale-write-gate";
+
 import type { SyncConflictSection, SyncLeafPart } from "./field-registry";
 
 export type SyncResourceType = "PRODUCT" | "COLLECTION" | "PAGE" | "STOREFRONT_COPY" | "SHOP";
+
+export type { ShopifyLocaleEnableOffer };
 
 export type SyncLeafKind = "commerce" | "translation" | "presence";
 
@@ -39,6 +43,11 @@ export type SyncLeaf = {
   shopifyValue: string;
   allowedDirections: SyncDirection[];
   blockedReason: string | null;
+  /**
+   * When push is blocked because the shop locale is missing and write_locales
+   * is granted — operator may enable via locale-mutations (no auto-enable).
+   */
+  blockedOffer?: ShopifyLocaleEnableOffer | null;
   sourceId: string | null;
   path: string | null;
   /** Field-contract key (registry) — authoritative for apply/routing. */

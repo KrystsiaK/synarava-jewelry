@@ -1,6 +1,7 @@
 import "server-only";
 
 import { shopifyAdminRequest, type ShopifyShopLocale } from "@/lib/shopify/admin";
+import { invalidateShopifyShopLocalesCache } from "@/lib/shopify/shop-locales-cache";
 
 export const WRITE_LOCALES_SCOPE = "write_locales";
 
@@ -44,6 +45,7 @@ export async function shopLocaleEnable(locale: string): Promise<ShopifyShopLocal
   if (data.shopLocaleEnable.userErrors.length && !already) {
     throwUserErrors(data.shopLocaleEnable.userErrors, "shopLocaleEnable");
   }
+  invalidateShopifyShopLocalesCache();
   if (data.shopLocaleEnable.shopLocale) return data.shopLocaleEnable.shopLocale;
   // Already enabled — read current state.
   const locales = await shopifyAdminRequest<{ shopLocales: ShopifyShopLocale[] }>(
@@ -71,6 +73,7 @@ export async function shopLocaleUpdate(locale: string, published: boolean): Prom
   if (!data.shopLocaleUpdate.shopLocale) {
     throw new Error(`shopLocaleUpdate returned no locale for "${locale}".`);
   }
+  invalidateShopifyShopLocalesCache();
   return data.shopLocaleUpdate.shopLocale;
 }
 
@@ -93,5 +96,6 @@ export async function shopLocaleDisable(locale: string): Promise<string> {
   if (data.shopLocaleDisable.userErrors.length && !already) {
     throwUserErrors(data.shopLocaleDisable.userErrors, "shopLocaleDisable");
   }
+  invalidateShopifyShopLocalesCache();
   return data.shopLocaleDisable.locale ?? locale;
 }

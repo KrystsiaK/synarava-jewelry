@@ -13,11 +13,13 @@ import {
 import {
   addStorefrontLanguage,
   deleteStorefrontLanguageData,
+  enableStorefrontLanguageInShopify,
   exportStorefrontLanguage,
   hideStorefrontLanguage,
   restoreStorefrontLanguage,
 } from "@/lib/i18n/language-lifecycle";
 import { invalidateStorefrontLocaleCache } from "@/lib/i18n/storefront-locale-cache";
+import { invalidateShopifyShopLocalesCache } from "@/lib/shopify/shop-locales-cache";
 
 async function revalidateLanguagesAdmin() {
   // Locale tabs live under every admin section — refresh the whole tree.
@@ -47,6 +49,24 @@ export async function addLanguageAction(input: {
     await revalidateLanguagesAdmin();
     // Language settings have no single-entity scope. Full catalog check stays
     // top-bar Manual + once-per-login Auto only — do not invent a second path.
+    return result;
+  }
+  return result;
+}
+
+/** Operator offer when a conflict leaf is blocked for a missing shop locale. */
+export async function enableLanguageInShopifyAction(code: string) {
+  await requireAdminSession();
+  const result = await enableStorefrontLanguageInShopify(code);
+  if (result.success) {
+    await writeAuditLog({
+      action: "LANGUAGE_ENABLE_SHOPIFY",
+      entityType: "STOREFRONT_LOCALE",
+      entityId: code,
+      after: { shopifyEnabled: true },
+    });
+    invalidateShopifyShopLocalesCache();
+    await revalidateLanguagesAdmin();
     return result;
   }
   return result;

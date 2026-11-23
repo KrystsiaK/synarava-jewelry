@@ -23,6 +23,19 @@ vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
   getStorefrontLocales: mocks.locales,
 }));
 vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: () => true }));
+vi.mock("@/lib/shopify/shop-locales-cache", () => ({
+  getShopifyShopLocalesSnapshot: vi.fn(async () => ({
+    shopDomain: "example.myshopify.com",
+    locales: [],
+    localeCodes: ["en", "pt-PT", "ru"],
+  })),
+  getEnabledShopifyLocaleCodes: vi.fn(async () => new Set(["en", "pt-pt", "ru"])),
+  getShopifyShopLocales: vi.fn(async () => []),
+  invalidateShopifyShopLocalesCache: vi.fn(),
+}));
+vi.mock("@/lib/shopify/locale-mutations", () => ({
+  hasWriteLocalesScope: vi.fn(async () => false),
+}));
 vi.mock("@/lib/shopify/catalog-presence-server", () => ({
   getLatestCatalogPresenceDifferences: mocks.productPresence,
 }));

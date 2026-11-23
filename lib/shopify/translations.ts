@@ -1,6 +1,12 @@
 import "server-only";
 
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
+import {
+  mapInvalidShopifyLocaleError,
+  planShopifyLocaleTranslationWrite,
+  shopLocaleWriteBlockedReason,
+} from "@/lib/shopify/shop-locale-write-gate";
+import { getShopifyShopLocalesSnapshot } from "@/lib/shopify/shop-locales-cache";
 
 export type TranslatableContent = {
   key: string;
@@ -255,6 +261,9 @@ async function removeTranslationKeys(resourceId: string, locale: string, transla
  * rather than force-writing. This is the primitive Task 7's reconcile
  * engine and every non-Product resource adapter (Collection, Page,
  * metaobjects) builds on.
+ *
+ * Gates on shop-enabled locales (shared write plan with compare leaves).
+ * Invalid-locale Shopify userErrors map to the same factual reason.
  */
 export async function registerTranslations({
   resourceId,
@@ -265,6 +274,23 @@ export async function registerTranslations({
   locale: string;
   values: Partial<Record<string, string>>;
 }) {
+  const shopSnapshot = await getShopifyShopLocalesSnapshot().catch(() => null);
+  const localeContext = {
+    shopDomain: shopSnapshot?.shopDomain ?? "unknown",
+    shopLocales: shopSnapshot?.localeCodes ?? [],
+    triedLocale: locale,
+  };
+  if (shopSnapshot) {
+    const writePlan = planShopifyLocaleTranslationWrite({
+      shopifyLocale: locale,
+      enabledShopifyLocales: shopSnapshot.localeCodes,
+      shopDomain: shopSnapshot.shopDomain,
+    });
+    if (!writePlan.allowPush) {
+      throw new ShopifyAdminError(writePlan.blockedReason ?? shopLocaleWriteBlockedReason(localeContext));
+    }
+  }
+
   const clearedKeys = Object.entries(values)
     .filter(([, value]) => !value?.trim())
     .map(([key]) => key);
@@ -293,7 +319,9 @@ export async function registerTranslations({
       return { registeredKeys: data.translationsRegister.translations.map((translation) => translation.key) };
     }
     if (attempt === 0 && isDigestError(errors)) continue;
-    throw new ShopifyAdminError(errors.map((error) => error.message).join("; "));
+    throw new ShopifyAdminError(
+      errors.map((error) => mapInvalidShopifyLocaleError(error.message, localeContext)).join("; "),
+    );
   }
 
   throw new ShopifyAdminError("Shopify translation registration failed after refreshing content digests.");
