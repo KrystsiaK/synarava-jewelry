@@ -58,20 +58,30 @@ export function ShopifyProductSpecsFields({
   shopifySnapshot,
   activeLocale = SOURCE_LOCALE,
   translationLocales = [],
+  /** Optional EN overrides (e.g. after AI Apply). Merged over snapshot values. */
+  enValueOverrides,
+  /** Optional PT/RU overlays (e.g. after AI Apply). Merged over snapshot translations. */
+  overlayOverrides,
 }: {
   workingSnapshot?: unknown;
   shopifySnapshot?: unknown;
   activeLocale?: string;
   translationLocales?: Array<{ code: string }>;
+  enValueOverrides?: Record<string, string>;
+  overlayOverrides?: Record<string, Record<string, string>>;
 }) {
-  const enValues = shopifyProductSpecValuesFromWindows(workingSnapshot, shopifySnapshot);
+  const snapshotEn = shopifyProductSpecValuesFromWindows(workingSnapshot, shopifySnapshot);
+  const enValues = { ...snapshotEn, ...(enValueOverrides ?? {}) };
   const missingInShopify = new Set(shopifyProductSpecKeysMissingInShopify(shopifySnapshot));
   const allTranslations = metafieldTranslationsFromSnapshot(workingSnapshot ?? shopifySnapshot);
   const [overlaysByLocale, setOverlaysByLocale] = useState<Record<string, Record<string, string>>>(() => {
     const initial: Record<string, Record<string, string>> = {};
     for (const { code } of translationLocales) {
       if (code === SOURCE_LOCALE) continue;
-      initial[code] = shopifyProductSpecOverlaysFromTranslations(allTranslations, code);
+      initial[code] = {
+        ...shopifyProductSpecOverlaysFromTranslations(allTranslations, code),
+        ...(overlayOverrides?.[code] ?? {}),
+      };
     }
     return initial;
   });

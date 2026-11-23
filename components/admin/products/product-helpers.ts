@@ -4,6 +4,16 @@ import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductDraft, ProductLocaleDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
+import {
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
+} from "@/lib/products/product-locale-text-fields";
+import {
+  shopifyProductSpecOverlaysFromTranslations,
+  shopifyProductSpecValuesFromWindows,
+} from "@/lib/products/shopify-product-specs";
+import { metafieldTranslationsFromSnapshot } from "@/lib/shopify/product-metafields-shared";
 
 export const PRODUCT_SAVE_FAILURE_MESSAGE =
   "Product could not be saved. Reload this page before trying again.";
@@ -76,21 +86,21 @@ export function getProductDetailsTranslation(details: unknown) {
     characteristics,
     materialsEyebrow: parsed.materialsEyebrow ?? "",
     materialsTitle: parsed.materialsTitle ?? "",
-    materials: Array.from({ length: 3 }, (_, index) => {
+    materials: Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) => {
       const source = parsed.materials?.[index];
       return { title: source?.title ?? "", body: source?.body ?? "" };
     }),
     process: {
       eyebrow: parsed.process?.eyebrow ?? "",
       title: parsed.process?.title ?? "",
-      stats: Array.from({ length: 4 }, (_, index) => {
+      stats: Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) => {
         const source = parsed.process?.stats?.[index];
         return { value: source?.value ?? "", label: source?.label ?? "" };
       }),
     },
     lookbookEyebrow: parsed.lookbookEyebrow ?? "",
     lookbookTitle: parsed.lookbookTitle ?? "",
-    lookbook: Array.from({ length: 4 }, (_, index) => {
+    lookbook: Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, (_, index) => {
       const source: { label?: string } | undefined = parsed.lookbook?.[index];
       return { label: source?.label ?? "" };
     }),
@@ -149,6 +159,11 @@ export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): P
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
+    details: getProductDetailsTranslation(null),
+    enSpecs: {},
+    specOverlays: Object.fromEntries(
+      translationLocales.filter(({ code }) => code !== "en").map(({ code }) => [code, {}]),
+    ),
     translations: Object.fromEntries(translationLocales.map(({ code }) => [code, emptyLocaleDraft()])),
   };
 }
@@ -208,6 +223,19 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
+    details: getProductDetailsTranslation(product.details),
+    enSpecs: shopifyProductSpecValuesFromWindows(product.extras, product.shopifySnapshot),
+    specOverlays: Object.fromEntries(
+      translationLocales
+        .filter(({ code }) => code !== "en")
+        .map(({ code }) => [
+          code,
+          shopifyProductSpecOverlaysFromTranslations(
+            metafieldTranslationsFromSnapshot(product.extras ?? product.shopifySnapshot),
+            code,
+          ),
+        ]),
+    ),
     translations: Object.fromEntries(translationLocales.map(({ code }) => {
       const translation = product.translations?.find((item) => item.locale === code);
       return [code, {

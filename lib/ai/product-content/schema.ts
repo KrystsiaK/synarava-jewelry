@@ -1,5 +1,17 @@
 import { z } from "zod";
 
+import { AI_FIELDS } from "@/lib/ai/product-content/contract";
+
+/** String properties for every AI field except EN title (never generated). */
+function localeProperties(includeTitle: boolean): Record<string, { type: "string" }> {
+  const properties: Record<string, { type: "string" }> = {};
+  for (const key of AI_FIELDS) {
+    if (!includeTitle && key === "title") continue;
+    properties[key] = { type: "string" };
+  }
+  return properties;
+}
+
 /** Shared JSON Schema for structured product-content output (provider-agnostic). */
 export const PRODUCT_CONTENT_RESPONSE_SCHEMA = {
   type: "object",
@@ -13,49 +25,26 @@ export const PRODUCT_CONTENT_RESPONSE_SCHEMA = {
         en: {
           type: "object",
           additionalProperties: false,
-          properties: {
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
+          properties: localeProperties(false),
         },
         pt: {
           type: "object",
           additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
+          properties: localeProperties(true),
         },
         ru: {
           type: "object",
           additionalProperties: false,
-          properties: {
-            title: { type: "string" },
-            shortDescription: { type: "string" },
-            description: { type: "string" },
-            seoTitle: { type: "string" },
-            seoDescription: { type: "string" },
-          },
+          properties: localeProperties(true),
         },
       },
     },
   },
 } as const;
 
-const localeFieldsSchema = z
-  .object({
-    title: z.string().optional(),
-    shortDescription: z.string().optional(),
-    description: z.string().optional(),
-    seoTitle: z.string().optional(),
-    seoDescription: z.string().optional(),
-  })
-  .strict();
+const localeFieldShape = Object.fromEntries(AI_FIELDS.map((key) => [key, z.string().optional()]));
+
+const localeFieldsSchema = z.object(localeFieldShape).strict();
 
 /** Zod mirror of PRODUCT_CONTENT_RESPONSE_SCHEMA. */
 export const productContentLocalesSchema = z

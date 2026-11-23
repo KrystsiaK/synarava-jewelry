@@ -16,6 +16,7 @@ Catalog copy (short description, description, SEO, locale titles) is expensive t
 3. **Compatible with ADR-0008 / ADR-0009** — nothing automatic writes Synarava content; Shopify compare/Apply path unchanged.
 4. **Provider = Gemini 3.1 Flash-Lite** — chosen after live Stage B/C bench (see table + [`docs/ai/provider-benchmark.md`](../ai/provider-benchmark.md) Decision). Production wire: `lib/ai/gemini.ts` + `AI_CONTENT_MODEL`.
 5. **Editor pass off by default** — `AI_EDITOR_PASS` opt-in; fail-soft keeps first draft.
+6. **Field scope = full locale tab (one shared list)** — `draft.locales[locale]` is a flat `{ [fieldKey]: string }` over the model-translatable entries in [`lib/products/product-locale-text-fields.ts`](../../lib/products/product-locale-text-fields.ts) (Product core + Details materials/process/lookbook + Shopify free-text specs). That module is the single inventory for Save (`PRODUCT_CORE_TRANSLATABLE_FIELDS` / details readers) and AI generate / preview / Apply — never a parallel hardcode. EN title is never applied. PT/RU only translate fields whose **saved EN** source is non-empty (`facts.enSourceByField`). Shopify taxonomy / metaobject **references** are `translationMode: "taxonomy"` and are not sent to the model (use `TaxonomyValueLabel` / existing overlays).
 
 ## Bench summary (Gemini / Haiku / Sonnet)
 

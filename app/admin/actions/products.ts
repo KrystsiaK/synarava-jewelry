@@ -23,7 +23,6 @@ import {
   buildProductSearchDocument,
   isShopifyOwnedCharacteristicKey,
   parseCharacteristicsForm,
-  readCharacteristicTextOverlayFromForm,
 } from "@/lib/products/characteristics";
 import {
   applyGalleryOp,
@@ -36,6 +35,15 @@ import {
   characteristicProjectionsFromShopifySpecs,
   SHOPIFY_PRODUCT_SPEC_FIELDS,
 } from "@/lib/products/shopify-product-specs";
+import {
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
+} from "@/lib/products/product-locale-text-fields";
+import {
+  readProductTranslationDetails,
+  readProductTranslationFields,
+} from "@/lib/products/product-locale-form-read";
 import {
   formDataHasMetafieldTranslationFields,
   mergeCustomMetafieldsIntoList,
@@ -51,7 +59,6 @@ import { resolveProductTranslationSyncStatus } from "@/lib/shopify/translations"
 import { parseShopifyTaxonomySelection } from "@/lib/shopify/taxonomy-selection";
 import { parseTags } from "@/lib/text/parse-tags";
 import { validateProductPublication } from "@/lib/products/localization";
-import { readLocaleField } from "@/lib/i18n/admin-locale-fields";
 import { getAdminTranslationLocales } from "@/lib/i18n/admin-translation-locales";
 import {
   syncScopedCollectionMembership,
@@ -518,62 +525,6 @@ const saveProductFieldsSchema = z.object({
   workflowState: z.string().trim().default("DRAFT"),
 });
 
-const TRANSLATABLE_PRODUCT_FIELDS = [
-  "title", "shortDescription", "description", "materialLine",
-  "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
-  "seoTitle", "seoDescription",
-] as const;
-
-/** Reads one locale's flat copy fields straight from the raw FormData (not the strict shared-field schema above — a translation is optional everywhere, so nothing here needs `.min(1)`). */
-function readProductTranslationFields(formData: FormData, locale: string) {
-  const fields = Object.fromEntries(
-    TRANSLATABLE_PRODUCT_FIELDS.map((key) => [key, readLocaleField(formData, locale, key)]),
-  ) as Record<(typeof TRANSLATABLE_PRODUCT_FIELDS)[number], string>;
-  return {
-    ...fields,
-    // Shared product.slug is the only URL path — no per-locale handle overrides.
-    localizedHandle: "",
-    reviewedFlag: readLocaleField(formData, locale, "reviewed"),
-  };
-}
-
-/**
- * One locale's `details` (materials/process/lookbook) text — images/src/
- * mediaImage are shared with English (see `details` in saveProductAction)
- * and never re-uploaded per locale.
- */
-function readProductTranslationDetails(formData: FormData, locale: string) {
-  const materials = [1, 2, 3].map((index) => ({
-    title: readLocaleField(formData, locale, `materialTitle${index}`),
-    body: normalizeRichTextForStorage(readLocaleField(formData, locale, `materialBody${index}`)),
-  }));
-  const stats = [1, 2, 3, 4]
-    .map((index) => ({
-      value: readLocaleField(formData, locale, `processStatValue${index}`),
-      label: readLocaleField(formData, locale, `processStatLabel${index}`),
-    }))
-    .filter((item) => item.value && item.label);
-  const lookbook = [1, 2, 3, 4]
-    .map((index) => ({ label: readLocaleField(formData, locale, `lookbookLabel${index}`) }))
-    .filter((item) => item.label);
-  const characteristics = readCharacteristicTextOverlayFromForm(formData, locale);
-  return {
-    characteristics,
-    materialsEyebrow: readLocaleField(formData, locale, "materialsEyebrow"),
-    materialsTitle: readLocaleField(formData, locale, "materialsTitle"),
-    materials: materials.filter((item) => item.title && item.body),
-    process: {
-      eyebrow: readLocaleField(formData, locale, "processEyebrow"),
-      title: readLocaleField(formData, locale, "processTitle"),
-      stats,
-    },
-    lookbookEyebrow: readLocaleField(formData, locale, "lookbookEyebrow"),
-    lookbookTitle: readLocaleField(formData, locale, "lookbookTitle"),
-    lookbook,
-  };
-}
-
-
 /**
  * Publishing never blocks on incomplete content — the storefront already
  * falls back gracefully (resolveLocalizedContent uses English when a
@@ -731,7 +682,8 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
   }
 
   const materialEntries = await Promise.all(
-    [1, 2, 3].map(async (index) => {
+    Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, async (_, offset) => {
+      const index = offset + 1;
       const image = await uploadOptionalProductAsset({
         formData,
         fieldName: `materialImageFile${index}`,
@@ -756,15 +708,17 @@ export async function saveProductAction(formData: FormData): Promise<ProductActi
     uploadedByUsername: currentUser?.username,
   });
 
-  const processStats = [1, 2, 3, 4]
-    .map((index) => ({
+  const processStats = Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, offset) => {
+    const index = offset + 1;
+    return {
       value: formValue(formData, `processStatValue${index}`),
       label: formValue(formData, `processStatLabel${index}`),
-    }))
-    .filter((item) => item.value && item.label);
+    };
+  }).filter((item) => item.value && item.label);
 
   const lookbookEntries = await Promise.all(
-    [1, 2, 3, 4].map(async (index) => {
+    Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, async (_, offset) => {
+      const index = offset + 1;
       const src = await uploadOptionalProductAsset({
         formData,
         fieldName: `lookbookImageFile${index}`,

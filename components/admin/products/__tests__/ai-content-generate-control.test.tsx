@@ -106,11 +106,24 @@ import { EditProductForm } from "@/components/admin/products/product-edit-form";
 import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
 import { AiContentPreviewModal } from "@/components/admin/products/ai-content-preview-modal";
 import {
+  AI_FIELDS,
   STALE_APPLY_MESSAGE,
+  formFieldNameForAi,
   selectionKey,
 } from "@/components/admin/products/ai-content-apply";
 import type { ProductRecord } from "@/components/admin/products/product-types";
 import { createRef } from "react";
+import type { AiField, AiLocale } from "@/lib/ai/product-content/contract";
+
+/** Non-empty proposed value for every model-translatable field (mutation proof). */
+function fillLocaleFields(locale: AiLocale, prefix: string): Partial<Record<AiField, string>> {
+  const out: Partial<Record<AiField, string>> = {};
+  for (const field of AI_FIELDS) {
+    if (locale === "en" && field === "title") continue;
+    out[field] = `${prefix}:${field}`;
+  }
+  return out;
+}
 
 function makeOkDraft(overrides: Partial<ProductContentDraft> = {}): ProductContentDraft {
   return {
@@ -506,21 +519,9 @@ describe("EditProductForm AI wiring", () => {
     const draft = makeOkDraft({
       warnings: [],
       locales: {
-        en: {
-          description: "<p>AI EN description</p>",
-          seoTitle: "AI EN SEO",
-          seoDescription: "AI EN SEO desc",
-        },
-        pt: {
-          title: "Anel Lava AI",
-          description: "<p>Descrição PT AI</p>",
-          seoTitle: "SEO PT AI",
-        },
-        ru: {
-          title: "Кольцо Лава AI",
-          description: "<p>Описание RU AI</p>",
-          seoTitle: "SEO RU AI",
-        },
+        en: fillLocaleFields("en", "EN"),
+        pt: fillLocaleFields("pt", "PT"),
+        ru: fillLocaleFields("ru", "RU"),
       },
     });
     mocks.generateProductContentAction.mockResolvedValue({ ok: true, draft });
@@ -553,10 +554,15 @@ describe("EditProductForm AI wiring", () => {
     const form = container.querySelector("form");
     expect(form).toBeTruthy();
     const formData = new FormData(form!);
-    expect(formData.get("ptTitle")).toBe("Anel Lava AI");
-    expect(formData.get("ptDescription")).toBe("<p>Descrição PT AI</p>");
-    expect(formData.get("ruTitle")).toBe("Кольцо Лава AI");
-    expect(formData.get("ruSeoTitle")).toBe("SEO RU AI");
+    const missingBeforeSave: string[] = [];
+    for (const locale of ["pt", "ru"] as const) {
+      for (const field of AI_FIELDS) {
+        const name = formFieldNameForAi(locale, field);
+        const expected = `${locale.toUpperCase()}:${field}`;
+        if (formData.get(name) !== expected) missingBeforeSave.push(`${name}≠${expected}`);
+      }
+    }
+    expect(missingBeforeSave).toEqual([]);
 
     await user.click(screen.getAllByRole("button", { name: "Save product" })[0]);
     const confirm = screen.queryByRole("button", { name: "Yes, save changes" });
@@ -566,10 +572,15 @@ describe("EditProductForm AI wiring", () => {
       expect(mocks.saveProductAction).toHaveBeenCalled();
     });
     const saved = mocks.saveProductAction.mock.calls.at(-1)?.[0] as FormData;
-    expect(saved.get("ptTitle")).toBe("Anel Lava AI");
-    expect(saved.get("ptDescription")).toBe("<p>Descrição PT AI</p>");
-    expect(saved.get("ruTitle")).toBe("Кольцо Лава AI");
-    expect(saved.get("ruSeoTitle")).toBe("SEO RU AI");
+    const missingOnSave: string[] = [];
+    for (const locale of ["pt", "ru"] as const) {
+      for (const field of AI_FIELDS) {
+        const name = formFieldNameForAi(locale, field);
+        const expected = `${locale.toUpperCase()}:${field}`;
+        if (saved.get(name) !== expected) missingOnSave.push(`${name}≠${expected}`);
+      }
+    }
+    expect(missingOnSave).toEqual([]);
   });
 
   it("error toast lists selected fields that failed to apply", async () => {

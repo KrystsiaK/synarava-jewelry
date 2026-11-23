@@ -9,8 +9,10 @@ import {
   buildDefaultSelections,
   fieldLabel,
   formatUsageLine,
+  groupAiFieldsBySection,
   isAiDraftStale,
   isEnTitle,
+  sectionLabel,
   selectionKey,
   type AiFieldSelectionKey,
 } from "@/components/admin/products/ai-content-apply";
@@ -126,42 +128,54 @@ function PreviewBody({
             return localeDraft[field] != null;
           });
           if (rows.length === 0) return null;
+          const groups = groupAiFieldsBySection(rows);
           return (
             <section key={locale} className="grid gap-3" aria-label={`${locale} fields`}>
               <p className="adm-section-tag">[ {locale.toUpperCase()} ]</p>
-              {rows.map((field) => {
-                const key = selectionKey(locale, field);
-                const proposed = localeDraft[field] ?? "";
-                const current = getCurrent(locale, field);
-                const warnings = warningsByKey.get(key) ?? [];
-                const checkboxId = `ai-preview-${locale}-${field}`;
-                return (
-                  <div
-                    key={key}
-                    className="grid gap-2 border border-[var(--adm-border)] p-3"
-                    data-testid={`ai-preview-row-${locale}-${field}`}
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <AdminCheckboxControl
-                        id={checkboxId}
-                        label={fieldLabel(field)}
-                        checked={selected.has(key)}
-                        onChange={(event) => toggle(key, event.target.checked)}
-                        disabled={stale}
-                      />
-                      {warnings.length > 0 ? (
-                        <p
-                          className="text-xs text-[orange]"
-                          data-testid={`ai-preview-warning-${locale}-${field}`}
-                        >
-                          {warnings.join(" · ")}
-                        </p>
-                      ) : null}
-                    </div>
-                    <CurrentProposed current={current} proposed={proposed} />
-                  </div>
-                );
-              })}
+              {groups.map(({ section, fields }) => (
+                <div
+                  key={`${locale}-${section}`}
+                  className="grid gap-2"
+                  data-testid={`ai-preview-section-${locale}-${section}`}
+                >
+                  <p className="text-xs font-medium text-[var(--adm-muted)]">
+                    {sectionLabel(section)}
+                  </p>
+                  {fields.map((field) => {
+                    const key = selectionKey(locale, field);
+                    const proposed = localeDraft[field] ?? "";
+                    const current = getCurrent(locale, field);
+                    const warnings = warningsByKey.get(key) ?? [];
+                    const checkboxId = `ai-preview-${locale}-${field}`;
+                    return (
+                      <div
+                        key={key}
+                        className="grid gap-2 border border-[var(--adm-border)] p-3"
+                        data-testid={`ai-preview-row-${locale}-${field}`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <AdminCheckboxControl
+                            id={checkboxId}
+                            label={fieldLabel(field)}
+                            checked={selected.has(key)}
+                            onChange={(event) => toggle(key, event.target.checked)}
+                            disabled={stale}
+                          />
+                          {warnings.length > 0 ? (
+                            <p
+                              className="text-xs text-[orange]"
+                              data-testid={`ai-preview-warning-${locale}-${field}`}
+                            >
+                              {warnings.join(" · ")}
+                            </p>
+                          ) : null}
+                        </div>
+                        <CurrentProposed current={current} proposed={proposed} />
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </section>
           );
         })}
@@ -224,7 +238,8 @@ export function AiContentPreviewModal({
                 AI content preview
               </h2>
               <p className="mt-1 text-xs text-[var(--adm-muted)]">
-                Choose fields to copy into the form. Save remains separate.
+                Choose fields to copy into the form. Save remains separate. Grouped by Product /
+                Details / Specs.
               </p>
             </div>
             <p className="text-[0.7rem] text-[var(--adm-muted)]" data-testid="ai-content-usage">

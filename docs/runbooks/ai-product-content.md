@@ -9,7 +9,7 @@ How to enable, disable, budget, and evaluate the **Generate with AI** path in th
 | `GEMINI_API_KEY` | Google AI Studio / Gemini API key | required when enabled |
 | `AI_CONTENT_ENABLED` | Kill-switch (`1`/`true`/`yes`/`on`) | off |
 | `AI_CONTENT_MODEL` | Production model id | `gemini-3.1-flash-lite` |
-| `AI_MAX_OUTPUT_TOKENS` | Provider max output tokens | `4096` |
+| `AI_MAX_OUTPUT_TOKENS` | Provider max output tokens | `16384` (full locale-tab field set × EN/PT/RU) |
 | `AI_MAX_INPUT_CHARS` | Facts prompt ceiling | `12000` |
 | `AI_EDITOR_PASS` | Second editorial polish call | off (`0`) |
 | `AI_MONTHLY_BUDGET_USD` | Soft monthly spend ceiling (AuditLog sum) | `5` |
@@ -75,11 +75,25 @@ AI_CONTENT_ENABLED=1 node scripts/ai/m4-evaluate.mjs <productId> ...
 
 Does not write Product / ProductTranslation. Prefer a local or staging DB URL; never point at production unless the owner explicitly asks.
 
+## Field scope (locale tab)
+
+Shared inventory: `lib/products/product-locale-text-fields.ts` (Save + AI).
+
+| Section | Contents |
+| --- | --- |
+| Product | title, shortDescription, description, materialLine, symbolism*, seoTitle, seoDescription |
+| Details | materials / process / lookbook slot text (+ passport TEXT overlays if any) |
+| Specs | Shopify Product-tab `custom.*` free-text overlays (`SHOPIFY_PRODUCT_SPEC_FIELDS`) |
+
+Taxonomy / metaobject reference values are excluded from the model (`translationMode: "taxonomy"`). Preview groups rows by Product / Details / Specs. Apply writes the same FormData names the human editor uses; human **Save** persists.
+
+**Cost estimate (Gemini 3.1 Flash-Lite, editor pass off):** ceiling ≈ **$0.025 / product** at `AI_MAX_OUTPUT_TOKENS=16384` + ~3k input tokens; typical filled product ≈ **$0.008–0.012 / product** (~6–8k output tokens). Raise `AI_MAX_OUTPUT_TOKENS` only if MAX_TOKENS truncations appear in AuditLog.
+
 ## Known limits
 
 - **Budget race:** monthly spend is checked then audited; concurrent generates can overshoot `AI_MONTHLY_BUDGET_USD` slightly.
-- **Claim-guard heuristic:** advisory warnings (numbers / material synonyms); not a proof of factual correctness. Human must still verify.
-- **Saved data only:** generate reads the **saved** product row, not unsaved form fields. Save before Generate if the form is dirty.
+- **Claim-guard heuristic:** advisory warnings (numbers / material synonyms); not a proof of factual correctness. Human must still verify. Validators run on **every** field in the shared list.
+- **Saved data only:** generate reads the **saved** product row, not unsaved form fields. Save before Generate if the form is dirty. Empty EN source → PT/RU field left empty (no invent).
 - **Model may write “single”:** still appears as a warning when facts do not support it; draft is not auto-applied.
 - **OpenAI not measured:** Stage B/C owner decision — OpenAI stayed out of the winner comparison; do not treat `gpt-*` as production-ready without a new bench + ADR update.
 

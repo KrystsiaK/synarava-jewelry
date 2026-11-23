@@ -104,7 +104,13 @@ const productRow = {
   description: "<p>Brass band.</p>",
   seoTitle: null,
   seoDescription: null,
+  symbolismLabel: null,
+  symbolismTitle: null,
+  symbolismBody: null,
+  symbolismBody2: null,
   details: { attributes: [{ label: "Finish", value: "matte" }] },
+  extras: null,
+  shopifySnapshot: null,
   updatedAt: new Date("2026-11-01T12:00:00.000Z"),
   characteristics: [
     {
@@ -129,6 +135,16 @@ const baseFacts: ProductContentFacts = {
   description: null,
   seoTitle: null,
   seoDescription: null,
+  symbolismLabel: null,
+  symbolismTitle: null,
+  symbolismBody: null,
+  symbolismBody2: null,
+  enSourceByField: {
+    title: "River Ring",
+    shortDescription: "Quiet brass ring.",
+    description: "<p>Brass band.</p>",
+    materialLine: "brass",
+  },
   detailsAttributes: [],
   characteristics: [{ key: "material", label: "Material", value: "brass" }],
   collections: [],
@@ -485,7 +501,9 @@ describe("6. Limits — budget race, tokens, huge input, 429", () => {
   it("budget race: 10 parallel at budget for 1–2 measures overspend (documented)", async () => {
     // Small maxOutput keeps ceiling low so 1–2 calls pass pre-check; actual usage is larger.
     process.env.AI_MAX_OUTPUT_TOKENS = "40";
-    process.env.AI_MONTHLY_BUDGET_USD = "0.00015";
+    // Full locale-tab facts raise inputChars; keep budget large enough for 1–2
+    // parallel pre-checks while still documenting TOCTOU overspend.
+    process.env.AI_MONTHLY_BUDGET_USD = "0.002";
     mocks.auditLogFindMany.mockResolvedValue([]);
     mocks.contentProvider.mockImplementation(async () => ({
       json: { locales: { en: { shortDescription: "Quiet." } } },
@@ -516,7 +534,7 @@ describe("6. Limits — budget race, tokens, huge input, 429", () => {
     const okCount = results.filter((r) => r.ok).length;
     const exhausted = results.filter((r) => !r.ok && r.code === "budget_exhausted").length;
     const totalLogged = spentLogged.reduce((a, b) => a + b, 0);
-    const budget = 0.00015;
+    const budget = 0.002;
 
     // Document: TOCTOU allows overspend when N parallel pass the same pre-check.
     // eslint-disable-next-line no-console
@@ -648,6 +666,10 @@ describe("8. Data — provider payload has no PII commerce noise", () => {
       description: null,
       seoTitle: null,
       seoDescription: null,
+      symbolismLabel: null,
+      symbolismTitle: null,
+      symbolismBody: null,
+      symbolismBody2: null,
       details: {},
       characteristics: [],
       collections: [],
@@ -668,6 +690,7 @@ describe("8. Data — provider payload has no PII commerce noise", () => {
         "collections",
         "description",
         "detailsAttributes",
+        "enSourceByField",
         "materialLine",
         "name",
         "productId",
@@ -675,6 +698,10 @@ describe("8. Data — provider payload has no PII commerce noise", () => {
         "seoDescription",
         "seoTitle",
         "shortDescription",
+        "symbolismBody",
+        "symbolismBody2",
+        "symbolismLabel",
+        "symbolismTitle",
         "translations",
       ].sort(),
     );
