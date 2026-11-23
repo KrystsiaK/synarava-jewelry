@@ -37,7 +37,9 @@ export type SitemapCollectResult = {
   /** True when at least one sitemap URL returned HTTP 200 with parseable XML. */
   sitemapOk: boolean;
   /**
-   * False when maxProducts / maxSitemaps truncated collection, or every candidate failed.
+   * False when truncated, a required sitemap failed, or nothing usable was read.
+   * Only the initial fallback seeds (`/sitemap.xml`, `/sitemap_index.xml` when
+   * robots lists none) may fail without breaking completeness.
    * Removal-from-sitemap must only run when complete === true.
    */
   complete: boolean;
@@ -58,20 +60,29 @@ export async function collectProductUrlsFromSitemap(input: {
   const maxSitemaps = input.maxSitemaps ?? 15;
   const maxProducts = input.maxProducts ?? 400;
 
-  const queue: string[] = robots.sitemaps.length
+  const usedRobotsSitemaps = robots.sitemaps.length > 0;
+  const seedQueue: string[] = usedRobotsSitemaps
     ? [...robots.sitemaps]
     : [`${target.origin}/sitemap.xml`, `${target.origin}/sitemap_index.xml`];
 
+  // Optional: only the synthetic fallback seeds may 404 without failing completeness.
+  // Robots-listed sitemaps and every URL discovered from a sitemapindex are required.
+  const optionalSeeds = new Set(
+    usedRobotsSitemaps
+      ? []
+      : [`${target.origin}/sitemap.xml`, `${target.origin}/sitemap_index.xml`],
+  );
+
+  const queue: string[] = [...seedQueue];
   const seen = new Set<string>();
   const products: string[] = [];
   let sitemapOk = false;
   let truncated = false;
-  let queueRemaining = false;
+  let requiredFailed = false;
 
   while (queue.length > 0) {
     if (products.length >= maxProducts || seen.size >= maxSitemaps) {
       truncated = true;
-      queueRemaining = queue.length > 0;
       break;
     }
 
@@ -79,32 +90,49 @@ export async function collectProductUrlsFromSitemap(input: {
     if (seen.has(sm)) continue;
     seen.add(sm);
 
+    const required = !optionalSeeds.has(sm);
+
     let smUrl: URL;
     try {
       smUrl = new URL(sm);
     } catch {
+      if (required) requiredFailed = true;
       continue;
     }
-    if (normalizeCompetitorHost(smUrl.hostname) !== target.host) continue;
-    if (!robots.allowed(smUrl.pathname)) continue;
+    if (normalizeCompetitorHost(smUrl.hostname) !== target.host) {
+      if (required) requiredFailed = true;
+      continue;
+    }
+    if (!robots.allowed(smUrl.pathname)) {
+      if (required) requiredFailed = true;
+      continue;
+    }
 
     const res = await fetchFn(sm);
-    if (res.status !== 200) continue;
+    if (res.status !== 200) {
+      if (required) requiredFailed = true;
+      continue;
+    }
 
     let text: string;
     try {
       text = decodeSitemapBody(sm, res.body);
     } catch {
-      // Gzip bomb / corrupt gzip — do not mark sitemapOk from this body.
+      // Gzip bomb / corrupt gzip
+      if (required) requiredFailed = true;
       continue;
     }
-    if (!/<urlset|<sitemapindex/i.test(text)) continue;
+    if (!/<urlset|<sitemapindex/i.test(text)) {
+      if (required) requiredFailed = true;
+      continue;
+    }
     sitemapOk = true;
 
     const locs = extractLocs(text);
     if (/<sitemapindex/i.test(text)) {
       const productFirst = locs.filter((u) => /product/i.test(u));
       const rest = locs.filter((u) => !/product/i.test(u));
+      // Children of an index are always required.
       queue.push(...productFirst, ...rest);
       continue;
     }
@@ -127,11 +155,10 @@ export async function collectProductUrlsFromSitemap(input: {
 
   if (queue.length > 0) {
     truncated = true;
-    queueRemaining = true;
   }
 
   const unique = [...new Set(products)];
-  const complete = sitemapOk && !truncated && !queueRemaining;
+  const complete = sitemapOk && !truncated && !requiredFailed;
 
   return {
     productUrls: unique.slice(0, maxProducts),

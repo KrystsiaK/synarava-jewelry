@@ -115,6 +115,93 @@ describe("fix4 sitemap complete flag", () => {
     expect(full.complete).toBe(true);
     expect(full.productUrls.length).toBe(5);
   });
+
+  it("complete=false when a sitemapindex child returns 503", async () => {
+    const robots = parseRobotsTxt("User-agent: *\nAllow: /\n");
+    const index = `<?xml version="1.0"?><sitemapindex>
+      <sitemap><loc>https://aurorajoalharia.com/sitemap_products_1.xml</loc></sitemap>
+      <sitemap><loc>https://aurorajoalharia.com/sitemap_products_2.xml</loc></sitemap>
+    </sitemapindex>`;
+    const child1 = `<?xml version="1.0"?><urlset>
+      <url><loc>https://aurorajoalharia.com/products/only</loc></url>
+    </urlset>`;
+
+    const result = await collectProductUrlsFromSitemap({
+      target,
+      robots,
+      fetchFn: async (url) => {
+        if (url.endsWith("/sitemap.xml")) {
+          return { status: 200, body: Buffer.from(index), finalUrl: url };
+        }
+        if (url.includes("sitemap_products_1")) {
+          return { status: 200, body: Buffer.from(child1), finalUrl: url };
+        }
+        if (url.includes("sitemap_products_2")) {
+          return { status: 503, body: Buffer.alloc(0), finalUrl: url };
+        }
+        return { status: 404, body: Buffer.alloc(0), finalUrl: url };
+      },
+    });
+    expect(result.sitemapOk).toBe(true);
+    expect(result.productUrls).toEqual([
+      "https://aurorajoalharia.com/products/only",
+    ]);
+    expect(result.complete).toBe(false);
+  });
+
+  it("complete=false when a sitemapindex child is a gzip bomb", async () => {
+    const robots = parseRobotsTxt("User-agent: *\nAllow: /\n");
+    const index = `<?xml version="1.0"?><sitemapindex>
+      <sitemap><loc>https://aurorajoalharia.com/sitemap_products_1.xml</loc></sitemap>
+      <sitemap><loc>https://aurorajoalharia.com/sitemap_products_2.xml.gz</loc></sitemap>
+    </sitemapindex>`;
+    const child1 = `<?xml version="1.0"?><urlset>
+      <url><loc>https://aurorajoalharia.com/products/only</loc></url>
+    </urlset>`;
+    const bomb = gzipSync(Buffer.alloc(12 * 1024 * 1024, 0x20));
+
+    const result = await collectProductUrlsFromSitemap({
+      target,
+      robots,
+      fetchFn: async (url) => {
+        if (url.endsWith("/sitemap.xml")) {
+          return { status: 200, body: Buffer.from(index), finalUrl: url };
+        }
+        if (url.includes("sitemap_products_1")) {
+          return { status: 200, body: Buffer.from(child1), finalUrl: url };
+        }
+        if (url.includes("sitemap_products_2")) {
+          return { status: 200, body: bomb, finalUrl: url };
+        }
+        return { status: 404, body: Buffer.alloc(0), finalUrl: url };
+      },
+    });
+    expect(result.sitemapOk).toBe(true);
+    expect(result.productUrls).toEqual([
+      "https://aurorajoalharia.com/products/only",
+    ]);
+    expect(result.complete).toBe(false);
+  });
+
+  it("fallback /sitemap_index.xml 404 does not break completeness", async () => {
+    const robots = parseRobotsTxt("User-agent: *\nAllow: /\n");
+    const urlset = `<?xml version="1.0"?><urlset>
+      <url><loc>https://aurorajoalharia.com/products/a</loc></url>
+    </urlset>`;
+    const result = await collectProductUrlsFromSitemap({
+      target,
+      robots,
+      fetchFn: async (url) => {
+        if (url.endsWith("/sitemap.xml")) {
+          return { status: 200, body: Buffer.from(urlset), finalUrl: url };
+        }
+        // second fallback candidate
+        return { status: 404, body: Buffer.alloc(0), finalUrl: url };
+      },
+    });
+    expect(result.sitemapOk).toBe(true);
+    expect(result.complete).toBe(true);
+  });
 });
 
 describe("fix5 manual notes", () => {
