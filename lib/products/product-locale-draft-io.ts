@@ -6,6 +6,9 @@ import type {
 import { emptyLocaleDraft } from "@/components/admin/products/product-helpers";
 import {
   PRODUCT_CORE_TRANSLATABLE_FIELDS,
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
   getProductLocaleTextField,
   shopifySpecKeyFromLocaleFieldKey,
   type ProductCoreTranslatableField,
@@ -15,15 +18,21 @@ import { characteristicFormKey } from "@/lib/products/characteristics";
 const CORE_SET = new Set<string>(PRODUCT_CORE_TRANSLATABLE_FIELDS);
 
 function padMaterials(details: ProductLocaleDetailsDraft): ProductLocaleDetailsDraft["materials"] {
-  return Array.from({ length: 3 }, (_, index) => details.materials[index] ?? { title: "", body: "" });
+  return Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) =>
+    details.materials[index] ?? { title: "", body: "" },
+  );
 }
 
 function padStats(details: ProductLocaleDetailsDraft): ProductLocaleDetailsDraft["process"]["stats"] {
-  return Array.from({ length: 4 }, (_, index) => details.process.stats[index] ?? { value: "", label: "" });
+  return Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) =>
+    details.process.stats[index] ?? { value: "", label: "" },
+  );
 }
 
 function padLookbook(details: ProductLocaleDetailsDraft): ProductLocaleDetailsDraft["lookbook"] {
-  return Array.from({ length: 4 }, (_, index) => details.lookbook[index] ?? { label: "" });
+  return Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, (_, index) =>
+    details.lookbook[index] ?? { label: "" },
+  );
 }
 
 export function readDetailsLocaleField(details: ProductLocaleDetailsDraft, field: string): string {

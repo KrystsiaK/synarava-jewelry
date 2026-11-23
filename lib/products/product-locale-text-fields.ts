@@ -64,7 +64,7 @@ const CORE_RICH = new Set<string>([
   "seoDescription",
 ]);
 
-/** Slot counts must match `readProductTranslationDetails` / HiddenDetailsLocaleFields. */
+/** Slot counts — single source of truth for Save, HiddenDetails, draft IO. */
 export const PRODUCT_DETAILS_MATERIAL_SLOTS = 3;
 export const PRODUCT_DETAILS_PROCESS_STAT_SLOTS = 4;
 export const PRODUCT_DETAILS_LOOKBOOK_SLOTS = 4;

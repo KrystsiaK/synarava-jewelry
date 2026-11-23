@@ -6,6 +6,9 @@ import { plainTextFromRichText } from "@/lib/content/rich-text";
 import { parseCharacteristicTextOverlay } from "@/lib/products/characteristics";
 import { readDetailsLocaleField } from "@/lib/products/product-locale-draft-io";
 import {
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
   getProductLocaleTextField,
   shopifySpecKeyFromLocaleFieldKey,
 } from "@/lib/products/product-locale-text-fields";
@@ -309,21 +312,21 @@ function detailsTextFromProduct(details: unknown): ProductLocaleDetailsDraft {
     characteristics: parseCharacteristicTextOverlay(details),
     materialsEyebrow: parsed.materialsEyebrow ?? "",
     materialsTitle: parsed.materialsTitle ?? "",
-    materials: Array.from({ length: 3 }, (_, index) => {
+    materials: Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) => {
       const source = parsed.materials?.[index];
       return { title: source?.title ?? "", body: source?.body ?? "" };
     }),
     process: {
       eyebrow: parsed.process?.eyebrow ?? "",
       title: parsed.process?.title ?? "",
-      stats: Array.from({ length: 4 }, (_, index) => {
+      stats: Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) => {
         const source = parsed.process?.stats?.[index];
         return { value: source?.value ?? "", label: source?.label ?? "" };
       }),
     },
     lookbookEyebrow: parsed.lookbookEyebrow ?? "",
     lookbookTitle: parsed.lookbookTitle ?? "",
-    lookbook: Array.from({ length: 4 }, (_, index) => {
+    lookbook: Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, (_, index) => {
       const source = parsed.lookbook?.[index];
       return { label: source?.label ?? "" };
     }),

@@ -5,6 +5,11 @@ import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locale
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductDraft, ProductLocaleDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
 import {
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
+} from "@/lib/products/product-locale-text-fields";
+import {
   shopifyProductSpecOverlaysFromTranslations,
   shopifyProductSpecValuesFromWindows,
 } from "@/lib/products/shopify-product-specs";
@@ -81,21 +86,21 @@ export function getProductDetailsTranslation(details: unknown) {
     characteristics,
     materialsEyebrow: parsed.materialsEyebrow ?? "",
     materialsTitle: parsed.materialsTitle ?? "",
-    materials: Array.from({ length: 3 }, (_, index) => {
+    materials: Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) => {
       const source = parsed.materials?.[index];
       return { title: source?.title ?? "", body: source?.body ?? "" };
     }),
     process: {
       eyebrow: parsed.process?.eyebrow ?? "",
       title: parsed.process?.title ?? "",
-      stats: Array.from({ length: 4 }, (_, index) => {
+      stats: Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) => {
         const source = parsed.process?.stats?.[index];
         return { value: source?.value ?? "", label: source?.label ?? "" };
       }),
     },
     lookbookEyebrow: parsed.lookbookEyebrow ?? "",
     lookbookTitle: parsed.lookbookTitle ?? "",
-    lookbook: Array.from({ length: 4 }, (_, index) => {
+    lookbook: Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, (_, index) => {
       const source: { label?: string } | undefined = parsed.lookbook?.[index];
       return { label: source?.label ?? "" };
     }),
