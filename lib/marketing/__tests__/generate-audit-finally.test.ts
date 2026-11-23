@@ -163,6 +163,9 @@ describe("fix8 usage audit survives ContentIdea create failure", () => {
       actor: { username: "admin", sessionId: "sess" },
     });
     expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.warnings).toContain("only 1 valid ideas");
+    expect(result.usage.costUsd).toBeGreaterThanOrEqual(0);
     const meta = mocks.auditLogCreate.mock.calls.at(-1)![0].data.metadata as {
       manualNotes: Array<{ signalId: string; url: string; text: string }>;
     };
@@ -172,3 +175,4 @@ describe("fix8 usage audit survives ContentIdea create failure", () => {
     expect(meta.manualNotes[0]?.signalId).toMatch(/^manual:/);
   });
 });
+

@@ -45,6 +45,16 @@ export type SitemapCollectResult = {
   complete: boolean;
 };
 
+/** Prefer locale-scoped robots Sitemap entries when the target declares a hint. */
+export function preferRobotsSitemaps(
+  sitemaps: readonly string[],
+  pathPrefer: string | undefined,
+): string[] {
+  if (!pathPrefer) return [...sitemaps];
+  const preferred = sitemaps.filter((u) => u.includes(pathPrefer));
+  return preferred.length > 0 ? preferred : [...sitemaps];
+}
+
 /**
  * Walk sitemap index → product sitemaps first → product locs matching target regex.
  * Fallback queue: robots sitemaps, else `/sitemap.xml` then `/sitemap_index.xml`.
@@ -62,7 +72,7 @@ export async function collectProductUrlsFromSitemap(input: {
 
   const usedRobotsSitemaps = robots.sitemaps.length > 0;
   const seedQueue: string[] = usedRobotsSitemaps
-    ? [...robots.sitemaps]
+    ? preferRobotsSitemaps(robots.sitemaps, target.sitemapPathPrefer)
     : [`${target.origin}/sitemap.xml`, `${target.origin}/sitemap_index.xml`];
 
   // Optional: only the synthetic fallback seeds may 404 without failing completeness.
@@ -108,7 +118,14 @@ export async function collectProductUrlsFromSitemap(input: {
       continue;
     }
 
-    const res = await fetchFn(sm);
+    let res: { status: number; body: Buffer; finalUrl: string };
+    try {
+      res = await fetchFn(sm);
+    } catch {
+      // Oversized body / network / SSRF — do not abort the whole walk.
+      if (required) requiredFailed = true;
+      continue;
+    }
     if (res.status !== 200) {
       if (required) requiredFailed = true;
       continue;

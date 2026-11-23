@@ -115,7 +115,7 @@ function buildSystemInstruction(): string {
     "You generate Instagram Reels ideas for Synarava fashion jewelry.",
     "Use ONLY the provided product facts and market signals. Never invent materials, certifications, or competitor claims.",
     "Locales: en (English) and pt (European Portuguese / PT-PT).",
-    "Return JSON matching the schema. Ask for at least 10 ideas across locales when possible.",
+    "Return JSON matching the schema. Produce 12 ideas balanced across en and pt (about 6 each).",
     "Each idea: hook, script, shotList, caption, weekSlot 1-4, productIds from the input list, signalIds only from provided signal ids (may be empty).",
   ].join(" ");
 }
@@ -137,7 +137,7 @@ function buildUserPrompt(input: {
           )
           .join("\n\n");
   return [
-    "Generate >= 10 Reels ideas (mix of en and pt).",
+    "Generate 12 Reels ideas balanced across en and pt (about 6 each).",
     "",
     "## Products",
     productBlock,
@@ -387,10 +387,15 @@ export async function generateMarketingIdeas(
     };
   }
 
+  const warnings = [...validated.warnings];
+  if (created.length < 10) {
+    warnings.push(`only ${created.length} valid ideas`);
+  }
+
   return {
     ok: true,
     ideas: created,
-    warnings: validated.warnings,
+    warnings,
     usage: { costUsd, model: providerResult.usage.model || getAiContentModel() },
   };
 }

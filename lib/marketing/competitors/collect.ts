@@ -25,8 +25,33 @@ export type ScanDomainResult = {
   skippedRobots: number;
   written: number;
   unparsed: number;
+  sitemapComplete: boolean;
+  /** First errors encountered (caller truncates for AuditLog). */
   errors: string[];
 };
+
+const SCAN_ERROR_MAX = 3;
+const SCAN_ERROR_MAX_CHARS = 200;
+
+/** Keep first N domain errors, each capped for AuditLog / UI. */
+export function truncateScanErrors(
+  errors: readonly string[],
+  max = SCAN_ERROR_MAX,
+  maxChars = SCAN_ERROR_MAX_CHARS,
+): string[] {
+  return errors.slice(0, max).map((e) =>
+    e.length <= maxChars ? e : `${e.slice(0, maxChars - 1)}…`,
+  );
+}
+
+function pushScanError(result: ScanDomainResult, message: string): void {
+  if (result.errors.length >= SCAN_ERROR_MAX) return;
+  const trimmed =
+    message.length <= SCAN_ERROR_MAX_CHARS
+      ? message
+      : `${message.slice(0, SCAN_ERROR_MAX_CHARS - 1)}…`;
+  result.errors.push(trimmed);
+}
 
 export type ScanResult = {
   domains: ScanDomainResult[];
@@ -81,6 +106,7 @@ async function scanDomain(
     skippedRobots: 0,
     written: 0,
     unparsed: 0,
+    sitemapComplete: false,
     errors: [],
   };
 
@@ -91,7 +117,8 @@ async function scanDomain(
     const robotsRes = await fetchCompetitorUrl(`${target.origin}/robots.txt`, target);
     robotsText = robotsRes.body.toString("utf8");
   } catch (error) {
-    result.errors.push(
+    pushScanError(
+      result,
       error instanceof Error ? error.message : "robots.txt fetch failed",
     );
   }
@@ -110,8 +137,20 @@ async function scanDomain(
     sitemapUrls = sm.productUrls;
     sitemapOk = sm.sitemapOk;
     sitemapComplete = sm.complete;
+    result.sitemapComplete = sitemapComplete;
+    if (sitemapUrls.length === 0) {
+      pushScanError(
+        result,
+        sitemapOk
+          ? "sitemap read ok but 0 URLs matched product path"
+          : "sitemap yielded 0 product URLs",
+      );
+    }
   } catch (error) {
-    result.errors.push(error instanceof Error ? error.message : "sitemap failed");
+    pushScanError(
+      result,
+      error instanceof Error ? error.message : "sitemap failed",
+    );
   }
 
   const priorUrls = await previouslyObservedUrls(target.host);
@@ -188,10 +227,29 @@ async function scanDomain(
       result.fetched += 1;
     } catch (error) {
       if (error instanceof OffHostRedirectError) {
-        result.errors.push(error.message);
+        pushScanError(result, error.message);
         continue;
       }
-      result.errors.push(error instanceof Error ? error.message : "fetch failed");
+      pushScanError(
+        result,
+        error instanceof Error ? error.message : "fetch failed",
+      );
+      continue;
+    }
+
+    if (status === 403) {
+      pushScanError(result, `HTTP 403 blocked: ${url}`);
+      continue;
+    }
+
+    // Challenge / soft-block pages often return 200 with captcha markup and no product data.
+    if (
+      status === 200 &&
+      /(?:cf-challenge|challenge-platform|attention required|<title[^>]*>[^<]*access denied)/i.test(
+        html.slice(0, 8000),
+      )
+    ) {
+      pushScanError(result, `Challenge/block page: ${url}`);
       continue;
     }
 
@@ -221,7 +279,10 @@ async function scanDomain(
       continue;
     }
 
-    if (status !== 200) continue;
+    if (status !== 200) {
+      pushScanError(result, `HTTP ${status}: ${url}`);
+      continue;
+    }
 
     let extracted = extractFromHtml(html);
     if (
@@ -239,7 +300,10 @@ async function scanDomain(
           if (shopify) extracted = shopify;
         }
       } catch (error) {
-        result.errors.push(error instanceof Error ? error.message : "shopify-js failed");
+        pushScanError(
+          result,
+          error instanceof Error ? error.message : "shopify-js failed",
+        );
       }
     }
 
