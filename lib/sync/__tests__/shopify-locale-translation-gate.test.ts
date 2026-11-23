@@ -6,7 +6,7 @@
 import { describe, expect, it } from "vitest";
 
 import { compareSyncState } from "@/lib/sync/compare";
-import { shopLocaleNotEnabledReason } from "@/lib/shopify/shop-locale-write-gate";
+import { shopLocaleWriteBlockedReason } from "@/lib/shopify/shop-locale-write-gate";
 
 const LOCALES = [
   { code: "en", shopifyLocale: "en", name: "English", nativeName: "English", isDefault: true, sortOrder: 0 },
@@ -29,7 +29,9 @@ const PT_DIFF = {
   targetKind: "NATIVE" as const,
 };
 
-function compare(enabledShopifyLocales: ReadonlySet<string> | null | undefined, canWrite = false) {
+const SHOP_DOMAIN = "example.myshopify.com";
+
+function compare(enabledShopifyLocales: readonly string[] | null | undefined, canWrite = false) {
   return compareSyncState({
     commerceWindows: [],
     translationDifferences: [PT_DIFF],
@@ -37,6 +39,7 @@ function compare(enabledShopifyLocales: ReadonlySet<string> | null | undefined, 
     collectionPresence: [],
     locales: [...LOCALES],
     enabledShopifyLocales,
+    shopDomain: SHOP_DOMAIN,
     canWriteShopifyLocales: canWrite,
     connected: true,
     checkedAt: "2026-10-23T10:00:00.000Z",
@@ -47,12 +50,17 @@ function compare(enabledShopifyLocales: ReadonlySet<string> | null | undefined, 
 
 describe("compareSyncState shopify locale translation gate", () => {
   it("blocks PT Synarava→Shopify leaves when shop has no pt-PT", () => {
-    const result = compare(new Set(["en", "ru"]), true);
+    const result = compare(["en", "ru"], true);
     const leaf = result.leaves.find((item) => item.kind === "translation");
+    const reason = shopLocaleWriteBlockedReason({
+      shopDomain: SHOP_DOMAIN,
+      shopLocales: ["en", "ru"],
+      triedLocale: "pt-PT",
+    });
     expect(leaf).toMatchObject({
       locale: "pt",
       fieldKey: "translation:pt-PT:title",
-      blockedReason: shopLocaleNotEnabledReason("pt"),
+      blockedReason: reason,
       allowedDirections: ["SHOPIFY_TO_SYNARAVA"],
     });
     expect(leaf?.allowedDirections).not.toContain("SYNARAVA_TO_SHOPIFY");
@@ -64,7 +72,7 @@ describe("compareSyncState shopify locale translation gate", () => {
   });
 
   it("sends pt-PT field addresses when shop has pt-PT enabled", () => {
-    const result = compare(new Set(["en", "pt-PT"]));
+    const result = compare(["en", "pt-PT"]);
     const leaf = result.leaves.find((item) => item.kind === "translation");
     expect(leaf).toMatchObject({
       fieldKey: "translation:pt-PT:title",
@@ -80,8 +88,14 @@ describe("compareSyncState shopify locale translation gate", () => {
     expect(ungated.leaves[0]?.allowedDirections).toContain("SYNARAVA_TO_SHOPIFY");
     expect(ungated.leaves[0]?.blockedReason).toBeNull();
 
-    const gated = compare(new Set(["en"]));
+    const gated = compare(["en"]);
     expect(gated.leaves[0]?.allowedDirections).not.toContain("SYNARAVA_TO_SHOPIFY");
-    expect(gated.leaves[0]?.blockedReason).toBe(shopLocaleNotEnabledReason("pt"));
+    expect(gated.leaves[0]?.blockedReason).toBe(
+      shopLocaleWriteBlockedReason({
+        shopDomain: SHOP_DOMAIN,
+        shopLocales: ["en"],
+        triedLocale: "pt-PT",
+      }),
+    );
   });
 });

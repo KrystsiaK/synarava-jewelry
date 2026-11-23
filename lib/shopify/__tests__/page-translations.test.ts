@@ -2,20 +2,17 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   shopifyAdminRequest: vi.fn(),
-  getEnabledShopifyLocaleCodes: vi.fn(),
-  getStorefrontLocales: vi.fn(),
+  getShopifyShopLocalesSnapshot: vi.fn(),
 }));
 vi.mock("@/lib/shopify/admin", () => ({
   shopifyAdminRequest: mocks.shopifyAdminRequest,
   ShopifyAdminError: class ShopifyAdminError extends Error {},
 }));
 vi.mock("@/lib/shopify/shop-locales-cache", () => ({
-  getEnabledShopifyLocaleCodes: mocks.getEnabledShopifyLocaleCodes,
+  getShopifyShopLocalesSnapshot: mocks.getShopifyShopLocalesSnapshot,
+  getEnabledShopifyLocaleCodes: vi.fn(),
   getShopifyShopLocales: vi.fn(),
   invalidateShopifyShopLocalesCache: vi.fn(),
-}));
-vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
-  getStorefrontLocales: mocks.getStorefrontLocales,
 }));
 
 import {
@@ -25,10 +22,11 @@ import {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getEnabledShopifyLocaleCodes.mockResolvedValue(new Set(["en", "pt-pt", "ru"]));
-  mocks.getStorefrontLocales.mockResolvedValue([
-    { code: "pt", shopifyLocale: "pt-PT", isDefault: false },
-  ]);
+  mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+    shopDomain: "example.myshopify.com",
+    locales: [{ locale: "en" }, { locale: "pt-PT" }, { locale: "ru" }],
+    localeCodes: ["en", "pt-PT", "ru"],
+  });
 });
 
 describe("Shopify page translations", () => {

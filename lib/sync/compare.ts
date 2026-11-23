@@ -99,11 +99,13 @@ export type SyncCompareInput = {
   collectionPresence: readonly CollectionPresenceDifference[];
   locales: readonly SyncLocaleRef[];
   /**
-   * Enabled Shopify Admin locale codes (`shopLocales`), lowercased optional.
+   * Enabled Shopify Admin locale codes (`shopLocales`), as returned by Shopify.
    * When set, Synarava→Shopify translation leaves for missing locales are blocked.
    * Omit/null = no gate (unit tests without a shop snapshot).
    */
-  enabledShopifyLocales?: ReadonlySet<string> | null;
+  enabledShopifyLocales?: readonly string[] | null;
+  /** Shop myshopify domain for factual blocked-locale copy. */
+  shopDomain?: string | null;
   /** When true, blocked translation leaves may carry an Enable-in-Shopify offer. */
   canWriteShopifyLocales?: boolean;
   connected: boolean;
@@ -501,8 +503,9 @@ function translationLeaves(
   differences: SyncCompareInput["translationDifferences"],
   locales: readonly SyncLocaleRef[],
   commerceLeaves: readonly SyncLeaf[],
-  enabledShopifyLocales?: ReadonlySet<string> | null,
+  enabledShopifyLocales?: readonly string[] | null,
   canWriteShopifyLocales?: boolean,
+  shopDomain?: string | null,
 ): SyncLeaf[] {
   const leaves: SyncLeaf[] = [];
   const seen = new Set<string>();
@@ -532,8 +535,8 @@ function translationLeaves(
     const shopifyLocale = localeRef?.shopifyLocale ?? difference.locale;
     const writePlan = planShopifyLocaleTranslationWrite({
       shopifyLocale,
-      displayCode: locale,
       enabledShopifyLocales,
+      shopDomain,
       canWriteLocales: canWriteShopifyLocales,
     });
     const baseDirections = allowedDirectionsForLeaf({ kind: "translation", resourceType });
@@ -683,6 +686,7 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
     commerce.leaves,
     input.enabledShopifyLocales,
     input.canWriteShopifyLocales,
+    input.shopDomain,
   ).filter(
     (leaf) => !presenceResourceIds.has(`${leaf.resourceType}:${leaf.resourceId}`),
   );

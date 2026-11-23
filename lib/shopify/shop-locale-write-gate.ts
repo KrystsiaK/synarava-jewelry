@@ -13,10 +13,22 @@ export type ShopifyLocaleEnableOffer = {
   shopifyLocale: string;
 };
 
-/** Human reason when a content locale cannot be pushed to Shopify. */
-export function shopLocaleNotEnabledReason(displayCode: string): string {
-  const code = displayCode.trim().toUpperCase();
-  return `${code} is not enabled in the Shopify store (Settings → Languages)`;
+/**
+ * Factual blocked / invalid-locale reason — same string for leaf gate and
+ * translationsRegister race mapping.
+ * Example: `Shopify store example.myshopify.com has locales [en, fr]; Synarava tried to write 'pt-PT'.`
+ */
+export function shopLocaleWriteBlockedReason(input: {
+  shopDomain: string;
+  /** Locale codes as returned by Shopify `shopLocales` (preserve casing/order). */
+  shopLocales: readonly string[];
+  /** Shopify locale Synarava attempted to write (e.g. pt-PT). */
+  triedLocale: string;
+}): string {
+  const domain = input.shopDomain.trim() || "unknown";
+  const list = input.shopLocales.map((code) => code.trim()).filter(Boolean).join(", ");
+  const tried = input.triedLocale.trim() || input.triedLocale;
+  return `Shopify store ${domain} has locales [${list}]; Synarava tried to write '${tried}'.`;
 }
 
 /** True when Shopify userError means the locale is missing / not valid for the shop. */
@@ -26,10 +38,17 @@ export function isInvalidShopifyLocaleUserError(message: string): boolean {
   );
 }
 
-/** Map a Shopify invalid-locale userError to the same human reason as the leaf gate. */
-export function mapInvalidShopifyLocaleError(message: string, displayCode: string): string {
+/** Map a Shopify invalid-locale userError to the same factual reason as the leaf gate. */
+export function mapInvalidShopifyLocaleError(
+  message: string,
+  context: {
+    shopDomain: string;
+    shopLocales: readonly string[];
+    triedLocale: string;
+  },
+): string {
   if (isInvalidShopifyLocaleUserError(message)) {
-    return shopLocaleNotEnabledReason(displayCode);
+    return shopLocaleWriteBlockedReason(context);
   }
   return message;
 }
@@ -37,25 +56,24 @@ export function mapInvalidShopifyLocaleError(message: string, displayCode: strin
 /** Case-insensitive membership in the shop's enabled `shopLocales`. */
 export function isShopifyLocaleEnabled(
   shopifyLocale: string,
-  enabledShopifyLocales: ReadonlySet<string>,
+  enabledShopifyLocales: ReadonlySet<string> | readonly string[],
 ): boolean {
   const needle = shopifyLocale.trim().toLowerCase();
-  if (enabledShopifyLocales.has(needle)) return true;
-  for (const code of enabledShopifyLocales) {
-    if (code.toLowerCase() === needle) return true;
-  }
-  return false;
+  const codes = Array.isArray(enabledShopifyLocales)
+    ? enabledShopifyLocales
+    : [...enabledShopifyLocales];
+  return codes.some((code) => code.trim().toLowerCase() === needle);
 }
 
 /**
  * Plan whether Synarava → Shopify may run for this Shopify locale.
- * `displayCode` is the registry content code (pt → "PT" in the reason).
  */
 export function planShopifyLocaleTranslationWrite(input: {
   shopifyLocale: string;
-  displayCode: string;
-  /** When null/undefined, do not gate (legacy callers / tests without shop snapshot). */
-  enabledShopifyLocales?: ReadonlySet<string> | null;
+  /** When null/undefined, do not gate (legacy callers / tests without a shop snapshot). */
+  enabledShopifyLocales?: readonly string[] | null;
+  /** Shop myshopify domain for the factual blocked message. */
+  shopDomain?: string | null;
   /** When true and locale missing, attach an Enable-in-Shopify offer (no automation). */
   canWriteLocales?: boolean;
 }): {
@@ -72,7 +90,11 @@ export function planShopifyLocaleTranslationWrite(input: {
     return { allowPush: true, blockedReason: null, enableOffer: null };
   }
 
-  const blockedReason = shopLocaleNotEnabledReason(input.displayCode);
+  const blockedReason = shopLocaleWriteBlockedReason({
+    shopDomain: input.shopDomain ?? "unknown",
+    shopLocales: enabled,
+    triedLocale: input.shopifyLocale,
+  });
   const enableOffer = input.canWriteLocales
     ? {
         kind: "ENABLE_SHOPIFY_LOCALE" as const,

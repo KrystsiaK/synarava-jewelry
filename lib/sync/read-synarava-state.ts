@@ -18,7 +18,7 @@ import {
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
 import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
-import { getEnabledShopifyLocaleCodes } from "@/lib/shopify/shop-locales-cache";
+import { getShopifyShopLocalesSnapshot } from "@/lib/shopify/shop-locales-cache";
 import {
   deriveFreeShippingThresholdWindow,
   readAnnouncementBarSetting,
@@ -138,7 +138,7 @@ export async function readSynaravaStateForCompare(
   options?: { adminUsername?: string; checkedAt?: string | null },
 ): Promise<SyncCompareInput> {
   const connected = hasShopifyAdminConfig();
-  const [differences, productPresence, collectionPresence, locales, run, enabledShopifyLocales, canWriteShopifyLocales] =
+  const [differences, productPresence, collectionPresence, locales, run, shopLocalesSnapshot, canWriteShopifyLocales] =
     await Promise.all([
       getLatestReconcileDifferences(),
       getLatestCatalogPresenceDifferences(),
@@ -146,12 +146,18 @@ export async function readSynaravaStateForCompare(
       getStorefrontLocales(),
       getLatestReconcileRun(),
       connected
-        ? getEnabledShopifyLocaleCodes().catch(() => new Set<string>())
+        ? getShopifyShopLocalesSnapshot().catch(() => ({
+          shopDomain: "unknown",
+          locales: [],
+          localeCodes: [] as string[],
+        }))
         : Promise.resolve(null),
       connected
         ? hasWriteLocalesScope().catch(() => false)
         : Promise.resolve(false),
     ]);
+  const enabledShopifyLocales = shopLocalesSnapshot?.localeCodes ?? null;
+  const shopDomain = shopLocalesSnapshot?.shopDomain ?? null;
 
   let commerceWindows: SyncCommerceWindow[] = [];
   if (scope.kind === "product") {
@@ -198,6 +204,7 @@ export async function readSynaravaStateForCompare(
     collectionPresence: includeCollectionPresence ? collectionPresence : [],
     locales: localeRefs,
     enabledShopifyLocales,
+    shopDomain,
     canWriteShopifyLocales,
     connected,
     checkedAt: options?.checkedAt

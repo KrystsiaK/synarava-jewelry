@@ -1,12 +1,12 @@
 import "server-only";
 
-import { getStorefrontLocales } from "@/lib/i18n/storefront-locale-cache";
 import { shopifyAdminRequest, ShopifyAdminError } from "@/lib/shopify/admin";
 import {
   mapInvalidShopifyLocaleError,
   planShopifyLocaleTranslationWrite,
+  shopLocaleWriteBlockedReason,
 } from "@/lib/shopify/shop-locale-write-gate";
-import { getEnabledShopifyLocaleCodes } from "@/lib/shopify/shop-locales-cache";
+import { getShopifyShopLocalesSnapshot } from "@/lib/shopify/shop-locales-cache";
 
 export type TranslatableContent = {
   key: string;
@@ -253,18 +253,6 @@ async function removeTranslationKeys(resourceId: string, locale: string, transla
   }
 }
 
-async function displayCodeForShopifyLocale(shopifyLocale: string): Promise<string> {
-  if (!shopifyLocale?.trim()) return shopifyLocale || "??";
-  if (shopifyLocale.toLowerCase() === "en") return "en";
-  try {
-    const locales = await getStorefrontLocales();
-    const match = locales.find((entry) => entry.shopifyLocale.toLowerCase() === shopifyLocale.toLowerCase());
-    return match?.code ?? shopifyLocale;
-  } catch {
-    return shopifyLocale;
-  }
-}
-
 /**
  * Registers non-blank values against `resourceId` for `locale` and clears
  * (via translationsRemove) any key whose value is blank. Fetches a fresh
@@ -275,7 +263,7 @@ async function displayCodeForShopifyLocale(shopifyLocale: string): Promise<strin
  * metaobjects) builds on.
  *
  * Gates on shop-enabled locales (shared write plan with compare leaves).
- * Invalid-locale Shopify userErrors map to the same human reason.
+ * Invalid-locale Shopify userErrors map to the same factual reason.
  */
 export async function registerTranslations({
   resourceId,
@@ -286,16 +274,20 @@ export async function registerTranslations({
   locale: string;
   values: Partial<Record<string, string>>;
 }) {
-  const displayCode = await displayCodeForShopifyLocale(locale);
-  const enabledShopifyLocales = await getEnabledShopifyLocaleCodes().catch(() => null);
-  if (enabledShopifyLocales) {
+  const shopSnapshot = await getShopifyShopLocalesSnapshot().catch(() => null);
+  const localeContext = {
+    shopDomain: shopSnapshot?.shopDomain ?? "unknown",
+    shopLocales: shopSnapshot?.localeCodes ?? [],
+    triedLocale: locale,
+  };
+  if (shopSnapshot) {
     const writePlan = planShopifyLocaleTranslationWrite({
       shopifyLocale: locale,
-      displayCode,
-      enabledShopifyLocales,
+      enabledShopifyLocales: shopSnapshot.localeCodes,
+      shopDomain: shopSnapshot.shopDomain,
     });
     if (!writePlan.allowPush) {
-      throw new ShopifyAdminError(writePlan.blockedReason ?? "Locale is not enabled in the Shopify store.");
+      throw new ShopifyAdminError(writePlan.blockedReason ?? shopLocaleWriteBlockedReason(localeContext));
     }
   }
 
@@ -328,7 +320,7 @@ export async function registerTranslations({
     }
     if (attempt === 0 && isDigestError(errors)) continue;
     throw new ShopifyAdminError(
-      errors.map((error) => mapInvalidShopifyLocaleError(error.message, displayCode)).join("; "),
+      errors.map((error) => mapInvalidShopifyLocaleError(error.message, localeContext)).join("; "),
     );
   }
 

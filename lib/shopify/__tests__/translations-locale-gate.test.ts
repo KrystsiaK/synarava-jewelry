@@ -2,8 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   shopifyAdminRequest: vi.fn(),
-  getEnabledShopifyLocaleCodes: vi.fn(),
-  getStorefrontLocales: vi.fn(),
+  getShopifyShopLocalesSnapshot: vi.fn(),
 }));
 
 vi.mock("@/lib/shopify/admin", () => ({
@@ -12,30 +11,34 @@ vi.mock("@/lib/shopify/admin", () => ({
 }));
 
 vi.mock("@/lib/shopify/shop-locales-cache", () => ({
-  getEnabledShopifyLocaleCodes: mocks.getEnabledShopifyLocaleCodes,
+  getShopifyShopLocalesSnapshot: mocks.getShopifyShopLocalesSnapshot,
+  getEnabledShopifyLocaleCodes: vi.fn(),
   getShopifyShopLocales: vi.fn(),
   invalidateShopifyShopLocalesCache: vi.fn(),
 }));
 
-vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
-  getStorefrontLocales: mocks.getStorefrontLocales,
-}));
-
 import { registerTranslations } from "@/lib/shopify/translations";
-import { shopLocaleNotEnabledReason } from "@/lib/shopify/shop-locale-write-gate";
+import { shopLocaleWriteBlockedReason } from "@/lib/shopify/shop-locale-write-gate";
+
+const SHOP_DOMAIN = "example.myshopify.com";
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getStorefrontLocales.mockResolvedValue([
-    { code: "en", shopifyLocale: "en", isDefault: true },
-    { code: "pt", shopifyLocale: "pt-PT", isDefault: false },
-    { code: "ru", shopifyLocale: "ru", isDefault: false },
-  ]);
 });
 
 describe("registerTranslations shop locale gate", () => {
   it("shop without pt → 0 translationsRegister calls for pt-PT", async () => {
-    mocks.getEnabledShopifyLocaleCodes.mockResolvedValue(new Set(["en", "ru"]));
+    mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+      shopDomain: SHOP_DOMAIN,
+      locales: [{ locale: "en" }, { locale: "ru" }],
+      localeCodes: ["en", "ru"],
+    });
+
+    const reason = shopLocaleWriteBlockedReason({
+      shopDomain: SHOP_DOMAIN,
+      shopLocales: ["en", "ru"],
+      triedLocale: "pt-PT",
+    });
 
     await expect(
       registerTranslations({
@@ -43,13 +46,17 @@ describe("registerTranslations shop locale gate", () => {
         locale: "pt-PT",
         values: { title: "Anel" },
       }),
-    ).rejects.toThrow(shopLocaleNotEnabledReason("pt"));
+    ).rejects.toThrow(reason);
 
     expect(mocks.shopifyAdminRequest).not.toHaveBeenCalled();
   });
 
   it("shop with pt-PT → sends locale pt-PT (not bare pt)", async () => {
-    mocks.getEnabledShopifyLocaleCodes.mockResolvedValue(new Set(["en", "pt-pt"]));
+    mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+      shopDomain: SHOP_DOMAIN,
+      locales: [{ locale: "en" }, { locale: "pt-PT" }],
+      localeCodes: ["en", "pt-PT"],
+    });
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({ translatableResource: { translatableContent: [{ key: "title", digest: "d1" }] } })
       .mockResolvedValueOnce({
@@ -72,9 +79,13 @@ describe("registerTranslations shop locale gate", () => {
     });
   });
 
-  it("maps Shopify 'not a valid locale' to the clear human reason", async () => {
+  it("maps Shopify 'not a valid locale' to the clear factual reason", async () => {
     // Race: gate saw locale enabled, Shopify then rejected.
-    mocks.getEnabledShopifyLocaleCodes.mockResolvedValue(new Set(["en", "pt-pt"]));
+    mocks.getShopifyShopLocalesSnapshot.mockResolvedValue({
+      shopDomain: SHOP_DOMAIN,
+      locales: [{ locale: "en" }, { locale: "pt-PT" }],
+      localeCodes: ["en", "pt-PT"],
+    });
     mocks.shopifyAdminRequest
       .mockResolvedValueOnce({ translatableResource: { translatableContent: [{ key: "title", digest: "d1" }] } })
       .mockResolvedValueOnce({
@@ -89,6 +100,12 @@ describe("registerTranslations shop locale gate", () => {
         locale: "pt-PT",
         values: { title: "Anel" },
       }),
-    ).rejects.toThrow(shopLocaleNotEnabledReason("pt"));
+    ).rejects.toThrow(
+      shopLocaleWriteBlockedReason({
+        shopDomain: SHOP_DOMAIN,
+        shopLocales: ["en", "pt-PT"],
+        triedLocale: "pt-PT",
+      }),
+    );
   });
 });

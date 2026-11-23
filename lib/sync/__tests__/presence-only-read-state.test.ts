@@ -24,6 +24,11 @@ vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
 }));
 vi.mock("@/lib/shopify/admin", () => ({ hasShopifyAdminConfig: () => true }));
 vi.mock("@/lib/shopify/shop-locales-cache", () => ({
+  getShopifyShopLocalesSnapshot: vi.fn(async () => ({
+    shopDomain: "example.myshopify.com",
+    locales: [],
+    localeCodes: ["en", "pt-PT", "ru"],
+  })),
   getEnabledShopifyLocaleCodes: vi.fn(async () => new Set(["en", "pt-pt", "ru"])),
   getShopifyShopLocales: vi.fn(async () => []),
   invalidateShopifyShopLocalesCache: vi.fn(),
