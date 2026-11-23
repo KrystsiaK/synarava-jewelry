@@ -18,7 +18,8 @@ const E2E_ORIGIN = `http://${E2E_HOST}:${E2E_PORT}`;
 export default defineConfig({
   testDir: "./e2e",
   // Production soft axe lives in playwright.prod-soft.config.ts (no webServer).
-  testIgnore: [/a11y-prod-soft\.spec\.ts$/],
+  // Fixture chrome geometry lives in playwright.fixture.config.ts (no webServer).
+  testIgnore: [/a11y-prod-soft\.spec\.ts$/, /topbar-chrome-fixture\.spec\.ts$/],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
