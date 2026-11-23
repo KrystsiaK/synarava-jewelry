@@ -17,6 +17,8 @@ import {
   getLatestReconcileDifferences,
   getLatestReconcileRun,
 } from "@/lib/shopify/reconciliation-run";
+import { hasWriteLocalesScope } from "@/lib/shopify/locale-mutations";
+import { getShopifyShopLocalesSnapshot } from "@/lib/shopify/shop-locales-cache";
 import {
   deriveFreeShippingThresholdWindow,
   readAnnouncementBarSetting,
@@ -135,13 +137,27 @@ export async function readSynaravaStateForCompare(
   scope: RefreshShopifyStateScope,
   options?: { adminUsername?: string; checkedAt?: string | null },
 ): Promise<SyncCompareInput> {
-  const [differences, productPresence, collectionPresence, locales, run] = await Promise.all([
-    getLatestReconcileDifferences(),
-    getLatestCatalogPresenceDifferences(),
-    getLatestCollectionPresenceDifferences(),
-    getStorefrontLocales(),
-    getLatestReconcileRun(),
-  ]);
+  const connected = hasShopifyAdminConfig();
+  const [differences, productPresence, collectionPresence, locales, run, shopLocalesSnapshot, canWriteShopifyLocales] =
+    await Promise.all([
+      getLatestReconcileDifferences(),
+      getLatestCatalogPresenceDifferences(),
+      getLatestCollectionPresenceDifferences(),
+      getStorefrontLocales(),
+      getLatestReconcileRun(),
+      connected
+        ? getShopifyShopLocalesSnapshot().catch(() => ({
+          shopDomain: "unknown",
+          locales: [],
+          localeCodes: [] as string[],
+        }))
+        : Promise.resolve(null),
+      connected
+        ? hasWriteLocalesScope().catch(() => false)
+        : Promise.resolve(false),
+    ]);
+  const enabledShopifyLocales = shopLocalesSnapshot?.localeCodes ?? null;
+  const shopDomain = shopLocalesSnapshot?.shopDomain ?? null;
 
   let commerceWindows: SyncCommerceWindow[] = [];
   if (scope.kind === "product") {
@@ -187,7 +203,10 @@ export async function readSynaravaStateForCompare(
     productPresence: includeProductPresence ? productPresence : [],
     collectionPresence: includeCollectionPresence ? collectionPresence : [],
     locales: localeRefs,
-    connected: hasShopifyAdminConfig(),
+    enabledShopifyLocales,
+    shopDomain,
+    canWriteShopifyLocales,
+    connected,
     checkedAt: options?.checkedAt
       ?? (run?.status === "SUCCEEDED" && (run.trigger === "AUTO" || run.trigger === "MANUAL")
         ? run.completedAt

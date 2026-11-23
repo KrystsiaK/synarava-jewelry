@@ -17,6 +17,7 @@ import {
   PENDING_SKU_BLOCKED_REASON,
   isScopedCommerceFieldLabelForResource,
 } from "@/lib/shopify/catalog-conflict-policy";
+import { planShopifyLocaleTranslationWrite } from "@/lib/shopify/shop-locale-write-gate";
 import type { CatalogPresenceDifference } from "@/lib/shopify/catalog-presence";
 import type { CollectionPresenceDifference } from "@/lib/shopify/collection-presence";
 import {
@@ -97,6 +98,16 @@ export type SyncCompareInput = {
   productPresence: readonly CatalogPresenceDifference[];
   collectionPresence: readonly CollectionPresenceDifference[];
   locales: readonly SyncLocaleRef[];
+  /**
+   * Enabled Shopify Admin locale codes (`shopLocales`), as returned by Shopify.
+   * When set, Synarava→Shopify translation leaves for missing locales are blocked.
+   * Omit/null = no gate (unit tests without a shop snapshot).
+   */
+  enabledShopifyLocales?: readonly string[] | null;
+  /** Shop myshopify domain for factual blocked-locale copy. */
+  shopDomain?: string | null;
+  /** When true, blocked translation leaves may carry an Enable-in-Shopify offer. */
+  canWriteShopifyLocales?: boolean;
   connected: boolean;
   checkedAt: string | null;
   runStatus?: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED" | "PARTIAL" | null;
@@ -492,6 +503,9 @@ function translationLeaves(
   differences: SyncCompareInput["translationDifferences"],
   locales: readonly SyncLocaleRef[],
   commerceLeaves: readonly SyncLeaf[],
+  enabledShopifyLocales?: readonly string[] | null,
+  canWriteShopifyLocales?: boolean,
+  shopDomain?: string | null,
 ): SyncLeaf[] {
   const leaves: SyncLeaf[] = [];
   const seen = new Set<string>();
@@ -513,6 +527,22 @@ function translationLeaves(
     if (seen.has(id)) continue;
     seen.add(id);
     const meta = lookupTranslationContractMeta(difference.fieldKey, resourceType);
+    const localeRef = locales.find((entry) =>
+      (entry.isDefault ? entry.code : entry.shopifyLocale) === difference.locale
+      || entry.code === locale,
+    );
+    // difference.locale is the Shopify-side code (e.g. pt-PT); registry maps it.
+    const shopifyLocale = localeRef?.shopifyLocale ?? difference.locale;
+    const writePlan = planShopifyLocaleTranslationWrite({
+      shopifyLocale,
+      enabledShopifyLocales,
+      shopDomain,
+      canWriteLocales: canWriteShopifyLocales,
+    });
+    const baseDirections = allowedDirectionsForLeaf({ kind: "translation", resourceType });
+    const allowedDirections = writePlan.allowPush
+      ? baseDirections
+      : baseDirections.filter((direction) => direction !== "SYNARAVA_TO_SHOPIFY");
     leaves.push({
       id,
       resourceType,
@@ -523,8 +553,9 @@ function translationLeaves(
       label: difference.fieldLabel,
       synaravaValue: stringify(difference.localValue),
       shopifyValue: stringify(difference.shopifyValue),
-      allowedDirections: allowedDirectionsForLeaf({ kind: "translation", resourceType }),
-      blockedReason: null,
+      allowedDirections,
+      blockedReason: writePlan.blockedReason,
+      blockedOffer: writePlan.enableOffer,
       sourceId: difference.id,
       path: null,
       presenceSide: null,
@@ -653,6 +684,9 @@ export function compareSyncState(input: SyncCompareInput): SyncResult {
     input.translationDifferences,
     input.locales,
     commerce.leaves,
+    input.enabledShopifyLocales,
+    input.canWriteShopifyLocales,
+    input.shopDomain,
   ).filter(
     (leaf) => !presenceResourceIds.has(`${leaf.resourceType}:${leaf.resourceId}`),
   );

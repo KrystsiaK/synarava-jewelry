@@ -61,6 +61,7 @@ vi.mock("@/lib/i18n/language-bundle", () => ({
 import {
   addStorefrontLanguage,
   deleteStorefrontLanguageData,
+  enableStorefrontLanguageInShopify,
   exportStorefrontLanguage,
   hideStorefrontLanguage,
 } from "@/lib/i18n/language-lifecycle";
@@ -97,6 +98,21 @@ beforeEach(() => {
 });
 
 describe("language lifecycle", () => {
+  it("offers Enable in Shopify via shopLocaleEnable when write_locales is granted", async () => {
+    mocks.hasWriteLocalesScope.mockResolvedValue(true);
+    mocks.findUnique.mockResolvedValue({
+      id: "1",
+      code: "pt",
+      shopifyLocale: "pt-PT",
+      isDefault: false,
+      status: "PUBLISHED",
+      isPublished: true,
+    });
+    const result = await enableStorefrontLanguageInShopify("pt");
+    expect(result.success).toMatch(/Enabled pt/);
+    expect(mocks.shopLocaleEnable).toHaveBeenCalledWith("pt-PT");
+  });
+
   it("adds a draft language without Shopify writes when write_locales is missing", async () => {
     const result = await addStorefrontLanguage({
       code: "de",
