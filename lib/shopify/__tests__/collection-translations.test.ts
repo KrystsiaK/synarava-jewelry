@@ -1,9 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ shopifyAdminRequest: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  shopifyAdminRequest: vi.fn(),
+  getEnabledShopifyLocaleCodes: vi.fn(),
+  getStorefrontLocales: vi.fn(),
+}));
 vi.mock("@/lib/shopify/admin", () => ({
   shopifyAdminRequest: mocks.shopifyAdminRequest,
   ShopifyAdminError: class ShopifyAdminError extends Error {},
+}));
+vi.mock("@/lib/shopify/shop-locales-cache", () => ({
+  getEnabledShopifyLocaleCodes: mocks.getEnabledShopifyLocaleCodes,
+  getShopifyShopLocales: vi.fn(),
+  invalidateShopifyShopLocalesCache: vi.fn(),
+}));
+vi.mock("@/lib/i18n/storefront-locale-cache", () => ({
+  getStorefrontLocales: mocks.getStorefrontLocales,
 }));
 
 import {
@@ -12,7 +24,13 @@ import {
   registerCollectionTranslation,
 } from "@/lib/shopify/collection-translations";
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.getEnabledShopifyLocaleCodes.mockResolvedValue(new Set(["en", "pt-pt", "ru"]));
+  mocks.getStorefrontLocales.mockResolvedValue([
+    { code: "pt", shopifyLocale: "pt-PT", isDefault: false },
+  ]);
+});
 
 describe("Shopify collection translations", () => {
   it("registers name/description/SEO against the native COLLECTION keys", async () => {

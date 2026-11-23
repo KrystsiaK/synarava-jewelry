@@ -254,10 +254,15 @@ async function removeTranslationKeys(resourceId: string, locale: string, transla
 }
 
 async function displayCodeForShopifyLocale(shopifyLocale: string): Promise<string> {
+  if (!shopifyLocale?.trim()) return shopifyLocale || "??";
   if (shopifyLocale.toLowerCase() === "en") return "en";
-  const locales = await getStorefrontLocales();
-  const match = locales.find((entry) => entry.shopifyLocale.toLowerCase() === shopifyLocale.toLowerCase());
-  return match?.code ?? shopifyLocale;
+  try {
+    const locales = await getStorefrontLocales();
+    const match = locales.find((entry) => entry.shopifyLocale.toLowerCase() === shopifyLocale.toLowerCase());
+    return match?.code ?? shopifyLocale;
+  } catch {
+    return shopifyLocale;
+  }
 }
 
 /**
