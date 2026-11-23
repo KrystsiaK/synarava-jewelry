@@ -159,8 +159,11 @@ export type AdminLocaleTabsProps = {
   /**
    * Locale shells that should show a commerce conflict mark.
    * Base/shared conflicts mark EN only; locale-only copy marks that code.
+   * Presence (not in Shopify) marks every contentful locale.
    */
   conflictLocales?: ReadonlySet<string> | readonly string[];
+  /** Override conflict pip title/aria-label (e.g. presence → "Not in Shopify yet"). */
+  conflictHint?: string;
   /**
    * Nest inside a parent locale shell (product editor). Drops default sticky
    * chrome. Prefer wrapping with `AdminPanel.Header sticky` so the band occupies
@@ -191,6 +194,7 @@ export function AdminLocaleTabs({
   panelId,
   dirtyLocales,
   conflictLocales,
+  conflictHint,
   embedded = false,
   stacked = false,
 }: AdminLocaleTabsProps) {
@@ -272,7 +276,12 @@ export function AdminLocaleTabs({
                   <span className="adm-locale-tab__pip" data-tone="dirty" title="Unsaved edits" aria-label="Unsaved edits" />
                 ) : null}
                 {conflictSet.has(locale.code) ? (
-                  <span className="adm-locale-tab__pip" data-tone="conflict" title="Shopify conflict" aria-label="Shopify conflict" />
+                  <span
+                    className="adm-locale-tab__pip"
+                    data-tone="conflict"
+                    title={conflictHint ?? "Shopify conflict"}
+                    aria-label={conflictHint ?? "Shopify conflict"}
+                  />
                 ) : null}
               </span>
             ) : null}

@@ -70,7 +70,11 @@ Conflict **display** is a tree: entity = branch; inside it the **base** node
 Shared fields (image, price, status…) live once on base — editable from any
 locale form as a window into that single instance — but their conflicts belong
 to **base only**. A shared conflict never lights a PT/RU tab; the banner never
-lists languages for shared-only conflicts.
+lists languages for shared-only conflicts. **Presence** (entity not in Shopify)
+is different: locale-tab dots mark every shell that already has content (EN
+always; PT/RU when a translation/fields are filled), with pip hint
+“Not in Shopify yet”. Leaf/badge counts stay one presence conflict — only the
+tab indicators fan out.
 
 Counts come from one selector: `lib/sync/select.ts` → `slice(result, { entityId?, node? })`
 with invariant `count(entity) == count(base) + sum(count(locale))`. Locale tab
