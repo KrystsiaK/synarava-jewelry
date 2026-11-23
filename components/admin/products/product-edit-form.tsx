@@ -35,6 +35,8 @@ import {
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
+  contentLocalesFromTranslationMap,
+  PRESENCE_LOCALE_CONFLICT_HINT,
 } from "@/components/admin/products/commerce-conflict-section";
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
@@ -198,12 +200,15 @@ export function EditProductForm({
   const conflictSections = new Set<ProductEditorSection>(
     (productConflict?.sections ?? []) as ProductEditorSection[],
   );
-  // Tree: shared commerce → base (EN) only; locale-only → that locale.
+  // Tree: shared commerce → base (EN) only; presence → contentful locales;
+  // locale-only → that locale. Badge counts stay leaf-based (unchanged).
+  const presenceSignal = Boolean(productConflict?.presence);
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
     conflictSections,
     sharedSignal: productConflict?.shared,
-    presenceSignal: Boolean(productConflict?.presence),
+    presenceSignal,
+    contentLocales: contentLocalesFromTranslationMap(draft.translations),
     localeSignals: productConflict?.locales,
     baseLocale: SOURCE_LOCALE,
   });
@@ -588,6 +593,7 @@ export function EditProductForm({
                 locales={localeTabs}
                 dirtyLocales={dirtyLocales}
                 conflictLocales={conflictLocales}
+                conflictHint={presenceSignal ? PRESENCE_LOCALE_CONFLICT_HINT : undefined}
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
                   entityConflictCount > 0 ? (

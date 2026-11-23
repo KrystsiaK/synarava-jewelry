@@ -32,7 +32,11 @@ import {
   generateCollectionCode,
 } from "@/components/admin/collections/collection-helpers";
 import type { AdminCollection, CollectionDraft, CollectionLocaleDraft } from "@/components/admin/collections/collection-types";
-import { conflictLocalesFromCommerce } from "@/components/admin/products/commerce-conflict-section";
+import {
+  conflictLocalesFromCommerce,
+  contentLocalesFromTranslationMap,
+  PRESENCE_LOCALE_CONFLICT_HINT,
+} from "@/components/admin/products/commerce-conflict-section";
 import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { CatalogConflictSignals } from "@/lib/shopify/catalog-conflict-signals";
@@ -164,14 +168,17 @@ export function EditCollectionForm({
   const collectionConflict = conflictSignals.products[collection.id];
   const entityConflictCount = productConflictBadgeCount(collectionConflict);
   const localeTabs = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
+  const presenceSignal = Boolean(collectionConflict?.presence);
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
     conflictSections: new Set(),
     sharedSignal: collectionConflict?.shared,
-    presenceSignal: Boolean(collectionConflict?.presence),
+    presenceSignal,
+    contentLocales: contentLocalesFromTranslationMap(draft.translations),
     localeSignals: collectionConflict?.locales,
     baseLocale: SOURCE_LOCALE,
   });
+  const conflictHint = presenceSignal ? PRESENCE_LOCALE_CONFLICT_HINT : undefined;
 
   const [scopedCollectionId, setScopedCollectionId] = useState(collection.id);
   if (collection.id !== scopedCollectionId) {
@@ -235,6 +242,7 @@ export function EditCollectionForm({
         translationLocales={translationLocales}
         fieldErrors={validation.fieldErrors}
         conflictLocales={conflictLocales}
+        conflictHint={conflictHint}
       >
         <form ref={formRef} action={formAction} noValidate>
           <AdminListWorkspace.Root>

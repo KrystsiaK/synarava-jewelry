@@ -93,10 +93,40 @@ export function conflictSectionsFromDifferences(
   return sections;
 }
 
+/** Locale-tab conflict pip when the entity is missing from Shopify. */
+export const PRESENCE_LOCALE_CONFLICT_HINT = "Not in Shopify yet";
+
+const LOCALE_DRAFT_META_KEYS = new Set(["syncStatus", "syncError", "reviewed"]);
+
+/** True when a locale draft has any filled text (translation exists / fields filled). */
+export function localeDraftHasContent(draft: unknown): boolean {
+  if (draft == null) return false;
+  if (typeof draft === "string") return draft.trim().length > 0;
+  if (typeof draft === "number" || typeof draft === "boolean") return false;
+  if (Array.isArray(draft)) return draft.some((item) => localeDraftHasContent(item));
+  if (typeof draft === "object") {
+    return Object.entries(draft as Record<string, unknown>).some(([key, value]) => {
+      if (LOCALE_DRAFT_META_KEYS.has(key)) return false;
+      return localeDraftHasContent(value);
+    });
+  }
+  return false;
+}
+
+/** Locale codes whose translation draft has any content (excludes empty shells). */
+export function contentLocalesFromTranslationMap(
+  translations: Readonly<Record<string, unknown>>,
+): string[] {
+  return Object.entries(translations)
+    .filter(([, draft]) => localeDraftHasContent(draft))
+    .map(([code]) => code);
+}
+
 /**
  * Language shells to mark for a conflict set (tree display).
- * Shared commerce / presence → base (EN) only. Locale-only → those codes only.
- * Shared never lights PT/RU tabs.
+ * Shared commerce → base (EN) only. Presence (not in Shopify) → every
+ * contentful locale (EN always; PT/RU when translation/content exists).
+ * Locale-only → those codes only. Shared never lights PT/RU tabs.
  * @see docs/wiki/commerce-sync.md
  */
 export function conflictLocalesFromCommerce(input: {
@@ -104,19 +134,37 @@ export function conflictLocalesFromCommerce(input: {
   conflictSections: ReadonlySet<ProductEditorSection>;
   sharedSignal?: boolean;
   presenceSignal?: boolean;
+  /**
+   * Locales with any product/collection content. Used only when
+   * `presenceSignal` — EN is always marked; pass PT/RU when filled.
+   */
+  contentLocales?: readonly string[];
   localeSignals?: ReadonlyArray<{ code: string; count: number }>;
   /** Default/base locale code (EN tab). */
   baseLocale?: string;
 }): Set<string> {
   const out = new Set<string>();
   const base = (input.baseLocale ?? "en").trim().toLowerCase() || "en";
-  const sharedHit = [...input.conflictSections].some((section) => isSharedSection(section))
-    || Boolean(input.sharedSignal)
-    || Boolean(input.presenceSignal);
-  if (sharedHit) {
-    const baseCode = input.localeCodes.find((code) => code.trim().toLowerCase() === base) ?? base;
+  const baseCode = input.localeCodes.find((code) => code.trim().toLowerCase() === base) ?? base;
+  const codesByLower = new Map(
+    input.localeCodes.map((code) => [code.trim().toLowerCase(), code] as const),
+  );
+
+  if (input.presenceSignal) {
+    // Absent from Shopify: light every shell that already has content.
     out.add(baseCode);
+    for (const raw of input.contentLocales ?? []) {
+      const match = codesByLower.get(raw.trim().toLowerCase());
+      if (match) out.add(match);
+    }
+  } else {
+    const sharedHit = [...input.conflictSections].some((section) => isSharedSection(section))
+      || Boolean(input.sharedSignal);
+    if (sharedHit) {
+      out.add(baseCode);
+    }
   }
+
   for (const locale of input.localeSignals ?? []) {
     if (locale.count > 0) out.add(locale.code);
   }

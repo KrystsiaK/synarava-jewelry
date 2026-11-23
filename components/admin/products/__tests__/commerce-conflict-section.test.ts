@@ -1,6 +1,9 @@
 import {
   conflictLocalesFromCommerce,
   conflictSectionsFromDifferences,
+  contentLocalesFromTranslationMap,
+  localeDraftHasContent,
+  PRESENCE_LOCALE_CONFLICT_HINT,
   productEditorSectionForCommerceDiff,
   productEditorSectionForConflictField,
 } from "@/components/admin/products/commerce-conflict-section";
@@ -128,5 +131,51 @@ describe("commerce conflict → editor section (contract metadata)", () => {
       localeSignals: [{ code: "pt", count: 2 }],
     });
     expect([...locales]).toEqual(["pt"]);
+  });
+
+  describe("presenceSignal locale tab dots", () => {
+    it("marks EN + PT + RU when absent from Shopify and PT/RU have content", () => {
+      const locales = conflictLocalesFromCommerce({
+        localeCodes: ["en", "pt", "ru"],
+        conflictSections: new Set(),
+        presenceSignal: true,
+        contentLocales: ["pt", "ru"],
+      });
+      expect([...locales].toSorted()).toEqual(["en", "pt", "ru"]);
+    });
+
+    it("marks EN only when absent from Shopify and no translations have content", () => {
+      const locales = conflictLocalesFromCommerce({
+        localeCodes: ["en", "pt", "ru"],
+        conflictSections: new Set(),
+        presenceSignal: true,
+        contentLocales: [],
+      });
+      expect([...locales]).toEqual(["en"]);
+    });
+
+    it("keeps RU from localeSignals when in Shopify (no presence)", () => {
+      const locales = conflictLocalesFromCommerce({
+        localeCodes: ["en", "pt", "ru"],
+        conflictSections: new Set(),
+        presenceSignal: false,
+        localeSignals: [{ code: "ru", count: 1 }],
+      });
+      expect([...locales]).toEqual(["ru"]);
+    });
+
+    it("exports presence pip hint for tab tooltip", () => {
+      expect(PRESENCE_LOCALE_CONFLICT_HINT).toBe("Not in Shopify yet");
+    });
+
+    it("detects contentful translation drafts for presence contentLocales", () => {
+      expect(localeDraftHasContent({ title: "", description: "" })).toBe(false);
+      expect(localeDraftHasContent({ title: "Anel", description: "" })).toBe(true);
+      expect(localeDraftHasContent({ title: "", syncStatus: "PENDING", reviewed: true })).toBe(false);
+      expect(contentLocalesFromTranslationMap({
+        pt: { title: "Anel" },
+        ru: { title: "" },
+      }).toSorted()).toEqual(["pt"]);
+    });
   });
 });
