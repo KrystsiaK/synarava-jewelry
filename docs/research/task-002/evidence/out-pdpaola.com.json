@@ -1,0 +1,92 @@
+{
+ "origin": "https://www.pdpaola.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 2,
+ "productUrls": 747,
+ "rows": [
+  {
+   "url": "https://www.pdpaola.com/products/solitary-pearl-gold-ring",
+   "fetchedAt": "2026-11-23T01:15:16.371Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Solitary Pearl Ring",
+   "price": 39,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": true,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,image,description,brand,product_type,google_product_category,offers"
+  },
+  {
+   "url": "https://www.pdpaola.com/products/nexa-earrings",
+   "fetchedAt": "2026-11-23T01:15:18.247Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Nexa Earrings",
+   "price": 85,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": true,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,image,description,brand,product_type,google_product_category,offers"
+  },
+  {
+   "url": "https://www.pdpaola.com/products/lapis-lazuli-ginger-single-earring",
+   "fetchedAt": "2026-11-23T01:15:20.034Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Lapis Lazuli Ginger Single Earring",
+   "price": 49,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": true,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,image,description,brand,product_type,google_product_category,offers"
+  },
+  {
+   "url": "https://www.pdpaola.com/products/kaya-gold-ring",
+   "fetchedAt": "2026-11-23T01:15:21.936Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Kaya Ring",
+   "price": 39,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,description,brand,product_type,google_product_category,offers"
+  },
+  {
+   "url": "https://www.pdpaola.com/products/essential-silver-chain-necklace",
+   "fetchedAt": "2026-11-23T01:15:23.718Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Essential silver chain necklace",
+   "price": 49,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": true,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,image,description,brand,product_type,google_product_category,offers"
+  },
+  {
+   "url": "https://www.pdpaola.com/products/dafne-diamond-black-cord-bracelet",
+   "fetchedAt": "2026-11-23T01:15:25.530Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Delia black cord bracelet",
+   "price": 490,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": true,
+   "brand": "PDPAOLA",
+   "fields": "@context,@type,name,url,image,description,brand,product_type,google_product_category,offers"
+  }
+ ]
+}

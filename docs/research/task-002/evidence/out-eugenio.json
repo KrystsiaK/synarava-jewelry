@@ -1,0 +1,91 @@
+{
+ "origin": "https://www.eugeniocamposjewels.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 1,
+ "productUrls": 764,
+ "rows": [
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/joias",
+   "fetchedAt": "2026-11-23T01:15:47.537Z",
+   "status": 200,
+   "jsonLd": false,
+   "price": null,
+   "currency": null,
+   "availability": null,
+   "sku": null,
+   "image": false,
+   "brand": null,
+   "fields": ""
+  },
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/pulseira-sleek-103-b411-d-0-00",
+   "fetchedAt": "2026-11-23T01:15:51.741Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": " Pulseira Sleek",
+   "price": 69.9,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "103.B411.D.0.00",
+   "image": true,
+   "brand": null,
+   "fields": "@context,@type,name,image,description,productID,itemCondition,sku,mpn,offers"
+  },
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/anel-seashell-110-b417",
+   "fetchedAt": "2026-11-23T01:16:00.643Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": " Anel Seashell",
+   "price": 44.9,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "110.B417",
+   "image": true,
+   "brand": null,
+   "fields": "@context,@type,name,image,description,productID,itemCondition,sku,mpn,offers"
+  },
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/brincos-daily-shine-114-b527-d-0-00",
+   "fetchedAt": "2026-11-23T01:16:09.593Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": " Brincos Daily Shine",
+   "price": 64.9,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "114.B527.D.0.00",
+   "image": true,
+   "brand": null,
+   "fields": "@context,@type,name,image,description,productID,itemCondition,sku,mpn,offers"
+  },
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/argolas-shiny-115-a530-1",
+   "fetchedAt": "2026-11-23T01:16:18.726Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": " Argolas Shiny",
+   "price": 35.9,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "115.A530-1",
+   "image": true,
+   "brand": null,
+   "fields": "@context,@type,name,image,description,productID,itemCondition,sku,mpn,offers"
+  },
+  {
+   "url": "https://www.eugeniocamposjewels.com/pt/brincos-ivory-114-c167-d-2-00",
+   "fetchedAt": "2026-11-23T01:16:26.894Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": " Brincos Ivory",
+   "price": 97.9,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": "114.C167.D.2.00",
+   "image": true,
+   "brand": null,
+   "fields": "@context,@type,name,image,description,productID,itemCondition,sku,mpn,offers"
+  }
+ ]
+}

@@ -1,0 +1,168 @@
+{
+ "origin": "https://www.parfois.com",
+ "crawlDelay": 0,
+ "sitemapsRead": 15,
+ "productUrls": 1928,
+ "rows": [
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/basicos/comprar-o-look/PERMA2.html",
+   "fetchedAt": "2026-11-23T01:17:21.333Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Comprar o look",
+   "price": null,
+   "currency": null,
+   "availability": null,
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/colares/colar-curto-de-elos-com-conchas/247450_WT.html",
+   "fetchedAt": "2026-11-23T01:17:23.152Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colar curto de elos com conchas",
+   "price": 12.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/colares/colar-curto-com-zirconias/247991_GD.html",
+   "fetchedAt": "2026-11-23T01:17:25.024Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Colar curto com zircónias",
+   "price": 10.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/argolas/argolas-abertas-lisas-banho-de-ouro-18k/249772_GD.html",
+   "fetchedAt": "2026-11-23T01:17:26.865Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Argolas abertas lisas banho de ouro 18k",
+   "price": 23.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/brincos-semicirculos-frangas-de-missangas/250348_HM.html",
+   "fetchedAt": "2026-11-23T01:17:28.966Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos semicírculos frangas de missangas",
+   "price": 9.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/pulseiras/set-de-pulseiras-elasticas-com-perolas/251058_PE.html",
+   "fetchedAt": "2026-11-23T01:17:30.810Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Set de pulseiras elásticas com pérolas",
+   "price": 7.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/brincos-esfericos-com-pedras/251415_RT.html",
+   "fetchedAt": "2026-11-23T01:17:32.941Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos esféricos com pedras",
+   "price": 8.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/brincos-leque/252341_BN.html",
+   "fetchedAt": "2026-11-23T01:17:34.756Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos leque",
+   "price": 5.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/brincos-maxi-petalas/252878_GD.html",
+   "fetchedAt": "2026-11-23T01:17:36.604Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos maxi pétalas",
+   "price": 12.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  },
+  {
+   "url": "https://www.parfois.com/pt/pt/bijuteria/brincos/brincos-com-meia-esfera-texturada-/254449_GD.html",
+   "fetchedAt": "2026-11-23T01:17:38.422Z",
+   "status": 200,
+   "jsonLd": true,
+   "name": "Brincos com meia-esfera texturada ",
+   "price": 5.99,
+   "currency": "EUR",
+   "availability": "InStock",
+   "sku": null,
+   "image": false,
+   "brand": {
+    "@id": "https://www.parfois.com/#brand"
+   },
+   "fields": "@context,@type,@id,name,description,url,category,brand,variesBy,hasVariant"
+  }
+ ]
+}
