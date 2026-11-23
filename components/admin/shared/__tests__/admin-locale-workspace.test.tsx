@@ -151,6 +151,28 @@ describe("AdminLocaleTabs with a custom locale list", () => {
       expect(tab).toHaveAttribute("data-conflict", "true");
     }
   });
+
+  it("uses conflictHint on presence conflict pips", () => {
+    const locales = [
+      { code: "en", label: "English" },
+      { code: "pt", label: "Português" },
+    ];
+    render(
+      <AdminLocaleTabs
+        active="en"
+        onSelect={() => {}}
+        locales={locales}
+        conflictLocales={new Set(["en", "pt"])}
+        conflictHint="Not in Shopify yet"
+      />,
+    );
+    const pips = document.querySelectorAll('.adm-locale-tab__pip[data-tone="conflict"]');
+    expect(pips).toHaveLength(2);
+    for (const pip of pips) {
+      expect(pip).toHaveAttribute("title", "Not in Shopify yet");
+      expect(pip).toHaveAttribute("aria-label", "Not in Shopify yet");
+    }
+  });
 });
 
 describe("AdminLocaleTabs language frame", () => {

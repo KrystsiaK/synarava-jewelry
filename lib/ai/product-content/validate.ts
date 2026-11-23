@@ -7,9 +7,11 @@ import type {
   AiLocale,
   ProductContentDraft,
 } from "@/lib/ai/product-content/contract";
+import { AI_FIELDS } from "@/lib/ai/product-content/contract";
 import { factsCorpus, type ProductContentFacts } from "@/lib/ai/product-content/facts";
 import { BANNED_CLICHES } from "@/lib/ai/product-content/prompt";
 import { productContentLocalesSchema } from "@/lib/ai/product-content/schema";
+import { getProductLocaleTextField } from "@/lib/products/product-locale-text-fields";
 
 export { productContentLocalesSchema, geminiLocalesSchema } from "@/lib/ai/product-content/schema";
 
@@ -510,53 +512,31 @@ export function validateAndNormalizeDraftLocales(
     }
 
     const next: Partial<Record<AiField, string>> = {};
+    const rawRecord = rawLocale as Record<string, string | undefined>;
 
-    if (locale !== "en") {
-      const title = trimField(rawLocale.title);
-      if (title) {
-        next.title = title;
-        warnings.push(...collectFieldQualityWarnings(locale, "title", title, corpus));
+    for (const field of AI_FIELDS) {
+      if (locale === "en" && field === "title") continue;
+      // PT/RU: only keep translations when EN source on the saved product is non-empty.
+      if (locale !== "en") {
+        const enSource = (facts.enSourceByField?.[field] ?? "").trim();
+        if (!enSource) continue;
       }
-    }
 
-    const shortDescription = trimField(rawLocale.shortDescription);
-    if (shortDescription) {
-      next.shortDescription = shortDescription;
-      warnings.push(
-        ...collectFieldQualityWarnings(locale, "shortDescription", shortDescription, corpus),
-      );
-    }
+      const rawValue = trimField(rawRecord[field]);
+      if (!rawValue) continue;
 
-    const descriptionRaw = trimField(rawLocale.description);
-    if (descriptionRaw) {
-      const description = normalizeRichTextForStorage(descriptionRaw);
-      if (description) {
-        next.description = description;
-        warnings.push(
-          ...collectFieldQualityWarnings(
-            locale,
-            "description",
-            plainTextFromRichText(description),
-            corpus,
-          ),
-        );
+      const def = getProductLocaleTextField(field);
+      let value = rawValue;
+      if (field === "seoTitle") value = clampPlain(value, SEO_TITLE_MAX);
+      else if (field === "seoDescription") value = clampPlain(value, SEO_DESCRIPTION_MAX);
+      else if (def?.kind === "rich") {
+        value = normalizeRichTextForStorage(value);
+        if (!value) continue;
       }
-    }
 
-    const seoTitle = trimField(rawLocale.seoTitle);
-    if (seoTitle) {
-      const clipped = clampPlain(seoTitle, SEO_TITLE_MAX);
-      next.seoTitle = clipped;
-      warnings.push(...collectFieldQualityWarnings(locale, "seoTitle", clipped, corpus));
-    }
-
-    const seoDescription = trimField(rawLocale.seoDescription);
-    if (seoDescription) {
-      const clipped = clampPlain(seoDescription, SEO_DESCRIPTION_MAX);
-      next.seoDescription = clipped;
-      warnings.push(
-        ...collectFieldQualityWarnings(locale, "seoDescription", clipped, corpus),
-      );
+      next[field] = value;
+      const forWarnings = def?.kind === "rich" ? plainTextFromRichText(value) : value;
+      warnings.push(...collectFieldQualityWarnings(locale, field, forWarnings, corpus));
     }
 
     if (Object.keys(next).length > 0) {

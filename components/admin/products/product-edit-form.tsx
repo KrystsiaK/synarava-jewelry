@@ -35,6 +35,8 @@ import {
 import { CatalogConflictWorkspace } from "@/components/admin/products/product-conflict-adapter";
 import {
   conflictLocalesFromCommerce,
+  contentLocalesFromTranslationMap,
+  PRESENCE_LOCALE_CONFLICT_HINT,
 } from "@/components/admin/products/commerce-conflict-section";
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
@@ -68,6 +70,7 @@ import {
   syncAiFieldsFromForm,
   type AiFieldSelectionKey,
 } from "@/components/admin/products/ai-content-apply";
+import { mergeEditorDetailsText } from "@/lib/products/product-locale-draft-io";
 import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
 import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
@@ -160,7 +163,10 @@ export function EditProductForm({
   }
   const draft = formDraftOverride ?? productToDraft(currentProduct, translationLocales);
   const aiLocales = asAiLocales(translationLocales);
-  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const baseDetails = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const details = formDraftOverride
+    ? mergeEditorDetailsText(baseDetails, draft.details)
+    : baseDetails;
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const { pushToast } = useAdminToast();
@@ -198,12 +204,15 @@ export function EditProductForm({
   const conflictSections = new Set<ProductEditorSection>(
     (productConflict?.sections ?? []) as ProductEditorSection[],
   );
-  // Tree: shared commerce → base (EN) only; locale-only → that locale.
+  // Tree: shared commerce → base (EN) only; presence → contentful locales;
+  // locale-only → that locale. Badge counts stay leaf-based (unchanged).
+  const presenceSignal = Boolean(productConflict?.presence);
   const conflictLocales = conflictLocalesFromCommerce({
     localeCodes: localeTabs.map((tab) => tab.code),
     conflictSections,
     sharedSignal: productConflict?.shared,
-    presenceSignal: Boolean(productConflict?.presence),
+    presenceSignal,
+    contentLocales: contentLocalesFromTranslationMap(draft.translations),
     localeSignals: productConflict?.locales,
     baseLocale: SOURCE_LOCALE,
   });
@@ -588,6 +597,7 @@ export function EditProductForm({
                 locales={localeTabs}
                 dirtyLocales={dirtyLocales}
                 conflictLocales={conflictLocales}
+                conflictHint={presenceSignal ? PRESENCE_LOCALE_CONFLICT_HINT : undefined}
                 ptStatus={activeTranslation?.syncStatus as AdminLocaleStatus | undefined}
                 trailing={
                   entityConflictCount > 0 ? (
@@ -719,6 +729,8 @@ export function EditProductForm({
                         vendor={currentProduct.vendor ?? draft.vendor}
                         productType={currentProduct.productType ?? draft.productType}
                         characteristicValues={currentProduct.characteristics}
+                        enSpecOverrides={draft.enSpecs}
+                        specOverlayOverrides={draft.specOverlays}
                       />
                     </div>
 

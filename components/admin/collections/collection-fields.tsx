@@ -51,6 +51,7 @@ type CollectionLocaleContextValue = {
   activeLabel: string;
   ptStatus?: AdminLocaleStatus;
   conflictLocales?: ReadonlySet<string>;
+  conflictHint?: string;
 };
 
 const CollectionLocaleContext = createContext<CollectionLocaleContextValue | null>(null);
@@ -66,12 +67,14 @@ export function CollectionLocaleProvider({
   translationLocales = DEFAULT_TRANSLATION_LOCALES,
   fieldErrors,
   conflictLocales,
+  conflictHint,
   children,
 }: {
   draft: CollectionDraft;
   translationLocales?: AdminTranslationLocale[];
   fieldErrors?: Partial<Record<CollectionFieldName, string>>;
   conflictLocales?: ReadonlySet<string>;
+  conflictHint?: string;
   children: ReactNode;
 }) {
   const tabs: AdminLocaleTab[] = [{ code: SOURCE_LOCALE, label: "English" }, ...translationLocales];
@@ -100,6 +103,7 @@ export function CollectionLocaleProvider({
         activeLabel,
         ptStatus: active?.syncStatus as AdminLocaleStatus | undefined,
         conflictLocales,
+        conflictHint,
       }}
     >
       {children}
@@ -114,7 +118,7 @@ export function CollectionLocaleTabs({
   embedded?: boolean;
   trailing?: ReactNode;
 }) {
-  const { locale, selectLocale, tabs, ptStatus, conflictLocales } = useCollectionLocale();
+  const { locale, selectLocale, tabs, ptStatus, conflictLocales, conflictHint } = useCollectionLocale();
   return (
     <AdminLocaleTabs
       embedded={embedded}
@@ -123,6 +127,7 @@ export function CollectionLocaleTabs({
       locales={tabs}
       ptStatus={ptStatus}
       conflictLocales={conflictLocales}
+      conflictHint={conflictHint}
       trailing={trailing}
     />
   );

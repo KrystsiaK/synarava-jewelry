@@ -98,6 +98,12 @@ describe("generateProductContent input/output ceilings", () => {
       description: Array.from({ length: 40 }, (_, i) => `<p>Paragraph ${i}.</p>`).join("\n\n"),
       seoTitle: "t".repeat(80),
       seoDescription: "d".repeat(200),
+      symbolismLabel: null,
+      symbolismTitle: null,
+      symbolismBody: null,
+      symbolismBody2: null,
+      extras: null,
+      shopifySnapshot: null,
       details: {
         attributes: Array.from({ length: 10 }, (_, i) => ({
           label: `A${i}`,

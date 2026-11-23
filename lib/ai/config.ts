@@ -8,7 +8,7 @@
  * - OPENAI_API_KEY (bench only)
  * - AI_CONTENT_ENABLED
  * - AI_CONTENT_MODEL (production model; default gemini-3.1-flash-lite)
- * - AI_MAX_OUTPUT_TOKENS (default 4096)
+ * - AI_MAX_OUTPUT_TOKENS (default 16384 — full locale-tab field set × 3 locales)
  * - AI_MAX_INPUT_CHARS (default 12000)
  * - AI_EDITOR_PASS (default 0; set 1/true to run second editorial polish call)
  * - AI_MONTHLY_BUDGET_USD
@@ -22,7 +22,8 @@ export const GEMINI_TIMEOUT_MS = 30_000;
 export const DEFAULT_MONTHLY_BUDGET_USD = 5;
 export const DEFAULT_RATE_LIMIT_MAX = 20;
 export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
-export const DEFAULT_MAX_OUTPUT_TOKENS = 4096;
+/** Ceiling for full locale-tab field set (product + details + specs) × EN/PT/RU. */
+export const DEFAULT_MAX_OUTPUT_TOKENS = 16_384;
 export const DEFAULT_MAX_INPUT_CHARS = 12_000;
 export const AI_AUDIT_ACTION = "ai.product_content.generate";
 

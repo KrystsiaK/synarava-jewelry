@@ -50,6 +50,11 @@ import {
   PRODUCT_FIELD_MESSAGES,
   type ProductFieldName,
 } from "@/lib/products/product-form-validation";
+import {
+  PRODUCT_DETAILS_LOOKBOOK_SLOTS,
+  PRODUCT_DETAILS_MATERIAL_SLOTS,
+  PRODUCT_DETAILS_PROCESS_STAT_SLOTS,
+} from "@/lib/products/product-locale-text-fields";
 import { getProductEditorDetails } from "@/components/admin/products/product-helpers";
 import type { CollectionOption, ProductDraft, ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 import {
@@ -101,13 +106,22 @@ function detailsDraftFrom(source: ProductDetailsSource): ProductDetailsLocaleDra
   return {
     materialsEyebrow: source.materialsEyebrow,
     materialsTitle: source.materialsTitle,
-    materials: source.materials.map((material) => ({ title: material.title, body: material.body })),
+    materials: Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) => ({
+      title: source.materials[index]?.title ?? "",
+      body: source.materials[index]?.body ?? "",
+    })),
     processEyebrow: source.process.eyebrow,
     processTitle: source.process.title,
-    processStats: source.process.stats.map((stat) => ({ value: stat.value, label: stat.label })),
+    processStats: Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) => ({
+      value: source.process.stats[index]?.value ?? "",
+      label: source.process.stats[index]?.label ?? "",
+    })),
     lookbookEyebrow: source.lookbookEyebrow,
     lookbookTitle: source.lookbookTitle,
-    lookbookLabels: source.lookbook.map((item) => item.label),
+    lookbookLabels: Array.from(
+      { length: PRODUCT_DETAILS_LOOKBOOK_SLOTS },
+      (_, index) => source.lookbook[index]?.label ?? "",
+    ),
   };
 }
 
@@ -126,19 +140,27 @@ function HiddenDetailsLocaleFields({ draftByLocale }: { draftByLocale: Record<st
         return [
           field("materialsEyebrow", draft.materialsEyebrow),
           field("materialsTitle", draft.materialsTitle),
-          ...draft.materials.flatMap((material, index) => [
-            field(`materialTitle${index + 1}`, material.title),
-            field(`materialBody${index + 1}`, material.body),
-          ]),
+          ...Array.from({ length: PRODUCT_DETAILS_MATERIAL_SLOTS }, (_, index) => {
+            const material = draft.materials[index] ?? { title: "", body: "" };
+            return [
+              field(`materialTitle${index + 1}`, material.title),
+              field(`materialBody${index + 1}`, material.body),
+            ];
+          }).flat(),
           field("processEyebrow", draft.processEyebrow),
           field("processTitle", draft.processTitle),
-          ...draft.processStats.flatMap((stat, index) => [
-            field(`processStatValue${index + 1}`, stat.value),
-            field(`processStatLabel${index + 1}`, stat.label),
-          ]),
+          ...Array.from({ length: PRODUCT_DETAILS_PROCESS_STAT_SLOTS }, (_, index) => {
+            const stat = draft.processStats[index] ?? { value: "", label: "" };
+            return [
+              field(`processStatValue${index + 1}`, stat.value),
+              field(`processStatLabel${index + 1}`, stat.label),
+            ];
+          }).flat(),
           field("lookbookEyebrow", draft.lookbookEyebrow),
           field("lookbookTitle", draft.lookbookTitle),
-          ...draft.lookbookLabels.map((label, index) => field(`lookbookLabel${index + 1}`, label)),
+          ...Array.from({ length: PRODUCT_DETAILS_LOOKBOOK_SLOTS }, (_, index) =>
+            field(`lookbookLabel${index + 1}`, draft.lookbookLabels[index] ?? ""),
+          ),
         ];
       })}
     </div>
@@ -159,6 +181,8 @@ export function ProductDetailFields({
   vendor = "",
   productType = "",
   characteristicValues = [],
+  enSpecOverrides,
+  specOverlayOverrides,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
@@ -177,6 +201,10 @@ export function ProductDetailFields({
   vendor?: string;
   productType?: string;
   characteristicValues?: ProductCharacteristicValue[];
+  /** EN Shopify spec values after AI Apply (merged over snapshot). */
+  enSpecOverrides?: Record<string, string>;
+  /** PT/RU Shopify spec overlays after AI Apply. */
+  specOverlayOverrides?: Record<string, Record<string, string>>;
 }) {
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
@@ -274,6 +302,8 @@ export function ProductDetailFields({
           shopifySnapshot={shopifySnapshot}
           activeLocale={activeLocale}
           translationLocales={translationLocales}
+          enValueOverrides={enSpecOverrides}
+          overlayOverrides={specOverlayOverrides}
         />
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
       </div>

@@ -37,6 +37,7 @@ import {
 import { PRODUCT_CONTENT_RESPONSE_SCHEMA } from "@/lib/ai/product-content/schema";
 import { validateAndNormalizeDraftLocales } from "@/lib/ai/product-content/validate";
 import { db } from "@/lib/db";
+import { shopifyProductSpecValuesFromWindows } from "@/lib/products/shopify-product-specs";
 
 const VALID_LOCALES = new Set<AiLocale>(["en", "pt", "ru"]);
 
@@ -75,7 +76,7 @@ async function loadProductForFacts(productId: string): Promise<
   | (ProductForFacts & { updatedAt: Date })
   | null
 > {
-  return db.product.findUnique({
+  const row = await db.product.findUnique({
     where: { id: productId },
     select: {
       id: true,
@@ -86,7 +87,13 @@ async function loadProductForFacts(productId: string): Promise<
       description: true,
       seoTitle: true,
       seoDescription: true,
+      symbolismLabel: true,
+      symbolismTitle: true,
+      symbolismBody: true,
+      symbolismBody2: true,
       details: true,
+      extras: true,
+      shopifySnapshot: true,
       updatedAt: true,
       characteristics: {
         select: {
@@ -117,6 +124,12 @@ async function loadProductForFacts(productId: string): Promise<
       },
     },
   });
+  if (!row) return null;
+  const { extras, shopifySnapshot, ...rest } = row;
+  return {
+    ...rest,
+    enSpecs: shopifyProductSpecValuesFromWindows(extras, shopifySnapshot),
+  };
 }
 
 function isProviderRateLimited(message: string): boolean {

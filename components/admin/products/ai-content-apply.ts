@@ -3,17 +3,20 @@ import type {
   AiLocale,
   ProductContentDraft,
 } from "@/lib/ai/product-content/contract";
+import { AI_FIELDS } from "@/lib/ai/product-content/contract";
 import { adminLocaleFieldName } from "@/lib/i18n/admin-locale-fields";
-import { emptyLocaleDraft } from "@/components/admin/products/product-helpers";
-import type { ProductDraft, ProductLocaleDraft } from "@/components/admin/products/product-types";
+import {
+  readProductDraftLocaleField,
+  writeProductDraftLocaleField,
+} from "@/lib/products/product-locale-draft-io";
+import {
+  getProductLocaleTextField,
+  PRODUCT_LOCALE_TEXT_SECTION_LABELS,
+  type ProductLocaleTextSection,
+} from "@/lib/products/product-locale-text-fields";
+import type { ProductDraft } from "@/components/admin/products/product-types";
 
-export const AI_FIELDS: readonly AiField[] = [
-  "title",
-  "shortDescription",
-  "description",
-  "seoTitle",
-  "seoDescription",
-] as const;
+export { AI_FIELDS };
 
 export const AI_LOCALES: readonly AiLocale[] = ["en", "pt", "ru"] as const;
 
@@ -24,7 +27,10 @@ export function selectionKey(locale: AiLocale, field: AiField): AiFieldSelection
 }
 
 export function parseSelectionKey(key: string): { locale: AiLocale; field: AiField } | null {
-  const [locale, field] = key.split(":") as [AiLocale, AiField];
+  const colon = key.indexOf(":");
+  if (colon < 0) return null;
+  const locale = key.slice(0, colon) as AiLocale;
+  const field = key.slice(colon + 1) as AiField;
   if (!AI_LOCALES.includes(locale) || !AI_FIELDS.includes(field)) return null;
   return { locale, field };
 }
@@ -128,71 +134,6 @@ export function buildDefaultSelections(
   return selected;
 }
 
-function withLocaleField(
-  localeDraft: ProductLocaleDraft,
-  field: AiField,
-  value: string,
-): ProductLocaleDraft {
-  if (field === "title") return { ...localeDraft, title: value };
-  if (field === "shortDescription") return { ...localeDraft, shortDescription: value };
-  if (field === "description") return { ...localeDraft, description: value };
-  if (field === "seoTitle") return { ...localeDraft, seoTitle: value };
-  return { ...localeDraft, seoDescription: value };
-}
-
-function ensureLocaleTranslation(base: ProductDraft, locale: AiLocale): ProductDraft {
-  if (locale === "en" || base.translations[locale]) return base;
-  return {
-    ...base,
-    translations: {
-      ...base.translations,
-      [locale]: emptyLocaleDraft(),
-    },
-  };
-}
-
-function writeDraftField(
-  base: ProductDraft,
-  locale: AiLocale,
-  field: AiField,
-  value: string,
-): ProductDraft {
-  if (isEnTitle(locale, field)) return base;
-  if (locale === "en") {
-    if (field === "shortDescription") return { ...base, shortDescription: value };
-    if (field === "description") return { ...base, description: value };
-    if (field === "seoTitle") return { ...base, seoTitle: value };
-    if (field === "seoDescription") return { ...base, seoDescription: value };
-    return base;
-  }
-  const withLocale = ensureLocaleTranslation(base, locale);
-  const existing = withLocale.translations[locale] ?? emptyLocaleDraft();
-  return {
-    ...withLocale,
-    translations: {
-      ...withLocale.translations,
-      [locale]: withLocaleField(existing, field, value),
-    },
-  };
-}
-
-function readDraftAiField(draft: ProductDraft, locale: AiLocale, field: AiField): string {
-  if (locale === "en") {
-    if (field === "title") return draft.name;
-    if (field === "shortDescription") return draft.shortDescription;
-    if (field === "description") return draft.description;
-    if (field === "seoTitle") return draft.seoTitle;
-    return draft.seoDescription;
-  }
-  const localeDraft = draft.translations[locale];
-  if (!localeDraft) return "";
-  if (field === "title") return localeDraft.title;
-  if (field === "shortDescription") return localeDraft.shortDescription;
-  if (field === "description") return localeDraft.description;
-  if (field === "seoTitle") return localeDraft.seoTitle;
-  return localeDraft.seoDescription;
-}
-
 /** Pull current AI-target field values from the live form into a draft copy. */
 export function syncAiFieldsFromForm(
   form: HTMLFormElement | null,
@@ -203,12 +144,19 @@ export function syncAiFieldsFromForm(
   let next: ProductDraft = {
     ...base,
     translations: { ...base.translations },
+    enSpecs: { ...base.enSpecs },
+    specOverlays: { ...base.specOverlays },
+    details: { ...base.details },
   };
   for (const locale of locales) {
     for (const field of AI_FIELDS) {
       if (isEnTitle(locale, field)) continue;
-      if (locale !== "en") next = ensureLocaleTranslation(next, locale);
-      next = writeDraftField(next, locale, field, readCurrentAiField(form, locale, field));
+      next = writeProductDraftLocaleField(
+        next,
+        locale,
+        field,
+        readCurrentAiField(form, locale, field),
+      );
     }
   }
   return next;
@@ -229,6 +177,9 @@ export function applyAiSelectionsToDraft(
   let next: ProductDraft = {
     ...base,
     translations: { ...base.translations },
+    enSpecs: { ...base.enSpecs },
+    specOverlays: { ...base.specOverlays },
+    details: { ...base.details },
   };
   const applied: AiFieldSelectionKey[] = [];
   const failed: AiFieldSelectionKey[] = [];
@@ -246,8 +197,8 @@ export function applyAiSelectionsToDraft(
       failed.push(key);
       continue;
     }
-    next = writeDraftField(next, locale, field, proposed);
-    if (readDraftAiField(next, locale, field) === proposed) {
+    next = writeProductDraftLocaleField(next, locale, field, proposed);
+    if (readProductDraftLocaleField(next, locale, field) === proposed) {
       applied.push(key);
     } else {
       failed.push(key);
@@ -273,16 +224,29 @@ export function formatUsageLine(usage: ProductContentDraft["usage"]): string {
 }
 
 export function fieldLabel(field: AiField): string {
-  switch (field) {
-    case "title":
-      return "Title";
-    case "shortDescription":
-      return "Short description";
-    case "description":
-      return "Description";
-    case "seoTitle":
-      return "SEO title";
-    case "seoDescription":
-      return "SEO description";
+  return getProductLocaleTextField(field)?.label ?? field;
+}
+
+export function fieldSection(field: AiField): ProductLocaleTextSection {
+  return getProductLocaleTextField(field)?.section ?? "product";
+}
+
+export function sectionLabel(section: ProductLocaleTextSection): string {
+  return PRODUCT_LOCALE_TEXT_SECTION_LABELS[section];
+}
+
+/** Group AI fields that appear in a locale draft by preview section. */
+export function groupAiFieldsBySection(
+  fields: readonly AiField[],
+): Array<{ section: ProductLocaleTextSection; fields: AiField[] }> {
+  const order: ProductLocaleTextSection[] = ["product", "details", "specs"];
+  const buckets = new Map<ProductLocaleTextSection, AiField[]>();
+  for (const section of order) buckets.set(section, []);
+  for (const field of fields) {
+    const section = fieldSection(field);
+    buckets.get(section)?.push(field);
   }
+  return order
+    .map((section) => ({ section, fields: buckets.get(section) ?? [] }))
+    .filter((group) => group.fields.length > 0);
 }

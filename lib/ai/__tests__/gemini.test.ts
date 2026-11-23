@@ -8,7 +8,7 @@ describe("geminiContentProvider", () => {
     fetchMock.mockReset();
     process.env.GEMINI_API_KEY = "test-key-not-real";
     process.env.AI_CONTENT_MODEL = "gemini-3.1-flash-lite";
-    process.env.AI_MAX_OUTPUT_TOKENS = "4096";
+    process.env.AI_MAX_OUTPUT_TOKENS = "16384";
   });
 
   afterEach(() => {
@@ -50,7 +50,7 @@ describe("geminiContentProvider", () => {
     const body = JSON.parse(String(init.body)) as {
       generationConfig: { maxOutputTokens: number };
     };
-    expect(body.generationConfig.maxOutputTokens).toBe(4096);
+    expect(body.generationConfig.maxOutputTokens).toBe(16384);
   });
 
   it("returns invalid json marker on MAX_TOKENS so generate can AuditLog invalid_output", async () => {
