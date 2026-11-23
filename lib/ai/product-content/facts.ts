@@ -1,7 +1,15 @@
 import { getMaxInputChars } from "@/lib/ai/config";
 import type { AiField, AiLocale, ProductContentDraft } from "@/lib/ai/product-content/contract";
+import { AI_FIELDS } from "@/lib/ai/product-content/contract";
 import { parseProductDetails } from "@/lib/content/product-details";
 import { plainTextFromRichText } from "@/lib/content/rich-text";
+import { parseCharacteristicTextOverlay } from "@/lib/products/characteristics";
+import { readDetailsLocaleField } from "@/lib/products/product-locale-draft-io";
+import {
+  getProductLocaleTextField,
+  shopifySpecKeyFromLocaleFieldKey,
+} from "@/lib/products/product-locale-text-fields";
+import type { ProductLocaleDetailsDraft } from "@/components/admin/products/product-types";
 
 /** Shown in AI preview when instruction-smuggling was stripped from source facts. */
 export const SOURCE_INJECTION_SCRUB_MESSAGE =
@@ -16,7 +24,13 @@ export type ProductContentFacts = {
   description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
   detailsAttributes: { label: string; value: string }[];
+  /** Flat EN source values for every AI field key (empty → do not translate). */
+  enSourceByField: Record<string, string>;
   characteristics: { key: string; label: string; value: string }[];
   collections: string[];
   translations: {
@@ -62,7 +76,13 @@ export type ProductForFacts = {
   description: string | null;
   seoTitle: string | null;
   seoDescription: string | null;
+  symbolismLabel: string | null;
+  symbolismTitle: string | null;
+  symbolismBody: string | null;
+  symbolismBody2: string | null;
   details: unknown;
+  /** EN Shopify product-spec values keyed by spec key (`material`, …). */
+  enSpecs?: Record<string, string>;
   characteristics: CharacteristicRow[];
   collections: CollectionLink[];
   translations: TranslationRow[];
@@ -251,6 +271,15 @@ export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): Scrub
     };
   });
 
+  const enSourceByField: Record<string, string> = {};
+  for (const [key, value] of Object.entries(facts.enSourceByField ?? {})) {
+    const scrubbed = scrubPromptInjectionText(value);
+    if (textWasScrubbed(value, scrubbed)) {
+      pushScrubWarning(warnings, "en", (AI_FIELDS.includes(key as AiField) ? key : "description") as AiField, `enSourceByField.${key}`);
+    }
+    enSourceByField[key] = scrubbed ?? "";
+  }
+
   return {
     facts: {
       ...facts,
@@ -260,6 +289,7 @@ export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): Scrub
       description,
       seoTitle,
       seoDescription,
+      enSourceByField,
       detailsAttributes,
       characteristics,
       collections,
@@ -267,6 +297,73 @@ export function scrubPromptInjectionFromFacts(facts: ProductContentFacts): Scrub
     },
     warnings,
   };
+}
+
+function detailsTextFromProduct(details: unknown): ProductLocaleDetailsDraft {
+  const parsed = parseProductDetails(details);
+  return {
+    attributes: Array.from({ length: 8 }, (_, index) => {
+      const source = parsed.attributes?.[index];
+      return { label: source?.label ?? "", value: source?.value ?? "" };
+    }),
+    characteristics: parseCharacteristicTextOverlay(details),
+    materialsEyebrow: parsed.materialsEyebrow ?? "",
+    materialsTitle: parsed.materialsTitle ?? "",
+    materials: Array.from({ length: 3 }, (_, index) => {
+      const source = parsed.materials?.[index];
+      return { title: source?.title ?? "", body: source?.body ?? "" };
+    }),
+    process: {
+      eyebrow: parsed.process?.eyebrow ?? "",
+      title: parsed.process?.title ?? "",
+      stats: Array.from({ length: 4 }, (_, index) => {
+        const source = parsed.process?.stats?.[index];
+        return { value: source?.value ?? "", label: source?.label ?? "" };
+      }),
+    },
+    lookbookEyebrow: parsed.lookbookEyebrow ?? "",
+    lookbookTitle: parsed.lookbookTitle ?? "",
+    lookbook: Array.from({ length: 4 }, (_, index) => {
+      const source = parsed.lookbook?.[index];
+      return { label: source?.label ?? "" };
+    }),
+  };
+}
+
+/** Flat EN values for every AI field — empty means PT/RU must not invent a translation. */
+export function buildEnSourceByField(product: ProductForFacts): Record<string, string> {
+  const detailsText = detailsTextFromProduct(product.details);
+  const enSpecs = product.enSpecs ?? {};
+  const out: Record<string, string> = {};
+
+  for (const field of AI_FIELDS) {
+    const def = getProductLocaleTextField(field);
+    if (!def) continue;
+    if (def.section === "product") {
+      if (field === "title") out[field] = product.name ?? "";
+      else if (field === "shortDescription") out[field] = product.shortDescription ?? "";
+      else if (field === "description") out[field] = product.description ?? "";
+      else if (field === "materialLine") out[field] = product.materialLine ?? "";
+      else if (field === "symbolismLabel") out[field] = product.symbolismLabel ?? "";
+      else if (field === "symbolismTitle") out[field] = product.symbolismTitle ?? "";
+      else if (field === "symbolismBody") out[field] = product.symbolismBody ?? "";
+      else if (field === "symbolismBody2") out[field] = product.symbolismBody2 ?? "";
+      else if (field === "seoTitle") out[field] = product.seoTitle ?? "";
+      else if (field === "seoDescription") out[field] = product.seoDescription ?? "";
+      else out[field] = "";
+      continue;
+    }
+    if (def.section === "details") {
+      out[field] = readDetailsLocaleField(detailsText, field);
+      continue;
+    }
+    if (def.section === "specs") {
+      const specKey = shopifySpecKeyFromLocaleFieldKey(field);
+      out[field] = specKey ? (enSpecs[specKey] ?? "") : "";
+    }
+  }
+  // Keep only non-empty sources — empty EN means "do not translate".
+  return Object.fromEntries(Object.entries(out).filter(([, value]) => value.trim().length > 0));
 }
 
 /** Build prompt facts — product/catalog only; never reviews/orders/customers. */
@@ -281,6 +378,11 @@ export function buildProductContentFacts(product: ProductForFacts): ProductConte
     description: product.description,
     seoTitle: product.seoTitle,
     seoDescription: product.seoDescription,
+    symbolismLabel: product.symbolismLabel,
+    symbolismTitle: product.symbolismTitle,
+    symbolismBody: product.symbolismBody,
+    symbolismBody2: product.symbolismBody2,
+    enSourceByField: buildEnSourceByField(product),
     detailsAttributes: (details.attributes ?? []).map((a) => ({
       label: a.label,
       value: a.value,
@@ -315,6 +417,11 @@ export function factsCorpus(facts: ProductContentFacts): string {
     facts.description ?? "",
     facts.seoTitle ?? "",
     facts.seoDescription ?? "",
+    facts.symbolismLabel ?? "",
+    facts.symbolismTitle ?? "",
+    facts.symbolismBody ?? "",
+    facts.symbolismBody2 ?? "",
+    ...Object.values(facts.enSourceByField ?? {}),
     ...facts.detailsAttributes.flatMap((a) => [a.label, a.value]),
     ...facts.characteristics.flatMap((c) => [c.key, c.label, c.value]),
     ...facts.collections,
@@ -351,6 +458,11 @@ export function truncateAtParagraphBoundary(text: string, maxLen: number): strin
 }
 
 function essentialFactsSkeleton(facts: ProductContentFacts): ProductContentFacts {
+  // Compact EN-source map for the floor check (keys only) — long values are restored
+  // then truncated in shrinkable steps below.
+  const enSourceKeys = Object.fromEntries(
+    Object.keys(facts.enSourceByField ?? {}).map((key) => [key, "1"]),
+  );
   return {
     productId: facts.productId,
     name: facts.name,
@@ -360,6 +472,11 @@ function essentialFactsSkeleton(facts: ProductContentFacts): ProductContentFacts
     description: null,
     seoTitle: null,
     seoDescription: null,
+    symbolismLabel: null,
+    symbolismTitle: null,
+    symbolismBody: null,
+    symbolismBody2: null,
+    enSourceByField: enSourceKeys,
     detailsAttributes: [],
     characteristics: facts.characteristics,
     collections: [],
@@ -394,6 +511,11 @@ export function truncateFactsForPrompt(
 
   let next: ProductContentFacts = {
     ...essential,
+    enSourceByField: facts.enSourceByField,
+    symbolismLabel: facts.symbolismLabel,
+    symbolismTitle: facts.symbolismTitle,
+    symbolismBody: facts.symbolismBody,
+    symbolismBody2: facts.symbolismBody2,
     collections: facts.collections,
     detailsAttributes: facts.detailsAttributes,
     shortDescription: facts.shortDescription,
@@ -411,10 +533,30 @@ export function truncateFactsForPrompt(
       next = { ...next, seoTitle: null, seoDescription: null };
     },
     () => {
+      next = {
+        ...next,
+        enSourceByField: Object.fromEntries(
+          Object.entries(next.enSourceByField).map(([key, value]) => [
+            key,
+            value.length > 120 ? truncateAtParagraphBoundary(value, 120) : value,
+          ]),
+        ),
+      };
+    },
+    () => {
       next = { ...next, detailsAttributes: [] };
     },
     () => {
       next = { ...next, collections: [] };
+    },
+    () => {
+      next = {
+        ...next,
+        symbolismLabel: null,
+        symbolismTitle: null,
+        symbolismBody: null,
+        symbolismBody2: null,
+      };
     },
     () => {
       if (next.shortDescription && next.shortDescription.length > 200) {

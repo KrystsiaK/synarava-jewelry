@@ -71,6 +71,19 @@ function emptyProductDraft(): ProductDraft {
     workflowState: "DRAFT",
     imageUrl: "",
     stockOnHand: "0",
+    details: {
+      attributes: [],
+      characteristics: {},
+      materialsEyebrow: "",
+      materialsTitle: "",
+      materials: [],
+      process: { eyebrow: "", title: "", stats: [] },
+      lookbookEyebrow: "",
+      lookbookTitle: "",
+      lookbook: [],
+    },
+    enSpecs: {},
+    specOverlays: { pt: {} },
     translations: {
       pt: {
         localizedHandle: "",
@@ -268,5 +281,49 @@ describe("ai-content-apply", () => {
 
   it("exposes en/pt/ru locales", () => {
     expect([...AI_LOCALES]).toEqual(["en", "pt", "ru"]);
+  });
+
+  it("apply writes materialLine, details, and Shopify spec overlays into the form draft", () => {
+    const base = emptyProductDraft();
+    base.translations = {};
+    const materialKey = "customMetafieldValue:custom:material";
+    const draft = makeDraft({
+      locales: {
+        pt: {
+          materialLine: "Prata 925",
+          materialsEyebrow: "Materiais",
+          materialTitle1: "Lava",
+          materialBody1: "<p>Corpo</p>",
+          [materialKey]: "Prata",
+        },
+        ru: {
+          materialLine: "Серебро 925",
+          materialsEyebrow: "Материалы",
+          materialTitle1: "Лава",
+          [materialKey]: "Серебро",
+        },
+      },
+    });
+    const selected = new Set([
+      selectionKey("pt", "materialLine"),
+      selectionKey("pt", "materialsEyebrow"),
+      selectionKey("pt", "materialTitle1"),
+      selectionKey("pt", "materialBody1"),
+      selectionKey("pt", materialKey),
+      selectionKey("ru", "materialLine"),
+      selectionKey("ru", "materialsEyebrow"),
+      selectionKey("ru", "materialTitle1"),
+      selectionKey("ru", materialKey),
+    ]);
+    const result = applyAiSelectionsToDraft(base, draft, selected);
+    expect(result.failed).toEqual([]);
+    expect(result.draft.translations.pt.materialLine).toBe("Prata 925");
+    expect(result.draft.translations.pt.details.materialsEyebrow).toBe("Materiais");
+    expect(result.draft.translations.pt.details.materials[0]?.title).toBe("Lava");
+    expect(result.draft.translations.pt.details.materials[0]?.body).toBe("<p>Corpo</p>");
+    expect(result.draft.specOverlays.pt.material).toBe("Prata");
+    expect(result.draft.translations.ru.materialLine).toBe("Серебро 925");
+    expect(result.draft.translations.ru.details.materialsEyebrow).toBe("Материалы");
+    expect(result.draft.specOverlays.ru.material).toBe("Серебро");
   });
 });

@@ -36,6 +36,7 @@ import {
   characteristicProjectionsFromShopifySpecs,
   SHOPIFY_PRODUCT_SPEC_FIELDS,
 } from "@/lib/products/shopify-product-specs";
+import { PRODUCT_CORE_TRANSLATABLE_FIELDS } from "@/lib/products/product-locale-text-fields";
 import {
   formDataHasMetafieldTranslationFields,
   mergeCustomMetafieldsIntoList,
@@ -518,11 +519,8 @@ const saveProductFieldsSchema = z.object({
   workflowState: z.string().trim().default("DRAFT"),
 });
 
-const TRANSLATABLE_PRODUCT_FIELDS = [
-  "title", "shortDescription", "description", "materialLine",
-  "symbolismLabel", "symbolismTitle", "symbolismBody", "symbolismBody2",
-  "seoTitle", "seoDescription",
-] as const;
+/** Flat ProductTranslation columns — shared with AI locale field list. */
+const TRANSLATABLE_PRODUCT_FIELDS = PRODUCT_CORE_TRANSLATABLE_FIELDS;
 
 /** Reads one locale's flat copy fields straight from the raw FormData (not the strict shared-field schema above — a translation is optional everywhere, so nothing here needs `.min(1)`). */
 function readProductTranslationFields(formData: FormData, locale: string) {

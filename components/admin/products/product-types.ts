@@ -58,6 +58,12 @@ export type ProductDraft = {
   workflowState: "DRAFT" | "PUBLISHED" | "UNLISTED";
   imageUrl: string;
   stockOnHand: string;
+  /** EN details text (materials/process/lookbook + passport TEXT overlays). */
+  details: ProductLocaleDetailsDraft;
+  /** EN Shopify product-spec values (`custom.*` keys). */
+  enSpecs: Record<string, string>;
+  /** PT/RU overlays for Shopify product specs — locale → specKey → value. */
+  specOverlays: Record<string, Record<string, string>>;
   translations: Record<string, ProductLocaleDraft>;
 };
 

@@ -159,6 +159,8 @@ export function ProductDetailFields({
   vendor = "",
   productType = "",
   characteristicValues = [],
+  enSpecOverrides,
+  specOverlayOverrides,
 }: {
   details: ReturnType<typeof getProductEditorDetails>;
   /** Every translation locale's details, keyed by locale code. */
@@ -177,6 +179,10 @@ export function ProductDetailFields({
   vendor?: string;
   productType?: string;
   characteristicValues?: ProductCharacteristicValue[];
+  /** EN Shopify spec values after AI Apply (merged over snapshot). */
+  enSpecOverrides?: Record<string, string>;
+  /** PT/RU Shopify spec overlays after AI Apply. */
+  specOverlayOverrides?: Record<string, Record<string, string>>;
 }) {
   const [draftByLocale, setDraftByLocale] = useState<Record<string, ProductDetailsLocaleDraft>>(() => ({
     [SOURCE_LOCALE]: detailsDraftFrom(details),
@@ -274,6 +280,8 @@ export function ProductDetailFields({
           shopifySnapshot={shopifySnapshot}
           activeLocale={activeLocale}
           translationLocales={translationLocales}
+          enValueOverrides={enSpecOverrides}
+          overlayOverrides={specOverlayOverrides}
         />
         <ShopifyProductFactsPanel facts={shopifyFacts} linked={shopifyLinked} />
       </div>

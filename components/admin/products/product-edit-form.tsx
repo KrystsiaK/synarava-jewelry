@@ -68,6 +68,7 @@ import {
   syncAiFieldsFromForm,
   type AiFieldSelectionKey,
 } from "@/components/admin/products/ai-content-apply";
+import { mergeEditorDetailsText } from "@/lib/products/product-locale-draft-io";
 import { AiContentGenerateControl } from "@/components/admin/products/ai-content-generate-control";
 import type { CollectionOption, ProductDraft, ProductRecord } from "@/components/admin/products/product-types";
 import type { ProductFieldName } from "@/lib/products/product-form-validation";
@@ -160,7 +161,10 @@ export function EditProductForm({
   }
   const draft = formDraftOverride ?? productToDraft(currentProduct, translationLocales);
   const aiLocales = asAiLocales(translationLocales);
-  const details = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const baseDetails = getProductEditorDetails(currentProduct.details, currentProduct.characteristics);
+  const details = formDraftOverride
+    ? mergeEditorDetailsText(baseDetails, draft.details)
+    : baseDetails;
   const activeLocaleLabel = localeTabs.find((tab) => tab.code === activeLocale)?.label ?? activeLocale;
   const activeTranslation = activeLocale === SOURCE_LOCALE ? null : draft.translations[activeLocale];
   const { pushToast } = useAdminToast();
@@ -719,6 +723,8 @@ export function EditProductForm({
                         vendor={currentProduct.vendor ?? draft.vendor}
                         productType={currentProduct.productType ?? draft.productType}
                         characteristicValues={currentProduct.characteristics}
+                        enSpecOverrides={draft.enSpecs}
+                        specOverlayOverrides={draft.specOverlays}
                       />
                     </div>
 

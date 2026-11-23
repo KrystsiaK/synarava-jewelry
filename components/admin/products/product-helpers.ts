@@ -4,6 +4,11 @@ import { productCollectionPosition } from "@/lib/catalog/collection-order";
 import type { AdminTranslationLocale } from "@/lib/i18n/admin-translation-locales";
 import type { ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import type { ProductDraft, ProductLocaleDraft, ProductRecord, ProductRowAction } from "@/components/admin/products/product-types";
+import {
+  shopifyProductSpecOverlaysFromTranslations,
+  shopifyProductSpecValuesFromWindows,
+} from "@/lib/products/shopify-product-specs";
+import { metafieldTranslationsFromSnapshot } from "@/lib/shopify/product-metafields-shared";
 
 export const PRODUCT_SAVE_FAILURE_MESSAGE =
   "Product could not be saved. Reload this page before trying again.";
@@ -149,6 +154,11 @@ export function emptyDraft(translationLocales: AdminTranslationLocale[] = []): P
     symbolismLabel: "", symbolismTitle: "", symbolismBody: "",
     symbolismBody2: "", shopifyCategoryId: "", shopifyCategoryName: "", collectionSlug: "",
     tags: "", workflowState: "DRAFT", imageUrl: "", stockOnHand: "0",
+    details: getProductDetailsTranslation(null),
+    enSpecs: {},
+    specOverlays: Object.fromEntries(
+      translationLocales.filter(({ code }) => code !== "en").map(({ code }) => [code, {}]),
+    ),
     translations: Object.fromEntries(translationLocales.map(({ code }) => [code, emptyLocaleDraft()])),
   };
 }
@@ -208,6 +218,19 @@ export function productToDraft(product: ProductRecord, translationLocales: Admin
         : "DRAFT",
     imageUrl: product.imageUrl ?? "",
     stockOnHand: String(primaryVariant?.stockOnHand ?? 0),
+    details: getProductDetailsTranslation(product.details),
+    enSpecs: shopifyProductSpecValuesFromWindows(product.extras, product.shopifySnapshot),
+    specOverlays: Object.fromEntries(
+      translationLocales
+        .filter(({ code }) => code !== "en")
+        .map(({ code }) => [
+          code,
+          shopifyProductSpecOverlaysFromTranslations(
+            metafieldTranslationsFromSnapshot(product.extras ?? product.shopifySnapshot),
+            code,
+          ),
+        ]),
+    ),
     translations: Object.fromEntries(translationLocales.map(({ code }) => {
       const translation = product.translations?.find((item) => item.locale === code);
       return [code, {
