@@ -202,6 +202,8 @@ export function AdminShopifySyncSignal({
     }
   }
 
+  // Detail stays in title/aria only — never in-flow under the chip. The topbar
+  // height token is a hard budget; a second line overflows into page titles.
   const title = detail
     ?? (run?.completedAt
       ? `Last checked ${formatCheckedAt(run.completedAt)}`
@@ -212,42 +214,39 @@ export function AdminShopifySyncSignal({
   // Failed / languages-missing are always retryable via the label or refresh.
   const retryClickable = state.kind === "failed" || state.kind === "languages-missing";
   const refreshDisabled = state.kind === "checking" || state.kind === "disconnected";
+  const linkAria = detail
+    ? (retryClickable ? `${state.label}. ${detail}. Retry check.` : `${state.label}. ${detail}`)
+    : (retryClickable ? `${state.label}. Retry check.` : state.label);
+  const liveStatus = detail ? `${state.label}. ${detail}` : state.label;
 
   return (
-    <div className="adm-sync-signal-stack">
-      <div className="adm-sync-signal" data-state={state.kind} title={title}>
-        {retryClickable ? (
-          <button
-            type="button"
-            className="adm-sync-signal__link"
-            aria-label={`${state.label}. Retry check.`}
-            onClick={() => void checkNow()}
-          >
-            <span className="adm-sync-signal__dot" aria-hidden="true" />
-            <span className="adm-sync-signal__label">{state.label}</span>
-          </button>
-        ) : (
-          <span className="adm-sync-signal__link" aria-label={state.label}>
-            <span className="adm-sync-signal__dot" aria-hidden="true" />
-            <span className="adm-sync-signal__label">{state.label}</span>
-          </span>
-        )}
+    <div className="adm-sync-signal" data-state={state.kind} title={title}>
+      {retryClickable ? (
         <button
           type="button"
-          className="adm-sync-signal__refresh"
-          aria-label="Check Shopify sync now"
-          disabled={refreshDisabled}
+          className="adm-sync-signal__link"
+          aria-label={linkAria}
           onClick={() => void checkNow()}
         >
-          <RefreshCw size={13} aria-hidden="true" />
+          <span className="adm-sync-signal__dot" aria-hidden="true" />
+          <span className="adm-sync-signal__label">{state.label}</span>
         </button>
-        <span className="sr-only" role="status" aria-live="polite">{state.label}</span>
-      </div>
-      {detail ? (
-        <p className="adm-sync-signal__detail" title={detail}>
-          {detail}
-        </p>
-      ) : null}
+      ) : (
+        <span className="adm-sync-signal__link" role="img" aria-label={linkAria}>
+          <span className="adm-sync-signal__dot" aria-hidden="true" />
+          <span className="adm-sync-signal__label">{state.label}</span>
+        </span>
+      )}
+      <button
+        type="button"
+        className="adm-sync-signal__refresh"
+        aria-label="Check Shopify sync now"
+        disabled={refreshDisabled}
+        onClick={() => void checkNow()}
+      >
+        <RefreshCw size={13} aria-hidden="true" />
+      </button>
+      <span className="sr-only" role="status" aria-live="polite">{liveStatus}</span>
     </div>
   );
 }

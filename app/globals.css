@@ -2465,12 +2465,17 @@ html[data-theme="light"] .adm-workflow-btn--off:hover {
   background: color-mix(in srgb, var(--adm-bg-soft) 92%, transparent);
 }
 
+/* Hard height budget: topbar chrome must never grow or paint into content.
+   Secondary copy belongs in title/aria or a portaled popover — not in-flow
+   under a chip inside this band. */
 .adm-topbar {
   position: relative;
   z-index: 120;
   box-sizing: border-box;
   height: var(--adm-topbar-height);
   min-height: var(--adm-topbar-height);
+  max-height: var(--adm-topbar-height);
+  overflow: clip;
   backdrop-filter: blur(18px) saturate(1.12);
   transition:
     background 180ms ease,
@@ -2842,21 +2847,14 @@ html[data-theme="dark"] .ephemeral-toast {
   font-weight: 700;
 }
 
-.adm-sync-signal-stack {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 0.28rem;
-  min-width: 0;
-  max-width: min(22rem, 46vw);
-}
-
 .adm-sync-signal {
   --adm-sync-color: var(--adm-accent);
   display: inline-flex;
   align-items: stretch;
   min-width: 0;
+  max-width: min(22rem, 46vw);
   height: 2.75rem;
+  max-height: 100%;
   border: 1px solid color-mix(in srgb, var(--adm-sync-color) 38%, var(--adm-border));
   border-radius: 10px;
   background: color-mix(in srgb, var(--adm-sync-color) 8%, transparent);
@@ -2880,23 +2878,6 @@ html[data-theme="dark"] .ephemeral-toast {
 .adm-sync-signal[data-state="disconnected"],
 .adm-sync-signal[data-state="unavailable"] {
   --adm-sync-color: var(--adm-danger);
-}
-
-.adm-sync-signal__detail {
-  margin: 0;
-  max-width: 100%;
-  padding: 0 0.12rem;
-  font-size: 0.62rem;
-  font-weight: 650;
-  line-height: 1.35;
-  letter-spacing: 0.01em;
-  color: color-mix(in srgb, var(--adm-muted) 72%, var(--adm-ink));
-  text-align: right;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
 }
 
 .adm-sync-signal__link,
