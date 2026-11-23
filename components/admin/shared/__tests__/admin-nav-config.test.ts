@@ -102,6 +102,11 @@ describe("admin-nav-config", () => {
     const reviews = items.find((item) => item.id === "reviews");
     expect(reviews).toMatchObject({ href: "/admin/reviews", label: "Reviews", code: "REV" });
     expect(reviews?.badge).toBeUndefined();
+    expect(items.find((item) => item.id === "marketing")).toMatchObject({
+      href: "/admin/marketing",
+      label: "Marketing",
+      code: "MKT",
+    });
     expect(translations).toMatchObject({ label: "Translations" });
     expect(translations?.badge).toBeUndefined();
     expect(infrastructure).toMatchObject({ href: "/admin/infrastructure", label: "Infrastructure" });

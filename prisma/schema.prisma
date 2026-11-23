@@ -627,6 +627,44 @@ model AuditLog {
   @@index([adminSessionId, createdAt])
 }
 
+/// Append-only competitor product observation (initial | changed | removed).
+model CompetitorObservation {
+  id           String   @id @default(cuid())
+  domain       String
+  url          String
+  fetchedAt    DateTime @default(now())
+  httpStatus   Int
+  source       String // "json-ld" | "og" | "shopify-js" | "sitemap"
+  name         String?
+  price        Decimal? @db.Decimal(10, 2)
+  currency     String?
+  availability String?
+  contentHash  String
+  kind         String // "initial" | "changed" | "removed"
+  previousId   String?
+
+  @@index([url, fetchedAt])
+  @@index([domain, fetchedAt])
+}
+
+/// Editable content calendar for marketing Reels ideas.
+model ContentIdea {
+  id         String    @id @default(cuid())
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  status     String // "draft" | "approved" | "rejected"
+  locale     String // "en" | "pt"
+  productIds String[]
+  signalIds  String[]
+  hook       String
+  script     String
+  shotList   Json // string[]
+  caption    String
+  plannedFor DateTime? // calendar day; null = unscheduled
+
+  @@index([status, plannedFor])
+}
+
 model AdminIssue {
   id                 String           @id @default(cuid())
   key                String           @unique

@@ -283,6 +283,12 @@ export function buildAdminNavItems({
       badge: countBadge(pendingReviewsCount),
     },
     {
+      id: "marketing",
+      href: "/admin/marketing",
+      label: "Marketing",
+      code: "MKT",
+    },
+    {
       id: "translations",
       href: "/admin/translations",
       label: "Translations",

@@ -26,6 +26,14 @@ export const DEFAULT_RATE_LIMIT_WINDOW_MS = 60 * 60 * 1000;
 export const DEFAULT_MAX_OUTPUT_TOKENS = 16_384;
 export const DEFAULT_MAX_INPUT_CHARS = 12_000;
 export const AI_AUDIT_ACTION = "ai.product_content.generate";
+/** Marketing Reels ideas — counts toward the same monthly AI budget. */
+export const AI_MARKETING_IDEAS_AUDIT_ACTION = "ai.marketing.ideas.generate";
+
+/** All AuditLog actions that spend against AI_MONTHLY_BUDGET_USD. */
+export const AI_BUDGET_AUDIT_ACTIONS = [
+  AI_AUDIT_ACTION,
+  AI_MARKETING_IDEAS_AUDIT_ACTION,
+] as const;
 
 /**
  * Single price table: model → USD per 1M input / output tokens.

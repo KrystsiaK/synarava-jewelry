@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 
-import { AI_AUDIT_ACTION, getMonthlyBudgetUsd } from "@/lib/ai/config";
+import {
+  AI_AUDIT_ACTION,
+  AI_BUDGET_AUDIT_ACTIONS,
+  getMonthlyBudgetUsd,
+} from "@/lib/ai/config";
 import { db } from "@/lib/db";
 
 function monthWindow(now = new Date()): { start: Date; end: Date } {
@@ -15,12 +19,12 @@ function costFromMetadata(metadata: unknown): number {
   return typeof cost === "number" && Number.isFinite(cost) && cost > 0 ? cost : 0;
 }
 
-/** Sum costUsd from AuditLog rows for the current UTC month. */
+/** Sum costUsd from AuditLog rows for the current UTC month (all AI budget actions). */
 export async function sumMonthlyAiSpendUsd(now = new Date()): Promise<number> {
   const { start, end } = monthWindow(now);
   const rows = await db.auditLog.findMany({
     where: {
-      action: AI_AUDIT_ACTION,
+      action: { in: [...AI_BUDGET_AUDIT_ACTIONS] },
       createdAt: { gte: start, lt: end },
     },
     select: { metadata: true },
