@@ -44,6 +44,7 @@ describe("sitemap", () => {
     );
     const result = await collectProductUrlsFromSitemap({ target, robots, fetchFn });
     expect(result.sitemapOk).toBe(true);
+    expect(result.complete).toBe(true);
     expect(result.productUrls).toEqual(["https://aurorajoalharia.com/products/a"]);
     const productIdx = order.findIndex((u) => u.includes("sitemap-products"));
     const pagesIdx = order.findIndex((u) => u.includes("sitemap-pages"));

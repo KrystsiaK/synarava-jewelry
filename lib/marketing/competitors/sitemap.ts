@@ -10,19 +10,23 @@ import {
 
 export type FetchFn = (url: string) => Promise<{ status: number; body: Buffer; finalUrl: string }>;
 
+/** Cap decompressed sitemap size (gzip bomb guard). */
+export const SITEMAP_MAX_GUNZIP_BYTES = 10 * 1024 * 1024;
+
 export function extractLocs(xml: string): string[] {
   return [...xml.matchAll(/<loc>\s*([^<\s]+)\s*<\/loc>/gi)].map((m) =>
     (m[1] ?? "").replace(/&amp;/g, "&").trim(),
   );
 }
 
-function decodeBody(url: string, body: Buffer): string {
+/**
+ * Decode sitemap body. Gzip errors / oversize throw — caller must not mark sitemapOk.
+ */
+export function decodeSitemapBody(url: string, body: Buffer): string {
   if (url.toLowerCase().endsWith(".gz") || body[0] === 0x1f) {
-    try {
-      return gunzipSync(body).toString("utf8");
-    } catch {
-      return body.toString("utf8");
-    }
+    return gunzipSync(body, { maxOutputLength: SITEMAP_MAX_GUNZIP_BYTES }).toString(
+      "utf8",
+    );
   }
   return body.toString("utf8");
 }
@@ -32,6 +36,11 @@ export type SitemapCollectResult = {
   sitemapsRead: number;
   /** True when at least one sitemap URL returned HTTP 200 with parseable XML. */
   sitemapOk: boolean;
+  /**
+   * False when maxProducts / maxSitemaps truncated collection, or every candidate failed.
+   * Removal-from-sitemap must only run when complete === true.
+   */
+  complete: boolean;
 };
 
 /**
@@ -56,8 +65,16 @@ export async function collectProductUrlsFromSitemap(input: {
   const seen = new Set<string>();
   const products: string[] = [];
   let sitemapOk = false;
+  let truncated = false;
+  let queueRemaining = false;
 
-  while (queue.length > 0 && products.length < maxProducts && seen.size < maxSitemaps) {
+  while (queue.length > 0) {
+    if (products.length >= maxProducts || seen.size >= maxSitemaps) {
+      truncated = true;
+      queueRemaining = queue.length > 0;
+      break;
+    }
+
     const sm = queue.shift()!;
     if (seen.has(sm)) continue;
     seen.add(sm);
@@ -73,7 +90,14 @@ export async function collectProductUrlsFromSitemap(input: {
 
     const res = await fetchFn(sm);
     if (res.status !== 200) continue;
-    const text = decodeBody(sm, res.body);
+
+    let text: string;
+    try {
+      text = decodeSitemapBody(sm, res.body);
+    } catch {
+      // Gzip bomb / corrupt gzip — do not mark sitemapOk from this body.
+      continue;
+    }
     if (!/<urlset|<sitemapindex/i.test(text)) continue;
     sitemapOk = true;
 
@@ -86,6 +110,10 @@ export async function collectProductUrlsFromSitemap(input: {
     }
 
     for (const loc of locs) {
+      if (products.length >= maxProducts) {
+        truncated = true;
+        break;
+      }
       try {
         const u = new URL(loc);
         if (normalizeCompetitorHost(u.hostname) !== target.host) continue;
@@ -97,10 +125,19 @@ export async function collectProductUrlsFromSitemap(input: {
     }
   }
 
+  if (queue.length > 0) {
+    truncated = true;
+    queueRemaining = true;
+  }
+
+  const unique = [...new Set(products)];
+  const complete = sitemapOk && !truncated && !queueRemaining;
+
   return {
-    productUrls: [...new Set(products)],
+    productUrls: unique.slice(0, maxProducts),
     sitemapsRead: seen.size,
     sitemapOk,
+    complete,
   };
 }
 

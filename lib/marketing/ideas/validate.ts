@@ -37,8 +37,8 @@ function corpusHasClaim(corpus: string, term: string): boolean {
  * Drop invalid ideas with a warning — never silently fix.
  * - productIds ⊂ input
  * - signalIds ⊂ input
- * - claim-guard against referenced products' factsCorpus
- * - competitor claims only if a cited signal contains them
+ * - claim-guard: CLAIM_GUARD_TERMS only if present in referenced products' facts
+ *   (cited signals never exempt material/quality claims)
  */
 export function validateMarketingIdeas(input: {
   rawIdeas: unknown;
@@ -64,12 +64,8 @@ export function validateMarketingIdeas(input: {
     return { ideas: [], warnings: ["ideas response missing ideas array"] };
   }
 
-  const signalCorpus = new Map(
-    input.signals.map((s) => [
-      s.id,
-      `${s.summary} ${JSON.stringify(s.data)}`.toLowerCase(),
-    ]),
-  );
+  // signals kept for API stability / future non-claim uses; claim-guard ignores them
+  void input.signals;
 
   for (const [index, item] of list.entries()) {
     const label = `idea[${index}]`;
@@ -123,9 +119,6 @@ export function validateMarketingIdeas(input: {
       .map((id) => input.productFactsCorpus.get(id) ?? "")
       .join("\n")
       .toLowerCase();
-    const citedSignalCorpus = signalIds
-      .map((id) => signalCorpus.get(id) ?? "")
-      .join("\n");
 
     const textBlob = [raw.hook, raw.script, raw.caption, ...raw.shotList].join(
       "\n",
@@ -134,8 +127,6 @@ export function validateMarketingIdeas(input: {
     for (const { term, label: claimLabel } of CLAIM_GUARD_TERMS) {
       if (!claimTermPresent(textBlob, term)) continue;
       if (corpusHasClaim(productCorpus, term)) continue;
-      // Competitor claims allowed only when a cited signal carries them.
-      if (signalIds.length > 0 && corpusHasClaim(citedSignalCorpus, term)) continue;
       claimFail = claimLabel;
       break;
     }

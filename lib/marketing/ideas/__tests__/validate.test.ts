@@ -118,6 +118,39 @@ describe("validateMarketingIdeas", () => {
     expect(result.ideas).toHaveLength(1);
     expect(result.ideas[0]?.weekSlot).toBe(3);
   });
+
+  it("drops claim present only in cited signal (no product-facts leak)", () => {
+    const silverSignal: MarketSignal = {
+      ...signal,
+      id: "web:obs-silver",
+      summary: "plata 925 sterling silver",
+      data: { material: "925 sterling silver" },
+    };
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          {
+            locale: "en",
+            productIds: ["p1"],
+            signalIds: ["web:obs-silver"],
+            hook: "Our bracelet is 925 sterling silver",
+            script: "Everyday wear",
+            shotList: ["close-up"],
+            caption: "Synarava",
+            weekSlot: 1,
+          },
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(["web:obs-silver"]),
+      productFactsCorpus: new Map([
+        ["p1", "beaded bracelet with glass beads"],
+      ]),
+      signals: [silverSignal],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(result.warnings.some((w) => /925|sterling/i.test(w))).toBe(true);
+  });
 });
 
 describe("plannedForFromWeekSlot", () => {

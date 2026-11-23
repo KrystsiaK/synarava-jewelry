@@ -24,6 +24,7 @@ import {
 } from "@/lib/ai/product-content/provider";
 import { checkRateLimit } from "@/lib/auth/rate-limit";
 import { db } from "@/lib/db";
+import { validateManualNotes } from "@/lib/marketing/ideas/notes";
 import { MARKETING_IDEAS_RESPONSE_SCHEMA } from "@/lib/marketing/ideas/schema";
 import {
   plannedForFromWeekSlot,
@@ -146,17 +147,20 @@ function buildUserPrompt(input: {
   ].join("\n");
 }
 
+type UsageAuditPayload = {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  costUsd: number;
+  latencyMs: number;
+  outcome: "ok" | "invalid_output";
+  ideaCount: number;
+  manualNotes: Array<{ signalId: string; url: string; text: string }>;
+};
+
 async function writeUsageAudit(input: {
   actor: { username: string; sessionId: string };
-  usage: {
-    model: string;
-    inputTokens: number;
-    outputTokens: number;
-    costUsd: number;
-    latencyMs: number;
-    outcome: "ok" | "invalid_output";
-    ideaCount: number;
-  };
+  usage: UsageAuditPayload;
 }): Promise<void> {
   await db.auditLog.create({
     data: {
@@ -186,6 +190,11 @@ export async function generateMarketingIdeas(
       code: "invalid_input",
       message: "Provide 1–10 product ids",
     };
+  }
+
+  const notesCheck = validateManualNotes(input.manualNotes);
+  if (!notesCheck.ok) {
+    return { ok: false, code: "invalid_input", message: notesCheck.message };
   }
 
   const rl = await checkRateLimit(
@@ -225,15 +234,19 @@ export async function generateMarketingIdeas(
     };
   }
 
+  const manualSignals = notesCheck.notes.map((note) => {
+    const id = randomUUID();
+    return fromManualNote({ id, url: note.url, text: note.text });
+  });
+  const manualNotesMeta = manualSignals.map((s) => ({
+    signalId: s.id,
+    url: s.url,
+    text: String(s.data.text ?? s.summary),
+  }));
+
   const signals: MarketSignal[] = [
     ...observations.map((row) => fromCompetitorObservation(row)),
-    ...(input.manualNotes ?? []).map((note) =>
-      fromManualNote({
-        id: randomUUID(),
-        url: note.url,
-        text: note.text,
-      }),
-    ),
+    ...manualSignals,
   ];
   const allowedSignalIds = new Set(signals.map((s) => s.id));
 
@@ -265,7 +278,8 @@ export async function generateMarketingIdeas(
     };
   }
 
-  let providerResult: Awaited<ReturnType<ReturnType<typeof getContentProvider>>>;
+  let providerResult: Awaited<ReturnType<ReturnType<typeof getContentProvider>>> | null =
+    null;
   try {
     const provider = getContentProvider();
     providerResult = await provider({
@@ -299,59 +313,79 @@ export async function generateMarketingIdeas(
     signals,
   });
 
-  if (validated.ideas.length === 0) {
-    await writeUsageAudit({
-      actor: input.actor,
-      usage: {
-        model: providerResult.usage.model || getAiContentModel(),
-        inputTokens: providerResult.usage.inputTokens,
-        outputTokens: providerResult.usage.outputTokens,
-        costUsd,
-        latencyMs: providerResult.usage.latencyMs,
-        outcome: "invalid_output",
-        ideaCount: 0,
-      },
+  let usageOutcome: "ok" | "invalid_output" = "invalid_output";
+  let created: Array<ValidatedMarketingIdea & { id: string; plannedFor: Date }> =
+    [];
+  let createError: Error | null = null;
+
+  try {
+    if (validated.ideas.length === 0) {
+      return {
+        ok: false,
+        code: "invalid_output",
+        message: validated.warnings.join("; ") || "No valid ideas returned",
+      };
+    }
+
+    const now = new Date();
+    created = await db.$transaction(async (tx) => {
+      const rows: Array<ValidatedMarketingIdea & { id: string; plannedFor: Date }> =
+        [];
+      for (const idea of validated.ideas) {
+        const plannedFor = plannedForFromWeekSlot(idea.weekSlot, now);
+        const row = await tx.contentIdea.create({
+          data: {
+            status: "draft",
+            locale: idea.locale,
+            productIds: idea.productIds,
+            signalIds: idea.signalIds,
+            hook: idea.hook,
+            script: idea.script,
+            shotList: idea.shotList,
+            caption: idea.caption,
+            plannedFor,
+          },
+        });
+        rows.push({ ...idea, id: row.id, plannedFor });
+      }
+      return rows;
     });
+    usageOutcome = "ok";
+  } catch (error) {
+    createError = error instanceof Error ? error : new Error("idea create failed");
+  } finally {
+    if (providerResult) {
+      await writeUsageAudit({
+        actor: input.actor,
+        usage: {
+          model: providerResult.usage.model || getAiContentModel(),
+          inputTokens: providerResult.usage.inputTokens,
+          outputTokens: providerResult.usage.outputTokens,
+          costUsd,
+          latencyMs: providerResult.usage.latencyMs,
+          outcome: usageOutcome,
+          ideaCount: created.length,
+          manualNotes: manualNotesMeta,
+        },
+      });
+    }
+  }
+
+  if (createError) {
+    return {
+      ok: false,
+      code: "provider_error",
+      message: "Failed to persist content ideas after generation",
+    };
+  }
+
+  if (usageOutcome !== "ok") {
     return {
       ok: false,
       code: "invalid_output",
       message: validated.warnings.join("; ") || "No valid ideas returned",
     };
   }
-
-  const now = new Date();
-  const created: Array<ValidatedMarketingIdea & { id: string; plannedFor: Date }> =
-    [];
-  for (const idea of validated.ideas) {
-    const plannedFor = plannedForFromWeekSlot(idea.weekSlot, now);
-    const row = await db.contentIdea.create({
-      data: {
-        status: "draft",
-        locale: idea.locale,
-        productIds: idea.productIds,
-        signalIds: idea.signalIds,
-        hook: idea.hook,
-        script: idea.script,
-        shotList: idea.shotList,
-        caption: idea.caption,
-        plannedFor,
-      },
-    });
-    created.push({ ...idea, id: row.id, plannedFor });
-  }
-
-  await writeUsageAudit({
-    actor: input.actor,
-    usage: {
-      model: providerResult.usage.model || getAiContentModel(),
-      inputTokens: providerResult.usage.inputTokens,
-      outputTokens: providerResult.usage.outputTokens,
-      costUsd,
-      latencyMs: providerResult.usage.latencyMs,
-      outcome: "ok",
-      ideaCount: created.length,
-    },
-  });
 
   return {
     ok: true,

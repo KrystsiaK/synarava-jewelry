@@ -48,9 +48,9 @@ export function isBlockedResolvedIp(ip: string): boolean {
     if (lower === "::1" || lower === "::") return true;
     if (lower.startsWith("fc") || lower.startsWith("fd")) return true; // ULA
     if (lower.startsWith("fe80:")) return true;
-    // IPv4-mapped
-    if (lower.startsWith(":ffff:")) {
-      const mapped = lower.slice(7);
+    // IPv4-mapped (::ffff:x.x.x.x)
+    if (lower.startsWith("::ffff:")) {
+      const mapped = lower.slice("::ffff:".length);
       if (isIP(mapped) === 4) return isBlockedResolvedIp(mapped);
     }
     return false;

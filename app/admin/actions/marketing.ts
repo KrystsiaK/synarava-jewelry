@@ -36,8 +36,14 @@ export type ScanCompetitorsActionResult =
   | {
       ok: true;
       writtenTotal: number;
+      unparsedTotal: number;
       durationMs: number;
-      domains: Array<{ domain: string; written: number; fetched: number }>;
+      domains: Array<{
+        domain: string;
+        written: number;
+        fetched: number;
+        unparsed: number;
+      }>;
     }
   | { ok: false; code: "unauthorized" | "rate_limited" | "error"; message: string };
 
@@ -63,12 +69,14 @@ export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResu
       before: null,
       after: {
         writtenTotal: result.writtenTotal,
+        unparsedTotal: result.unparsedTotal,
         durationMs: result.durationMs,
         truncated: result.truncated,
         domains: result.domains.map((d) => ({
           domain: d.domain,
           written: d.written,
           fetched: d.fetched,
+          unparsed: d.unparsed,
           skippedRobots: d.skippedRobots,
         })),
       },
@@ -78,11 +86,13 @@ export async function scanCompetitorsAction(): Promise<ScanCompetitorsActionResu
     return {
       ok: true,
       writtenTotal: result.writtenTotal,
+      unparsedTotal: result.unparsedTotal,
       durationMs: result.durationMs,
       domains: result.domains.map((d) => ({
         domain: d.domain,
         written: d.written,
         fetched: d.fetched,
+        unparsed: d.unparsed,
       })),
     };
   } catch (error) {

@@ -5,13 +5,16 @@ import { extractFromHtml, parseShopifyProductJs } from "@/lib/marketing/competit
 import { fetchCompetitorUrl, OffHostRedirectError } from "@/lib/marketing/competitors/fetch";
 import { decideObservationDiff } from "@/lib/marketing/competitors/diff";
 import { parseRobotsTxt } from "@/lib/marketing/competitors/robots";
+import { selectUrlsToFetch } from "@/lib/marketing/competitors/select-urls";
 import { collectProductUrlsFromSitemap } from "@/lib/marketing/competitors/sitemap";
 import {
   COMPETITOR_TARGETS,
   type CompetitorTarget,
 } from "@/lib/marketing/competitors/targets";
+import { shouldSkipUnparsedExtraction } from "@/lib/marketing/competitors/unparsed";
 
 const MAX_FETCHES_PER_DOMAIN = 20;
+const MAX_REVISIT_PER_DOMAIN = 10;
 const MIN_DELAY_MS = 1500;
 const SCAN_BUDGET_MS = 90_000;
 
@@ -21,12 +24,14 @@ export type ScanDomainResult = {
   fetched: number;
   skippedRobots: number;
   written: number;
+  unparsed: number;
   errors: string[];
 };
 
 export type ScanResult = {
   domains: ScanDomainResult[];
   writtenTotal: number;
+  unparsedTotal: number;
   durationMs: number;
   truncated: boolean;
 };
@@ -75,6 +80,7 @@ async function scanDomain(
     fetched: 0,
     skippedRobots: 0,
     written: 0,
+    unparsed: 0,
     errors: [],
   };
 
@@ -94,6 +100,7 @@ async function scanDomain(
 
   let sitemapUrls: string[] = [];
   let sitemapOk = false;
+  let sitemapComplete = false;
   try {
     const sm = await collectProductUrlsFromSitemap({
       target,
@@ -102,31 +109,32 @@ async function scanDomain(
     });
     sitemapUrls = sm.productUrls;
     sitemapOk = sm.sitemapOk;
+    sitemapComplete = sm.complete;
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : "sitemap failed");
   }
 
   const priorUrls = await previouslyObservedUrls(target.host);
   const sitemapSet = new Set(sitemapUrls);
-  const ordered: string[] = [];
-  const seen = new Set<string>();
-  for (const u of priorUrls) {
-    if (seen.has(u)) continue;
-    seen.add(u);
-    ordered.push(u);
-  }
-  for (const u of sitemapUrls) {
-    if (seen.has(u)) continue;
-    seen.add(u);
-    ordered.push(u);
-  }
+  const known = new Set(priorUrls);
+  const allKnown = [...new Set([...priorUrls, ...sitemapUrls])];
+  const latest = await latestByUrl(allKnown);
 
-  const toFetch = ordered.slice(0, MAX_FETCHES_PER_DOMAIN);
-  // Prefetch latest rows for all known URLs (incl. removal detection), not only toFetch.
-  const latest = await latestByUrl(ordered);
+  const priorActive = priorUrls.filter((url) => {
+    const row = latest.get(url);
+    return row != null && row.kind !== "removed";
+  });
+  const newSitemapUrls = sitemapUrls.filter((url) => !known.has(url));
 
-  // Removed: URL missing from a successfully read sitemap, or we detect 404/410 below.
-  if (sitemapOk) {
+  const toFetch = selectUrlsToFetch({
+    priorActiveUrls: priorActive,
+    newSitemapUrls,
+    maxFetches: MAX_FETCHES_PER_DOMAIN,
+    maxRevisit: MAX_REVISIT_PER_DOMAIN,
+  });
+
+  // Removed from sitemap only when the sitemap walk completed fully.
+  if (sitemapOk && sitemapComplete) {
     for (const url of priorUrls) {
       if (sitemapSet.has(url)) continue;
       const decision = decideObservationDiff({
@@ -235,6 +243,11 @@ async function scanDomain(
       }
     }
 
+    if (shouldSkipUnparsedExtraction(extracted)) {
+      result.unparsed += 1;
+      continue;
+    }
+
     const decision = decideObservationDiff({
       prior: latest.get(url),
       removed: false,
@@ -277,6 +290,7 @@ export async function scanAllCompetitors(now = new Date()): Promise<ScanResult> 
   return {
     domains,
     writtenTotal: domains.reduce((sum, d) => sum + d.written, 0),
+    unparsedTotal: domains.reduce((sum, d) => sum + d.unparsed, 0),
     durationMs,
     truncated: durationMs >= SCAN_BUDGET_MS - 50 || Date.now() >= deadline,
   };
