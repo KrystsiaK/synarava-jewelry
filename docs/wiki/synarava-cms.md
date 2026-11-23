@@ -292,6 +292,15 @@ All admin panel chrome padding comes from one token scale on `.admin-terminal` /
 
 Do **not** invent per-screen `px-5` / `px-6` / `pad-x-lg` on panel chrome — change `--adm-inset-x` once.
 
+### Topbar height budget
+
+`.adm-topbar` is a hard chrome band: `height` / `min-height` / `max-height` =
+`--adm-topbar-height` (4.25rem) and `overflow: clip`. Accessories (Shopify sync
+signal, theme toggle, brand kicker) must fit in one row. Secondary copy (error
+detail, long status) belongs in `title` / `aria-label` or a portaled popover —
+never an in-flow second line under a chip. Fixture: `e2e/support/admin-topbar-fixture.html`
++ `e2e/topbar-chrome-fixture.spec.ts`.
+
 ### Collapsible panel
 
 ```tsx
