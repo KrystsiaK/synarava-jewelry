@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1200 560" role="img" aria-labelledby="arch-title arch-desc">
+  <title id="arch-title">Synarava hybrid architecture</title>
+  <desc id="arch-desc">Shopify owns commerce. Synarava adds an editorial CMS, sync with explicit human apply, AI draft assist with budgets, a locale-aware admin, and a read-only Mission Control map feeding a Next.js storefront.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#100e0c"/>
+      <stop offset="100%" stop-color="#1a1612"/>
+    </linearGradient>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 1.5 L 8 5 L 0 8.5 Z" fill="#c4b4a0"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="560" rx="28" fill="url(#bg)"/>
+  <rect x="28" y="28" width="1144" height="504" rx="22" fill="none" stroke="#3a3228" stroke-width="1.5"/>
+
+  <!-- Header -->
+  <text x="64" y="78" fill="#f4efe6" font-family="Georgia, 'Times New Roman', serif" font-size="32" font-weight="700">Architecture</text>
+  <text x="64" y="112" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Shopify commerce truth · Synarava editorial layer · human Apply</text>
+  <line x1="64" y1="132" x2="280" y2="132" stroke="#8b1e2d" stroke-width="3"/>
+
+  <!-- Shopify -->
+  <g transform="translate(64 168)">
+    <rect width="250" height="148" rx="16" fill="#221c16" stroke="#8b1e2d" stroke-width="2"/>
+    <text x="24" y="42" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="700">Shopify</text>
+    <text x="24" y="74" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Catalog · cart</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Checkout · accounts</text>
+    <text x="24" y="126" fill="#8b1e2d" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">commerce owner</text>
+  </g>
+
+  <!-- Sync -->
+  <g transform="translate(380 168)">
+    <rect width="250" height="148" rx="16" fill="#221c16" stroke="#c4b4a0" stroke-width="1.5"/>
+    <text x="24" y="42" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="700">Sync</text>
+    <text x="24" y="74" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Two-state compare</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Conflict → Apply</text>
+    <text x="24" y="126" fill="#c4b4a0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">no silent overwrite</text>
+  </g>
+
+  <!-- Synarava CMS -->
+  <g transform="translate(696 168)">
+    <rect width="250" height="148" rx="16" fill="#221c16" stroke="#c4b4a0" stroke-width="1.5"/>
+    <text x="24" y="42" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="22" font-weight="700">Synarava CMS</text>
+    <text x="24" y="74" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Pages · media</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Locales EN / PT / RU</text>
+    <text x="24" y="126" fill="#c4b4a0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="16">editorial owner</text>
+  </g>
+
+  <!-- Arrows top row -->
+  <path d="M 320 242 H 372" stroke="#c4b4a0" stroke-width="2" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+  <path d="M 636 242 H 688" stroke="#c4b4a0" stroke-width="2" fill="none" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+
+  <!-- AI -->
+  <g transform="translate(64 360)">
+    <rect width="250" height="128" rx="16" fill="#18140f" stroke="#3a3228" stroke-width="1.5"/>
+    <text x="24" y="40" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700">AI content assist</text>
+    <text x="24" y="72" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Draft into form only</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Budgets · rate guards</text>
+  </g>
+
+  <!-- Mission Control -->
+  <g transform="translate(380 360)">
+    <rect width="250" height="128" rx="16" fill="#18140f" stroke="#3a3228" stroke-width="1.5"/>
+    <text x="24" y="40" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700">Mission Control</text>
+    <text x="24" y="72" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Read-only health map</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Navigate · copy guidance</text>
+  </g>
+
+  <!-- Storefront -->
+  <g transform="translate(696 360)">
+    <rect width="440" height="128" rx="16" fill="#221c16" stroke="#8b1e2d" stroke-width="2"/>
+    <text x="24" y="40" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="20" font-weight="700">Next.js storefront</text>
+    <text x="24" y="72" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Locale routes · editorial composition</text>
+    <text x="24" y="100" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Shopify-hosted checkout handoff</text>
+  </g>
+
+  <!-- Vertical flows -->
+  <path d="M 821 324 V 352" stroke="#c4b4a0" stroke-width="2" fill="none" marker-end="url(#arrow)"/>
+  <path d="M 189 324 V 352" stroke="#3a3228" stroke-width="1.5" fill="none" stroke-dasharray="4 4"/>
+  <text x="200" y="340" fill="#7a6e60" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">into admin form</text>
+</svg>

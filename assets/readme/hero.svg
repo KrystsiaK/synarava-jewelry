@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 1200 360" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">Synarava</title>
+  <desc id="hero-desc">Headless jewellery storefront and editorial CMS on Shopify — commerce owned by Shopify, storytelling owned by Synarava.</desc>
+
+  <defs>
+    <linearGradient id="hero-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0a0908"/>
+      <stop offset="55%" stop-color="#14110e"/>
+      <stop offset="100%" stop-color="#1c1612"/>
+    </linearGradient>
+    <linearGradient id="mark-s" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="#8b1e2d"/>
+      <stop offset="100%" stop-color="#d4a017"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="360" rx="28" fill="url(#hero-bg)"/>
+
+  <!-- Brand mark -->
+  <g transform="translate(64 88)">
+    <rect width="88" height="88" rx="18" fill="#1a1511" stroke="#3a3228" stroke-width="1.5"/>
+    <text x="44" y="64" text-anchor="middle" fill="url(#mark-s)" font-family="Georgia, 'Times New Roman', serif" font-size="64" font-weight="700">S</text>
+  </g>
+
+  <text x="180" y="128" fill="#f4efe6" font-family="Georgia, 'Times New Roman', serif" font-size="56" font-weight="700">SYNARAVA</text>
+  <line x1="180" y1="148" x2="268" y2="148" stroke="#8b1e2d" stroke-width="3"/>
+  <text x="284" y="154" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="16" letter-spacing="2">JEWELLERY · HEADLESS · CMS</text>
+
+  <text x="180" y="208" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="24">Headless jewellery storefront + CMS on Shopify</text>
+  <text x="180" y="246" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Shopify owns sellability. Synarava owns localized storytelling,</text>
+  <text x="180" y="272" fill="#c4b4a0" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">sync with explicit Apply, and a read-only operations map.</text>
+
+  <!-- Right: compact ownership chips -->
+  <g transform="translate(820 96)">
+    <rect width="316" height="168" rx="18" fill="#1a1511" stroke="#3a3228" stroke-width="1.5"/>
+    <text x="24" y="40" fill="#7a6e60" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="14">OWNERSHIP</text>
+    <circle cx="36" cy="72" r="6" fill="#8b1e2d"/>
+    <text x="56" y="78" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Shopify · commerce</text>
+    <circle cx="36" cy="108" r="6" fill="#c4b4a0"/>
+    <text x="56" y="114" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Synarava · editorial</text>
+    <circle cx="36" cy="144" r="6" fill="#5c5348"/>
+    <text x="56" y="150" fill="#f4efe6" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" font-size="18">Human · Apply / Save</text>
+  </g>
+</svg>
