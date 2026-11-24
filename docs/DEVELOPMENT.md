@@ -1,0 +1,235 @@
+# Synarava
+
+System rebuild of the Synarava storefront and lightweight CMS on:
+
+- Next.js App Router
+- pnpm
+- Tailwind CSS v4
+- Prisma + PostgreSQL
+- Railway config-as-code deployment setup
+- S3-compatible storage scaffold
+- Shopify Storefront API cart, customer accounts, and hosted checkout
+- Env-credential admin auth (no local customer accounts or RBAC)
+- Stitch-derived design system direction
+
+## Local development
+
+1. Start Postgres:
+
+```bash
+docker compose up -d
+```
+
+2. Install dependencies if needed:
+
+```bash
+pnpm install
+```
+
+3. Generate Prisma client:
+
+```bash
+pnpm prisma:generate
+```
+
+4. Push schema:
+
+```bash
+pnpm prisma:push
+```
+
+5. Run the app:
+
+```bash
+pnpm dev
+```
+
+Open [http://localhost:3000](http://localhost:3000).
+
+## Environment
+
+Fill in local/production variables as needed:
+
+- `DATABASE_URL`
+- `ADMIN_USERNAME`
+- `ADMIN_PASSWORD_HASH` (generate with `pnpm auth:hash`)
+- `ADMIN_SESSION_SECRET`
+- `APP_URL`
+  — public storefront origin (`https://shop.synarava.com`); Shopify callbacks + SEO; required in production
+- `SHOPIFY_STORE_DOMAIN` — the permanent `your-store.myshopify.com` domain
+- `SHOPIFY_STOREFRONT_PRIVATE_TOKEN` — private Storefront API token; server-only
+- `SHOPIFY_STOREFRONT_API_VERSION` — optional, defaults to `2026-07`
+- `SHOPIFY_ADMIN_ACCESS_TOKEN` — Admin API token with product, inventory, and publication scopes
+- `SHOPIFY_ADMIN_API_VERSION` — optional, defaults to `2026-07`
+- `SHOPIFY_PUBLICATION_ID` — optional Online Store publication GID; auto-detected by name when omitted
+- `SHOPIFY_LOCATION_ID` — optional inventory location GID; the first active location is used when omitted
+- `SHOPIFY_WEBHOOK_SECRET` — secret used to verify product, inventory, product-review, and `orders/paid` webhooks
+- `S3_REGION`
+- `S3_BUCKET`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
+- `S3_ENDPOINT` if using an S3-compatible provider
+- `S3_PUBLIC_URL` public bucket/CDN origin used for optimized media URLs
+
+Mission Control Analytics node (collector service only — never `NEXT_PUBLIC_*`,
+never log or commit values):
+
+- `CLARITY_API_TOKEN` — Clarity Data Export API bearer token
+- `GA_PROPERTY_ID` — GA4 property id (numeric, no `properties/` prefix)
+- `GA_SERVICE_ACCOUNT_JSON` — full service-account JSON string (Viewer on the property)
+
+Missing Analytics env → hub shows **not connected** (not ok, not error). GA auth
+uses `node:crypto` JWT + `fetch` only (no `googleapis`). See
+`docs/runbooks/mission-control-hub-plan.md` and
+`docs/runbooks/mission-control-collector-railway.md`.
+
+For local development, `docker compose up -d` also starts a private MinIO staging
+bucket on port `59000` (console: `59001`). When no `S3_*` variables are set in a
+non-production process, the app uses that bucket automatically and serves images
+through `/media/*`. Production never falls back to these local development values.
+
+Storefront video is managed at `/admin/videos` (`AdminVideoField` in synarava-cms): upload MP4 or WebM (≤100 MB) there after S3 is configured. Files go through `POST /admin/api/videos` into the bucket — no browser CORS setup. Uploaded films replace static hero images on Home/About when set (the page hero image remains a fallback / poster). The same assets feed product fit-film sections. Railway Bucket users should set `S3_USE_PROXY=true`, so private objects are served from `/media/uploads/*`.
+
+## Shopify commerce backend
+
+Shopify is the only commerce backend — the storefront cart, customer accounts, and checkout are
+all Shopify-hosted. The site's editorial CMS, admin auth, and page design stay local. Without
+`SHOPIFY_STORE_DOMAIN`/`SHOPIFY_STOREFRONT_PRIVATE_TOKEN` configured, cart and checkout requests
+fail with a clear configuration error rather than falling back to another flow.
+
+1. In Shopify Admin, install/open the **Headless** sales channel and create a storefront.
+2. Create a **private Storefront API token** with product and cart access.
+3. Ensure every Shopify product handle matches the corresponding local product slug. The product page lets customers choose among available Shopify variants.
+4. Add these values locally and to Railway variables. Never expose the private token through a `NEXT_PUBLIC_` variable:
+
+```dotenv
+SHOPIFY_STORE_DOMAIN=your-store.myshopify.com
+SHOPIFY_STOREFRONT_PRIVATE_TOKEN=shpat_...
+SHOPIFY_STOREFRONT_API_VERSION=2026-07
+SHOPIFY_ADMIN_ACCESS_TOKEN=shpat_...
+SHOPIFY_ADMIN_API_VERSION=2026-07
+SHOPIFY_PUBLICATION_ID=gid://shopify/Publication/...
+SHOPIFY_LOCATION_ID=gid://shopify/Location/...
+SHOPIFY_WEBHOOK_SECRET=...
+```
+
+### Product synchronization
+
+The admin product editor is **Shopify skeleton + Synarava sections**: every
+supported Shopify commerce field should appear in admin and be verified field by
+field (pull/push), while Synarava-only CMS settings sit in a separate tab group.
+See [`docs/wiki/product-data-ownership.md`](wiki/product-data-ownership.md).
+
+The local catalog is the storefront read model. Saving a product in
+the admin stores the draft locally; **Push to Shopify** sends title, handle, description, vendor,
+product type, status, price, SKU, primary image, inventory, tags, and
+`synarava.*` characteristic metafields through the Shopify Admin GraphQL API. The product editor
+also shows the pulled variants, metafields, and stored Shopify snapshot; **Pull from Shopify**
+refreshes those values. Shopify
+`products/create`, `products/update`, `products/delete`, and `inventory_levels/update` webhooks pull commerce changes back into
+the local database. Catalog conflict check / reconcile also registers `ORDERS_PAID` →
+`/api/shopify/webhooks/orders/paid` (HMAC + idempotent delivery receipt + structured log) as a
+paid-order ops signal — not a local Order store. The **Reconcile** action registers those webhook subscriptions (when
+`APP_URL` is set) and imports the full Shopify catalog, matching by Shopify product ID,
+then SKU, then handle. Ambiguous identities are recorded as conflicts instead of being overwritten.
+
+Logged-in Customer Account sessions append Shopify’s `sso=silent` to the Cart API checkout URL
+before redirect ([checkout authentication](https://shopify.dev/docs/storefronts/headless/building-with-the-customer-account-api/checkout-authentication)).
+If checkout cannot be opened, `/checkout` shows an error instead of silently returning to the cart.
+Payment / checkout verification matrix: [`docs/testing/payment-checkout-test-matrix.md`](testing/payment-checkout-test-matrix.md).
+
+The Admin API token needs
+`read_products`, `write_products`, `read_inventory`, `write_inventory`, `read_publications`,
+`write_publications`, and `read_shipping` (Portugal free-shipping threshold from delivery profiles;
+read-only — no `write_shipping`). Product localization also needs `read_translations`,
+`write_translations`, and `read_locales`. Enable and publish each language you want to synchronize in Shopify Markets,
+then import it into the admin locale registry. Portuguese (`pt-PT`) and Russian (`ru`) are already
+supported by the registry; translated content still needs to be entered and reviewed per product.
+After changing scopes,
+release the updated Shopify app configuration and approve the new permissions for the store; replace
+`SHOPIFY_ADMIN_ACCESS_TOKEN` if Shopify issues a new token. The admin connection test verifies the
+granted scopes and reports any registered locales that Shopify has not published.
+
+Collection priority is Shopify's manual collection order. In the admin product table, choose a
+collection and the **Collection priority** sort, then drag rows or use the arrow controls. Each move
+uses Shopify's `collectionReorderProducts`; the local `ProductCollection.sortOrder` value is only the
+storefront projection of the order returned by Shopify.
+
+The storefront category filter uses each product's single exact Shopify Standard Product Taxonomy
+category ID. Shopify collections are separate, many-to-many merchandising groups; collections marked
+for primary navigation are exposed as departments. The `/shop` page loads the published catalog once,
+then presents hero, newest products, a conditional Shopify best-selling rail, taxonomy categories, and
+the full archive. Best-selling order is read from the storefront-default Shopify collection with
+Shopify's `BEST_SELLING` sort; the rail is omitted when no usable ranking is available. Search, facets,
+and sorting run in the browser and update the query string without a route reload. Browser back and
+forward navigation rehydrates the matching filter state.
+
+Product reviews are stored locally in `ProductReview` (not Shopify). Anyone can submit with name +
+email; email stays private (never storefront / JSON-LD). New reviews default to `PENDING` until an
+admin publishes them (Admin → Reviews), unless moderation-before-publish is turned off. Aggregate
+rating and JSON-LD use `PUBLISHED` reviews only. The leave-a-review form copy is edited under Shared
+→ Reviews; account table labels stay on Customer account. A signed-in account lists that customer's
+reviews by matching email.
+
+Customer wishlists are stored in the Shopify Customer `synarava.wishlist` metafield and require the
+Admin API `read_customers` and `write_customers` scopes. Missing wishlist access degrades to an empty
+wishlist instead of preventing the authenticated customer profile from loading.
+
+English product content is synchronized as Shopify's base product content. Reviewed content for
+each registered, published translation locale is registered through Shopify's Translation API.
+Edits made in Shopify Translate & Adapt are read back during a product **Refresh from Shopify** or
+the catalog conflict check. Shopify does not expose a translation-update webhook, so
+translation-only edits are detected by reconciliation. Concurrent edits in any locale require
+an explicit decision; Synarava-only editorial fields are preserved.
+Install Shopify's free **Translate & Adapt** app in each store where staff should edit these fields
+inside Shopify Admin; API synchronization itself uses the translation scopes above.
+
+The catalog records the canonical `*.myshopify.com` store it is linked to on the first top-bar
+Shopify check (`ensureShopifyStoreBinding`). If credentials later point at a different shop, the
+check and every Push/Apply fail closed with an explicit mismatch message — the bound domain is
+never overwritten automatically. There is no silent rebind UI today; fixing a deliberate store
+change is an ops procedure (see `docs/runbooks/database-incident-recovery.md`). The new store still
+needs its own app installation/token, required scopes, published locales, publication ID, and
+inventory location ID. Editorial page layout remains owned by this application; supported page copy
+is synchronized to Shopify Pages or app-owned metaobjects through the localization system.
+The public app URL must be HTTPS so Shopify can deliver signed webhooks.
+
+## Railway
+
+**synarava-web** deploy protocol: [`deploy/railway.synarava-web.json`](../deploy/railway.synarava-web.json) (set service Config File to that path).
+
+- build: `pnpm build`
+- pre-deploy: `pnpm prisma:deploy`
+- start: `pnpm start`
+- healthcheck: `/api/health`
+- Next.js deployment skew protection uses Railway's commit SHA (falling back to
+  the Railway deployment ID), so tabs left open across a release reload before
+  invoking obsolete Server Actions.
+
+**sku-api** (staging): Railway Infrastructure as Code partial [`.railway/railway.ts`](../.railway/railway.ts) — see [`docs/runbooks/sku-api-railway-staging.md`](runbooks/sku-api-railway-staging.md). Do not point sku-api at the web CaC file.
+
+Use `package.json` `version` as the release marker. Bump it before deploying a meaningful production release.
+GitHub CI checks that this value is valid semver and that release tags match `vX.Y.Z`.
+
+## Architecture notes
+
+- documentation map (start here): [docs/README.md](README.md)
+- data model and admin strategy: [docs/wiki/architecture.md](wiki/architecture.md)
+- product/Shopify ownership contract: [docs/wiki/product-data-ownership.md](wiki/product-data-ownership.md)
+- September 2026 admin and catalog refactor history: [docs/history/2026-09-admin-shopify-refactor.md](history/2026-09-admin-shopify-refactor.md)
+- UI kit contract: [docs/wiki/ui-kit.md](wiki/ui-kit.md)
+- why Shopify is the sole commerce backend: [docs/adr/0001-shopify-hybrid-commerce.md](adr/0001-shopify-hybrid-commerce.md)
+
+## Current implementation posture
+
+The project distinguishes three layers:
+
+1. domain model (Prisma-backed CMS content; Shopify owns cart/checkout/customer data)
+2. design system / reusable UI primitives
+3. page composition
+
+Auth is split by audience, not by a shared user table: admin operators authenticate against
+`ADMIN_USERNAME`/`ADMIN_PASSWORD_HASH` env credentials (`lib/auth/admin-session.ts`), and
+storefront customers authenticate via Shopify Customer Account OAuth
+(`lib/shopify/customer-account/`). There is no local email/password account system for
+customers and no RBAC — both were removed as dead code once Shopify covered the same ground.
