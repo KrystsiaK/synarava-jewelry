@@ -35,6 +35,20 @@ function isWeekSlot(value: number): value is 1 | 2 | 3 | 4 {
   return value === 1 || value === 2 || value === 3 || value === 4;
 }
 
+/**
+ * Owner-facing RU fields: among letter characters, Cyrillic share must be ≥ 50%.
+ * Latin product/brand names are OK under that threshold (no new deps).
+ */
+function hasMostlyCyrillicLetters(text: string): boolean {
+  const letters = text.match(/\p{L}/gu) ?? [];
+  if (letters.length === 0) return false;
+  let cyrillic = 0;
+  for (const ch of letters) {
+    if (/^\p{Script=Cyrillic}$/u.test(ch)) cyrillic += 1;
+  }
+  return cyrillic / letters.length >= 0.5;
+}
+
 function parseLocalized(
   value: unknown,
 ): LocalizedCopy | null {
@@ -100,8 +114,16 @@ export function validateMarketingIdeas(input: {
       warnings.push(`${label}: whyRu required — dropped`);
       continue;
     }
+    if (!hasMostlyCyrillicLetters(raw.whyRu)) {
+      warnings.push(`${label}: whyRu must be Russian — dropped`);
+      continue;
+    }
     if (typeof raw.script !== "string" || !raw.script.trim()) {
       warnings.push(`${label}: script required — dropped`);
+      continue;
+    }
+    if (!hasMostlyCyrillicLetters(raw.script)) {
+      warnings.push(`${label}: script must be Russian — dropped`);
       continue;
     }
     if (
@@ -110,6 +132,14 @@ export function validateMarketingIdeas(input: {
       raw.shotList.every((s) => !String(s).trim())
     ) {
       warnings.push(`${label}: shotList required — dropped`);
+      continue;
+    }
+    if (
+      raw.shotList.some(
+        (s) => String(s).trim() && !hasMostlyCyrillicLetters(String(s)),
+      )
+    ) {
+      warnings.push(`${label}: shotList must be Russian — dropped`);
       continue;
     }
     const hook = parseLocalized(raw.hook);

@@ -94,7 +94,8 @@ describe("validateMarketingIdeas", () => {
         ideas: [
           validIdea({
             hook: { en: "925 sterling shine", pt: "Brilho 925" },
-            script: "Made of 925 sterling silver",
+            // Owner script stays Russian so language guard does not preempt claim-guard.
+            script: "Локация: кафе. Показать браслет на запястье.",
             caption: { en: "925", pt: "925" },
           }),
         ],
@@ -148,6 +149,86 @@ describe("validateMarketingIdeas", () => {
     });
     expect(result.ideas).toHaveLength(1);
     expect(result.ideas[0]?.weekSlot).toBe(3);
+  });
+
+  it("drops English script with must-be-Russian warning", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            script: "Location: cafe. Show the bracelet on the wrist.",
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(
+      result.warnings.some((w) => /script must be Russian — dropped/.test(w)),
+    ).toBe(true);
+  });
+
+  it("drops English shotList line with must-be-Russian warning", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            shotList: ["запястье", "Close-up of beads on table"],
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(
+      result.warnings.some((w) => /shotList must be Russian — dropped/.test(w)),
+    ).toBe(true);
+  });
+
+  it("keeps Russian owner fields that include a Latin product name", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            whyRu:
+              "Идея опирается на бусины Synarava из фактов продукта.",
+            script:
+              "Локация: кафе. Показать браслет Synarava на запястье.",
+            shotList: ["запястье с браслетом Synarava", "деталь бусин"],
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toHaveLength(1);
+    expect(result.ideas[0]?.script).toContain("Synarava");
+  });
+
+  it("leaves EN/PT hook and caption unchanged when owner fields are Russian", () => {
+    const hook = { en: "Soft stack moment", pt: "Momento de stack suave" };
+    const caption = {
+      en: "Synarava beads for everyday",
+      pt: "Contas Synarava para o dia a dia",
+    };
+    const result = validateMarketingIdeas({
+      rawIdeas: { ideas: [validIdea({ hook, caption })] },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toHaveLength(1);
+    expect(result.ideas[0]?.hook).toEqual(hook);
+    expect(result.ideas[0]?.caption).toEqual(caption);
   });
 
   it("drops claim present only in cited signal (no product-facts leak)", () => {
