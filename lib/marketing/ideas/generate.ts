@@ -121,7 +121,7 @@ function buildSystemInstruction(): string {
     "You generate Instagram Reels ideas for Synarava fashion jewelry.",
     "Use ONLY the provided product facts and market signals. Never invent materials, certifications, or competitor claims.",
     "Each idea is ONE Reel with bilingual audience copy.",
-    "Owner-facing fields MUST be Russian: whyRu (1–2 sentences: why this idea and which product fact/note it uses), script, shotList.",
+    "Owner-facing fields MUST be Russian (Cyrillic): whyRu (1–2 sentences: why this idea and which product fact/note it uses), script, shotList. Example script: «Локация: кафе. Показать браслет на запястье.» Example shotList: [«крупный план бусин», «запястье в движении»]. English is forbidden in whyRu/script/shotList — keep EN/PT only in hook and caption.",
     "Audience-facing fields MUST include both English and European Portuguese (PT-PT): hook.en, hook.pt, caption.en, caption.pt.",
     "Return JSON matching the schema. Produce 12 ideas (min 10).",
     "Each idea: whyRu, hook{en,pt}, script, shotList, caption{en,pt}, weekSlot 1-4, productIds from the input list, signalIds only from provided signal ids (may be empty).",
