@@ -107,7 +107,7 @@ describe("fix8 usage audit survives ContentIdea create failure", () => {
             whyRu: "Идея опирается на бусины из фактов.",
             hook: { en: "Glass beads glow", pt: "Contas de vidro" },
             script: "Локация: стол\nПоказать браслет",
-            shotList: ["wrist"],
+            shotList: ["запястье"],
             caption: { en: "Synarava", pt: "Synarava" },
             weekSlot: 1,
           },
