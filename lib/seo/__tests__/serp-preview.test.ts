@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  defaultSerpHost,
   resolveSerpDescription,
   resolveSerpTitle,
   seoDescriptionWarning,
@@ -52,5 +53,22 @@ describe("seo length warnings", () => {
     expect(
       seoDescriptionWarning(`<p>${"a".repeat(SEO_DESCRIPTION_SOFT_MAX)}</p>`),
     ).toBeUndefined();
+  });
+});
+
+describe("defaultSerpHost", () => {
+  it("maps loopback APP_URL to the public SERP host", () => {
+    const prevApp = process.env.APP_URL;
+    const prevPublic = process.env.NEXT_PUBLIC_SITE_URL;
+    process.env.APP_URL = "http://localhost:3000";
+    delete process.env.NEXT_PUBLIC_SITE_URL;
+    try {
+      expect(defaultSerpHost()).toBe("synarava.com");
+    } finally {
+      if (prevApp === undefined) delete process.env.APP_URL;
+      else process.env.APP_URL = prevApp;
+      if (prevPublic === undefined) delete process.env.NEXT_PUBLIC_SITE_URL;
+      else process.env.NEXT_PUBLIC_SITE_URL = prevPublic;
+    }
   });
 });
