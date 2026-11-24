@@ -10,9 +10,9 @@ export const MARKETING_IDEAS_RESPONSE_SCHEMA = {
         type: "object",
         additionalProperties: false,
         required: [
-          "locale",
           "productIds",
           "signalIds",
+          "whyRu",
           "hook",
           "script",
           "shotList",
@@ -20,13 +20,29 @@ export const MARKETING_IDEAS_RESPONSE_SCHEMA = {
           "weekSlot",
         ],
         properties: {
-          locale: { type: "string", enum: ["en", "pt"] },
           productIds: { type: "array", items: { type: "string" } },
           signalIds: { type: "array", items: { type: "string" } },
-          hook: { type: "string" },
+          whyRu: { type: "string" },
+          hook: {
+            type: "object",
+            additionalProperties: false,
+            required: ["en", "pt"],
+            properties: {
+              en: { type: "string" },
+              pt: { type: "string" },
+            },
+          },
           script: { type: "string" },
           shotList: { type: "array", items: { type: "string" } },
-          caption: { type: "string" },
+          caption: {
+            type: "object",
+            additionalProperties: false,
+            required: ["en", "pt"],
+            properties: {
+              en: { type: "string" },
+              pt: { type: "string" },
+            },
+          },
           weekSlot: { type: "integer", minimum: 1, maximum: 4 },
         },
       },
@@ -35,12 +51,12 @@ export const MARKETING_IDEAS_RESPONSE_SCHEMA = {
 } as const;
 
 export type RawMarketingIdea = {
-  locale: string;
   productIds: string[];
   signalIds: string[];
-  hook: string;
+  whyRu: string;
+  hook: { en: string; pt: string };
   script: string;
   shotList: string[];
-  caption: string;
+  caption: { en: string; pt: string };
   weekSlot: number;
 };

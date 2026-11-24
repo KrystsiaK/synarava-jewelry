@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- test doubles / harness fixtures; not production admin UI */
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";

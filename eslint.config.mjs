@@ -45,6 +45,32 @@ const eslintConfig = defineConfig([
       "react-hooks/refs": "off",
     },
   },
+  // Admin UI must use synarava-cms field primitives — no raw form tags.
+  // Library implementations live under components/admin/shared (exempt).
+  {
+    files: ["components/admin/**/*.{js,jsx,ts,tsx}", "app/admin/**/*.{js,jsx,ts,tsx}"],
+    ignores: ["components/admin/shared/**", "components/synarava-cms/**"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "JSXOpeningElement[name.name='select']",
+          message:
+            "use AdminSelectField / AdminTextField / AdminCheckboxField / AdminLongTextField from @/components/synarava-cms",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='input']",
+          message:
+            "use AdminSelectField / AdminTextField / AdminCheckboxField / AdminLongTextField from @/components/synarava-cms",
+        },
+        {
+          selector: "JSXOpeningElement[name.name='textarea']",
+          message:
+            "use AdminSelectField / AdminTextField / AdminCheckboxField / AdminLongTextField from @/components/synarava-cms",
+        },
+      ],
+    },
+  },
   ...storybook.configs["flat/recommended"]
 ]);
 

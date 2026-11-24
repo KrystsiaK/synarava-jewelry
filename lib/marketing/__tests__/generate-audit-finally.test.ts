@@ -20,6 +20,7 @@ vi.mock("@/lib/db", () => ({
     contentIdea: {
       create: mocks.contentIdeaCreate,
       createMany: mocks.contentIdeaCreateMany,
+      findMany: vi.fn().mockResolvedValue([]),
     },
     auditLog: {
       create: mocks.auditLogCreate,
@@ -101,13 +102,13 @@ describe("fix8 usage audit survives ContentIdea create failure", () => {
       json: {
         ideas: [
           {
-            locale: "en",
             productIds: ["p1"],
             signalIds: [],
-            hook: "Glass beads glow",
-            script: "Everyday stack",
+            whyRu: "Идея опирается на бусины из фактов.",
+            hook: { en: "Glass beads glow", pt: "Contas de vidro" },
+            script: "Локация: стол\nПоказать браслет",
             shotList: ["wrist"],
-            caption: "Synarava",
+            caption: { en: "Synarava", pt: "Synarava" },
             weekSlot: 1,
           },
         ],

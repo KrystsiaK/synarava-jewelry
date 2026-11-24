@@ -647,20 +647,29 @@ model CompetitorObservation {
   @@index([domain, fetchedAt])
 }
 
-/// Editable content calendar for marketing Reels ideas.
+/// Editable content calendar for marketing Reels ideas (one idea = one Reel).
 model ContentIdea {
   id         String    @id @default(cuid())
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   status     String // "draft" | "approved" | "rejected"
-  locale     String // "en" | "pt"
   productIds String[]
   signalIds  String[]
-  hook       String
+  /// Owner-facing (Russian): why this idea / which product fact it uses.
+  whyRu      String    @default("")
+  /// Audience hook: { en, pt }
+  hook       Json
+  /// Owner-facing script (Russian).
   script     String
-  shotList   Json // string[]
-  caption    String
+  /// Owner-facing shot list (Russian string[]).
+  shotList   Json
+  /// Audience caption: { en, pt }
+  caption    Json
   plannedFor DateTime? // calendar day; null = unscheduled
+  /// Google Calendar event id (service-account sync); null when unsynced / deleted.
+  calendarEventId   String?
+  calendarSyncedAt  DateTime?
+  calendarSyncError String?
 
   @@index([status, plannedFor])
 }
