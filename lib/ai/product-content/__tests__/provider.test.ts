@@ -51,3 +51,59 @@ describe("ContentProvider production wiring", () => {
     expect(result.usage.model).toBe("test");
   });
 });
+
+describe("ContentProvider output normalize guard", () => {
+  const family = "👨\u200D👩\u200D👧\u200D👦";
+
+  it("strips each invisible char from response JSON strings at the provider boundary", async () => {
+    const invisibles = [
+      "\u200B",
+      "\u200C",
+      "\u200D",
+      "\u200E",
+      "\u200F",
+      "\u202A",
+      "\u202B",
+      "\u202C",
+      "\u202D",
+      "\u202E",
+      "\u2060",
+      "\u2061",
+      "\u2062",
+      "\u2063",
+      "\u2064",
+      "\uFEFF",
+      "\u00AD",
+    ];
+
+    setContentProviderForTests(async () => ({
+      json: {
+        locales: {
+          en: {
+            title: `clean${invisibles.join("")}text`,
+            body: `ação\u00A0ё`,
+            emoji: family,
+          },
+        },
+      },
+      usage: { model: "test", inputTokens: 1, outputTokens: 1, latencyMs: 1 },
+    }));
+
+    const result = await getContentProvider()({
+      system: "s",
+      user: "u",
+      jsonSchema: {},
+      timeoutMs: 1000,
+    });
+
+    expect(result.json).toEqual({
+      locales: {
+        en: {
+          title: "cleantext",
+          body: "ação ё",
+          emoji: family,
+        },
+      },
+    });
+  });
+});

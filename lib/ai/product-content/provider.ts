@@ -1,8 +1,11 @@
+import { normalizeAiJson } from "@/lib/ai/normalize-output";
+
 /**
  * Minimal provider adapter — no platform coupling.
  * Production wires Gemini 3.1 Flash-Lite (AI_CONTENT_MODEL) via lazy import
  * to avoid a circular dependency with `lib/ai/gemini.ts`.
  * Bench adapters stay under `scripts/ai/bench/`.
+ * All response JSON strings are NFC-normalized once here (shared AI output boundary).
  */
 export type ContentProvider = (input: {
   system: string;
@@ -35,6 +38,17 @@ const productionGeminiProvider: ContentProvider = async (input) => {
   return geminiContentProvider(input);
 };
 
+/** Wrap any provider so response JSON string leaves are normalized once. */
+function withNormalizedJson(provider: ContentProvider): ContentProvider {
+  return async (input) => {
+    const result = await provider(input);
+    return {
+      ...result,
+      json: normalizeAiJson(result.json),
+    };
+  };
+}
+
 export function getContentProvider(): ContentProvider {
-  return providerOverride ?? productionGeminiProvider;
+  return withNormalizedJson(providerOverride ?? productionGeminiProvider);
 }

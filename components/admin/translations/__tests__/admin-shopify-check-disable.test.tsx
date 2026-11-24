@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- test doubles / harness fixtures; not production admin UI */
 /** @vitest-environment jsdom */
 import { render, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";

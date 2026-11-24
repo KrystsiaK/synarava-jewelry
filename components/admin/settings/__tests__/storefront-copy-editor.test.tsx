@@ -1,3 +1,4 @@
+/* eslint-disable no-restricted-syntax -- test doubles / harness fixtures; not production admin UI */
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";

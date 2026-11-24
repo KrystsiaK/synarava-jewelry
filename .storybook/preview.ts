@@ -2,6 +2,13 @@ import { createElement, useEffect, type ReactNode } from "react";
 import type { Decorator, Preview } from "@storybook/react-vite";
 import "../app/globals.css";
 
+// next/* server helpers may still reference process in the browser iframe.
+if (typeof globalThis !== "undefined" && !(globalThis as { process?: unknown }).process) {
+  (globalThis as { process: { env: Record<string, string | undefined> } }).process = {
+    env: { NODE_ENV: "development" },
+  };
+}
+
 function StorybookTheme({ Story, theme }: { Story: () => ReactNode; theme: "light" | "dark" }) {
   useEffect(() => {
     document.documentElement.dataset.theme = theme;

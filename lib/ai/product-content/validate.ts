@@ -26,11 +26,24 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "prata", label: "prata" },
   { term: "серебро", label: "серебро" },
   { term: "серебра", label: "серебра" },
+  { term: "серебр", label: "серебро" },
+  { term: "проба", label: "проба" },
   { term: "gold", label: "gold" },
   { term: "ouro", label: "ouro" },
   { term: "золото", label: "золото" },
   { term: "золота", label: "золота" },
+  { term: "золот", label: "золото" },
+  { term: "позолота", label: "позолота" },
+  { term: "позолочен", label: "позолота" },
+  { term: "позолот", label: "позолота" },
   { term: "18k", label: "18K" },
+  { term: "platinum", label: "platinum" },
+  { term: "platina", label: "platina" },
+  { term: "платин", label: "платина" },
+  { term: "copper", label: "copper" },
+  { term: "cobre", label: "cobre" },
+  { term: "медн", label: "медь" },
+  { term: "медь", label: "медь" },
   { term: "hypoallergenic", label: "hypoallergenic" },
   { term: "hipoalergénic", label: "hipoalergénico" },
   { term: "hipoalergenic", label: "hipoalergénico" },
@@ -83,9 +96,12 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
   { term: "steel", label: "steel" },
   { term: "aço", label: "aço" },
   { term: "сталь", label: "сталь" },
+  { term: "стальн", label: "сталь" },
   { term: "brass", label: "brass" },
   { term: "latão", label: "latão" },
   { term: "латунь", label: "латунь" },
+  { term: "латун", label: "латунь" },
+  { term: "жемчуж", label: "жемчуг" },
   { term: "titanium", label: "titanium" },
   { term: "titânio", label: "titânio" },
   { term: "титан", label: "титан" },
@@ -96,13 +112,16 @@ export const CLAIM_GUARD_TERMS: { term: string; label: string }[] = [
 
 /** Cross-language material synonyms — any member present in facts covers the group. */
 const CLAIM_SYNONYM_GROUPS: string[][] = [
-  ["gold", "ouro", "золото", "золота"],
-  ["silver", "prata", "серебро", "серебра"],
+  ["gold", "ouro", "золото", "золота", "золот"],
+  ["позолота", "позолочен", "позолот", "gold-plated", "gold plated", "gilt"],
+  ["silver", "prata", "серебро", "серебра", "серебр"],
+  ["925", "проба"],
   [
     "pearl",
     "pérola",
     "жемчуг",
     "жемчужн",
+    "жемчуж",
     "pearl-effect",
     "pearl effect",
     "crystal pearl",
@@ -115,13 +134,15 @@ const CLAIM_SYNONYM_GROUPS: string[][] = [
     "жемчужный эффект",
   ],
   ["diamond", "diamante", "бриллиант"],
+  ["platinum", "platina", "платин"],
+  ["copper", "cobre", "медн", "медь"],
   ["hypoallergenic", "hipoalergénic", "hipoalergenic", "гипоаллерген"],
   ["waterproof", "à prova de água", "водонепроницаем"],
   ["certified", "certificado", "сертифиц"],
   ["gemstone", "gemstones", "pedra preciosa", "драгоценн"],
   ["stone", "stones", "pedra", "pedras", "камень", "камни"],
-  ["steel", "aço", "сталь", "stainless", "316l"],
-  ["brass", "latão", "латунь"],
+  ["steel", "aço", "сталь", "стальн", "stainless", "316l"],
+  ["brass", "latão", "латунь", "латун"],
   ["titanium", "titânio", "титан"],
   ["crystal", "cristal", "кристалл"],
   ["pair", "par", "пара"],
@@ -180,7 +201,19 @@ const CLAIM_STEM_TERMS = new Set([
   "сертифиц",
   "драгоценн",
   "жемчужн",
+  "жемчуж",
+  "жемчуг",
   "доставк",
+  "позолочен",
+  "позолот",
+  "серебр",
+  "золот",
+  "платин",
+  "медн",
+  "латун",
+  "сталь",
+  "стальн",
+  "бриллиант",
 ]);
 
 function trimField(value: string | undefined): string | undefined {
@@ -262,7 +295,8 @@ function synonymGroupFor(term: string): string[] {
   return [term];
 }
 
-function claimCoveredByFacts(corpus: string, term: string): boolean {
+/** True when `term` or any cross-language synonym appears in the facts corpus. */
+export function claimCoveredByFacts(corpus: string, term: string): boolean {
   return synonymGroupFor(term).some((alias) => claimTermPresent(corpus, alias));
 }
 

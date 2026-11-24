@@ -1,18 +1,28 @@
 import {
   CLAIM_GUARD_TERMS,
+  claimCoveredByFacts,
   claimTermPresent,
 } from "@/lib/ai/product-content/validate";
-import type { MarketSignal } from "@/lib/marketing/signals";
+import type { LocalizedCopy } from "@/lib/marketing/ideas/localized";
+import {
+  localizedCopyBlob,
+  normalizeLocalizedCopy,
+} from "@/lib/marketing/ideas/localized";
+import {
+  dropNearDuplicateIdeas,
+  type PriorIdeaSummary,
+} from "@/lib/marketing/ideas/memory";
 import type { RawMarketingIdea } from "@/lib/marketing/ideas/schema";
+import type { MarketSignal } from "@/lib/marketing/signals";
 
 export type ValidatedMarketingIdea = {
-  locale: "en" | "pt";
   productIds: string[];
   signalIds: string[];
-  hook: string;
+  whyRu: string;
   script: string;
   shotList: string[];
-  caption: string;
+  hook: LocalizedCopy;
+  caption: LocalizedCopy;
   weekSlot: 1 | 2 | 3 | 4;
 };
 
@@ -21,24 +31,41 @@ export type IdeaValidationResult = {
   warnings: string[];
 };
 
-function isLocale(value: string): value is "en" | "pt" {
-  return value === "en" || value === "pt";
-}
-
 function isWeekSlot(value: number): value is 1 | 2 | 3 | 4 {
   return value === 1 || value === 2 || value === 3 || value === 4;
 }
 
-function corpusHasClaim(corpus: string, term: string): boolean {
-  return claimTermPresent(corpus, term);
+/**
+ * Owner-facing RU fields: among letter characters, Cyrillic share must be ≥ 50%.
+ * Latin product/brand names are OK under that threshold (no new deps).
+ */
+function hasMostlyCyrillicLetters(text: string): boolean {
+  const letters = text.match(/\p{L}/gu) ?? [];
+  if (letters.length === 0) return false;
+  let cyrillic = 0;
+  for (const ch of letters) {
+    if (/^\p{Script=Cyrillic}$/u.test(ch)) cyrillic += 1;
+  }
+  return cyrillic / letters.length >= 0.5;
+}
+
+function parseLocalized(
+  value: unknown,
+): LocalizedCopy | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.en !== "string" || typeof record.pt !== "string") return null;
+  return normalizeLocalizedCopy(record);
 }
 
 /**
  * Drop invalid ideas with a warning — never silently fix.
  * - productIds ⊂ input
  * - signalIds ⊂ input
- * - claim-guard: CLAIM_GUARD_TERMS only if present in referenced products' facts
- *   (cited signals never exempt material/quality claims)
+ * - owner fields (whyRu, script, shotList) required Russian text
+ * - audience hook/caption require both en and pt
+ * - claim-guard on all text in all languages
+ * - near-duplicate hooks vs prior + within batch
  */
 export function validateMarketingIdeas(input: {
   rawIdeas: unknown;
@@ -47,6 +74,8 @@ export function validateMarketingIdeas(input: {
   /** productId → lowercased facts corpus */
   productFactsCorpus: ReadonlyMap<string, string>;
   signals: readonly MarketSignal[];
+  /** Prior ideas for duplicate filter (hooks already normalized). */
+  priorIdeas?: readonly PriorIdeaSummary[];
 }): IdeaValidationResult {
   const warnings: string[] = [];
   const ideas: ValidatedMarketingIdea[] = [];
@@ -64,7 +93,6 @@ export function validateMarketingIdeas(input: {
     return { ideas: [], warnings: ["ideas response missing ideas array"] };
   }
 
-  // signals kept for API stability / future non-claim uses; claim-guard ignores them
   void input.signals;
 
   for (const [index, item] of list.entries()) {
@@ -74,12 +102,6 @@ export function validateMarketingIdeas(input: {
       continue;
     }
     const raw = item as Partial<RawMarketingIdea>;
-    const localeRaw = String(raw.locale ?? "");
-    if (!isLocale(localeRaw)) {
-      warnings.push(`${label}: invalid locale — dropped`);
-      continue;
-    }
-    const locale = localeRaw;
     if (!Array.isArray(raw.productIds) || raw.productIds.length === 0) {
       warnings.push(`${label}: productIds required — dropped`);
       continue;
@@ -88,14 +110,46 @@ export function validateMarketingIdeas(input: {
       warnings.push(`${label}: signalIds must be an array — dropped`);
       continue;
     }
+    if (typeof raw.whyRu !== "string" || !raw.whyRu.trim()) {
+      warnings.push(`${label}: whyRu required — dropped`);
+      continue;
+    }
+    if (!hasMostlyCyrillicLetters(raw.whyRu)) {
+      warnings.push(`${label}: whyRu must be Russian — dropped`);
+      continue;
+    }
+    if (typeof raw.script !== "string" || !raw.script.trim()) {
+      warnings.push(`${label}: script required — dropped`);
+      continue;
+    }
+    if (!hasMostlyCyrillicLetters(raw.script)) {
+      warnings.push(`${label}: script must be Russian — dropped`);
+      continue;
+    }
     if (
-      typeof raw.hook !== "string" ||
-      typeof raw.script !== "string" ||
-      typeof raw.caption !== "string" ||
       !Array.isArray(raw.shotList) ||
-      !raw.shotList.every((s) => typeof s === "string")
+      !raw.shotList.every((s) => typeof s === "string") ||
+      raw.shotList.every((s) => !String(s).trim())
     ) {
-      warnings.push(`${label}: missing text fields — dropped`);
+      warnings.push(`${label}: shotList required — dropped`);
+      continue;
+    }
+    if (
+      raw.shotList.some(
+        (s) => String(s).trim() && !hasMostlyCyrillicLetters(String(s)),
+      )
+    ) {
+      warnings.push(`${label}: shotList must be Russian — dropped`);
+      continue;
+    }
+    const hook = parseLocalized(raw.hook);
+    const caption = parseLocalized(raw.caption);
+    if (!hook || !hook.en.trim() || !hook.pt.trim()) {
+      warnings.push(`${label}: hook.en and hook.pt required — dropped`);
+      continue;
+    }
+    if (!caption || !caption.en.trim() || !caption.pt.trim()) {
+      warnings.push(`${label}: caption.en and caption.pt required — dropped`);
       continue;
     }
     if (typeof raw.weekSlot !== "number" || !isWeekSlot(raw.weekSlot)) {
@@ -120,13 +174,18 @@ export function validateMarketingIdeas(input: {
       .join("\n")
       .toLowerCase();
 
-    const textBlob = [raw.hook, raw.script, raw.caption, ...raw.shotList].join(
-      "\n",
-    );
+    const textBlob = [
+      raw.whyRu,
+      raw.script,
+      ...raw.shotList,
+      localizedCopyBlob(hook),
+      localizedCopyBlob(caption),
+    ].join("\n");
+
     let claimFail: string | null = null;
     for (const { term, label: claimLabel } of CLAIM_GUARD_TERMS) {
       if (!claimTermPresent(textBlob, term)) continue;
-      if (corpusHasClaim(productCorpus, term)) continue;
+      if (claimCoveredByFacts(productCorpus, term)) continue;
       claimFail = claimLabel;
       break;
     }
@@ -138,18 +197,26 @@ export function validateMarketingIdeas(input: {
     }
 
     ideas.push({
-      locale,
       productIds,
       signalIds,
-      hook: raw.hook.trim(),
+      whyRu: raw.whyRu.trim(),
       script: raw.script.trim(),
       shotList: raw.shotList.map((s) => s.trim()).filter(Boolean),
-      caption: raw.caption.trim(),
+      hook: { en: hook.en.trim(), pt: hook.pt.trim() },
+      caption: { en: caption.en.trim(), pt: caption.pt.trim() },
       weekSlot: raw.weekSlot,
     });
   }
 
-  return { ideas, warnings };
+  const deduped = dropNearDuplicateIdeas({
+    ideas,
+    priorHooks: (input.priorIdeas ?? []).map((p) => p.hooks),
+  });
+
+  return {
+    ideas: deduped.ideas,
+    warnings: [...warnings, ...deduped.warnings],
+  };
 }
 
 /** Map weekSlot 1–4 → a calendar day within the next 4 weeks (UTC noon). */

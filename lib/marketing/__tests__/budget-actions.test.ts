@@ -6,10 +6,13 @@ const mocks = vi.hoisted(() => ({
   contentIdeaFindUnique: vi.fn(),
   contentIdeaUpdate: vi.fn(),
   contentIdeaFindMany: vi.fn(),
+  productFindMany: vi.fn(),
   requireAdminSession: vi.fn(),
   getCurrentAdminSession: vi.fn(),
   checkRateLimit: vi.fn(),
   revalidatePath: vi.fn(),
+  syncContentIdeaCalendar: vi.fn(),
+  persistCalendarSync: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -23,6 +26,7 @@ vi.mock("@/lib/db", () => ({
       update: mocks.contentIdeaUpdate,
       findMany: mocks.contentIdeaFindMany,
     },
+    product: { findMany: mocks.productFindMany },
   },
 }));
 
@@ -37,6 +41,11 @@ vi.mock("@/lib/auth/rate-limit", () => ({
 
 vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
+}));
+
+vi.mock("@/lib/marketing/calendar/apply-sync", () => ({
+  syncContentIdeaCalendar: mocks.syncContentIdeaCalendar,
+  persistCalendarSync: mocks.persistCalendarSync,
 }));
 
 import {
@@ -76,14 +85,17 @@ describe("content idea edit/approve/reject", () => {
   const baseIdea = {
     id: "idea1",
     status: "draft",
-    locale: "en",
     productIds: ["p1"],
     signalIds: [],
-    hook: "old hook",
+    whyRu: "Потому что бусины",
+    hook: { en: "old hook", pt: "gancho" },
     script: "old script",
     shotList: ["a"],
-    caption: "old caption",
+    caption: { en: "old caption", pt: "legenda" },
     plannedFor: new Date("2026-11-30T12:00:00.000Z"),
+    calendarEventId: null,
+    calendarSyncedAt: null,
+    calendarSyncError: null,
   };
 
   beforeEach(() => {
@@ -97,21 +109,34 @@ describe("content idea edit/approve/reject", () => {
     });
     mocks.auditLogCreate.mockResolvedValue({});
     mocks.contentIdeaFindUnique.mockResolvedValue(baseIdea);
-    mocks.contentIdeaUpdate.mockImplementation(async ({ data }: { data: Record<string, unknown> }) => ({
-      ...baseIdea,
-      ...data,
-    }));
+    mocks.contentIdeaUpdate.mockImplementation(
+      async ({ data }: { data: Record<string, unknown> }) => ({
+        ...baseIdea,
+        ...data,
+      }),
+    );
+    mocks.syncContentIdeaCalendar.mockResolvedValue({
+      result: { ok: true, skipped: true, reason: "disabled" },
+      patch: {},
+    });
+    mocks.persistCalendarSync.mockResolvedValue({
+      calendarEventId: null,
+      calendarSyncedAt: null,
+      calendarSyncError: null,
+    });
   });
 
   it("edit updates ContentIdea and writes exactly one AuditLog event", async () => {
     const result = await updateContentIdeaAction({
       id: "idea1",
-      hook: "new hook",
+      hook: { en: "new hook", pt: "novo" },
     });
     expect(result.ok).toBe(true);
     expect(mocks.contentIdeaUpdate).toHaveBeenCalledOnce();
     expect(mocks.auditLogCreate).toHaveBeenCalledOnce();
-    expect(mocks.auditLogCreate.mock.calls[0]![0].data.action).toBe("marketing.idea.edit");
+    expect(mocks.auditLogCreate.mock.calls[0]![0].data.action).toBe(
+      "marketing.idea.edit",
+    );
   });
 
   it("approve updates ContentIdea and writes exactly one AuditLog event", async () => {
@@ -155,13 +180,13 @@ describe("calendar", () => {
       {
         id: "a",
         status: "approved",
-        locale: "en",
         productIds: [],
         signalIds: [],
-        hook: "h",
+        whyRu: "",
+        hook: { en: "h", pt: "h" },
         script: "s",
         shotList: [],
-        caption: "c",
+        caption: { en: "c", pt: "c" },
         plannedFor: new Date("2026-12-01T12:00:00.000Z"),
       },
     ]);
@@ -171,7 +196,6 @@ describe("calendar", () => {
         where: { status: "approved", plannedFor: { not: null } },
       }),
     );
-    expect(weeks).toHaveLength(1);
-    expect(weeks[0]?.ideas[0]?.id).toBe("a");
+    expect(weeks[0]?.ideas).toHaveLength(1);
   });
 });

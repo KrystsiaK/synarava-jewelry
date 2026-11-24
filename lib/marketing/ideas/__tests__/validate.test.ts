@@ -18,23 +18,53 @@ const signal: MarketSignal = {
   data: { material: "steel" },
 };
 
+function validIdea(overrides: Record<string, unknown> = {}) {
+  return {
+    productIds: ["p1"],
+    signalIds: [] as string[],
+    whyRu: "Идея опирается на бусины из фактов продукта.",
+    hook: { en: "Soft stack", pt: "Stack suave" },
+    script: "Локация: кафе\nПоказать браслет на запястье.",
+    shotList: ["запястье", "деталь бусин"],
+    caption: { en: "Synarava beads", pt: "Contas Synarava" },
+    weekSlot: 1,
+    ...overrides,
+  };
+}
+
 describe("validateMarketingIdeas", () => {
+  it("requires RU owner fields and en+pt hook/caption", () => {
+    const ok = validateMarketingIdeas({
+      rawIdeas: { ideas: [validIdea()] },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(ok.ideas).toHaveLength(1);
+    expect(ok.ideas[0]?.whyRu).toContain("бусины");
+    expect(ok.ideas[0]?.hook).toEqual({ en: "Soft stack", pt: "Stack suave" });
+    expect(ok.ideas[0]?.caption.pt).toBe("Contas Synarava");
+    expect(ok.ideas[0]?.script).toContain("Локация");
+
+    const missingPt = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [validIdea({ hook: { en: "Only EN", pt: "" } })],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(missingPt.ideas).toEqual([]);
+    expect(missingPt.warnings.some((w) => /hook\.en and hook\.pt/.test(w))).toBe(
+      true,
+    );
+  });
+
   it("drops unknown productId", () => {
     const result = validateMarketingIdeas({
-      rawIdeas: {
-        ideas: [
-          {
-            locale: "en",
-            productIds: ["missing"],
-            signalIds: [],
-            hook: "h",
-            script: "s",
-            shotList: ["a"],
-            caption: "c",
-            weekSlot: 1,
-          },
-        ],
-      },
+      rawIdeas: { ideas: [validIdea({ productIds: ["missing"] })] },
       allowedProductIds: new Set(["p1"]),
       allowedSignalIds: new Set(),
       productFactsCorpus: new Map([["p1", "gold tone bracelet"]]),
@@ -47,18 +77,7 @@ describe("validateMarketingIdeas", () => {
   it("drops unknown signalId", () => {
     const result = validateMarketingIdeas({
       rawIdeas: {
-        ideas: [
-          {
-            locale: "en",
-            productIds: ["p1"],
-            signalIds: ["web:nope"],
-            hook: "h",
-            script: "s",
-            shotList: ["a"],
-            caption: "c",
-            weekSlot: 2,
-          },
-        ],
+        ideas: [validIdea({ signalIds: ["web:nope"], weekSlot: 2 })],
       },
       allowedProductIds: new Set(["p1"]),
       allowedSignalIds: new Set(["web:obs1"]),
@@ -73,16 +92,12 @@ describe("validateMarketingIdeas", () => {
     const result = validateMarketingIdeas({
       rawIdeas: {
         ideas: [
-          {
-            locale: "en",
-            productIds: ["p1"],
-            signalIds: [],
-            hook: "925 sterling shine",
-            script: "Made of 925 sterling silver",
-            shotList: ["close-up"],
-            caption: "925",
-            weekSlot: 1,
-          },
+          validIdea({
+            hook: { en: "925 sterling shine", pt: "Brilho 925" },
+            // Owner script stays Russian so language guard does not preempt claim-guard.
+            script: "Локация: кафе. Показать браслет на запястье.",
+            caption: { en: "925", pt: "925" },
+          }),
         ],
       },
       allowedProductIds: new Set(["p1"]),
@@ -94,20 +109,37 @@ describe("validateMarketingIdeas", () => {
     expect(result.warnings.some((w) => /925|sterling/i.test(w))).toBe(true);
   });
 
-  it("keeps valid idea", () => {
+  it("drops RU claim terms when not in product facts", () => {
     const result = validateMarketingIdeas({
       rawIdeas: {
         ideas: [
-          {
-            locale: "pt",
-            productIds: ["p1"],
+          validIdea({
+            whyRu: "Потому что это серебро 925 с пробой и позолотой.",
+            script: "Показать золото и серебро крупным планом.",
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone fashion bracelet beads"]]),
+      signals: [],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(
+      result.warnings.some((w) =>
+        /серебро|золото|925|проба|позолота/i.test(w),
+      ),
+    ).toBe(true);
+  });
+
+  it("keeps valid bilingual idea", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
             signalIds: ["web:obs1"],
-            hook: "Pulseira dourada",
-            script: "Gold-tone beads for everyday",
-            shotList: ["mão", "detalhe"],
-            caption: "Synarava",
             weekSlot: 3,
-          },
+          }),
         ],
       },
       allowedProductIds: new Set(["p1"]),
@@ -117,6 +149,86 @@ describe("validateMarketingIdeas", () => {
     });
     expect(result.ideas).toHaveLength(1);
     expect(result.ideas[0]?.weekSlot).toBe(3);
+  });
+
+  it("drops English script with must-be-Russian warning", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            script: "Location: cafe. Show the bracelet on the wrist.",
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(
+      result.warnings.some((w) => /script must be Russian — dropped/.test(w)),
+    ).toBe(true);
+  });
+
+  it("drops English shotList line with must-be-Russian warning", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            shotList: ["запястье", "Close-up of beads on table"],
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(
+      result.warnings.some((w) => /shotList must be Russian — dropped/.test(w)),
+    ).toBe(true);
+  });
+
+  it("keeps Russian owner fields that include a Latin product name", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            whyRu:
+              "Идея опирается на бусины Synarava из фактов продукта.",
+            script:
+              "Локация: кафе. Показать браслет Synarava на запястье.",
+            shotList: ["запястье с браслетом Synarava", "деталь бусин"],
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toHaveLength(1);
+    expect(result.ideas[0]?.script).toContain("Synarava");
+  });
+
+  it("leaves EN/PT hook and caption unchanged when owner fields are Russian", () => {
+    const hook = { en: "Soft stack moment", pt: "Momento de stack suave" };
+    const caption = {
+      en: "Synarava beads for everyday",
+      pt: "Contas Synarava para o dia a dia",
+    };
+    const result = validateMarketingIdeas({
+      rawIdeas: { ideas: [validIdea({ hook, caption })] },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+    });
+    expect(result.ideas).toHaveLength(1);
+    expect(result.ideas[0]?.hook).toEqual(hook);
+    expect(result.ideas[0]?.caption).toEqual(caption);
   });
 
   it("drops claim present only in cited signal (no product-facts leak)", () => {
@@ -129,16 +241,13 @@ describe("validateMarketingIdeas", () => {
     const result = validateMarketingIdeas({
       rawIdeas: {
         ideas: [
-          {
-            locale: "en",
-            productIds: ["p1"],
+          validIdea({
             signalIds: ["web:obs-silver"],
-            hook: "Our bracelet is 925 sterling silver",
-            script: "Everyday wear",
-            shotList: ["close-up"],
-            caption: "Synarava",
-            weekSlot: 1,
-          },
+            hook: {
+              en: "Our bracelet is 925 sterling silver",
+              pt: "Pulseira 925",
+            },
+          }),
         ],
       },
       allowedProductIds: new Set(["p1"]),
@@ -150,6 +259,36 @@ describe("validateMarketingIdeas", () => {
     });
     expect(result.ideas).toEqual([]);
     expect(result.warnings.some((w) => /925|sterling/i.test(w))).toBe(true);
+  });
+
+  it("drops near-duplicate against prior ideas with warning", () => {
+    const result = validateMarketingIdeas({
+      rawIdeas: {
+        ideas: [
+          validIdea({
+            hook: {
+              en: "soft stack beads on wrist",
+              pt: "stack suave nas contas",
+            },
+          }),
+        ],
+      },
+      allowedProductIds: new Set(["p1"]),
+      allowedSignalIds: new Set(),
+      productFactsCorpus: new Map([["p1", "gold-tone beaded bracelet"]]),
+      signals: [],
+      priorIdeas: [
+        {
+          id: "old",
+          status: "approved",
+          hooks: { en: "soft stack beads on wrist today", pt: "" },
+          script: "old",
+          rejected: false,
+        },
+      ],
+    });
+    expect(result.ideas).toEqual([]);
+    expect(result.warnings.some((w) => /near-duplicate/.test(w))).toBe(true);
   });
 });
 

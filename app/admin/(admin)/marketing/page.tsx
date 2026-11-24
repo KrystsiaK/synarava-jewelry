@@ -1,11 +1,13 @@
 import { MarketingCms } from "@/components/admin/marketing/marketing-cms";
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { sumMonthlyAiSpendUsd } from "@/lib/ai/product-content/budget";
+import { isGoogleCalendarSyncEnabled } from "@/lib/marketing/calendar/config";
+import { isGoogleSheetsExportEnabled } from "@/lib/marketing/export/sheets";
+import { presentContentIdea } from "@/lib/marketing/ideas/present";
 import {
   getLastCompetitorScanSummary,
-  listApprovedIdeasCalendar,
-  listCompetitorObservations,
   listContentIdeas,
+  listCompetitorObservations,
   listProductOptionsForMarketing,
 } from "@/lib/marketing/queries";
 
@@ -22,7 +24,7 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
   const raw = (await searchParams) ?? {};
   const kind = asString(raw.kind) ?? "all";
 
-  const [observations, ideas, calendar, products, lastScan, monthlyAiSpendUsd] =
+  const [observations, ideas, products, lastScan, monthlyAiSpendUsd] =
     await Promise.all([
       listCompetitorObservations({
         kind:
@@ -31,7 +33,6 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
             : "all",
       }),
       listContentIdeas(),
-      listApprovedIdeasCalendar(),
       listProductOptionsForMarketing(),
       getLastCompetitorScanSummary(),
       sumMonthlyAiSpendUsd(),
@@ -53,6 +54,8 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
         products={products}
         lastScan={lastScan}
         monthlyAiSpendUsd={monthlyAiSpendUsd}
+        calendarSyncEnabled={isGoogleCalendarSyncEnabled()}
+        sheetsExportEnabled={isGoogleSheetsExportEnabled()}
         initialObservations={observations.map((row) => ({
           id: row.id,
           brand: row.brand,
@@ -64,38 +67,7 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
           currency: row.currency,
           source: row.source,
         }))}
-        initialIdeas={ideas.map((idea) => ({
-          id: idea.id,
-          status: idea.status,
-          locale: idea.locale,
-          productIds: idea.productIds,
-          signalIds: idea.signalIds,
-          hook: idea.hook,
-          script: idea.script,
-          shotList: Array.isArray(idea.shotList)
-            ? (idea.shotList as string[])
-            : [],
-          caption: idea.caption,
-          plannedFor: idea.plannedFor?.toISOString() ?? null,
-        }))}
-        initialCalendar={calendar.map((week) => ({
-          weekKey: week.weekKey,
-          weekStart: week.weekStart.toISOString(),
-          ideas: week.ideas.map((idea) => ({
-            id: idea.id,
-            status: idea.status,
-            locale: idea.locale,
-            productIds: idea.productIds,
-            signalIds: idea.signalIds,
-            hook: idea.hook,
-            script: idea.script,
-            shotList: Array.isArray(idea.shotList)
-              ? (idea.shotList as string[])
-              : [],
-            caption: idea.caption,
-            plannedFor: idea.plannedFor?.toISOString() ?? null,
-          })),
-        }))}
+        initialIdeas={ideas.map((idea) => presentContentIdea(idea))}
       />
     </div>
   );
