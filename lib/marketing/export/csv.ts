@@ -24,11 +24,27 @@ export const OBSERVATION_CSV_COLUMNS = [
   "name",
 ] as const;
 
-const FORMULA_PREFIX = /^[=+\-@]/;
+/** Leading whitespace / C0 controls stripped before formula-char detection. */
+const LEADING_WS_CONTROL = /^[\s\u0000-\u001f]+/;
+const PLAIN_NUMBER = /^-?\d+(?:\.\d+)?$/;
 
-/** Guard spreadsheet formula injection — prefix dangerous cells with `'`. */
+/**
+ * Guard spreadsheet formula injection — prefix dangerous cells with `'`.
+ * Detects after trimming leading whitespace/control chars; also prefixes
+ * cells that begin with TAB or CR. Plain numeric prices (e.g. `-22.90`) stay bare.
+ * @see https://owasp.org/www-community/attacks/CSV_Injection
+ */
 export function guardCsvCell(value: string): string {
-  if (FORMULA_PREFIX.test(value)) return `'${value}`;
+  if (/^[\t\r]/.test(value)) return `'${value}`;
+  const significant = value.replace(LEADING_WS_CONTROL, "");
+  if (!significant) return value;
+  const ch = significant[0];
+  if (ch === "=" || ch === "+" || ch === "@") return `'${value}`;
+  if (ch === "-") {
+    // Plain negative number (price column) is not formula text.
+    if (PLAIN_NUMBER.test(significant)) return value;
+    return `'${value}`;
+  }
   return value;
 }
 

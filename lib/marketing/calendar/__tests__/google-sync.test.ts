@@ -156,6 +156,42 @@ describe("syncIdeaToGoogleCalendar", () => {
     expect(result).toEqual({ ok: true, action: "patch", eventId: "evt-9" });
   });
 
+  it("PATCH 404 falls back to insert and returns new event id", async () => {
+    const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("oauth2.googleapis.com/token")) {
+        return Response.json({ access_token: "tok", expires_in: 3600 });
+      }
+      if (url.includes("/events/evt-gone") && init?.method === "PATCH") {
+        return new Response("Gone", { status: 404 });
+      }
+      if (url.includes("/calendars/") && init?.method === "POST") {
+        return Response.json({ id: "evt-recreated" });
+      }
+      return new Response("no", { status: 500 });
+    });
+    const result = await syncIdeaToGoogleCalendar({
+      idea: {
+        ...idea,
+        calendarEventId: "evt-gone",
+        plannedFor: "2026-12-15T12:00:00.000Z",
+      },
+      productNameById: productNames,
+      op: "upsert",
+      env: envOn,
+      fetchFn: fetchFn as unknown as typeof fetch,
+    });
+    expect(result).toEqual({
+      ok: true,
+      action: "insert",
+      eventId: "evt-recreated",
+    });
+    const methods = fetchFn.mock.calls
+      .filter((c) => String(c[0]).includes("/calendars/"))
+      .map((c) => (c[1] as RequestInit | undefined)?.method);
+    expect(methods).toEqual(["PATCH", "POST"]);
+  });
+
   it("deletes on reject", async () => {
     const fetchFn = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);

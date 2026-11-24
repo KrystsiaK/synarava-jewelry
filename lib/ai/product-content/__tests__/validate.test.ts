@@ -267,6 +267,100 @@ describe("validateAndNormalizeDraftLocales", () => {
     expect(normalizeClaimText("18k gold")).toContain("18k");
   });
 
+  it("RU claim stems: glass-bead corpus drops silver/gold declined forms", () => {
+    const glassFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Beaded Bracelet",
+      productType: "Bracelet",
+      materialLine: "beaded bracelet with glass beads",
+      characteristics: [
+        {
+          key: "material",
+          label: "Material",
+          value: "beaded bracelet with glass beads",
+        },
+      ],
+      enSourceByField: {
+        ...baseFacts.enSourceByField,
+        materialLine: "beaded bracelet with glass beads",
+      },
+    };
+    const phrases = [
+      "серебряной подвеской",
+      "Золотой блеск",
+      "золотые бусины",
+      "серебром",
+    ];
+    for (const phrase of phrases) {
+      const result = validateAndNormalizeDraftLocales(
+        JSON.stringify({ locales: { ru: { shortDescription: phrase } } }),
+        glassFacts,
+        ["ru"],
+      );
+      expect(
+        result!.warnings.some((w) => /Possible invented claim/i.test(w.message)),
+        `expected invented claim for: ${phrase}`,
+      ).toBe(true);
+    }
+  });
+
+  it("RU claim stems: gold PVD corpus keeps Блеск золота / золотые серьги", () => {
+    const goldFacts: ProductContentFacts = {
+      ...baseFacts,
+      name: "Twisted Hoops",
+      productType: "Earrings",
+      materialLine: "18k gold PVD twisted hoops",
+      characteristics: [
+        {
+          key: "material",
+          label: "Material",
+          value: "18k gold PVD twisted hoops",
+        },
+      ],
+      enSourceByField: {
+        ...baseFacts.enSourceByField,
+        materialLine: "18k gold PVD twisted hoops",
+      },
+    };
+    for (const phrase of ["Блеск золота", "золотые серьги"]) {
+      const result = validateAndNormalizeDraftLocales(
+        JSON.stringify({ locales: { ru: { shortDescription: phrase } } }),
+        goldFacts,
+        ["ru"],
+      );
+      expect(
+        result!.warnings.filter((w) =>
+          /Possible invented claim "(?:gold|ouro|золот|золото|золота)"/i.test(
+            w.message,
+          ),
+        ),
+        `expected gold claim kept for: ${phrase}`,
+      ).toEqual([]);
+    }
+  });
+
+  it("RU claim stems: золото dropped on silver-only corpus", () => {
+    const silverFacts: ProductContentFacts = {
+      ...baseFacts,
+      materialLine: "925 sterling silver",
+      characteristics: [
+        {
+          key: "material",
+          label: "Material",
+          value: "925 sterling silver",
+        },
+      ],
+    };
+    const result = validateAndNormalizeDraftLocales(
+      JSON.stringify({ locales: { ru: { shortDescription: "золото" } } }),
+      silverFacts,
+      ["ru"],
+    );
+    expect(
+      result!.warnings.some((w) => /Possible invented claim/i.test(w.message)),
+    ).toBe(true);
+  });
+
   it("9: warns cliché phrases", () => {
     const raw = JSON.stringify({
       locales: {

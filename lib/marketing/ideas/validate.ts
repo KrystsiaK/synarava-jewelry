@@ -1,5 +1,6 @@
 import {
   CLAIM_GUARD_TERMS,
+  claimCoveredByFacts,
   claimTermPresent,
 } from "@/lib/ai/product-content/validate";
 import type { LocalizedCopy } from "@/lib/marketing/ideas/localized";
@@ -154,7 +155,7 @@ export function validateMarketingIdeas(input: {
     let claimFail: string | null = null;
     for (const { term, label: claimLabel } of CLAIM_GUARD_TERMS) {
       if (!claimTermPresent(textBlob, term)) continue;
-      if (claimTermPresent(productCorpus, term)) continue;
+      if (claimCoveredByFacts(productCorpus, term)) continue;
       claimFail = claimLabel;
       break;
     }

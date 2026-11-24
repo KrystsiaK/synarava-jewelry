@@ -126,7 +126,11 @@ export async function syncIdeaToGoogleCalendar(input: {
         body: payload,
         fetchFn,
       });
-      if (!res.ok) {
+      if (res.ok) {
+        return { ok: true, action: "patch", eventId: existingId };
+      }
+      // Event deleted in Google — recover by inserting a fresh event.
+      if (res.status !== 404 && res.status !== 410) {
         const text = await res.text().catch(() => "");
         return {
           ok: false,
@@ -135,7 +139,6 @@ export async function syncIdeaToGoogleCalendar(input: {
           error: safeErrorMessage(res.status, text),
         };
       }
-      return { ok: true, action: "patch", eventId: existingId };
     }
 
     const res = await authorizedFetch({
