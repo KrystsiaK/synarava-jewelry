@@ -27,11 +27,14 @@ import {
 type ProductPairingsManagerProps = {
   productId: string;
   productSlug: string;
+  /** When false, skip server fetches (hidden tab still mounts in the editor). */
+  active?: boolean;
 };
 
 export function ProductPairingsManager({
   productId,
   productSlug,
+  active = true,
 }: ProductPairingsManagerProps) {
   const [pairings, setPairings] = useState<AdminProductPairingRow[]>([]);
   const [query, setQuery] = useState("");
@@ -47,15 +50,16 @@ export function ProductPairingsManager({
     pairings.length > 0 && pairings.every((row) => row.role === "base");
 
   useEffect(() => {
+    if (!active) return;
     startTransition(async () => {
       const result = await listProductPairingsAction(productId);
       if (result.error) setError(result.error);
       setPairings(result.pairings ?? []);
     });
-  }, [productId]);
+  }, [active, productId]);
 
   useEffect(() => {
-    if (isAddonView || query.trim().length < 1) {
+    if (!active || isAddonView || query.trim().length < 1) {
       setCandidates([]);
       return;
     }
@@ -66,7 +70,7 @@ export function ProductPairingsManager({
       });
     }, 220);
     return () => window.clearTimeout(handle);
-  }, [isAddonView, productId, query]);
+  }, [active, isAddonView, productId, query]);
 
   function applyResult(
     result: { error?: string; success?: string; pairings?: AdminProductPairingRow[] },

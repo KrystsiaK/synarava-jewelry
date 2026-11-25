@@ -767,6 +767,7 @@ export function EditProductForm({
                       <ProductPairingsManager
                         productId={currentProduct.id}
                         productSlug={currentProduct.slug}
+                        active={activeSection === "pairs"}
                       />
                     </div>
 
