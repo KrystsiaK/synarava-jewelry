@@ -201,17 +201,32 @@ function ProductHero({
 
 function PartnerSpecificationsBeside() {
   const pairing = useOptionalProductPairingSelection();
-  if (!pairing || pairing.partners.length === 0) return null;
+  const partner = pairing?.selectedPartner;
+  if (!partner) return null;
   return (
-    <div data-component="PartnerSpecifications" className="mt-10 space-y-8">
-      {pairing.partners.map((partner) => (
-        <ProductSpecifications key={partner.pairingId} product={partner.product} />
-      ))}
+    <div data-component="PartnerSpecifications" className="mt-10 space-y-6">
+      <p className="font-serif text-xl text-foreground">{partner.product.title}</p>
+      {partner.product.description ? (
+        <div className="prose prose-sm max-w-[68ch] text-foreground/75">
+          <RichText content={partner.product.description} />
+        </div>
+      ) : null}
+      <ProductSpecifications
+        product={partner.product}
+        headingIdPrefix={`partner-${partner.product.slug}-`}
+      />
     </div>
   );
 }
 
-export function ProductSpecifications({ product }: { product: ProductSummary }) {
+export function ProductSpecifications({
+  product,
+  headingIdPrefix = "",
+}: {
+  product: ProductSummary;
+  /** Avoid duplicate spec-* ids when a partner block sits beside the product. */
+  headingIdPrefix?: string;
+}) {
   const { t, locale } = useTranslations();
   const presentation = getProductPresentation(t);
   type SpecificationRow = {
@@ -288,10 +303,12 @@ export function ProductSpecifications({ product }: { product: ProductSummary }) 
 
       {specificationGroups.length > 0 ? (
         <div className="mt-6 grid content-start gap-7">
-          {specificationGroups.map(([group, rows]) => (
-            <section key={group} aria-labelledby={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+          {specificationGroups.map(([group, rows]) => {
+            const headingId = `${headingIdPrefix}spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+            return (
+            <section key={group} aria-labelledby={headingId}>
               <h3
-                id={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                id={headingId}
                 className="mb-2 font-serif text-lg text-foreground/88"
               >
                 {group}
@@ -328,7 +345,8 @@ export function ProductSpecifications({ product }: { product: ProductSummary }) 
                 ))}
               </dl>
             </section>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </section>

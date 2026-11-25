@@ -33,13 +33,14 @@ type PurchaseSelectionContextValue = {
 
 const PurchaseSelectionContext = createContext<PurchaseSelectionContextValue | null>(null);
 
-function initialSelectionFor(product: ProductSummary): VariantSelection {
+export function initialSelectionForProduct(product: ProductSummary): VariantSelection {
   const purchasable = product.variantDetails.filter((variant) => variant.merchandiseId);
   const initial = purchasable.find((variant) => variant.available) ?? purchasable[0];
   return initial ? selectionForVariant(initial) : {};
 }
 
-function buildLineState(
+/** Single chooseOption / selectedVariant implementation for local + shared panels. */
+export function buildSharedVariantLineState(
   product: ProductSummary,
   selection: VariantSelection,
   setSelection: (slug: string, next: VariantSelection) => void,
@@ -90,18 +91,17 @@ export function ProductPurchaseSelectionProvider({
   children: ReactNode;
 }) {
   const [bySlug, setBySlug] = useState<Record<string, VariantSelection>>(() =>
-    Object.fromEntries(products.map((product) => [product.slug, initialSelectionFor(product)])),
+    Object.fromEntries(products.map((product) => [product.slug, initialSelectionForProduct(product)])),
   );
 
   const setSelection = useCallback((slug: string, next: VariantSelection) => {
     setBySlug((current) => ({ ...current, [slug]: next }));
   }, []);
 
-  // Missing slugs (e.g. newly selected partner) fall back during render — no sync effect.
   const value = useMemo<PurchaseSelectionContextValue>(() => ({
     getLine: (product: ProductSummary) => {
-      const selection = bySlug[product.slug] ?? initialSelectionFor(product);
-      return buildLineState(product, selection, setSelection);
+      const selection = bySlug[product.slug] ?? initialSelectionForProduct(product);
+      return buildSharedVariantLineState(product, selection, setSelection);
     },
   }), [bySlug, setSelection]);
 

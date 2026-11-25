@@ -115,7 +115,10 @@ export async function deleteProductPairing(pairingId: string) {
   }
 }
 
-async function maybeDeleteOrphanPairingAsset(assetId: string, storageKey: string | null) {
+export async function maybeDeleteOrphanPairingAsset(
+  assetId: string,
+  storageKey: string | null,
+) {
   const stillUsed = await db.productPairing.count({
     where: { imageAssetId: assetId },
   });
@@ -135,6 +138,36 @@ async function maybeDeleteOrphanPairingAsset(assetId: string, storageKey: string
     // Best-effort S3 cleanup — still drop the DB row when unreferenced.
   }
   await db.mediaAsset.delete({ where: { id: asset.id } }).catch(() => undefined);
+}
+
+/** Collect pair photos before cascading product delete, then drop orphans. */
+export async function cleanupPairingAssetsForDeletedProduct(productId: string) {
+  const rows = await db.productPairing.findMany({
+    where: {
+      OR: [{ baseProductId: productId }, { addonProductId: productId }],
+    },
+    select: {
+      imageAssetId: true,
+      imageAsset: { select: { key: true } },
+    },
+  });
+  return rows
+    .filter((row) => row.imageAssetId)
+    .map((row) => ({
+      assetId: row.imageAssetId!,
+      key: row.imageAsset?.key ?? null,
+    }));
+}
+
+export async function deleteOrphanPairingAssets(
+  assets: Array<{ assetId: string; key: string | null }>,
+) {
+  const seen = new Set<string>();
+  for (const asset of assets) {
+    if (seen.has(asset.assetId)) continue;
+    seen.add(asset.assetId);
+    await maybeDeleteOrphanPairingAsset(asset.assetId, asset.key);
+  }
 }
 
 export async function pairingExistsBetween(
@@ -159,15 +192,37 @@ export async function listPairingsForProduct(productId: string) {
       OR: [{ baseProductId: productId }, { addonProductId: productId }],
     },
     include: {
-      baseProduct: { select: { id: true, slug: true, name: true, status: true, visibility: true } },
-      addonProduct: { select: { id: true, slug: true, name: true, status: true, visibility: true } },
+      baseProduct: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          status: true,
+          visibility: true,
+          variants: { select: { shopifyVariantId: true }, take: 5 },
+        },
+      },
+      addonProduct: {
+        select: {
+          id: true,
+          slug: true,
+          name: true,
+          status: true,
+          visibility: true,
+          variants: { select: { shopifyVariantId: true }, take: 5 },
+        },
+      },
       imageAsset: { select: { id: true, key: true } },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
 }
 
-export async function listWornTogetherTitlesByMerchandiseIds(
+/**
+ * Map cart merchandiseId → partner merchandiseIds also in the cart that share
+ * a ProductPairing. Titles come from cart lines later — never Product.name.
+ */
+export async function listWornTogetherMerchandiseIdsByMerchandiseIds(
   merchandiseIds: string[],
 ): Promise<Map<string, string[]>> {
   if (merchandiseIds.length === 0) return new Map();
@@ -177,19 +232,20 @@ export async function listWornTogetherTitlesByMerchandiseIds(
     select: {
       shopifyVariantId: true,
       productId: true,
-      product: { select: { id: true, name: true } },
     },
   });
 
   const productIdByMerch = new Map<string, string>();
-  const titleByProductId = new Map<string, string>();
+  const merchIdsByProduct = new Map<string, string[]>();
   for (const variant of variants) {
     if (!variant.shopifyVariantId) continue;
     productIdByMerch.set(variant.shopifyVariantId, variant.productId);
-    titleByProductId.set(variant.productId, variant.product.name);
+    const list = merchIdsByProduct.get(variant.productId) ?? [];
+    list.push(variant.shopifyVariantId);
+    merchIdsByProduct.set(variant.productId, list);
   }
 
-  const productIds = [...new Set(productIdByMerch.values())];
+  const productIds = [...merchIdsByProduct.keys()];
   if (productIds.length === 0) return new Map();
 
   const pairings = await db.productPairing.findMany({
@@ -218,11 +274,14 @@ export async function listWornTogetherTitlesByMerchandiseIds(
   for (const [merchandiseId, productId] of productIdByMerch) {
     const partnerIds = partnersByProduct.get(productId);
     if (!partnerIds) continue;
-    const titles = [...partnerIds]
+    const partnerMerchIds = [...partnerIds]
       .filter((id) => cartProductIds.has(id) && id !== productId)
-      .map((id) => titleByProductId.get(id))
-      .filter((title): title is string => Boolean(title));
-    if (titles.length > 0) result.set(merchandiseId, titles);
+      .flatMap((id) => merchIdsByProduct.get(id) ?? [])
+      .filter((id) => id !== merchandiseId);
+    if (partnerMerchIds.length > 0) {
+      result.set(merchandiseId, [...new Set(partnerMerchIds)]);
+    }
   }
   return result;
 }
+

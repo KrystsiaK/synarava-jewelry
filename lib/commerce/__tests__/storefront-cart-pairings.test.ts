@@ -58,15 +58,17 @@ beforeEach(() => {
 });
 
 describe("addStorefrontProductToCart multi-line", () => {
-  it("keeps single-add behavior via addShopifyProductToCart", async () => {
+  it("keeps single-add via one merchandise-lines call", async () => {
     mocks.findFirst.mockResolvedValue(
       visibleProduct("p1", "gid://shopify/ProductVariant/1"),
     );
 
     await addStorefrontProductToCart("slug-a", 1);
 
-    expect(mocks.addShopifyProductToCart).toHaveBeenCalledTimes(1);
-    expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalledTimes(1);
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalledWith([
+      { merchandiseId: "gid://shopify/ProductVariant/1", quantity: 1 },
+    ]);
   });
 
   it("adds a pair with exactly one merchandise-lines call of two lines", async () => {
@@ -86,7 +88,6 @@ describe("addStorefrontProductToCart multi-line", () => {
       { merchandiseId: "gid://shopify/ProductVariant/1", quantity: 1 },
       { merchandiseId: "gid://shopify/ProductVariant/2", quantity: 1 },
     ]);
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
   });
 
   it("does not call Shopify when partner is hidden", async () => {
@@ -102,7 +103,6 @@ describe("addStorefrontProductToCart multi-line", () => {
     ).rejects.toThrow("Product not available.");
 
     expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
   });
 
   it("does not call Shopify when partner is sold out", async () => {

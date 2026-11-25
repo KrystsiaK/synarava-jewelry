@@ -10,6 +10,10 @@ import { test } from "./support/fixtures";
 /**
  * Shopify mocked: POST /api/cart/items is fulfilled locally — no Storefront API.
  * Wired in CI alongside smoke (see .github/workflows/ci.yml).
+ *
+ * Not covered here: admin Pairs tab UI (create/upload/reorder) — CI smoke has no
+ * admin session. Pairing rows are seeded via Prisma; this asserts storefront
+ * carousel → kit cart payload on both product pages.
  */
 test.describe("product pairings", () => {
   test("create link → both PDPs → select → kit cart request", async ({

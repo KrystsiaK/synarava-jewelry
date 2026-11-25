@@ -7,6 +7,10 @@ import { createHash } from "node:crypto";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import { productCommerceSignature } from "@/lib/admin/product-commerce-signature";
+import {
+  cleanupPairingAssetsForDeletedProduct,
+  deleteOrphanPairingAssets,
+} from "@/lib/commerce/product-pairings";
 import { db } from "@/lib/db";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 import { parseFormData } from "@/lib/forms/parse-form-data";
@@ -1343,9 +1347,13 @@ export async function deleteProductAction(formData: FormData): Promise<ProductAc
     }
   }
 
+  const pairingAssets = await cleanupPairingAssetsForDeletedProduct(productId);
+
   await db.product.delete({
     where: { id: productId },
   });
+
+  await deleteOrphanPairingAssets(pairingAssets);
 
   revalidateStorefront();
   revalidatePath("/admin/products");

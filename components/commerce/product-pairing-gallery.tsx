@@ -13,23 +13,20 @@ export function ProductPairingAwareGallery({ product }: { product: ProductSummar
       ? [{
           src: partner.pairImageUrl,
           alt: `${product.title} + ${partner.product.title}`,
-          width: null,
-          height: null,
+          width: null as number | null,
+          height: null as number | null,
         }]
-      : [
-          {
+      : product.image && partner.product.image
+        ? [{
+            // One main frame: current + partner side-by-side (not two slides).
             src: product.image,
             alt: product.title,
-            width: null,
-            height: null,
-          },
-          {
-            src: partner.product.image,
-            alt: partner.product.title,
-            width: null,
-            height: null,
-          },
-        ]
+            width: null as number | null,
+            height: null as number | null,
+            companionSrc: partner.product.image,
+            companionAlt: partner.product.title,
+          }]
+        : undefined
     : undefined;
 
   return <ProductMediaGallery product={product} leadingMedia={leadingMedia} />;

@@ -15,7 +15,7 @@ import {
   uploadProductPairingImageAction,
   type AdminProductPairingRow,
 } from "@/app/admin/actions/product-pairings";
-import { ImageFileField } from "@/components/admin/shared/image-file-field";
+import { AdminImmediateFileButton } from "@/components/admin/shared/admin-immediate-file-button";
 import {
   AdminAlert,
   AdminButton,
@@ -93,9 +93,10 @@ export function ProductPairingsManager({
       className="adm-inset-x space-y-5 py-4"
     >
       <p className="max-w-[68ch] text-sm leading-6 text-[var(--adm-muted)]">
-        Synarava-only necklace ↔ charm links. Not pushed to Shopify. Partners only
-        appear on the storefront when both products are ACTIVE + PUBLIC with a
-        Shopify variant.
+        Synarava-only necklace ↔ charm links. Not pushed to Shopify. A partner is
+        hidden on the storefront unless it is ACTIVE + PUBLIC and has a Shopify
+        variant merchandise id — draft, private, unlisted, or variant-less
+        partners stay off the PDP carousel even while linked here.
       </p>
 
       <AdminAlert message={error} tone="error" />
@@ -130,6 +131,10 @@ export function ProductPairingsManager({
                 name="pairing-search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  // Inside the product Save form — Enter must not submit Save.
+                  if (event.key === "Enter") event.preventDefault();
+                }}
                 placeholder="Search by name, slug, or SKU"
                 clearable
                 onClear={() => setQuery("")}
@@ -224,27 +229,32 @@ export function ProductPairingsManager({
                   <p className="text-xs text-[var(--adm-muted)]">
                     {row.partner.status}/{row.partner.visibility} · /{row.partner.slug}
                   </p>
+                  {row.partner.status !== "ACTIVE"
+                  || row.partner.visibility !== "PUBLIC"
+                  || !row.partner.hasShopifyVariant ? (
+                    <p className="text-xs text-[var(--adm-danger)]">
+                      Not storefront-visible
+                      {row.partner.status !== "ACTIVE" || row.partner.visibility !== "PUBLIC"
+                        ? " (needs ACTIVE + PUBLIC)"
+                        : ""}
+                      {!row.partner.hasShopifyVariant ? " (missing Shopify variant)" : ""}.
+                    </p>
+                  ) : null}
                 </div>
-                <div className="min-w-[10rem] max-w-[14rem]">
-                  <ImageFileField
-                    name={`pairing-photo-${row.id}`}
-                    accept="image/jpeg,image/png,image/webp,image/avif"
-                    className="adm-field text-xs"
-                    currentImageUrl={row.imageUrl}
-                    currentImageAlt=""
-                    currentImageLabel="Pair photo"
-                    onFileChange={(file) => {
-                      if (!file || isPending) return;
-                      const body = new FormData();
-                      body.set("pairingId", row.id);
-                      body.set("productId", productId);
-                      body.set("file", file);
-                      startTransition(async () => {
-                        applyResult(await uploadProductPairingImageAction(body));
-                      });
-                    }}
-                  />
-                </div>
+                <AdminImmediateFileButton
+                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  disabled={isPending}
+                  label={row.imageUrl ? "Replace photo" : "Upload pair photo"}
+                  onFile={(file) => {
+                    const body = new FormData();
+                    body.set("pairingId", row.id);
+                    body.set("productId", productId);
+                    body.set("file", file);
+                    startTransition(async () => {
+                      applyResult(await uploadProductPairingImageAction(body));
+                    });
+                  }}
+                />
                 {row.imageUrl ? (
                   <AdminButton
                     type="button"

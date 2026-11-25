@@ -14,6 +14,9 @@ type CartLinePayload = {
   productSlug: string;
   merchandiseId?: string;
   quantity?: number;
+  sku?: string;
+  itemName?: string;
+  price?: number;
 };
 
 type AddToCartButtonProps = {
@@ -86,10 +89,10 @@ export function AddToCartButton({
       if (warnings.length === 0) {
         const analyticsItems = lines && lines.length > 0
           ? lines.map((line) => ({
-              item_id: line.merchandiseId || line.productSlug,
-              item_name: itemName,
+              item_id: line.sku || line.merchandiseId || line.productSlug,
+              item_name: line.itemName || itemName,
               item_variant: line.merchandiseId,
-              price: value,
+              price: line.price ?? value,
               quantity: line.quantity ?? 1,
             }))
           : [{
@@ -99,9 +102,13 @@ export function AddToCartButton({
               price: value,
               quantity: 1,
             }];
+        const analyticsValue = analyticsItems.reduce(
+          (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
+          0,
+        );
         trackCommerceEvent("add_to_cart", {
           ecommerce: {
-            value,
+            value: lines && lines.length > 0 ? analyticsValue : value,
             currency,
             items: analyticsItems,
           },

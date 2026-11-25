@@ -50,6 +50,9 @@ export function ProductPairingCarousel() {
                 <span className="block truncate text-[0.72rem] font-semibold leading-4 text-foreground">
                   {partner.product.title}
                 </span>
+                <span className="mt-1 block truncate text-[0.68rem] text-foreground/62">
+                  {partner.product.price}
+                </span>
                 {soldOut ? (
                   <span className="mt-1 block text-[0.62rem] uppercase tracking-[0.12em] text-foreground/45">
                     {t("product.pairings.soldOut")}

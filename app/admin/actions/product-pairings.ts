@@ -11,7 +11,10 @@ import {
   ProductPairingError,
   updateProductPairing,
 } from "@/lib/commerce/product-pairings";
-import { revalidateStorefront } from "@/lib/content/revalidate-storefront";
+import {
+  revalidateStorefront,
+  revalidateStorefrontPath,
+} from "@/lib/content/revalidate-storefront";
 import { db } from "@/lib/db";
 import { savePairingImageUpload } from "@/lib/media/local-upload";
 import { deleteStoredGalleryObject } from "@/lib/products/gallery";
@@ -36,6 +39,7 @@ export type AdminProductPairingRow = {
     name: string;
     status: string;
     visibility: string;
+    hasShopifyVariant: boolean;
   };
   role: "base" | "addon";
 };
@@ -60,15 +64,36 @@ async function loadAdminPairings(productId: string): Promise<AdminProductPairing
       sortOrder: row.sortOrder,
       imageAssetId: row.imageAssetId,
       imageUrl: row.imageAsset ? getS3PublicUrl(row.imageAsset.key) : null,
-      partner,
+      partner: {
+        id: partner.id,
+        slug: partner.slug,
+        name: partner.name,
+        status: partner.status,
+        visibility: partner.visibility,
+        hasShopifyVariant: partner.variants.some((variant) => Boolean(variant.shopifyVariantId)),
+      },
       role: isBase ? ("addon" as const) : ("base" as const),
     };
   });
 }
 
-async function finish(productIds: string[], success: string): Promise<ProductPairingActionState> {
+async function revalidatePairingProducts(productIds: string[]) {
   revalidatePath("/admin/products");
   revalidateStorefront();
+  const uniqueIds = [...new Set(productIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return;
+  const products = await db.product.findMany({
+    where: { id: { in: uniqueIds } },
+    select: { id: true, slug: true },
+  });
+  for (const product of products) {
+    revalidatePath(`/admin/products/${product.slug}`);
+    revalidateStorefrontPath(`/products/${product.slug}`);
+  }
+}
+
+async function finish(productIds: string[], success: string): Promise<ProductPairingActionState> {
+  await revalidatePairingProducts(productIds);
   const primary = productIds[0];
   return {
     success,
@@ -149,12 +174,6 @@ export async function createProductPairingAction(
       addonProductId: addonId,
       sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
     });
-    const [base, addon] = await Promise.all([
-      db.product.findUnique({ where: { id: baseId }, select: { slug: true } }),
-      db.product.findUnique({ where: { id: addonId }, select: { slug: true } }),
-    ]);
-    void base;
-    void addon;
     return finish([baseId, addonId], "Pairing created.");
   } catch (error) {
     return actionError(error);
@@ -193,7 +212,7 @@ export async function reorderProductPairingAction(
     const rows = await db.productPairing.findMany({
       where: { baseProductId: ownerId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      select: { id: true, sortOrder: true },
+      select: { id: true, sortOrder: true, addonProductId: true },
     });
     const index = rows.findIndex((row) => row.id === id);
     if (index < 0) return { error: "Pairing not found on this base product." };
@@ -207,7 +226,10 @@ export async function reorderProductPairingAction(
       db.productPairing.update({ where: { id: left.id }, data: { sortOrder: right.sortOrder } }),
       db.productPairing.update({ where: { id: right.id }, data: { sortOrder: left.sortOrder } }),
     ]);
-    return finish([ownerId], "Pairing order updated.");
+    return finish(
+      [ownerId, left.addonProductId, right.addonProductId],
+      "Pairing order updated.",
+    );
   } catch (error) {
     return actionError(error);
   }
@@ -224,6 +246,12 @@ export async function uploadProductPairingImageAction(
     if (!(file instanceof File) || file.size === 0) {
       return { error: "Choose an image to upload." };
     }
+
+    const pairing = await db.productPairing.findUnique({
+      where: { id: pairingId },
+      select: { baseProductId: true, addonProductId: true },
+    });
+    if (!pairing) return { error: "Pairing not found." };
 
     const uploaded = await savePairingImageUpload(file);
     if (!uploaded) return { error: "The image could not be uploaded." };
@@ -260,7 +288,10 @@ export async function uploadProductPairingImageAction(
       throw error;
     }
 
-    return finish([productId], "Pairing photo updated.");
+    return finish(
+      [productId, pairing.baseProductId, pairing.addonProductId],
+      "Pairing photo updated.",
+    );
   } catch (error) {
     return actionError(error);
   }
@@ -272,8 +303,18 @@ export async function clearProductPairingImageAction(
 ): Promise<ProductPairingActionState> {
   await requireAdminSession("/admin/products");
   try {
-    await updateProductPairing(idSchema.parse(pairingId), { imageAssetId: null });
-    return finish([idSchema.parse(productId)], "Pairing photo removed.");
+    const id = idSchema.parse(pairingId);
+    const ownerId = idSchema.parse(productId);
+    const pairing = await db.productPairing.findUnique({
+      where: { id },
+      select: { baseProductId: true, addonProductId: true },
+    });
+    if (!pairing) return { error: "Pairing not found." };
+    await updateProductPairing(id, { imageAssetId: null });
+    return finish(
+      [ownerId, pairing.baseProductId, pairing.addonProductId],
+      "Pairing photo removed.",
+    );
   } catch (error) {
     return actionError(error);
   }

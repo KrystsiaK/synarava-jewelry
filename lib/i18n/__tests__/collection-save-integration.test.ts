@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const hasDatabase = Boolean(process.env.DATABASE_URL?.trim());
-
 // Real DB, real Prisma writes against the local dev Postgres — only auth
 // and the registry locale list are mocked, since those need Next's
 // request-scoped headers()/cookies(), unavailable outside a real request.
@@ -48,7 +46,7 @@ function buildFormData(overrides: Record<string, string> = {}) {
   return fd;
 }
 
-describe.skipIf(!hasDatabase)("saveCollectionAction — N-locale translation save (real DB)", () => {
+describe("saveCollectionAction — N-locale translation save (real DB)", () => {
   let createdId: string | null = null;
 
   beforeEach(() => {

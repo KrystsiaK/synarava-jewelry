@@ -8,6 +8,7 @@ import { useProductVariantSelection } from "@/components/commerce/use-product-va
 import { ArtifactButton } from "@/components/ui";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
+import { formatCurrency } from "@/lib/i18n/format";
 import { localePath } from "@/lib/i18n/routing";
 import { discountPercent } from "@/lib/shopify/money";
 
@@ -143,6 +144,11 @@ function StandalonePurchase({
             value={selectedVariant ? selectedVariant.priceAmount : product.priceAmount}
             currency={product.currency}
             disabled={!isAvailable}
+            unavailableLabel={
+              purchasableVariants.length === 0
+                ? t("product.shopifyUnavailable")
+                : t("product.currentlyUnavailable")
+            }
           />
         </div>
       </div>
@@ -228,13 +234,14 @@ function KitPurchase({
   partnerProduct: ProductSummary;
   compact: boolean;
 }) {
-  const { t } = useTranslations();
+  const { t, locale } = useTranslations();
   const primary = useProductVariantSelection(product);
   const secondary = useProductVariantSelection(partnerProduct);
 
   const kitAvailable = primary.isAvailable && secondary.isAvailable;
-  const kitTotal = (primary.selectedVariant?.priceAmount ?? product.priceAmount)
-    + (secondary.selectedVariant?.priceAmount ?? partnerProduct.priceAmount);
+  const primaryPrice = primary.selectedVariant?.priceAmount ?? product.priceAmount;
+  const secondaryPrice = secondary.selectedVariant?.priceAmount ?? partnerProduct.priceAmount;
+  const kitTotal = primaryPrice + secondaryPrice;
 
   return (
     <div
@@ -247,10 +254,7 @@ function KitPurchase({
 
       <p className="font-serif text-2xl text-foreground">
         {t("product.pairings.kitTotal", {
-          total: new Intl.NumberFormat(undefined, {
-            style: "currency",
-            currency: product.currency,
-          }).format(kitTotal),
+          total: formatCurrency(kitTotal, product.currency, locale),
         })}
       </p>
 
@@ -260,14 +264,18 @@ function KitPurchase({
             {
               productSlug: product.slug,
               merchandiseId: primary.selectedVariant?.merchandiseId ?? undefined,
+              sku: primary.selectedVariant?.sku || product.sku,
+              itemName: product.title,
+              price: primaryPrice,
             },
             {
               productSlug: partnerProduct.slug,
               merchandiseId: secondary.selectedVariant?.merchandiseId ?? undefined,
+              sku: secondary.selectedVariant?.sku || partnerProduct.sku,
+              itemName: partnerProduct.title,
+              price: secondaryPrice,
             },
           ]}
-          sku={product.sku}
-          itemName={`${product.title} + ${partnerProduct.title}`}
           value={kitTotal}
           currency={product.currency}
           disabled={!kitAvailable}
@@ -278,11 +286,16 @@ function KitPurchase({
           merchandiseId={primary.selectedVariant?.merchandiseId ?? undefined}
           sku={primary.selectedVariant?.sku || product.sku}
           itemName={product.title}
-          value={primary.selectedVariant?.priceAmount ?? product.priceAmount}
+          value={primaryPrice}
           currency={product.currency}
           disabled={!primary.isAvailable}
           label={t("product.pairings.addCurrentOnly")}
           variant="secondary"
+          unavailableLabel={
+            primary.purchasableVariants.length === 0
+              ? t("product.shopifyUnavailable")
+              : t("product.currentlyUnavailable")
+          }
         />
       </div>
     </div>

@@ -13,7 +13,6 @@ import { db } from "@/lib/db";
 import { pairingExistsBetween } from "@/lib/commerce/product-pairings";
 import {
   addShopifyMerchandiseLinesToCart,
-  addShopifyProductToCart,
   getShopifyCartCount,
   getShopifyCartLineQuantity,
   getShopifyCartViewModel,
@@ -159,19 +158,14 @@ export async function addStorefrontProductToCart(
     if (!linked) {
       throw new Error("Products have no pairing.");
     }
-    return addShopifyMerchandiseLinesToCart(
-      resolved.map((line) => ({
-        merchandiseId: line.merchandiseId,
-        quantity: line.quantity,
-      })),
-    );
   }
 
-  const [single] = resolved;
-  return addShopifyProductToCart(
-    single.shopifyHandle,
-    single.quantity,
-    single.merchandiseId,
+  // One Shopify mutation path for 1–2 normal lines.
+  return addShopifyMerchandiseLinesToCart(
+    resolved.map((line) => ({
+      merchandiseId: line.merchandiseId,
+      quantity: line.quantity,
+    })),
   );
 }
 

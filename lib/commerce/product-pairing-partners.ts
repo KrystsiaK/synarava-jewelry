@@ -28,8 +28,8 @@ export async function listStorefrontPairingPartners(
     },
     include: {
       imageAsset: { select: { key: true } },
-      baseProduct: { select: { id: true, slug: true } },
-      addonProduct: { select: { id: true, slug: true } },
+      baseProduct: { select: { id: true, slug: true, status: true, visibility: true } },
+      addonProduct: { select: { id: true, slug: true, status: true, visibility: true } },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
@@ -38,6 +38,8 @@ export async function listStorefrontPairingPartners(
   for (const row of rows) {
     const isBase = row.baseProductId === productId;
     const other = isBase ? row.addonProduct : row.baseProduct;
+    // Pairing partners are ACTIVE+PUBLIC only — do not change global getProductBySlug policy.
+    if (other.status !== "ACTIVE" || other.visibility !== "PUBLIC") continue;
     const summary = await getProductBySlug(other.slug, locale);
     if (!summary) continue;
     if (summary.variantDetails.every((variant) => !variant.merchandiseId)) continue;

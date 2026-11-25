@@ -91,10 +91,7 @@ export function ProductPairingSelectionProvider({
   );
 }
 
-export function useProductPairingSelection() {
-  return use(ProductPairingSelectionContext);
-}
-
+/** Optional: null outside ProductPairingSelectionProvider. */
 export function useOptionalProductPairingSelection() {
   return use(ProductPairingSelectionContext);
 }
