@@ -21,13 +21,38 @@ function galleryMedia(product: GalleryProduct) {
   });
 }
 
+type LeadingMedia = Array<{
+  src: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+}>;
+
 export function ProductMediaGallery({
   product,
   leadingMedia,
 }: {
   product: GalleryProduct;
   /** Pair photo or side-by-side frames shown first while a partner is selected. */
-  leadingMedia?: Array<{ src: string; alt: string; width: number | null; height: number | null }>;
+  leadingMedia?: LeadingMedia;
+}) {
+  // Remount resets activeIndex / zoom without a sync setState-in-effect.
+  const leadingKey = leadingMedia?.map((item) => item.src).join("|") ?? "";
+  return (
+    <ProductMediaGalleryInner
+      key={`${product.title}::${leadingKey}`}
+      product={product}
+      leadingMedia={leadingMedia}
+    />
+  );
+}
+
+function ProductMediaGalleryInner({
+  product,
+  leadingMedia,
+}: {
+  product: GalleryProduct;
+  leadingMedia?: LeadingMedia;
 }) {
   const { t } = useTranslations();
   const baseMedia = galleryMedia(product);
@@ -37,14 +62,8 @@ export function ProductMediaGallery({
   const [zoomed, setZoomed] = useState(false);
   const [failedSources, setFailedSources] = useState<Set<string>>(() => new Set());
   const zoomScrollRef = useRef<HTMLDivElement>(null);
-  const leadingKey = leadingMedia?.map((item) => item.src).join("|") ?? "";
   const active = media[activeIndex] ?? media[0];
   const count = media.length;
-
-  useEffect(() => {
-    setActiveIndex(0);
-    setZoomed(false);
-  }, [leadingKey, product.title]);
 
   // Zooming in centers the pan area instead of leaving it scrolled to the
   // top-left corner (REV-24) — the browser's own scroll handles the actual

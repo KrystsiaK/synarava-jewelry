@@ -4,7 +4,6 @@ import {
   createContext,
   use,
   useCallback,
-  useEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -94,24 +93,11 @@ export function ProductPurchaseSelectionProvider({
     Object.fromEntries(products.map((product) => [product.slug, initialSelectionFor(product)])),
   );
 
-  useEffect(() => {
-    setBySlug((current) => {
-      let changed = false;
-      const next = { ...current };
-      for (const product of products) {
-        if (next[product.slug] === undefined) {
-          next[product.slug] = initialSelectionFor(product);
-          changed = true;
-        }
-      }
-      return changed ? next : current;
-    });
-  }, [products]);
-
   const setSelection = useCallback((slug: string, next: VariantSelection) => {
     setBySlug((current) => ({ ...current, [slug]: next }));
   }, []);
 
+  // Missing slugs (e.g. newly selected partner) fall back during render — no sync effect.
   const value = useMemo<PurchaseSelectionContextValue>(() => ({
     getLine: (product: ProductSummary) => {
       const selection = bySlug[product.slug] ?? initialSelectionFor(product);

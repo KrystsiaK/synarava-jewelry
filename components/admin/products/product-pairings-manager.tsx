@@ -15,6 +15,7 @@ import {
   uploadProductPairingImageAction,
   type AdminProductPairingRow,
 } from "@/app/admin/actions/product-pairings";
+import { ImageFileField } from "@/components/admin/shared/image-file-field";
 import {
   AdminAlert,
   AdminButton,
@@ -59,10 +60,7 @@ export function ProductPairingsManager({
   }, [active, productId]);
 
   useEffect(() => {
-    if (!active || isAddonView || query.trim().length < 1) {
-      setCandidates([]);
-      return;
-    }
+    if (!active || isAddonView || query.trim().length < 1) return;
     const handle = window.setTimeout(() => {
       startTransition(async () => {
         const rows = await searchPairingCandidatesAction(productId, query);
@@ -71,6 +69,10 @@ export function ProductPairingsManager({
     }, 220);
     return () => window.clearTimeout(handle);
   }, [active, isAddonView, productId, query]);
+
+  // Derive empty results while the query is idle — avoid sync setState-in-effect.
+  const shownCandidates =
+    active && !isAddonView && query.trim().length >= 1 ? candidates : [];
 
   function applyResult(
     result: { error?: string; success?: string; pairings?: AdminProductPairingRow[] },
@@ -133,9 +135,9 @@ export function ProductPairingsManager({
                 onClear={() => setQuery("")}
               />
             </label>
-            {candidates.length > 0 ? (
+            {shownCandidates.length > 0 ? (
               <ul className="divide-y rounded-[var(--adm-radius)] border border-[var(--adm-border)]">
-                {candidates.map((candidate) => (
+                {shownCandidates.map((candidate) => (
                   <li
                     key={candidate.id}
                     className="flex flex-wrap items-center justify-between gap-2 px-3 py-2"
@@ -223,16 +225,16 @@ export function ProductPairingsManager({
                     {row.partner.status}/{row.partner.visibility} · /{row.partner.slug}
                   </p>
                 </div>
-                <label className="inline-flex cursor-pointer items-center text-xs text-[var(--adm-muted)]">
-                  <span className="sr-only">Upload pair photo</span>
-                  <input
-                    type="file"
+                <div className="min-w-[10rem] max-w-[14rem]">
+                  <ImageFileField
+                    name={`pairing-photo-${row.id}`}
                     accept="image/jpeg,image/png,image/webp,image/avif"
-                    disabled={isPending}
-                    onChange={(event) => {
-                      const file = event.target.files?.[0];
-                      event.target.value = "";
-                      if (!file) return;
+                    className="adm-field text-xs"
+                    currentImageUrl={row.imageUrl}
+                    currentImageAlt=""
+                    currentImageLabel="Pair photo"
+                    onFileChange={(file) => {
+                      if (!file || isPending) return;
                       const body = new FormData();
                       body.set("pairingId", row.id);
                       body.set("productId", productId);
@@ -242,7 +244,7 @@ export function ProductPairingsManager({
                       });
                     }}
                   />
-                </label>
+                </div>
                 {row.imageUrl ? (
                   <AdminButton
                     type="button"

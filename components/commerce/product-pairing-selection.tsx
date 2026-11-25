@@ -4,9 +4,7 @@ import {
   createContext,
   use,
   useCallback,
-  useEffect,
   useMemo,
-  useState,
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
@@ -47,19 +45,11 @@ export function ProductPairingSelectionProvider({
     return map;
   }, [partners]);
 
-  const [selectedSlug, setSelectedSlug] = useState<string | null>(() => {
+  // URL is the single source of truth — no mirrored state / sync effect.
+  const selectedSlug = useMemo(() => {
     if (!withParam) return null;
     const partner = partnerBySlug.get(withParam);
     return partner?.available ? partner.product.slug : null;
-  });
-
-  useEffect(() => {
-    if (!withParam) {
-      setSelectedSlug(null);
-      return;
-    }
-    const partner = partnerBySlug.get(withParam);
-    setSelectedSlug(partner?.available ? partner.product.slug : null);
   }, [partnerBySlug, withParam]);
 
   const selectPartner = useCallback(
@@ -70,7 +60,6 @@ export function ProductPairingSelectionProvider({
           : null;
       // Retap clears.
       const resolved = selectedSlug === next ? null : next;
-      setSelectedSlug(resolved);
 
       const params = new URLSearchParams(searchParams.toString());
       if (resolved) params.set("with", resolved);
