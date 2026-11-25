@@ -10,6 +10,7 @@ import type {
   CatalogConflictProductSignal,
   CatalogConflictSignals,
 } from "@/lib/shopify/catalog-conflict-signals";
+import type { SyncConflictSection } from "@/lib/sync/field-registry";
 /**
  * Locale / section chip count ≡ `selectSyncCounts(..., localeTab)` tree node.
  * Base/EN = shared + presence + EN locale rows. Sibling locales = that code only
@@ -109,8 +110,13 @@ export function filterSignalsForView(
   const presence = isBase ? signal.presence : undefined;
   const hasLocaleConflict = locales.some((entry) => entry.count > 0);
   if (viewScope.kind === "productSection") {
-    const ownsSection = (signal.sections ?? []).includes(viewScope.section)
-      || (viewScope.section === "shopify" && Boolean(presence));
+    // Synarava-only Pairs tab is outside Shopify conflict sections (ADR-0013).
+    if (viewScope.section === "pairs") {
+      return { ...signals, products: {}, totalCount: 0 };
+    }
+    const section = viewScope.section as SyncConflictSection;
+    const ownsSection = (signal.sections ?? []).includes(section)
+      || (section === "shopify" && Boolean(presence));
     if (!ownsSection) {
       return { ...signals, products: {}, totalCount: 0 };
     }
@@ -120,7 +126,7 @@ export function filterSignalsForView(
       ...signal,
       shared,
       sharedCount: shared ? Math.min(1, Math.max(0, signal.sharedCount ?? 0)) : 0,
-      presence: viewScope.section === "shopify" ? presence : undefined,
+      presence: section === "shopify" ? presence : undefined,
       locales,
     }, viewScope.locale);
     return {
@@ -130,9 +136,9 @@ export function filterSignalsForView(
           ...signal,
           shared,
           sharedCount: shared ? Math.min(1, Math.max(0, signal.sharedCount ?? 0)) : 0,
-          presence: viewScope.section === "shopify" ? presence : undefined,
+          presence: section === "shopify" ? presence : undefined,
           locales,
-          sections: [viewScope.section],
+          sections: [section],
           leafCount: sectionLeafCount,
         },
       },

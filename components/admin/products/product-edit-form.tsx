@@ -41,6 +41,7 @@ import {
 } from "@/components/admin/products/commerce-conflict-section";
 import { ProductConflictCompareBanner } from "@/components/admin/products/product-conflict-compare-banner";
 import { ProductMediaManager } from "@/components/admin/products/product-media-manager";
+import { ProductPairingsManager } from "@/components/admin/products/product-pairings-manager";
 import { productConflictBadgeCount } from "@/lib/sync/badge-count";
 import { ProductEditorTabs, type ProductEditorSection } from "@/components/admin/products/product-editor-tabs";
 import {
@@ -89,7 +90,7 @@ const EMPTY_SIGNALS: CatalogConflictSignals = {
 };
 
 const ALL_SECTIONS: ProductEditorSection[] = [
-  "essentials", "price", "inventory", "metafields", "media", "passport", "details", "shopify",
+  "essentials", "price", "inventory", "metafields", "media", "passport", "details", "pairs", "shopify",
 ];
 
 function productLocaleTabs(translationLocales: AdminTranslationLocale[]): AdminLocaleTab[] {
@@ -670,7 +671,7 @@ export function EditProductForm({
                       />
                     </div>
 
-                    <div hidden={activeSection === "media" || activeSection === "metafields"}>
+                    <div hidden={activeSection === "media" || activeSection === "metafields" || activeSection === "pairs"}>
                       <div hidden={activeSection === "passport"}>
                         <ProductFormFields
                           key={`${currentProduct.id}-${fieldsRevision}`}
@@ -759,6 +760,13 @@ export function EditProductForm({
                           // Gallery alts are not FormData fields — blur-save is the sole
                           // alt path, so leave-guard no longer needs a flushSync baseline hack.
                         }}
+                      />
+                    </div>
+
+                    <div hidden={activeSection !== "pairs"}>
+                      <ProductPairingsManager
+                        productId={currentProduct.id}
+                        productSlug={currentProduct.slug}
                       />
                     </div>
 

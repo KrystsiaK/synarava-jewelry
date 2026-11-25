@@ -21,16 +21,30 @@ function galleryMedia(product: GalleryProduct) {
   });
 }
 
-export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
+export function ProductMediaGallery({
+  product,
+  leadingMedia,
+}: {
+  product: GalleryProduct;
+  /** Pair photo or side-by-side frames shown first while a partner is selected. */
+  leadingMedia?: Array<{ src: string; alt: string; width: number | null; height: number | null }>;
+}) {
   const { t } = useTranslations();
-  const media = galleryMedia(product);
+  const baseMedia = galleryMedia(product);
+  const media = [...(leadingMedia ?? []), ...baseMedia];
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);
   const [failedSources, setFailedSources] = useState<Set<string>>(() => new Set());
   const zoomScrollRef = useRef<HTMLDivElement>(null);
+  const leadingKey = leadingMedia?.map((item) => item.src).join("|") ?? "";
   const active = media[activeIndex] ?? media[0];
   const count = media.length;
+
+  useEffect(() => {
+    setActiveIndex(0);
+    setZoomed(false);
+  }, [leadingKey, product.title]);
 
   // Zooming in centers the pan area instead of leaving it scrolled to the
   // top-left corner (REV-24) — the browser's own scroll handles the actual
@@ -67,7 +81,7 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
         <div className="order-2 flex snap-x gap-2 overflow-x-auto pb-1 md:order-1 md:grid md:max-h-[42rem] md:content-start md:overflow-y-auto md:pb-0">
           {media.map((item, index) => (
             <button
-              key={item.src}
+              key={`${item.src}-${index}`}
               type="button"
               aria-label={t("product.showImage", { current: index + 1, total: count })}
               aria-pressed={index === activeIndex}

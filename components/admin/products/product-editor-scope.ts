@@ -21,6 +21,7 @@ export function isSharedSection(section: ProductEditorSection): boolean {
     || section === "media"
     || section === "shopify"
     || section === "price"
+    || section === "pairs"
   );
 }
 

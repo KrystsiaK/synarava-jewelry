@@ -105,9 +105,20 @@
     "select": "Sprache wählen"
   },
   "product": {
-    "restockNotice": "Wieder verfügbar in etwa 10 Tagen"
+    "restockNotice": "Wieder verfügbar in etwa 10 Tagen",
+    "pairings": {
+      "carouselLabel": "Zusammen tragen",
+      "carouselTitle": "Zusammen tragen",
+      "soldOut": "Ausverkauft",
+      "addKit": "Set hinzufügen",
+      "addCurrentOnly": "Nur dieses Stück",
+      "kitTotal": "Set insgesamt {total}"
+    }
   },
   "announcement": {
     "bar": "Kostenloser Versand nach Portugal ab {amount}"
+  },
+  "cart": {
+    "wornTogetherWith": "Wird zusammen getragen mit {titles}"
   }
 }

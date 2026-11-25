@@ -16,3 +16,4 @@
 | [0010](0010-field-contract-and-verified-convergence.md) | Field contract metadata + verified write convergence | accepted | 2026-10-27 |
 | [0011](0011-ai-draft-into-form.md) | AI product content — draft into form only (Gemini; AuditLog-only write) | accepted | 2026-11-22 |
 | [0012](0012-marketing-intelligence.md) | Marketing Intelligence MVP — CompetitorObservation + ContentIdea + MarketSignal | accepted | 2026-11-23 |
+| [0013](0013-product-pairings-synarava-only.md) | Necklace↔charm pairings — Synarava-only links, not Shopify bundles | accepted | 2026-11-25 |

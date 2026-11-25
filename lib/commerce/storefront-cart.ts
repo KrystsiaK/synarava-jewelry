@@ -10,6 +10,7 @@ import {
   withShopifyInventoryAvailability,
 } from "@/lib/commerce/variant-availability";
 import { db } from "@/lib/db";
+import { pairingExistsBetween } from "@/lib/commerce/product-pairings";
 import {
   addShopifyMerchandiseLinesToCart,
   addShopifyProductToCart,
@@ -32,6 +33,12 @@ export type MerchandiseImportResult = {
   warnings: string[];
 };
 
+export type StorefrontCartLineInput = {
+  productSlug: string;
+  quantity?: number;
+  merchandiseId?: string;
+};
+
 export async function getStorefrontCartViewModel() {
   return getShopifyCartViewModel();
 }
@@ -44,11 +51,21 @@ export async function getStorefrontCartLineQuantity(itemId: string) {
   return getShopifyCartLineQuantity(itemId);
 }
 
-export async function addStorefrontProductToCart(
-  productSlug: string,
-  quantity = 1,
-  merchandiseId?: string,
-) {
+async function resolveVisibleCartLine(input: StorefrontCartLineInput) {
+  const productSlug = input.productSlug.trim();
+  const quantity = input.quantity ?? 1;
+  const merchandiseId = input.merchandiseId?.trim() || undefined;
+
+  if (
+    !productSlug
+    || productSlug.length > 160
+    || !Number.isInteger(quantity)
+    || quantity < 1
+    || quantity > 10
+  ) {
+    throw new Error("Invalid cart request.");
+  }
+
   // One visibility policy for every entry point (REV-08): the merchandiseId
   // branch used to check local status/visibility while the handle-only branch
   // didn't check anything, so a locally hidden/archived — or entirely local-only
@@ -65,6 +82,7 @@ export async function addStorefrontProductToCart(
         : {}),
     },
     select: {
+      id: true,
       shopifyHandle: true,
       shopifySnapshot: true,
       variants: {
@@ -101,10 +119,59 @@ export async function addStorefrontProductToCart(
     throw new Error("Product is out of stock.");
   }
 
-  return addShopifyProductToCart(
-    product.shopifyHandle || productSlug,
+  return {
+    productId: product.id,
+    productSlug,
+    shopifyHandle: product.shopifyHandle || productSlug,
+    merchandiseId: merchandiseId ?? target.shopifyVariantId,
     quantity,
-    merchandiseId ?? target.shopifyVariantId,
+  };
+}
+
+/**
+ * Add 1–2 storefront lines. Existing callers keep `(slug, qty?, merch?)`.
+ * Two lines require a ProductPairing link; one Shopify mutation carries both.
+ */
+export async function addStorefrontProductToCart(
+  productSlugOrLines: string | StorefrontCartLineInput[],
+  quantity = 1,
+  merchandiseId?: string,
+) {
+  const lines: StorefrontCartLineInput[] = Array.isArray(productSlugOrLines)
+    ? productSlugOrLines
+    : [{ productSlug: productSlugOrLines, quantity, merchandiseId }];
+
+  if (lines.length < 1 || lines.length > 2) {
+    throw new Error("Invalid cart request.");
+  }
+
+  const resolved = [];
+  for (const line of lines) {
+    resolved.push(await resolveVisibleCartLine(line));
+  }
+
+  if (resolved.length === 2) {
+    const [left, right] = resolved;
+    if (left.productId === right.productId) {
+      throw new Error("Invalid cart request.");
+    }
+    const linked = await pairingExistsBetween(left.productId, right.productId);
+    if (!linked) {
+      throw new Error("Products have no pairing.");
+    }
+    return addShopifyMerchandiseLinesToCart(
+      resolved.map((line) => ({
+        merchandiseId: line.merchandiseId,
+        quantity: line.quantity,
+      })),
+    );
+  }
+
+  const [single] = resolved;
+  return addShopifyProductToCart(
+    single.shopifyHandle,
+    single.quantity,
+    single.merchandiseId,
   );
 }
 

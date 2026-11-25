@@ -26,6 +26,7 @@ type CartItem = {
   unitCents: number;
   price: string;
   total: string;
+  wornTogetherWith?: string[];
 };
 
 type CartShellProps = {

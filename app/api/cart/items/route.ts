@@ -5,6 +5,7 @@ import { getTrustedClientIp } from "@/lib/security/request-ip";
 import {
   addStorefrontProductToCart,
   getStorefrontCartViewModel,
+  type StorefrontCartLineInput,
 } from "@/lib/commerce/storefront-cart";
 import { revalidateStorefrontPath } from "@/lib/content/revalidate-storefront";
 
@@ -25,7 +26,40 @@ export async function POST(request: Request) {
       productSlug?: string;
       quantity?: number;
       merchandiseId?: string;
+      lines?: StorefrontCartLineInput[];
     };
+
+    const lines = Array.isArray(body.lines) && body.lines.length > 0
+      ? body.lines
+      : null;
+
+    if (lines) {
+      if (lines.length > 2) {
+        return NextResponse.json({ ok: false, error: "Invalid cart request." }, { status: 400 });
+      }
+      const { warnings } = await addStorefrontProductToCart(lines);
+      const cart = await getStorefrontCartViewModel();
+      revalidateStorefrontPath("/cart");
+      revalidateStorefrontPath("/shop");
+      revalidateStorefrontPath("/", "layout");
+      return NextResponse.json({
+        ok: true,
+        count: cart.itemCount,
+        warnings,
+        ecommerce: {
+          currency: cart.currency,
+          value: cart.subtotalCents / 100,
+          items: cart.items.map((item) => ({
+            item_id: item.sku || item.merchandiseId || item.slug || item.id,
+            item_name: item.title,
+            item_variant: item.materialLine || undefined,
+            price: item.unitCents / 100,
+            quantity: item.quantity,
+          })),
+        },
+      });
+    }
+
     const productSlug = body.productSlug?.trim();
     const quantity = Number(body.quantity ?? 1);
 
