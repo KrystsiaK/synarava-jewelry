@@ -78,13 +78,27 @@ export function seoDescriptionWarning(value: string | null | undefined) {
   return seoLengthWarning(value, SEO_DESCRIPTION_SOFT_MAX, "SEO description");
 }
 
-/** Host for SERP chrome when env is available on the client. */
+const PUBLIC_SERP_HOST_FALLBACK = "synarava.com";
+
+function isLoopbackHost(host: string): boolean {
+  return /^(localhost|127\.0\.0\.1)(:\d+)?$/i.test(host);
+}
+
+/**
+ * Host for SERP chrome when env is available on the client.
+ * Never returns loopback — APP_URL is often localhost in local admin while
+ * NEXT_PUBLIC_SITE_URL is the public host (or missing → fallback). Mixing
+ * those caused AdminSerpPreview hydration mismatches (Issues badge).
+ */
 export function defaultSerpHost(): string {
   const configured = process.env.NEXT_PUBLIC_SITE_URL || process.env.APP_URL;
-  if (!configured) return "synarava.com";
+  if (!configured) return PUBLIC_SERP_HOST_FALLBACK;
+  let host: string;
   try {
-    return new URL(configured).host;
+    host = new URL(configured).host;
   } catch {
-    return configured.replace(/^https?:\/\//i, "").replace(/\/$/, "") || "synarava.com";
+    host = configured.replace(/^https?:\/\//i, "").replace(/\/$/, "") || PUBLIC_SERP_HOST_FALLBACK;
   }
+  if (isLoopbackHost(host)) return PUBLIC_SERP_HOST_FALLBACK;
+  return host || PUBLIC_SERP_HOST_FALLBACK;
 }

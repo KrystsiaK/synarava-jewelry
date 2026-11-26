@@ -33,6 +33,16 @@ describe("AdminShopifySyncSignal source guard", () => {
     expect(source).toContain("title={title}");
     expect(source).toMatch(/aria-label=\{linkAria\}/);
   });
+
+  it("publishes checkRunning via useEffect, not during render", () => {
+    const source = signalSource();
+    const syncCalls = [...source.matchAll(/setCheckRunning\(isChecking\)/g)];
+    expect(syncCalls.length).toBe(1);
+    const callAt = source.indexOf("setCheckRunning(isChecking)");
+    const effectAt = source.lastIndexOf("useEffect(", callAt);
+    expect(effectAt).toBeGreaterThan(-1);
+    expect(callAt - effectAt).toBeLessThan(200);
+  });
 });
 
 describe("admin topbar height budget guard", () => {

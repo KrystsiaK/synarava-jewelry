@@ -106,9 +106,13 @@ export function AdminShopifySyncSignal({
   const serverChecking = Boolean(run && isActiveRunStatus(run.status));
   // Do not OR context checkRunning here — that would latch true forever when we publish it.
   const isChecking = connected && !requestError && (clientChecking || serverChecking);
-  if (checkRunning !== isChecking) {
-    setCheckRunning(isChecking);
-  }
+  // Publish to provider in an effect — calling setCheckRunning during render updates
+  // AdminShopifyCheckProvider while this child renders (React setState-in-render error → Next Issues badge).
+  useEffect(() => {
+    if (checkRunning !== isChecking) {
+      setCheckRunning(isChecking);
+    }
+  }, [checkRunning, isChecking, setCheckRunning]);
 
   const state = !connected
     ? ({ kind: "disconnected", label: "Shopify disconnected" } as const)
