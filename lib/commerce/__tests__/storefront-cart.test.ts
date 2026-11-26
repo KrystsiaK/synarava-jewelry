@@ -175,4 +175,50 @@ describe("addStorefrontProductToCart", () => {
 
     expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalled();
   });
+
+  it("allows CONTINUE at zero local stock (same rule as PDP availableWithoutCount)", async () => {
+    mocks.findFirst.mockResolvedValue(
+      inStockProduct({
+        shopifySnapshot: {
+          variants: [{ id: "gid://shopify/ProductVariant/123", inventoryQuantity: 0 }],
+        },
+        variants: [
+          {
+            shopifyVariantId: "gid://shopify/ProductVariant/123",
+            status: "ACTIVE",
+            stockOnHand: 0,
+            inventoryPolicy: "CONTINUE",
+            tracked: true,
+          },
+        ],
+      }),
+    );
+
+    await addStorefrontProductToCart("local-slug", 1);
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalled();
+  });
+
+  it("refuses DENY when Shopify snapshot qty is 0 even if UI stock count could look confusing", async () => {
+    // Catalog available=false for this case; a stale client that still POSTs must fail.
+    mocks.findFirst.mockResolvedValue(
+      inStockProduct({
+        shopifySnapshot: {
+          variants: [{ id: "gid://shopify/ProductVariant/123", inventoryQuantity: 0 }],
+        },
+        variants: [
+          {
+            shopifyVariantId: "gid://shopify/ProductVariant/123",
+            status: "ACTIVE",
+            stockOnHand: 0,
+            inventoryPolicy: "DENY",
+            tracked: true,
+          },
+        ],
+      }),
+    );
+
+    await expect(addStorefrontProductToCart("local-slug", 1)).rejects.toThrow(
+      "Product is out of stock.",
+    );
+  });
 });

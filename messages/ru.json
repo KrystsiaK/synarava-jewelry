@@ -165,6 +165,8 @@
     "shopifyUnavailable": "Недоступно",
     "selectOption": "Выберите вариант",
     "currentlyUnavailable": "Сейчас недоступно",
+    "outOfStock": "Нет в наличии",
+    "availableWithoutCount": "В наличии",
     "imageUnavailable": "Изображение недоступно",
     "galleryLabel": "Изображения изделия",
     "showImage": "Показать изображение {current} из {total}",
@@ -254,7 +256,10 @@
       "soldOut": "Нет в наличии",
       "addKit": "Добавить комплект",
       "addCurrentOnly": "Только этот товар",
-      "kitTotal": "Итого комплект {total}"
+      "kitTotal": "Итого комплект {total}",
+      "partnerSectionLabel": "Парный товар",
+      "partnerEyebrow": "Носится с",
+      "kitUnavailableNotice": "{title} — нет в наличии"
     }
   },
   "reviews": {

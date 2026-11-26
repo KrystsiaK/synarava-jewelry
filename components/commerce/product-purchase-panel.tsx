@@ -6,6 +6,7 @@ import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
 import { useOptionalProductPairingSelection } from "@/components/commerce/product-pairing-selection";
 import { useProductVariantSelection } from "@/components/commerce/use-product-variant-selection";
 import { ArtifactButton } from "@/components/ui";
+import { purchaseStockSignal } from "@/lib/commerce/purchase-availability";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
 import { formatCurrency } from "@/lib/i18n/format";
@@ -67,6 +68,63 @@ function OptionButtons({
   );
 }
 
+function stockLabel(
+  signal: ReturnType<typeof purchaseStockSignal>,
+  t: ReturnType<typeof useTranslations>["t"],
+  plural: ReturnType<typeof useTranslations>["plural"],
+) {
+  switch (signal.labelKind) {
+    case "in_stock_count":
+      return plural("product.stock", signal.stockOnHand);
+    case "available":
+      return t("product.availableWithoutCount");
+    case "out_of_stock":
+      return t("product.outOfStock");
+    case "shopify_unavailable":
+      return t("product.shopifyUnavailable");
+    case "select_option":
+      return t("product.selectOption");
+  }
+}
+
+function unavailableCtaLabel(
+  signal: ReturnType<typeof purchaseStockSignal>,
+  t: ReturnType<typeof useTranslations>["t"],
+) {
+  if (signal.labelKind === "shopify_unavailable") return t("product.shopifyUnavailable");
+  if (signal.labelKind === "select_option") return t("product.selectOption");
+  return t("product.outOfStock");
+}
+
+function StockStatusRow({
+  signal,
+  restockNotice,
+}: {
+  signal: ReturnType<typeof purchaseStockSignal>;
+  restockNotice: string;
+}) {
+  const { t, plural } = useTranslations();
+  const dotClass = signal.showInStockDot
+    ? "bg-emerald-600"
+    : signal.canPurchase
+      ? "bg-foreground/35"
+      : "bg-couture-red";
+
+  return (
+    <div className="space-y-1">
+      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
+        <span className={`h-2 w-2 rounded-full ${dotClass}`} aria-hidden="true" />
+        {stockLabel(signal, t, plural)}
+      </p>
+      {restockNotice ? (
+        <p className="text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
+          {restockNotice}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 function StandalonePurchase({
   product,
   compact,
@@ -74,15 +132,18 @@ function StandalonePurchase({
   product: ProductSummary;
   compact: boolean;
 }) {
-  const { t, plural } = useTranslations();
+  const { t } = useTranslations();
   const {
     purchasableVariants,
     selection,
     selectedVariant,
     chooseOption,
-    isAvailable,
   } = useProductVariantSelection(product);
 
+  const signal = purchaseStockSignal({
+    selectedVariant,
+    purchasableVariantCount: purchasableVariants.length,
+  });
   const restockNotice =
     selectedVariant && !selectedVariant.available
       ? t("product.restockNotice").trim()
@@ -108,23 +169,7 @@ function StandalonePurchase({
             </span>
           ) : null}
         </div>
-        <div className="space-y-1">
-          <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
-            <span className={`h-2 w-2 rounded-full ${isAvailable ? "bg-emerald-600" : "bg-couture-red"}`} aria-hidden="true" />
-            {selectedVariant
-              ? isAvailable
-                ? plural("product.stock", selectedVariant.stockOnHand)
-                : t("product.optionUnavailable")
-              : purchasableVariants.length === 0
-                ? t("product.shopifyUnavailable")
-                : t("product.selectOption")}
-          </p>
-          {restockNotice ? (
-            <p className="text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
-              {restockNotice}
-            </p>
-          ) : null}
-        </div>
+        <StockStatusRow signal={signal} restockNotice={restockNotice} />
       </div>
 
       <div className={compact ? "space-y-4" : "space-y-5"}>
@@ -143,12 +188,8 @@ function StandalonePurchase({
             itemName={product.title}
             value={selectedVariant ? selectedVariant.priceAmount : product.priceAmount}
             currency={product.currency}
-            disabled={!isAvailable}
-            unavailableLabel={
-              purchasableVariants.length === 0
-                ? t("product.shopifyUnavailable")
-                : t("product.currentlyUnavailable")
-            }
+            disabled={!signal.canPurchase}
+            unavailableLabel={unavailableCtaLabel(signal, t)}
           />
         </div>
       </div>
@@ -163,7 +204,7 @@ function KitLine({
   product: ProductSummary;
   state: ReturnType<typeof useProductVariantSelection>;
 }) {
-  const { t, plural, locale } = useTranslations();
+  const { t, locale } = useTranslations();
   const price = state.selectedVariant ? state.selectedVariant.price : product.price;
   const compareAtPrice = state.selectedVariant
     ? state.selectedVariant.compareAtPrice
@@ -172,6 +213,10 @@ function KitLine({
     state.selectedVariant ? state.selectedVariant.priceAmount : product.priceAmount,
     state.selectedVariant ? state.selectedVariant.compareAtAmount : product.compareAtAmount,
   );
+  const signal = purchaseStockSignal({
+    selectedVariant: state.selectedVariant,
+    purchasableVariantCount: state.purchasableVariants.length,
+  });
   const restockNotice =
     state.selectedVariant && !state.selectedVariant.available
       ? t("product.restockNotice").trim()
@@ -199,21 +244,7 @@ function KitLine({
         </div>
       </div>
 
-      <p className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
-        <span className={`h-2 w-2 rounded-full ${state.isAvailable ? "bg-emerald-600" : "bg-couture-red"}`} aria-hidden="true" />
-        {state.selectedVariant
-          ? state.isAvailable
-            ? plural("product.stock", state.selectedVariant.stockOnHand)
-            : t("product.optionUnavailable")
-          : state.purchasableVariants.length === 0
-            ? t("product.shopifyUnavailable")
-            : t("product.selectOption")}
-      </p>
-      {restockNotice ? (
-        <p className="text-xs font-semibold uppercase tracking-[0.13em] text-foreground/62">
-          {restockNotice}
-        </p>
-      ) : null}
+      <StockStatusRow signal={signal} restockNotice={restockNotice} />
 
       <OptionButtons
         product={product}
@@ -238,10 +269,23 @@ function KitPurchase({
   const primary = useProductVariantSelection(product);
   const secondary = useProductVariantSelection(partnerProduct);
 
-  const kitAvailable = primary.isAvailable && secondary.isAvailable;
+  const primarySignal = purchaseStockSignal({
+    selectedVariant: primary.selectedVariant,
+    purchasableVariantCount: primary.purchasableVariants.length,
+  });
+  const secondarySignal = purchaseStockSignal({
+    selectedVariant: secondary.selectedVariant,
+    purchasableVariantCount: secondary.purchasableVariants.length,
+  });
+  const kitAvailable = primarySignal.canPurchase && secondarySignal.canPurchase;
   const primaryPrice = primary.selectedVariant?.priceAmount ?? product.priceAmount;
   const secondaryPrice = secondary.selectedVariant?.priceAmount ?? partnerProduct.priceAmount;
   const kitTotal = primaryPrice + secondaryPrice;
+
+  const unavailableTitles = [
+    !primarySignal.canPurchase ? product.title : null,
+    !secondarySignal.canPurchase ? partnerProduct.title : null,
+  ].filter(Boolean) as string[];
 
   return (
     <div
@@ -251,6 +295,16 @@ function KitPurchase({
     >
       <KitLine product={product} state={primary} />
       <KitLine product={partnerProduct} state={secondary} />
+
+      {unavailableTitles.length > 0 ? (
+        <ul className="space-y-1 text-xs font-semibold uppercase tracking-[0.13em] text-couture-red">
+          {unavailableTitles.map((title) => (
+            <li key={title}>
+              {t("product.pairings.kitUnavailableNotice", { title })}
+            </li>
+          ))}
+        </ul>
+      ) : null}
 
       <p className="font-serif text-2xl text-foreground">
         {t("product.pairings.kitTotal", {
@@ -280,6 +334,7 @@ function KitPurchase({
           currency={product.currency}
           disabled={!kitAvailable}
           label={t("product.pairings.addKit")}
+          unavailableLabel={t("product.outOfStock")}
         />
         <AddToCartButton
           productSlug={product.slug}
@@ -288,14 +343,10 @@ function KitPurchase({
           itemName={product.title}
           value={primaryPrice}
           currency={product.currency}
-          disabled={!primary.isAvailable}
+          disabled={!primarySignal.canPurchase}
           label={t("product.pairings.addCurrentOnly")}
           variant="secondary"
-          unavailableLabel={
-            primary.purchasableVariants.length === 0
-              ? t("product.shopifyUnavailable")
-              : t("product.currentlyUnavailable")
-          }
+          unavailableLabel={unavailableCtaLabel(primarySignal, t)}
         />
       </div>
     </div>

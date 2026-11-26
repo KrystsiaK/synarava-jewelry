@@ -10,8 +10,8 @@ Necklace hooks and charms are separate catalog products that customers may buy a
 
 ## Decision
 
-1. Store links in a local `ProductPairing` table (`baseProductId`, `addonProductId`, optional `imageAssetId`, `sortOrder`) — Synarava-only; never push, pull, webhook, derive-window, or conflict-detect.
-2. Pair photos live on `MediaAsset` under `uploads/pairings/` (not `ProductMedia`, which sync deletes after push).
+1. Store links in a local `ProductPairing` table (`baseProductId`, `addonProductId`, `sortOrder`) — Synarava-only; never push, pull, webhook, derive-window, or conflict-detect.
+2. Pair photos are ordered rows in `ProductPairingImage` (`pairingId`, `imageAssetId`, `sortOrder`) pointing at `MediaAsset` under `uploads/pairings/` (not `ProductMedia`, which sync deletes after push). When a partner is selected on the PDP, the gallery shows only those pair photos (or one side-by-side frame if none); the Wear-together card always uses the partner’s own product image.
 3. Cart adds 1–2 ordinary Storefront lines in one `cartCreate` / `cartLinesAdd`; no bundle parent, Cart Transform, or line attributes. Related cart copy is computed from the pairings table at read time.
 
 ## Alternatives Considered

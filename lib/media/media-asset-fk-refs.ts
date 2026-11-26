@@ -7,5 +7,5 @@ export const MEDIA_ASSET_FK_REF_FIELDS = [
   { model: "Collection", field: "heroAssetId", relation: "CollectionHeroAsset" },
   { model: "Collection", field: "coverAssetId", relation: "CollectionCoverAsset" },
   { model: "ProductMedia", field: "assetId", relation: "ProductMediaAsset" },
-  { model: "ProductPairing", field: "imageAssetId", relation: "PairingImage" },
+  { model: "ProductPairingImage", field: "imageAssetId", relation: "PairingImage" },
 ] as const;

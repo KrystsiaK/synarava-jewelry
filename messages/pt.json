@@ -368,6 +368,8 @@
     "shopifyUnavailable": "Indisponível",
     "selectOption": "Selecione uma opção",
     "currentlyUnavailable": "Indisponível neste momento",
+    "outOfStock": "Esgotado",
+    "availableWithoutCount": "Disponível",
     "imageUnavailable": "Imagem indisponível",
     "galleryLabel": "Imagens do produto",
     "showImage": "Mostrar imagem {current} de {total}",
@@ -455,7 +457,10 @@
       "soldOut": "Esgotado",
       "addKit": "Adicionar conjunto",
       "addCurrentOnly": "Adicionar só esta peça",
-      "kitTotal": "Total do conjunto {total}"
+      "kitTotal": "Total do conjunto {total}",
+      "partnerSectionLabel": "Peça para usar em conjunto",
+      "partnerEyebrow": "Usar com",
+      "kitUnavailableNotice": "{title} está esgotado"
     }
   },
   "profile": {

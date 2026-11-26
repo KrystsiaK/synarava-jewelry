@@ -33,7 +33,7 @@ describe("listStorefrontPairingPartners visibility", () => {
         baseProductId: "base",
         addonProductId: "addon",
         sortOrder: 0,
-        imageAsset: null,
+        images: [],
         baseProduct: { id: "base", slug: "base", status: "ACTIVE", visibility: "PUBLIC" },
         addonProduct: { id: "addon", slug: "addon", status: "UNLISTED", visibility: "UNLISTED" },
       },
@@ -44,14 +44,17 @@ describe("listStorefrontPairingPartners visibility", () => {
     expect(mocks.getProductBySlug).not.toHaveBeenCalled();
   });
 
-  it("includes ACTIVE+PUBLIC partners with a merchandise id", async () => {
+  it("includes ACTIVE+PUBLIC partners with ordered pair image urls", async () => {
     mocks.pairingFindMany.mockResolvedValue([
       {
         id: "pair-1",
         baseProductId: "base",
         addonProductId: "addon",
         sortOrder: 0,
-        imageAsset: { key: "uploads/pairings/x.webp" },
+        images: [
+          { imageAsset: { key: "uploads/pairings/a.webp" } },
+          { imageAsset: { key: "uploads/pairings/b.webp" } },
+        ],
         baseProduct: { id: "base", slug: "base", status: "ACTIVE", visibility: "PUBLIC" },
         addonProduct: { id: "addon", slug: "addon", status: "ACTIVE", visibility: "PUBLIC" },
       },
@@ -68,6 +71,10 @@ describe("listStorefrontPairingPartners visibility", () => {
     const partners = await listStorefrontPairingPartners("base", "pt");
     expect(partners).toHaveLength(1);
     expect(partners[0]?.available).toBe(true);
+    expect(partners[0]?.pairImageUrls).toEqual([
+      "https://cdn.test/uploads/pairings/a.webp",
+      "https://cdn.test/uploads/pairings/b.webp",
+    ]);
     expect(mocks.getProductBySlug).toHaveBeenCalledWith("addon", "pt");
   });
 });

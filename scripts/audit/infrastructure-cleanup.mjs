@@ -119,7 +119,7 @@ async function main() {
       prisma.productMedia.findMany({
         select: { id: true, productId: true, assetId: true },
       }),
-      prisma.productPairing.findMany({
+      prisma.productPairingImage.findMany({
         select: { id: true, imageAssetId: true },
       }),
       prisma.page.findMany({ select: { content: true } }),
@@ -178,7 +178,7 @@ async function main() {
       ...productMedia
         .filter((pm) => !detachedProductIds.has(pm.productId))
         .map((pm) => pm.assetId),
-      ...productPairings.map((row) => row.imageAssetId).filter(Boolean),
+      ...productPairings.map((row) => row.imageAssetId).filter(Boolean), // ProductPairingImage rows
       ...collections.flatMap((c) => [c.heroAssetId, c.coverAssetId].filter(Boolean)),
     ]);
     for (const id of detachedAssetIds) fkRefs.delete(id);

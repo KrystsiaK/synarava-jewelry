@@ -39,10 +39,16 @@ type LeadingMedia = LeadingMediaItem[];
 export function ProductMediaGallery({
   product,
   leadingMedia,
+  mediaMode = "prepend",
 }: {
   product: GalleryProduct;
   /** Pair photo or side-by-side frames shown first while a partner is selected. */
   leadingMedia?: LeadingMedia;
+  /**
+   * `prepend` (default): leading frames then product media.
+   * `replace`: only leading frames (pairing gallery — zero product photos).
+   */
+  mediaMode?: "prepend" | "replace";
 }) {
   // Remount resets activeIndex / zoom without a sync setState-in-effect.
   const leadingKey = leadingMedia?.map((item) =>
@@ -50,9 +56,10 @@ export function ProductMediaGallery({
   ).join("|") ?? "";
   return (
     <ProductMediaGalleryInner
-      key={`${product.title}::${leadingKey}`}
+      key={`${product.title}::${mediaMode}::${leadingKey}`}
       product={product}
       leadingMedia={leadingMedia}
+      mediaMode={mediaMode}
     />
   );
 }
@@ -60,9 +67,11 @@ export function ProductMediaGallery({
 function ProductMediaGalleryInner({
   product,
   leadingMedia,
+  mediaMode = "prepend",
 }: {
   product: GalleryProduct;
   leadingMedia?: LeadingMedia;
+  mediaMode?: "prepend" | "replace";
 }) {
   const { t } = useTranslations();
   const baseMedia = galleryMedia(product);
@@ -73,10 +82,12 @@ function ProductMediaGalleryInner({
     ),
   );
   // Drop current-product frames already shown in a side-by-side leading composite.
-  const media = [
-    ...leading,
-    ...baseMedia.filter((item) => !leadingSrcKeys.has(normalizeGallerySrc(item.src))),
-  ];
+  const media = mediaMode === "replace"
+    ? leading
+    : [
+        ...leading,
+        ...baseMedia.filter((item) => !leadingSrcKeys.has(normalizeGallerySrc(item.src))),
+      ];
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);

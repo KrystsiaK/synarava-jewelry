@@ -50,7 +50,6 @@ export async function assertPairingAllowed(
 export async function createProductPairing(input: {
   baseProductId: string;
   addonProductId: string;
-  imageAssetId?: string | null;
   sortOrder?: number;
 }) {
   await assertPairingAllowed(input.baseProductId, input.addonProductId);
@@ -58,7 +57,6 @@ export async function createProductPairing(input: {
     data: {
       baseProductId: input.baseProductId,
       addonProductId: input.addonProductId,
-      imageAssetId: input.imageAssetId ?? null,
       sortOrder: input.sortOrder ?? 0,
     },
   });
@@ -66,35 +64,95 @@ export async function createProductPairing(input: {
 
 export async function updateProductPairing(
   pairingId: string,
-  data: { imageAssetId?: string | null; sortOrder?: number },
+  data: { sortOrder?: number },
 ) {
   const previous = await db.productPairing.findUnique({
     where: { id: pairingId },
+    select: { id: true },
+  });
+  if (!previous) throw new ProductPairingError("Pairing not found.");
+
+  return db.productPairing.update({
+    where: { id: pairingId },
+    data: {
+      ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
+    },
+  });
+}
+
+export async function addProductPairingImage(
+  pairingId: string,
+  imageAssetId: string,
+) {
+  const pairing = await db.productPairing.findUnique({
+    where: { id: pairingId },
+    select: { id: true },
+  });
+  if (!pairing) throw new ProductPairingError("Pairing not found.");
+
+  const maxSort = await db.productPairingImage.aggregate({
+    where: { pairingId },
+    _max: { sortOrder: true },
+  });
+
+  return db.productPairingImage.create({
+    data: {
+      pairingId,
+      imageAssetId,
+      sortOrder: (maxSort._max.sortOrder ?? -1) + 1,
+    },
+  });
+}
+
+export async function deleteProductPairingImage(imageRowId: string) {
+  const previous = await db.productPairingImage.findUnique({
+    where: { id: imageRowId },
     select: {
       id: true,
       imageAssetId: true,
       imageAsset: { select: { id: true, key: true } },
     },
   });
-  if (!previous) throw new ProductPairingError("Pairing not found.");
+  if (!previous) throw new ProductPairingError("Pairing photo not found.");
 
-  const next = await db.productPairing.update({
-    where: { id: pairingId },
-    data: {
-      ...(data.imageAssetId !== undefined ? { imageAssetId: data.imageAssetId } : {}),
-      ...(data.sortOrder !== undefined ? { sortOrder: data.sortOrder } : {}),
-    },
+  await db.productPairingImage.delete({ where: { id: imageRowId } });
+  await maybeDeleteOrphanPairingAsset(
+    previous.imageAssetId,
+    previous.imageAsset?.key ?? null,
+  );
+}
+
+export async function reorderProductPairingImage(
+  pairingId: string,
+  imageRowId: string,
+  direction: "up" | "down",
+) {
+  const rows = await db.productPairingImage.findMany({
+    where: { pairingId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+    select: { id: true, sortOrder: true },
   });
+  const index = rows.findIndex((row) => row.id === imageRowId);
+  if (index < 0) throw new ProductPairingError("Pairing photo not found.");
+  const swapWith = direction === "up" ? index - 1 : index + 1;
+  if (swapWith < 0 || swapWith >= rows.length) return rows;
 
-  if (
-    data.imageAssetId !== undefined
-    && previous.imageAssetId
-    && previous.imageAssetId !== data.imageAssetId
-  ) {
-    await maybeDeleteOrphanPairingAsset(previous.imageAssetId, previous.imageAsset?.key ?? null);
-  }
-
-  return next;
+  const left = rows[index];
+  const right = rows[swapWith];
+  await db.$transaction([
+    db.productPairingImage.update({
+      where: { id: left.id },
+      data: { sortOrder: right.sortOrder },
+    }),
+    db.productPairingImage.update({
+      where: { id: right.id },
+      data: { sortOrder: left.sortOrder },
+    }),
+  ]);
+  return db.productPairingImage.findMany({
+    where: { pairingId },
+    orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+  });
 }
 
 export async function deleteProductPairing(pairingId: string) {
@@ -102,24 +160,30 @@ export async function deleteProductPairing(pairingId: string) {
     where: { id: pairingId },
     select: {
       id: true,
-      imageAssetId: true,
-      imageAsset: { select: { id: true, key: true } },
+      images: {
+        select: {
+          imageAssetId: true,
+          imageAsset: { select: { key: true } },
+        },
+      },
     },
   });
   if (!previous) throw new ProductPairingError("Pairing not found.");
 
-  await db.productPairing.delete({ where: { id: pairingId } });
+  const assets = previous.images.map((row) => ({
+    assetId: row.imageAssetId,
+    key: row.imageAsset?.key ?? null,
+  }));
 
-  if (previous.imageAssetId) {
-    await maybeDeleteOrphanPairingAsset(previous.imageAssetId, previous.imageAsset?.key ?? null);
-  }
+  await db.productPairing.delete({ where: { id: pairingId } });
+  await deleteOrphanPairingAssets(assets);
 }
 
 export async function maybeDeleteOrphanPairingAsset(
   assetId: string,
   storageKey: string | null,
 ) {
-  const stillUsed = await db.productPairing.count({
+  const stillUsed = await db.productPairingImage.count({
     where: { imageAssetId: assetId },
   });
   if (stillUsed > 0) return;
@@ -147,16 +211,20 @@ export async function cleanupPairingAssetsForDeletedProduct(productId: string) {
       OR: [{ baseProductId: productId }, { addonProductId: productId }],
     },
     select: {
-      imageAssetId: true,
-      imageAsset: { select: { key: true } },
+      images: {
+        select: {
+          imageAssetId: true,
+          imageAsset: { select: { key: true } },
+        },
+      },
     },
   });
-  return rows
-    .filter((row) => row.imageAssetId)
-    .map((row) => ({
-      assetId: row.imageAssetId!,
-      key: row.imageAsset?.key ?? null,
-    }));
+  return rows.flatMap((row) =>
+    row.images.map((image) => ({
+      assetId: image.imageAssetId,
+      key: image.imageAsset?.key ?? null,
+    })),
+  );
 }
 
 export async function deleteOrphanPairingAssets(
@@ -212,7 +280,15 @@ export async function listPairingsForProduct(productId: string) {
           variants: { select: { shopifyVariantId: true }, take: 5 },
         },
       },
-      imageAsset: { select: { id: true, key: true } },
+      images: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: {
+          id: true,
+          sortOrder: true,
+          imageAssetId: true,
+          imageAsset: { select: { id: true, key: true } },
+        },
+      },
     },
     orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
   });
@@ -284,4 +360,3 @@ export async function listWornTogetherMerchandiseIdsByMerchandiseIds(
   }
   return result;
 }
-

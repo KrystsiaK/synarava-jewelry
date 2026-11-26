@@ -86,7 +86,13 @@ export async function POST(request: Request) {
         })),
       },
     });
-  } catch {
+  } catch (error) {
+    // Server-only reason for ops — never echo technical details to the buyer.
+    const reason =
+      error instanceof Error
+        ? error.message.slice(0, 240)
+        : "unknown";
+    console.error("[cart-add] refused", { reason });
     return NextResponse.json(
       { ok: false, error: "Couldn’t add this piece. Please refresh and try again." },
       { status: 400 },

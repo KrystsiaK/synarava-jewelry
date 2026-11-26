@@ -191,7 +191,7 @@ function ProductHero({
             transition={{ duration: 0.7, ease, delay: 0.55 }}
           >
             <ProductSpecifications product={product} />
-            <PartnerSpecificationsBeside />
+            <PartnerProductSection />
           </motion.div>
         </motion.div>
       </div>
@@ -199,23 +199,58 @@ function ProductHero({
   );
 }
 
-function PartnerSpecificationsBeside() {
+export function PartnerProductSection() {
   const pairing = useOptionalProductPairingSelection();
+  const { locale, t } = useTranslations();
   const partner = pairing?.selectedPartner;
   if (!partner) return null;
+  const partnerProduct = partner.product;
+
   return (
-    <div data-component="PartnerSpecifications" className="mt-10 space-y-6">
-      <p className="font-serif text-xl text-foreground">{partner.product.title}</p>
-      {partner.product.description ? (
+    <section
+      data-component="PartnerProductSection"
+      className="mt-10 space-y-6 border-t border-foreground/14 pt-8"
+      aria-label={t("product.pairings.partnerSectionLabel")}
+    >
+      <div className="flex items-start gap-4">
+        {partnerProduct.image ? (
+          <span className="relative size-16 shrink-0 overflow-hidden bg-surface sm:size-20">
+            <Image
+              src={partnerProduct.image}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
+          </span>
+        ) : null}
+        <div className="min-w-0">
+          <p className="label-mono text-couture-red">{t("product.pairings.partnerEyebrow")}</p>
+          <DisplayHeading
+            as="h2"
+            className="mt-2 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-none text-foreground"
+          >
+            <Link
+              href={localePath(locale, `/products/${partnerProduct.slug}`)}
+              className="underline-offset-4 hover:text-couture-red hover:underline"
+            >
+              {formatDisplayTitle(partnerProduct.title)}
+            </Link>
+          </DisplayHeading>
+        </div>
+      </div>
+
+      {partnerProduct.description ? (
         <div className="prose prose-sm max-w-[68ch] text-foreground/75">
-          <RichText content={partner.product.description} />
+          <RichText content={partnerProduct.description} />
         </div>
       ) : null}
+
       <ProductSpecifications
-        product={partner.product}
-        headingIdPrefix={`partner-${partner.product.slug}-`}
+        product={partnerProduct}
+        headingIdPrefix={`partner-${partnerProduct.slug}-`}
       />
-    </div>
+    </section>
   );
 }
 

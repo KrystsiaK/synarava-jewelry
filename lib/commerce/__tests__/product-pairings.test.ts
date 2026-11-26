@@ -8,9 +8,18 @@ const mocks = vi.hoisted(() => ({
   update: vi.fn(),
   delete: vi.fn(),
   count: vi.fn(),
+  aggregate: vi.fn(),
+  imageFindUnique: vi.fn(),
+  imageCreate: vi.fn(),
+  imageDelete: vi.fn(),
+  imageCount: vi.fn(),
+  imageFindMany: vi.fn(),
+  imageUpdate: vi.fn(),
+  imageAggregate: vi.fn(),
   mediaFindUnique: vi.fn(),
   mediaDelete: vi.fn(),
   deleteStoredGalleryObject: vi.fn(),
+  transaction: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -23,11 +32,22 @@ vi.mock("@/lib/db", () => ({
       update: mocks.update,
       delete: mocks.delete,
       count: mocks.count,
+      aggregate: mocks.aggregate,
+    },
+    productPairingImage: {
+      findUnique: mocks.imageFindUnique,
+      findMany: mocks.imageFindMany,
+      create: mocks.imageCreate,
+      delete: mocks.imageDelete,
+      count: mocks.imageCount,
+      update: mocks.imageUpdate,
+      aggregate: mocks.imageAggregate,
     },
     mediaAsset: {
       findUnique: mocks.mediaFindUnique,
       delete: mocks.mediaDelete,
     },
+    $transaction: mocks.transaction,
   },
 }));
 
@@ -39,6 +59,7 @@ import {
   assertPairingAllowed,
   createProductPairing,
   deleteProductPairing,
+  deleteProductPairingImage,
   pairingExistsBetween,
   ProductPairingError,
 } from "@/lib/commerce/product-pairings";
@@ -83,14 +104,13 @@ describe("assertPairingAllowed", () => {
 });
 
 describe("createProductPairing", () => {
-  it("persists after validation", async () => {
+  it("persists after validation without a single image column", async () => {
     mocks.findFirst.mockResolvedValue(null);
     mocks.findUnique.mockResolvedValue(null);
     mocks.create.mockResolvedValue({
       id: "pair-1",
       baseProductId: "necklace",
       addonProductId: "charm",
-      imageAssetId: null,
       sortOrder: 0,
     });
 
@@ -103,7 +123,6 @@ describe("createProductPairing", () => {
       data: {
         baseProductId: "necklace",
         addonProductId: "charm",
-        imageAssetId: null,
         sortOrder: 0,
       },
     });
@@ -115,12 +134,15 @@ describe("deleteProductPairing", () => {
   it("removes orphan pair photo assets only", async () => {
     mocks.findUnique.mockResolvedValue({
       id: "pair-1",
-      imageAssetId: "asset-1",
-      imageAsset: { id: "asset-1", key: "uploads/pairings/a.webp" },
+      images: [
+        {
+          imageAssetId: "asset-1",
+          imageAsset: { id: "asset-1", key: "uploads/pairings/a.webp" },
+        },
+      ],
     });
     mocks.delete.mockResolvedValue({});
-    mocks.count.mockResolvedValue(0);
-    mocks.mediaFindUnique.mockResolvedValue({ id: "asset-1", key: "uploads/pairings/a.webp" });
+    mocks.imageCount.mockResolvedValue(0);
     mocks.mediaDelete.mockResolvedValue({});
     mocks.deleteStoredGalleryObject.mockResolvedValue(undefined);
 
@@ -131,19 +153,42 @@ describe("deleteProductPairing", () => {
     expect(mocks.mediaDelete).toHaveBeenCalledWith({ where: { id: "asset-1" } });
   });
 
-  it("keeps the asset when another pairing still references it", async () => {
+  it("keeps the asset when another pairing image still references it", async () => {
     mocks.findUnique.mockResolvedValue({
       id: "pair-1",
-      imageAssetId: "asset-1",
-      imageAsset: { id: "asset-1", key: "uploads/pairings/a.webp" },
+      images: [
+        {
+          imageAssetId: "asset-1",
+          imageAsset: { id: "asset-1", key: "uploads/pairings/a.webp" },
+        },
+      ],
     });
     mocks.delete.mockResolvedValue({});
-    mocks.count.mockResolvedValue(1);
+    mocks.imageCount.mockResolvedValue(1);
 
     await deleteProductPairing("pair-1");
 
     expect(mocks.deleteStoredGalleryObject).not.toHaveBeenCalled();
     expect(mocks.mediaDelete).not.toHaveBeenCalled();
+  });
+});
+
+describe("deleteProductPairingImage", () => {
+  it("deletes one photo and cleans an orphan asset", async () => {
+    mocks.imageFindUnique.mockResolvedValue({
+      id: "img-1",
+      imageAssetId: "asset-1",
+      imageAsset: { id: "asset-1", key: "uploads/pairings/a.webp" },
+    });
+    mocks.imageDelete.mockResolvedValue({});
+    mocks.imageCount.mockResolvedValue(0);
+    mocks.mediaDelete.mockResolvedValue({});
+    mocks.deleteStoredGalleryObject.mockResolvedValue(undefined);
+
+    await deleteProductPairingImage("img-1");
+
+    expect(mocks.imageDelete).toHaveBeenCalledWith({ where: { id: "img-1" } });
+    expect(mocks.deleteStoredGalleryObject).toHaveBeenCalledWith("uploads/pairings/a.webp");
   });
 });
 

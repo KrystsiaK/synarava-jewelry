@@ -40,7 +40,7 @@ export function ProductPairingCarousel() {
               >
                 <span className="relative mb-2 block aspect-square overflow-hidden bg-surface">
                   <Image
-                    src={partner.pairImageUrl || partner.product.image}
+                    src={partner.product.image}
                     alt={partner.product.title}
                     fill
                     sizes="120px"

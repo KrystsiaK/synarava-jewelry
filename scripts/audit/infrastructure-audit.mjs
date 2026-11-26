@@ -268,7 +268,7 @@ async function main() {
       prisma.productMedia.findMany({
         select: { id: true, productId: true, assetId: true },
       }),
-      prisma.productPairing.findMany({
+      prisma.productPairingImage.findMany({
         select: { id: true, imageAssetId: true },
       }),
       prisma.collection.findMany({
@@ -299,8 +299,8 @@ async function main() {
     const referencedAssetIds = new Set();
     for (const p of products) if (p.primaryAssetId) referencedAssetIds.add(p.primaryAssetId);
     for (const pm of productMedia) referencedAssetIds.add(pm.assetId);
-    for (const pairing of productPairings) {
-      if (pairing.imageAssetId) referencedAssetIds.add(pairing.imageAssetId);
+    for (const pairingImage of productPairings) {
+      if (pairingImage.imageAssetId) referencedAssetIds.add(pairingImage.imageAssetId);
     }
     for (const c of collections) {
       if (c.heroAssetId) referencedAssetIds.add(c.heroAssetId);
@@ -345,7 +345,7 @@ async function main() {
           orphans.length ? "medium" : "info",
           orphans.length,
           orphans.map((a) => ({ id: a.id, key: a.key, status: a.status })),
-          "Review before delete: may still be referenced from Page.content / CollectionSection.content / Product.details JSON or site-videos. Cross-check M9/JSON refs. Cleanup only after dry-run confirmation. Models: MediaAsset, ProductPairing.imageAssetId.",
+          "Review before delete: may still be referenced from Page.content / CollectionSection.content / Product.details JSON or site-videos. Cross-check M9/JSON refs. Cleanup only after dry-run confirmation. Models: MediaAsset, ProductPairingImage.imageAssetId.",
         ),
       );
     }
