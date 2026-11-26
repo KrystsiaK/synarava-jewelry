@@ -4,7 +4,6 @@ const mocks = vi.hoisted(() => ({
   findFirst: vi.fn(),
   pairingExistsBetween: vi.fn(),
   addShopifyMerchandiseLinesToCart: vi.fn(),
-  addShopifyProductToCart: vi.fn(),
 }));
 
 vi.mock("@/lib/db", () => ({
@@ -16,7 +15,6 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/shopify/cart", () => ({
-  addShopifyProductToCart: mocks.addShopifyProductToCart,
   addShopifyMerchandiseLinesToCart: mocks.addShopifyMerchandiseLinesToCart,
   getShopifyCartCount: vi.fn(),
   getShopifyCartLineQuantity: vi.fn(),
@@ -54,7 +52,6 @@ function visibleProduct(id: string, merchandiseId: string, stock = 3) {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.addShopifyMerchandiseLinesToCart.mockResolvedValue({ warnings: [] });
-  mocks.addShopifyProductToCart.mockResolvedValue({ warnings: [] });
 });
 
 describe("addStorefrontProductToCart multi-line", () => {

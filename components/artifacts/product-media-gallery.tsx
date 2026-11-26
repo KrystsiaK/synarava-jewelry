@@ -244,15 +244,42 @@ function ProductMediaGalleryInner({
               className="absolute inset-0 cursor-grab overflow-auto focus:outline-none active:cursor-grabbing"
             >
               <div className="relative h-[170%] w-[170%]">
-                <Image
-                  key={`expanded-${active.src}`}
-                  src={active.src}
-                  alt={active.alt || product.title}
-                  fill
-                  sizes="170vw"
-                  quality={75}
-                  className="object-contain"
-                />
+                {activeCompanion ? (
+                  <span className="absolute inset-0 grid grid-cols-2 gap-px bg-white/10">
+                    <span className="relative">
+                      <Image
+                        key={`expanded-zoom-${active.src}`}
+                        src={active.src}
+                        alt={active.alt || product.title}
+                        fill
+                        sizes="85vw"
+                        quality={75}
+                        className="object-contain"
+                      />
+                    </span>
+                    <span className="relative">
+                      <Image
+                        key={`expanded-zoom-${activeCompanion}`}
+                        src={activeCompanion}
+                        alt={activeCompanionAlt || product.title}
+                        fill
+                        sizes="85vw"
+                        quality={75}
+                        className="object-contain"
+                      />
+                    </span>
+                  </span>
+                ) : (
+                  <Image
+                    key={`expanded-${active.src}`}
+                    src={active.src}
+                    alt={active.alt || product.title}
+                    fill
+                    sizes="170vw"
+                    quality={75}
+                    className="object-contain"
+                  />
+                )}
               </div>
             </div>
           ) : (
@@ -262,15 +289,42 @@ function ProductMediaGalleryInner({
               aria-label={t("product.zoomIn")}
               className="absolute inset-0 cursor-zoom-in"
             >
-              <Image
-                key={`expanded-${active.src}`}
-                src={active.src}
-                alt={active.alt || product.title}
-                fill
-                sizes="100vw"
-                quality={75}
-                className="object-contain"
-              />
+              {activeCompanion ? (
+                <span className="absolute inset-0 grid grid-cols-2 gap-px bg-white/10">
+                  <span className="relative">
+                    <Image
+                      key={`expanded-${active.src}`}
+                      src={active.src}
+                      alt={active.alt || product.title}
+                      fill
+                      sizes="50vw"
+                      quality={75}
+                      className="object-contain"
+                    />
+                  </span>
+                  <span className="relative">
+                    <Image
+                      key={`expanded-${activeCompanion}`}
+                      src={activeCompanion}
+                      alt={activeCompanionAlt || product.title}
+                      fill
+                      sizes="50vw"
+                      quality={75}
+                      className="object-contain"
+                    />
+                  </span>
+                </span>
+              ) : (
+                <Image
+                  key={`expanded-${active.src}`}
+                  src={active.src}
+                  alt={active.alt || product.title}
+                  fill
+                  sizes="100vw"
+                  quality={75}
+                  className="object-contain"
+                />
+              )}
             </button>
           )}
 

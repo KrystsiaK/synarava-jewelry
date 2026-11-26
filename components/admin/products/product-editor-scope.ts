@@ -231,10 +231,16 @@ export function buildScopedProductFormData({
   return scoped;
 }
 
+/** Ephemeral UI controls inside the product Save form — never dirty / never save. */
+export function isEphemeralProductFormField(name: string): boolean {
+  return name === "pairing-search" || name.startsWith("pairing-photo-");
+}
+
 export function snapshotFormData(form: HTMLFormElement): FormData {
   const snapshot = new FormData();
   for (const [key, value] of new FormData(form).entries()) {
     if (value instanceof File) continue;
+    if (isEphemeralProductFormField(key)) continue;
     snapshot.append(key, value);
   }
   return snapshot;

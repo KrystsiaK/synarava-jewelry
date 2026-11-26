@@ -238,33 +238,6 @@ export async function getShopifyCartLineQuantity(lineId: string): Promise<number
   }
 }
 
-async function resolveMerchandiseId(productHandle: string, buyerIp: string | null, locale: Locale) {
-  const language = shopifyLanguage(locale);
-  const data = await shopifyStorefrontRequest<{
-    product: {
-      variants: { nodes: Array<{ id: string; availableForSale: boolean }> };
-    } | null;
-  }>(
-    `#graphql
-      query SynaravaProductMerchandise($handle: String!, $language: LanguageCode!) @inContext(language: $language) {
-        product(handle: $handle) {
-          variants(first: 20) {
-            nodes { id availableForSale }
-          }
-        }
-      }
-    `,
-    { handle: productHandle, language },
-    { buyerIp },
-  );
-
-  const variant = data.product?.variants.nodes.find((node) => node.availableForSale);
-  if (!variant) {
-    throw new Error("This piece is not currently available in Shopify.");
-  }
-  return variant.id;
-}
-
 export async function getShopifyCartViewModel() {
   const locale = await getRequestLocale();
   const cartId = await getCartId();
@@ -331,20 +304,6 @@ export async function getShopifyCartCount() {
     { buyerIp: await getShopifyBuyerIp() },
   );
   return data.cart?.totalQuantity ?? 0;
-}
-
-export async function addShopifyProductToCart(
-  productHandle: string,
-  quantity = 1,
-  merchandiseId?: string,
-) {
-  const buyerIp = await getShopifyBuyerIp();
-  const locale = await getRequestLocale();
-  const resolvedMerchandiseId =
-    merchandiseId || (await resolveMerchandiseId(productHandle, buyerIp, locale));
-  return addShopifyMerchandiseLinesToCart([
-    { merchandiseId: resolvedMerchandiseId, quantity },
-  ]);
 }
 
 /**
