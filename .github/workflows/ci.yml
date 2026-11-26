@@ -312,4 +312,4 @@ jobs:
           # Build before smoke so Playwright starts `next start` (fast, deterministic)
           # instead of cold `next dev`, which often exceeds the 120s webServer timeout on GHA.
           pnpm build
-          pnpm exec playwright test e2e/smoke.spec.ts e2e/shop-catalog-filter-cache.spec.ts --project=chromium --project=mobile-webkit-smoke
+          pnpm exec playwright test e2e/smoke.spec.ts e2e/shop-catalog-filter-cache.spec.ts e2e/product-pairings.spec.ts --project=chromium --project=mobile-webkit-smoke

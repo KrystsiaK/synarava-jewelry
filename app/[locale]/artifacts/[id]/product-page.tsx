@@ -21,6 +21,10 @@ import { getProductReviewsBySlug } from "@/lib/content/product-reviews";
 import { submitProductReviewAction } from "@/app/actions/product-reviews";
 import { hasShopifyCustomerSession } from "@/lib/shopify/customer-account/session";
 import { shouldRedirectLocalizedHandle } from "@/lib/content/handle-localization";
+import {
+  getProductIdBySourceSlug,
+  listStorefrontPairingPartners,
+} from "@/lib/commerce/product-pairing-partners";
 
 type Props = {
   params: Promise<{ slug?: string; id?: string }>;
@@ -81,6 +85,11 @@ export default async function ProductDetailPage({ params }: Props) {
   ]);
   const relatedProducts = pickRelatedProducts(product, [...rankedProducts, ...categoryProducts], relatedIds);
 
+  const productId = await getProductIdBySourceSlug(product.sourceSlug);
+  const pairingPartners = productId
+    ? await listStorefrontPairingPartners(productId, locale)
+    : [];
+
   const siteUrl = getPublicSiteUrl();
   const productJsonLd = buildProductJsonLd(product, siteUrl, reviews, locale);
 
@@ -108,6 +117,7 @@ export default async function ProductDetailPage({ params }: Props) {
         isSignedIn={isSignedIn}
         submitReviewAction={submitProductReviewAction}
         relatedProducts={relatedProducts}
+        pairingPartners={pairingPartners}
       />
     </>
   );

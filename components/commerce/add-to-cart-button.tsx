@@ -5,31 +5,46 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { createPortal } from "react-dom";
 
-import { ArtifactLink, PrimaryCtaButton } from "@/components/ui";
+import { ArtifactButton, ArtifactLink, PrimaryCtaButton } from "@/components/ui";
 import { trackCommerceEvent, type CommerceEcommerce } from "@/lib/analytics/commerce";
 import { useTranslations } from "@/lib/i18n/context";
 import { localePath } from "@/lib/i18n/routing";
 
-type AddToCartButtonProps = {
+type CartLinePayload = {
   productSlug: string;
   merchandiseId?: string;
+  quantity?: number;
+  sku?: string;
+  itemName?: string;
+  price?: number;
+};
+
+type AddToCartButtonProps = {
+  productSlug?: string;
+  merchandiseId?: string;
+  lines?: CartLinePayload[];
   sku?: string;
   itemName?: string;
   value?: number;
   currency?: string;
   disabled?: boolean;
   unavailableLabel?: string;
+  label?: string;
+  variant?: "primary" | "secondary";
 };
 
 export function AddToCartButton({
   productSlug,
   merchandiseId,
+  lines,
   sku,
   itemName,
   value,
   currency,
   disabled = false,
   unavailableLabel,
+  label,
+  variant = "primary",
 }: AddToCartButtonProps) {
   const router = useRouter();
   const { t, plural, locale } = useTranslations();
@@ -45,10 +60,13 @@ export function AddToCartButton({
     setIsPending(true);
 
     try {
+      const body = lines && lines.length > 0
+        ? { lines }
+        : { productSlug, merchandiseId, quantity: 1 };
       const response = await fetch("/api/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ productSlug, merchandiseId, quantity: 1 }),
+        body: JSON.stringify(body),
       });
 
       const payload = (await response.json()) as {
@@ -69,21 +87,35 @@ export function AddToCartButton({
       // confirmation in that case (REV-09).
       const warnings = payload.warnings ?? [];
       if (warnings.length === 0) {
-        trackCommerceEvent("add_to_cart", {
-          ecommerce: {
-            value,
-            currency,
-            items: [{
+        const analyticsItems = lines && lines.length > 0
+          ? lines.map((line) => ({
+              item_id: line.sku || line.merchandiseId || line.productSlug,
+              item_name: line.itemName || itemName,
+              item_variant: line.merchandiseId,
+              price: line.price ?? value,
+              quantity: line.quantity ?? 1,
+            }))
+          : [{
               item_id: sku || merchandiseId || productSlug,
               item_name: itemName,
               item_variant: merchandiseId,
               price: value,
               quantity: 1,
-            }],
+            }];
+        const analyticsValue = analyticsItems.reduce(
+          (sum, item) => sum + (Number(item.price) || 0) * (item.quantity || 1),
+          0,
+        );
+        trackCommerceEvent("add_to_cart", {
+          ecommerce: {
+            value: lines && lines.length > 0 ? analyticsValue : value,
+            currency,
+            items: analyticsItems,
           },
           metadata: {
-            productSlug,
+            productSlug: productSlug ?? lines?.[0]?.productSlug,
             cartCount: payload.count ?? 0,
+            lineCount: analyticsItems.length,
           },
         });
       }
@@ -178,15 +210,36 @@ export function AddToCartButton({
     </aside>
   ) : null;
 
+  const buttonLabel = disabled
+    ? (unavailableLabel ?? t("product.currentlyUnavailable"))
+    : isPending
+      ? t("product.adding")
+      : (label ?? t("product.add"));
+
   return (
     <div data-component="AddToCartButton" className="relative">
-      <PrimaryCtaButton
-        type="button"
-        onClick={handleAdd}
-        disabled={isPending || disabled}
-      >
-        {disabled ? (unavailableLabel ?? t("product.currentlyUnavailable")) : isPending ? t("product.adding") : t("product.add")}
-      </PrimaryCtaButton>
+      {variant === "secondary" ? (
+        <ArtifactButton
+          type="button"
+          variant="secondary"
+          size="md"
+          className="min-h-11"
+          onClick={() => {
+            if (!isPending && !disabled) void handleAdd();
+          }}
+          disabled={isPending || disabled}
+        >
+          {buttonLabel}
+        </ArtifactButton>
+      ) : (
+        <PrimaryCtaButton
+          type="button"
+          onClick={handleAdd}
+          disabled={isPending || disabled}
+        >
+          {buttonLabel}
+        </PrimaryCtaButton>
+      )}
 
       {confirmation && typeof document !== "undefined"
         ? createPortal(confirmation, document.body)

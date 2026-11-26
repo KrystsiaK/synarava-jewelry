@@ -105,3 +105,8 @@ export async function saveCollectionImageUpload(file: File) {
 export async function savePageImageUpload(file: File, pageSlug: string) {
   return saveImageUpload(file, "pages", `${pageSlug || "page"}-image`);
 }
+
+/** Pairing photos — Synarava-only; not ProductMedia (ADR-0013). */
+export async function savePairingImageUpload(file: File) {
+  return saveImageUpload(file, "pairings", "pairing-image");
+}

@@ -3,8 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   buildScopedProductFormData,
   fieldBelongsToBranch,
+  isEphemeralProductFormField,
   localesDirtyFromFields,
   sectionsDirtyFromFields,
+  snapshotFormData,
   syncBaselineNamedFields,
 } from "@/components/admin/products/product-editor-scope";
 
@@ -229,6 +231,25 @@ describe("product-editor-scope", () => {
     // Gallery alts persist via frame ops — not product Save FormData.
     expect(fieldBelongsToBranch("media-alt-abc123", "media", "en")).toBe(false);
     expect(fieldBelongsToBranch("media-alt-tree-0", "media", "pt")).toBe(false);
+  });
+
+  it("excludes pairing search (and pair photo names) from FormData snapshots", () => {
+    expect(isEphemeralProductFormField("pairing-search")).toBe(true);
+    expect(isEphemeralProductFormField("pairing-photo-abc")).toBe(true);
+    expect(isEphemeralProductFormField("name")).toBe(false);
+
+    document.body.innerHTML = `
+      <form id="product-form">
+        <input name="name" value="Ring" />
+        <input name="pairing-search" value="charm" />
+        <input name="pairing-photo-row1" value="ignored" />
+      </form>
+    `;
+    const form = document.getElementById("product-form") as HTMLFormElement;
+    const snapshot = snapshotFormData(form);
+    expect(snapshot.get("name")).toBe("Ring");
+    expect(snapshot.get("pairing-search")).toBeNull();
+    expect(snapshot.get("pairing-photo-row1")).toBeNull();
   });
 
   it("Media scoped save keeps shared product fields without media-alt FormData", () => {

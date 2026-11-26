@@ -96,6 +96,7 @@ async function main() {
       products,
       collections,
       productMedia,
+      productPairings,
       pages,
       pageTranslations,
       sections,
@@ -117,6 +118,9 @@ async function main() {
       }),
       prisma.productMedia.findMany({
         select: { id: true, productId: true, assetId: true },
+      }),
+      prisma.productPairing.findMany({
+        select: { id: true, imageAssetId: true },
       }),
       prisma.page.findMany({ select: { content: true } }),
       prisma.pageTranslation.findMany({ select: { content: true } }),
@@ -166,7 +170,7 @@ async function main() {
       }
     }
 
-    // FK refs after detach: keep collection heroes/covers + remaining product links
+    // FK refs after detach: keep collection heroes/covers + remaining product links + pairing photos
     const fkRefs = new Set([
       ...products
         .filter((p) => p.primaryAssetId && !detachedProductIds.has(p.id))
@@ -174,6 +178,7 @@ async function main() {
       ...productMedia
         .filter((pm) => !detachedProductIds.has(pm.productId))
         .map((pm) => pm.assetId),
+      ...productPairings.map((row) => row.imageAssetId).filter(Boolean),
       ...collections.flatMap((c) => [c.heroAssetId, c.coverAssetId].filter(Boolean)),
     ]);
     for (const id of detachedAssetIds) fkRefs.delete(id);
