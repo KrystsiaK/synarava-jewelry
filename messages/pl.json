@@ -106,13 +106,18 @@
   },
   "product": {
     "restockNotice": "Ponownie dostępne za około 10 dni",
+    "outOfStock": "Brak w magazynie",
+    "availableWithoutCount": "Dostępny",
     "pairings": {
       "carouselLabel": "Noś razem",
       "carouselTitle": "Noś razem",
       "soldOut": "Wyprzedane",
       "addKit": "Dodaj komplet",
       "addCurrentOnly": "Tylko ten produkt",
-      "kitTotal": "Suma kompletu {total}"
+      "kitTotal": "Suma kompletu {total}",
+      "partnerSectionLabel": "Produkt partnerski",
+      "partnerEyebrow": "Noszone z",
+      "kitUnavailableNotice": "{title} — brak w magazynie"
     }
   },
   "announcement": {

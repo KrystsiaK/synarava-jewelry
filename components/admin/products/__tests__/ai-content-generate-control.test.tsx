@@ -42,7 +42,8 @@ vi.mock("@/app/admin/actions/product-pairings", () => ({
   deleteProductPairingAction: vi.fn(),
   reorderProductPairingAction: vi.fn(),
   uploadProductPairingImageAction: vi.fn(),
-  clearProductPairingImageAction: vi.fn(),
+  deleteProductPairingImageAction: vi.fn(),
+  reorderProductPairingImageAction: vi.fn(),
 }));
 
 vi.mock("@/app/admin/actions/sync", async () => {

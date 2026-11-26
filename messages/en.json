@@ -368,6 +368,8 @@
     "shopifyUnavailable": "Unavailable",
     "selectOption": "Select an option",
     "currentlyUnavailable": "Currently unavailable",
+    "outOfStock": "Out of stock",
+    "availableWithoutCount": "Available",
     "imageUnavailable": "Image unavailable",
     "galleryLabel": "Product images",
     "showImage": "Show image {current} of {total}",
@@ -455,7 +457,10 @@
       "soldOut": "Sold out",
       "addKit": "Add set",
       "addCurrentOnly": "Add this piece only",
-      "kitTotal": "Set total {total}"
+      "kitTotal": "Set total {total}",
+      "partnerSectionLabel": "Wear-together partner",
+      "partnerEyebrow": "Worn with",
+      "kitUnavailableNotice": "{title} is out of stock"
     }
   },
   "profile": {

@@ -5,11 +5,13 @@ import { z } from "zod";
 
 import { requireAdminSession } from "@/lib/auth/admin-session";
 import {
+  addProductPairingImage,
   createProductPairing,
   deleteProductPairing,
+  deleteProductPairingImage,
   listPairingsForProduct,
   ProductPairingError,
-  updateProductPairing,
+  reorderProductPairingImage,
 } from "@/lib/commerce/product-pairings";
 import {
   revalidateStorefront,
@@ -26,13 +28,19 @@ export type ProductPairingActionState = {
   pairings?: AdminProductPairingRow[];
 };
 
+export type AdminProductPairingImage = {
+  id: string;
+  imageAssetId: string;
+  imageUrl: string;
+  sortOrder: number;
+};
+
 export type AdminProductPairingRow = {
   id: string;
   baseProductId: string;
   addonProductId: string;
   sortOrder: number;
-  imageUrl: string | null;
-  imageAssetId: string | null;
+  images: AdminProductPairingImage[];
   partner: {
     id: string;
     slug: string;
@@ -62,8 +70,12 @@ async function loadAdminPairings(productId: string): Promise<AdminProductPairing
       baseProductId: row.baseProductId,
       addonProductId: row.addonProductId,
       sortOrder: row.sortOrder,
-      imageAssetId: row.imageAssetId,
-      imageUrl: row.imageAsset ? getS3PublicUrl(row.imageAsset.key) : null,
+      images: row.images.map((image) => ({
+        id: image.id,
+        imageAssetId: image.imageAssetId,
+        imageUrl: getS3PublicUrl(image.imageAsset.key),
+        sortOrder: image.sortOrder,
+      })),
       partner: {
         id: partner.id,
         slug: partner.slug,
@@ -275,7 +287,7 @@ export async function uploadProductPairingImageAction(
         },
       });
       assetId = asset.id;
-      await updateProductPairing(pairingId, { imageAssetId: asset.id });
+      await addProductPairingImage(pairingId, asset.id);
     } catch (error) {
       try {
         await deleteStoredGalleryObject(uploaded.storageKey);
@@ -290,30 +302,58 @@ export async function uploadProductPairingImageAction(
 
     return finish(
       [productId, pairing.baseProductId, pairing.addonProductId],
-      "Pairing photo updated.",
+      "Pairing photo added.",
     );
   } catch (error) {
     return actionError(error);
   }
 }
 
-export async function clearProductPairingImageAction(
+export async function deleteProductPairingImageAction(
+  imageRowId: string,
+  productId: string,
+): Promise<ProductPairingActionState> {
+  await requireAdminSession("/admin/products");
+  try {
+    const id = idSchema.parse(imageRowId);
+    const ownerId = idSchema.parse(productId);
+    const row = await db.productPairingImage.findUnique({
+      where: { id },
+      select: {
+        pairing: { select: { baseProductId: true, addonProductId: true } },
+      },
+    });
+    if (!row) return { error: "Pairing photo not found." };
+    await deleteProductPairingImage(id);
+    return finish(
+      [ownerId, row.pairing.baseProductId, row.pairing.addonProductId],
+      "Pairing photo removed.",
+    );
+  } catch (error) {
+    return actionError(error);
+  }
+}
+
+export async function reorderProductPairingImageAction(
   pairingId: string,
+  imageRowId: string,
+  direction: "up" | "down",
   productId: string,
 ): Promise<ProductPairingActionState> {
   await requireAdminSession("/admin/products");
   try {
     const id = idSchema.parse(pairingId);
+    const imageId = idSchema.parse(imageRowId);
     const ownerId = idSchema.parse(productId);
     const pairing = await db.productPairing.findUnique({
       where: { id },
       select: { baseProductId: true, addonProductId: true },
     });
     if (!pairing) return { error: "Pairing not found." };
-    await updateProductPairing(id, { imageAssetId: null });
+    await reorderProductPairingImage(id, imageId, direction);
     return finish(
       [ownerId, pairing.baseProductId, pairing.addonProductId],
-      "Pairing photo removed.",
+      "Pairing photo order updated.",
     );
   } catch (error) {
     return actionError(error);

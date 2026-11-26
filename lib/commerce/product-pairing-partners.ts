@@ -9,7 +9,8 @@ export type ProductPairingPartner = {
   pairingId: string;
   role: "base" | "addon";
   sortOrder: number;
-  pairImageUrl: string | null;
+  /** Ordered pair-gallery URLs (empty → storefront shows side-by-side frame). */
+  pairImageUrls: string[];
   product: ProductSummary;
   available: boolean;
 };
@@ -27,7 +28,10 @@ export async function listStorefrontPairingPartners(
       OR: [{ baseProductId: productId }, { addonProductId: productId }],
     },
     include: {
-      imageAsset: { select: { key: true } },
+      images: {
+        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
+        select: { imageAsset: { select: { key: true } } },
+      },
       baseProduct: { select: { id: true, slug: true, status: true, visibility: true } },
       addonProduct: { select: { id: true, slug: true, status: true, visibility: true } },
     },
@@ -52,7 +56,7 @@ export async function listStorefrontPairingPartners(
       pairingId: row.id,
       role: isBase ? "addon" : "base",
       sortOrder: row.sortOrder,
-      pairImageUrl: row.imageAsset ? getS3PublicUrl(row.imageAsset.key) : null,
+      pairImageUrls: row.images.map((image) => getS3PublicUrl(image.imageAsset.key)),
       product: summary,
       available,
     });

@@ -6,11 +6,12 @@ import { useEffect, useState, useTransition } from "react";
 import { Link2 } from "lucide-react";
 
 import {
-  clearProductPairingImageAction,
   createProductPairingAction,
   deleteProductPairingAction,
+  deleteProductPairingImageAction,
   listProductPairingsAction,
   reorderProductPairingAction,
+  reorderProductPairingImageAction,
   searchPairingCandidatesAction,
   uploadProductPairingImageAction,
   type AdminProductPairingRow,
@@ -96,7 +97,8 @@ export function ProductPairingsManager({
         Synarava-only necklace ↔ charm links. Not pushed to Shopify. A partner is
         hidden on the storefront unless it is ACTIVE + PUBLIC and has a Shopify
         variant merchandise id — draft, private, unlisted, or variant-less
-        partners stay off the PDP carousel even while linked here.
+        partners stay off the PDP carousel even while linked here. Pair photos
+        can be multiple; reorder and delete them one by one.
       </p>
 
       <AdminAlert message={error} tone="error" />
@@ -203,81 +205,129 @@ export function ProductPairingsManager({
               });
             }}
             renderItem={(row, controls) => (
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-                {row.imageUrl ? (
-                  <span className="relative size-12 shrink-0 overflow-hidden rounded bg-[var(--adm-surface)]">
-                    <Image
-                      src={row.imageUrl}
-                      alt=""
-                      fill
-                      className="object-cover"
-                      sizes="48px"
-                    />
-                  </span>
-                ) : (
-                  <span className="grid size-12 shrink-0 place-items-center rounded bg-[var(--adm-surface)] text-[0.65rem] text-[var(--adm-muted)]">
-                    No photo
-                  </span>
-                )}
-                <div className="min-w-0 flex-1">
-                  <Link
-                    href={`/admin/products/${row.partner.slug}`}
-                    className="font-medium text-[var(--adm-ink)] underline-offset-2 hover:underline"
-                  >
-                    {row.partner.name}
-                  </Link>
-                  <p className="text-xs text-[var(--adm-muted)]">
-                    {row.partner.status}/{row.partner.visibility} · /{row.partner.slug}
-                  </p>
-                  {row.partner.status !== "ACTIVE"
-                  || row.partner.visibility !== "PUBLIC"
-                  || !row.partner.hasShopifyVariant ? (
-                    <p className="text-xs text-[var(--adm-danger)]">
-                      Not storefront-visible
-                      {row.partner.status !== "ACTIVE" || row.partner.visibility !== "PUBLIC"
-                        ? " (needs ACTIVE + PUBLIC)"
-                        : ""}
-                      {!row.partner.hasShopifyVariant ? " (missing Shopify variant)" : ""}.
+              <div className="flex min-w-0 flex-1 flex-col gap-3">
+                <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Link
+                      href={`/admin/products/${row.partner.slug}`}
+                      className="font-medium text-[var(--adm-ink)] underline-offset-2 hover:underline"
+                    >
+                      {row.partner.name}
+                    </Link>
+                    <p className="text-xs text-[var(--adm-muted)]">
+                      {row.partner.status}/{row.partner.visibility} · /{row.partner.slug}
                     </p>
-                  ) : null}
-                </div>
-                <AdminImmediateFileButton
-                  accept="image/jpeg,image/png,image/webp,image/avif"
-                  disabled={isPending}
-                  label={row.imageUrl ? "Replace photo" : "Upload pair photo"}
-                  onFile={(file) => {
-                    const body = new FormData();
-                    body.set("pairingId", row.id);
-                    body.set("productId", productId);
-                    body.set("file", file);
-                    startTransition(async () => {
-                      applyResult(await uploadProductPairingImageAction(body));
-                    });
-                  }}
-                />
-                {row.imageUrl ? (
-                  <AdminButton
-                    type="button"
-                    variant="ghost"
+                    {row.partner.status !== "ACTIVE"
+                    || row.partner.visibility !== "PUBLIC"
+                    || !row.partner.hasShopifyVariant ? (
+                      <p className="text-xs text-[var(--adm-danger)]">
+                        Not storefront-visible
+                        {row.partner.status !== "ACTIVE" || row.partner.visibility !== "PUBLIC"
+                          ? " (needs ACTIVE + PUBLIC)"
+                          : ""}
+                        {!row.partner.hasShopifyVariant ? " (missing Shopify variant)" : ""}.
+                      </p>
+                    ) : null}
+                  </div>
+                  <AdminImmediateFileButton
+                    accept="image/jpeg,image/png,image/webp,image/avif"
                     disabled={isPending}
-                    onClick={() => {
+                    label="Add photo"
+                    onFile={(file) => {
+                      const body = new FormData();
+                      body.set("pairingId", row.id);
+                      body.set("productId", productId);
+                      body.set("file", file);
                       startTransition(async () => {
-                        applyResult(
-                          await clearProductPairingImageAction(row.id, productId),
-                        );
+                        applyResult(await uploadProductPairingImageAction(body));
                       });
                     }}
-                  >
-                    Clear photo
-                  </AdminButton>
-                ) : null}
-                <AdminOrderedListItemActions
-                  controls={{
-                    ...controls,
-                    canRemove: true,
-                    remove: () => setPendingDelete(row),
-                  }}
-                />
+                  />
+                  <AdminOrderedListItemActions
+                    controls={{
+                      ...controls,
+                      canRemove: true,
+                      remove: () => setPendingDelete(row),
+                    }}
+                  />
+                </div>
+
+                {row.images.length > 0 ? (
+                  <ul className="flex flex-wrap gap-2" aria-label="Pair photos">
+                    {row.images.map((image, index) => (
+                      <li
+                        key={image.id}
+                        className="flex items-center gap-1 rounded border border-[var(--adm-border)] bg-[var(--adm-surface)] p-1"
+                      >
+                        <span className="relative size-14 shrink-0 overflow-hidden rounded">
+                          <Image
+                            src={image.imageUrl}
+                            alt=""
+                            fill
+                            className="object-cover"
+                            sizes="56px"
+                          />
+                        </span>
+                        <div className="flex flex-col gap-0.5">
+                          <AdminButton
+                            type="button"
+                            variant="ghost"
+                            disabled={isPending || index === 0}
+                            onClick={() => {
+                              startTransition(async () => {
+                                applyResult(
+                                  await reorderProductPairingImageAction(
+                                    row.id,
+                                    image.id,
+                                    "up",
+                                    productId,
+                                  ),
+                                );
+                              });
+                            }}
+                          >
+                            ↑
+                          </AdminButton>
+                          <AdminButton
+                            type="button"
+                            variant="ghost"
+                            disabled={isPending || index === row.images.length - 1}
+                            onClick={() => {
+                              startTransition(async () => {
+                                applyResult(
+                                  await reorderProductPairingImageAction(
+                                    row.id,
+                                    image.id,
+                                    "down",
+                                    productId,
+                                  ),
+                                );
+                              });
+                            }}
+                          >
+                            ↓
+                          </AdminButton>
+                          <AdminButton
+                            type="button"
+                            variant="ghost"
+                            disabled={isPending}
+                            onClick={() => {
+                              startTransition(async () => {
+                                applyResult(
+                                  await deleteProductPairingImageAction(image.id, productId),
+                                );
+                              });
+                            }}
+                          >
+                            Delete
+                          </AdminButton>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-xs text-[var(--adm-muted)]">No pair photos yet.</p>
+                )}
               </div>
             )}
           />
