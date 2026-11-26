@@ -118,6 +118,50 @@ describe("ProductMediaGallery", () => {
     expect(screen.getByRole("dialog", { name: "Expanded product image" })).toHaveClass("is-closing");
   });
 
+  it("replace mediaMode shows only leading frames (no product photos)", () => {
+    render(
+      <ProductMediaGallery
+        product={product}
+        mediaMode="replace"
+        leadingMedia={[
+          { src: "/pair-a.jpg", alt: "Pair A", width: 1200, height: 1500 },
+          { src: "/pair-b.jpg", alt: "Pair B", width: 1200, height: 1500 },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByRole("button", { name: /Show image/ })).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Enlarge image 1 of 2/ })).toBeInTheDocument();
+    expect(screen.queryByAltText("Pearl and bead detail")).not.toBeInTheDocument();
+  });
+
+  it("shows both photos in lightbox (and zoom) for a companionSrc frame", () => {
+    render(
+      <ProductMediaGallery
+        product={product}
+        leadingMedia={[
+          {
+            src: "/base-necklace.jpg",
+            alt: "Necklace",
+            width: 1200,
+            height: 1500,
+            companionSrc: "/addon-charm.jpg",
+            companionAlt: "Charm",
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Enlarge image 1 of/ }));
+    const dialog = screen.getByRole("dialog", { name: "Expanded product image" });
+    expect(within(dialog).getByAltText("Necklace")).toBeInTheDocument();
+    expect(within(dialog).getByAltText("Charm")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(within(dialog).getByAltText("Necklace")).toBeInTheDocument();
+    expect(within(dialog).getByAltText("Charm")).toBeInTheDocument();
+  });
+
   it("replaces the click-to-toggle overlay with a scrollable pan area once zoomed in (REV-24)", () => {
     render(<ProductMediaGallery product={product} />);
     fireEvent.click(screen.getByRole("button", { name: /Enlarge image 1 of 3/ }));

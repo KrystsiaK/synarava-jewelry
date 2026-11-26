@@ -7,6 +7,7 @@ import {
   ClipboardList,
   Gem,
   Images,
+  Link2,
   Package,
   PackageSearch,
   Store,
@@ -29,6 +30,7 @@ export type ProductEditorSection =
   | "media"
   | "details"
   | "passport"
+  | "pairs"
   | "shopify";
 
 /** Tab strip clusters — Shopify commerce skeleton vs Synarava-only sections. */
@@ -146,6 +148,17 @@ const PRODUCT_EDITOR_TABS: ProductEditorTab[] = [
     description:
       "Synarava-only editorial: short blurb, material line, symbolism, materials story, process, and lookbook. Not pushed as Shopify description.",
     icon: Gem,
+    group: "synarava",
+  },
+  {
+    id: "pairs",
+    label: "Pairs",
+    stripLabel: "Pairs",
+    shortLabel: "Necklace & charms",
+    title: "Product pairs",
+    description:
+      "Link a necklace (base) with charms (addons). Synarava-only — not pushed to Shopify. Pair photos survive gallery sync.",
+    icon: Link2,
     group: "synarava",
   },
 ];
@@ -289,6 +302,25 @@ const SECTION_MARKS: Record<ProductEditorSection, { title: string; description: 
         <rect x="52" y="48" width="20" height="3" rx="1.5" fill="currentColor" opacity="0.16" />
         <circle cx="134" cy="46" r="8" fill={MARK_GOLD} />
         <circle cx="134" cy="46" r="3.5" fill={MARK_CREAM} />
+      </>
+    ),
+  },
+  pairs: {
+    title: "Linked pieces",
+    description: "Two cream tiles joined by a gold curve.",
+    art: (
+      <>
+        <MarkPlate x={30} y={34} width={52} height={44} radius={12} />
+        <MarkPlate x={118} y={34} width={52} height={44} radius={12} />
+        <path
+          d="M82 56 C96 40 104 72 118 56"
+          fill="none"
+          stroke={MARK_GOLD}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+        <circle cx="82" cy="56" r="3.5" fill={MARK_GOLD} />
+        <circle cx="118" cy="56" r="3.5" fill={MARK_GOLD} />
       </>
     ),
   },

@@ -49,4 +49,21 @@ describe("POST /api/cart/items", () => {
     expect(mocks.revalidateStorefrontPath).toHaveBeenCalledWith("/shop");
     expect(mocks.revalidateStorefrontPath).toHaveBeenCalledWith("/", "layout");
   });
+
+  it("logs the refusal reason server-side without leaking it to the buyer", async () => {
+    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+    mocks.addStorefrontProductToCart.mockRejectedValueOnce(new Error("Product is out of stock."));
+
+    const response = await POST(postRequest({ productSlug: "test-new-4", quantity: 1 }));
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.error).toBe("Couldn’t add this piece. Please refresh and try again.");
+    expect(body.error).not.toMatch(/out of stock/i);
+    expect(errorSpy).toHaveBeenCalledWith(
+      "[cart-add] refused",
+      expect.objectContaining({ reason: "Product is out of stock." }),
+    );
+    errorSpy.mockRestore();
+  });
 });

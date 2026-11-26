@@ -31,6 +31,17 @@ vi.mock("@/app/admin/actions/products", () => ({
   setPrimaryProductMediaAction: mocks.setPrimaryProductMediaAction,
 }));
 
+vi.mock("@/app/admin/actions/product-pairings", () => ({
+  listProductPairingsAction: vi.fn().mockResolvedValue({ pairings: [] }),
+  searchPairingCandidatesAction: vi.fn().mockResolvedValue([]),
+  createProductPairingAction: vi.fn(),
+  deleteProductPairingAction: vi.fn(),
+  reorderProductPairingAction: vi.fn(),
+  uploadProductPairingImageAction: vi.fn(),
+  deleteProductPairingImageAction: vi.fn(),
+  reorderProductPairingImageAction: vi.fn(),
+}));
+
 vi.mock("@/lib/admin/preserve-scroll", () => ({
   refreshPreservingScroll: (...args: unknown[]) => mocks.refreshPreservingScroll(...args),
 }));
@@ -572,6 +583,30 @@ describe("EditProductForm", () => {
     await user.click(screen.getByRole("tab", { name: /Media/ }));
     expect(screen.getByText(/No gallery images yet/i)).toBeInTheDocument();
     expect(screen.queryByText(/Legacy cover image/i)).not.toBeInTheDocument();
+  });
+
+  it("does not trigger unsaved warning when typing pairing search", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <EditProductForm
+          product={makeProduct({ shopifyProductId: "gid://shopify/Product/1" })}
+          collections={[]}
+        />
+        <Link href="/admin/products">Back to products</Link>
+      </>,
+    );
+    await act(async () => {});
+
+    await user.click(screen.getByRole("tab", { name: /Pairs/i }));
+    const search = screen.getByPlaceholderText(/Search by name, slug, or SKU/i);
+    await user.type(search, "charm");
+
+    expect(screen.queryByRole("tab", { name: /unsaved edits/i })).not.toBeInTheDocument();
+    expect(screen.queryByText("Save changes first")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("link", { name: "Back to products" }));
+    expect(screen.queryByRole("heading", { name: "Unsaved product changes" })).not.toBeInTheDocument();
   });
 
   it("marks a section dirty when a named field changes, and clears when reverted", async () => {

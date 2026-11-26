@@ -297,7 +297,8 @@
       "replayed": "Those items were already added. Your cart is ready.",
       "rejected": "We could not import that reorder link. Browse the shop or open your order in the secure account.",
       "failed": "Shopify cart is temporarily unavailable. Your existing cart was kept — try again shortly."
-    }
+    },
+    "wornTogetherWith": "Worn together with {titles}"
   },
   "checkout": {
     "progress": "Checkout progress",
@@ -367,6 +368,8 @@
     "shopifyUnavailable": "Unavailable",
     "selectOption": "Select an option",
     "currentlyUnavailable": "Currently unavailable",
+    "outOfStock": "Out of stock",
+    "availableWithoutCount": "Available",
     "imageUnavailable": "Image unavailable",
     "galleryLabel": "Product images",
     "showImage": "Show image {current} of {total}",
@@ -447,6 +450,17 @@
       "weight": "Weight",
       "certificate": "Certificate",
       "yes": "✓ Yes"
+    },
+    "pairings": {
+      "carouselLabel": "Wear together",
+      "carouselTitle": "Wear together",
+      "soldOut": "Sold out",
+      "addKit": "Add set",
+      "addCurrentOnly": "Add this piece only",
+      "kitTotal": "Set total {total}",
+      "partnerSectionLabel": "Wear-together partner",
+      "partnerEyebrow": "Worn with",
+      "kitUnavailableNotice": "{title} is out of stock"
     }
   },
   "profile": {

@@ -297,7 +297,8 @@
       "replayed": "Esses artigos já tinham sido adicionados. O carrinho está pronto.",
       "rejected": "Não foi possível importar esse link de recompra. Explore a loja ou abra a encomenda na conta segura.",
       "failed": "O carrinho Shopify está temporariamente indisponível. O carrinho atual foi mantido — tente novamente em breve."
-    }
+    },
+    "wornTogetherWith": "Usado juntamente com {titles}"
   },
   "checkout": {
     "progress": "Progresso do checkout",
@@ -367,6 +368,8 @@
     "shopifyUnavailable": "Indisponível",
     "selectOption": "Selecione uma opção",
     "currentlyUnavailable": "Indisponível neste momento",
+    "outOfStock": "Esgotado",
+    "availableWithoutCount": "Disponível",
     "imageUnavailable": "Imagem indisponível",
     "galleryLabel": "Imagens do produto",
     "showImage": "Mostrar imagem {current} de {total}",
@@ -447,6 +450,17 @@
       "weight": "Peso",
       "certificate": "Certificado",
       "yes": "✓ Sim"
+    },
+    "pairings": {
+      "carouselLabel": "Usar juntas",
+      "carouselTitle": "Usar juntas",
+      "soldOut": "Esgotado",
+      "addKit": "Adicionar conjunto",
+      "addCurrentOnly": "Adicionar só esta peça",
+      "kitTotal": "Total do conjunto {total}",
+      "partnerSectionLabel": "Peça para usar em conjunto",
+      "partnerEyebrow": "Usar com",
+      "kitUnavailableNotice": "{title} está esgotado"
     }
   },
   "profile": {

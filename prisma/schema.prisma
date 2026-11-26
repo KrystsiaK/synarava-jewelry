@@ -207,10 +207,44 @@ model Product {
   translations        ProductTranslation[]
   incomingUpdate      ProductIncomingUpdate?
   reviews             ProductReview[]
+  basePairings        ProductPairing[]          @relation("PairingBase")
+  addonPairings       ProductPairing[]          @relation("PairingAddon")
 
   @@index([status, visibility, productType, publishedAt])
   @@index([status, visibility, publishedAt])
   @@index([categoryId])
+}
+
+/// Synarava-only necklace↔charm link. Not Shopify sync (ADR-0013).
+model ProductPairing {
+  id             String                @id @default(cuid())
+  baseProductId  String
+  addonProductId String
+  sortOrder      Int                   @default(0)
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime              @updatedAt
+  baseProduct    Product               @relation("PairingBase", fields: [baseProductId], references: [id], onDelete: Cascade)
+  addonProduct   Product               @relation("PairingAddon", fields: [addonProductId], references: [id], onDelete: Cascade)
+  images         ProductPairingImage[]
+
+  @@unique([baseProductId, addonProductId])
+  @@index([addonProductId])
+}
+
+/// Ordered pair photos for a ProductPairing (MediaAsset under uploads/pairings/).
+model ProductPairingImage {
+  id           String         @id @default(cuid())
+  pairingId    String
+  imageAssetId String
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  pairing      ProductPairing @relation(fields: [pairingId], references: [id], onDelete: Cascade)
+  imageAsset   MediaAsset     @relation("PairingImage", fields: [imageAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([pairingId, imageAssetId])
+  @@index([pairingId, sortOrder])
+  @@index([imageAssetId])
 }
 
 /// Local buyer product reviews (not Shopify). Admin moderates PENDING → PUBLISHED / HIDDEN.
@@ -518,10 +552,11 @@ model MediaAsset {
   // Admin operator username at upload time (admin auth is env-credential
   // based, not a User row — see AuditLog.adminUsername for the same pattern).
   uploadedByUsername String?
-  productPrimaryFor  Product[]      @relation("ProductPrimaryAsset")
-  collectionHeroFor  Collection[]   @relation("CollectionHeroAsset")
-  collectionCoverFor Collection[]   @relation("CollectionCoverAsset")
-  productMedia       ProductMedia[] @relation("ProductMediaAsset")
+  productPrimaryFor  Product[]              @relation("ProductPrimaryAsset")
+  collectionHeroFor  Collection[]           @relation("CollectionHeroAsset")
+  collectionCoverFor Collection[]           @relation("CollectionCoverAsset")
+  productMedia       ProductMedia[]         @relation("ProductMediaAsset")
+  productPairingImages ProductPairingImage[] @relation("PairingImage")
 }
 
 model Page {

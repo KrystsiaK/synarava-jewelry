@@ -105,9 +105,25 @@
     "select": "Choisir la langue"
   },
   "product": {
-    "restockNotice": "De retour en stock dans environ 10 jours"
+    "restockNotice": "De retour en stock dans environ 10 jours",
+    "outOfStock": "Rupture de stock",
+    "availableWithoutCount": "Disponible",
+    "pairings": {
+      "carouselLabel": "À porter ensemble",
+      "carouselTitle": "À porter ensemble",
+      "soldOut": "Épuisé",
+      "addKit": "Ajouter le set",
+      "addCurrentOnly": "Cette pièce seulement",
+      "kitTotal": "Total du set {total}",
+      "partnerSectionLabel": "Pièce associée",
+      "partnerEyebrow": "À porter avec",
+      "kitUnavailableNotice": "{title} est en rupture de stock"
+    }
   },
   "announcement": {
     "bar": "Livraison gratuite au Portugal à partir de {amount}"
+  },
+  "cart": {
+    "wornTogetherWith": "Se porte avec {titles}"
   }
 }

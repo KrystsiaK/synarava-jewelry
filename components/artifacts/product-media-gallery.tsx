@@ -6,7 +6,10 @@ import Image from "next/image";
 import { AnimatedModal } from "@/components/ui/animated-modal";
 import type { ProductSummary } from "@/lib/content/catalog";
 import { useTranslations } from "@/lib/i18n/context";
-import { buildStorefrontProductGallery } from "@/lib/media/product-gallery";
+import {
+  buildStorefrontProductGallery,
+  normalizeGallerySrc,
+} from "@/lib/media/product-gallery";
 
 type GalleryProduct = Pick<ProductSummary, "title" | "image" | "commerceMedia">;
 
@@ -21,9 +24,70 @@ function galleryMedia(product: GalleryProduct) {
   });
 }
 
-export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
+type LeadingMediaItem = {
+  src: string;
+  alt: string;
+  width: number | null;
+  height: number | null;
+  /** When set, one gallery frame shows src + companion side-by-side. */
+  companionSrc?: string;
+  companionAlt?: string;
+};
+
+type LeadingMedia = LeadingMediaItem[];
+
+export function ProductMediaGallery({
+  product,
+  leadingMedia,
+  mediaMode = "prepend",
+}: {
+  product: GalleryProduct;
+  /** Pair photo or side-by-side frames shown first while a partner is selected. */
+  leadingMedia?: LeadingMedia;
+  /**
+   * `prepend` (default): leading frames then product media.
+   * `replace`: only leading frames (pairing gallery — zero product photos).
+   */
+  mediaMode?: "prepend" | "replace";
+}) {
+  // Remount resets activeIndex / zoom without a sync setState-in-effect.
+  const leadingKey = leadingMedia?.map((item) =>
+    item.companionSrc ? `${item.src}+${item.companionSrc}` : item.src,
+  ).join("|") ?? "";
+  return (
+    <ProductMediaGalleryInner
+      key={`${product.title}::${mediaMode}::${leadingKey}`}
+      product={product}
+      leadingMedia={leadingMedia}
+      mediaMode={mediaMode}
+    />
+  );
+}
+
+function ProductMediaGalleryInner({
+  product,
+  leadingMedia,
+  mediaMode = "prepend",
+}: {
+  product: GalleryProduct;
+  leadingMedia?: LeadingMedia;
+  mediaMode?: "prepend" | "replace";
+}) {
   const { t } = useTranslations();
-  const media = galleryMedia(product);
+  const baseMedia = galleryMedia(product);
+  const leading = leadingMedia ?? [];
+  const leadingSrcKeys = new Set(
+    leading.flatMap((item) =>
+      [item.src, item.companionSrc].filter(Boolean).map((src) => normalizeGallerySrc(src as string)),
+    ),
+  );
+  // Drop current-product frames already shown in a side-by-side leading composite.
+  const media = mediaMode === "replace"
+    ? leading
+    : [
+        ...leading,
+        ...baseMedia.filter((item) => !leadingSrcKeys.has(normalizeGallerySrc(item.src))),
+      ];
   const [activeIndex, setActiveIndex] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
   const [zoomed, setZoomed] = useState(false);
@@ -60,21 +124,34 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
   }
 
   const position = `${String(activeIndex + 1).padStart(2, "0")} / ${String(count).padStart(2, "0")}`;
+  const activeCompanion = "companionSrc" in active ? active.companionSrc : undefined;
+  const activeCompanionAlt = "companionAlt" in active ? active.companionAlt : undefined;
 
   return (
     <section data-component="ProductMediaGallery" aria-label={t("product.galleryLabel")} className="min-w-0">
       <div className="grid gap-3 md:grid-cols-[4.5rem_minmax(0,1fr)] md:gap-4">
         <div className="order-2 flex snap-x gap-2 overflow-x-auto pb-1 md:order-1 md:grid md:max-h-[42rem] md:content-start md:overflow-y-auto md:pb-0">
-          {media.map((item, index) => (
+          {media.map((item, index) => {
+            const companion = "companionSrc" in item ? item.companionSrc : undefined;
+            return (
             <button
-              key={item.src}
+              key={`${item.src}-${companion ?? ""}-${index}`}
               type="button"
               aria-label={t("product.showImage", { current: index + 1, total: count })}
               aria-pressed={index === activeIndex}
               onClick={() => select(index)}
               className="relative aspect-square w-[4.5rem] shrink-0 snap-start overflow-hidden border border-foreground/16 bg-surface transition-[border-color,opacity] duration-200 hover:border-foreground/55 aria-pressed:border-couture-red aria-pressed:opacity-100 md:w-full"
             >
-              {failedSources.has(item.src) ? (
+              {companion ? (
+                <span className="absolute inset-0 grid grid-cols-2 gap-px bg-foreground/10">
+                  <span className="relative">
+                    <Image src={item.src} alt="" fill sizes="36px" className="object-cover" onError={() => markFailed(item.src)} />
+                  </span>
+                  <span className="relative">
+                    <Image src={companion} alt="" fill sizes="36px" className="object-cover" onError={() => markFailed(companion)} />
+                  </span>
+                </span>
+              ) : failedSources.has(item.src) ? (
                 <span className="absolute inset-0 grid place-items-center text-xs text-foreground/55" aria-hidden="true">×</span>
               ) : (
                 <Image
@@ -90,7 +167,8 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
                 {String(index + 1).padStart(2, "0")}
               </span>
             </button>
-          ))}
+            );
+          })}
         </div>
 
         <button
@@ -99,7 +177,35 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
           onClick={() => setLightboxOpen(true)}
           className="group relative order-1 h-[clamp(20rem,50svh,32rem)] overflow-hidden bg-surface md:order-2 md:h-[min(70svh,42rem)]"
         >
-          {failedSources.has(active.src) ? (
+          {activeCompanion ? (
+            <span className="absolute inset-0 grid grid-cols-2 gap-px bg-foreground/10">
+              <span className="relative">
+                <Image
+                  key={active.src}
+                  src={active.src}
+                  alt={active.alt || product.title}
+                  fill
+                  preload={activeIndex === 0}
+                  quality={75}
+                  sizes="(max-width: 767px) 50vw, 29vw"
+                  className="object-cover"
+                  onError={() => markFailed(active.src)}
+                />
+              </span>
+              <span className="relative">
+                <Image
+                  key={activeCompanion}
+                  src={activeCompanion}
+                  alt={activeCompanionAlt || product.title}
+                  fill
+                  quality={75}
+                  sizes="(max-width: 767px) 50vw, 29vw"
+                  className="object-cover"
+                  onError={() => markFailed(activeCompanion)}
+                />
+              </span>
+            </span>
+          ) : failedSources.has(active.src) ? (
             <span className="absolute inset-0 grid place-items-center text-sm text-foreground/55">{t("product.imageUnavailable")}</span>
           ) : (
             <Image
@@ -149,15 +255,42 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
               className="absolute inset-0 cursor-grab overflow-auto focus:outline-none active:cursor-grabbing"
             >
               <div className="relative h-[170%] w-[170%]">
-                <Image
-                  key={`expanded-${active.src}`}
-                  src={active.src}
-                  alt={active.alt || product.title}
-                  fill
-                  sizes="170vw"
-                  quality={75}
-                  className="object-contain"
-                />
+                {activeCompanion ? (
+                  <span className="absolute inset-0 grid grid-cols-2 gap-px bg-white/10">
+                    <span className="relative">
+                      <Image
+                        key={`expanded-zoom-${active.src}`}
+                        src={active.src}
+                        alt={active.alt || product.title}
+                        fill
+                        sizes="85vw"
+                        quality={75}
+                        className="object-contain"
+                      />
+                    </span>
+                    <span className="relative">
+                      <Image
+                        key={`expanded-zoom-${activeCompanion}`}
+                        src={activeCompanion}
+                        alt={activeCompanionAlt || product.title}
+                        fill
+                        sizes="85vw"
+                        quality={75}
+                        className="object-contain"
+                      />
+                    </span>
+                  </span>
+                ) : (
+                  <Image
+                    key={`expanded-${active.src}`}
+                    src={active.src}
+                    alt={active.alt || product.title}
+                    fill
+                    sizes="170vw"
+                    quality={75}
+                    className="object-contain"
+                  />
+                )}
               </div>
             </div>
           ) : (
@@ -167,15 +300,42 @@ export function ProductMediaGallery({ product }: { product: GalleryProduct }) {
               aria-label={t("product.zoomIn")}
               className="absolute inset-0 cursor-zoom-in"
             >
-              <Image
-                key={`expanded-${active.src}`}
-                src={active.src}
-                alt={active.alt || product.title}
-                fill
-                sizes="100vw"
-                quality={75}
-                className="object-contain"
-              />
+              {activeCompanion ? (
+                <span className="absolute inset-0 grid grid-cols-2 gap-px bg-white/10">
+                  <span className="relative">
+                    <Image
+                      key={`expanded-${active.src}`}
+                      src={active.src}
+                      alt={active.alt || product.title}
+                      fill
+                      sizes="50vw"
+                      quality={75}
+                      className="object-contain"
+                    />
+                  </span>
+                  <span className="relative">
+                    <Image
+                      key={`expanded-${activeCompanion}`}
+                      src={activeCompanion}
+                      alt={activeCompanionAlt || product.title}
+                      fill
+                      sizes="50vw"
+                      quality={75}
+                      className="object-contain"
+                    />
+                  </span>
+                </span>
+              ) : (
+                <Image
+                  key={`expanded-${active.src}`}
+                  src={active.src}
+                  alt={active.alt || product.title}
+                  fill
+                  sizes="100vw"
+                  quality={75}
+                  className="object-contain"
+                />
+              )}
             </button>
           )}
 

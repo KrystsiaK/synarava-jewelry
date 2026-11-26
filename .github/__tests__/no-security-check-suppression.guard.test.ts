@@ -27,8 +27,8 @@ const ALLOWED_AUDIT_IGNORE_EXCEPTIONS: readonly AuditIgnoreException[] = [
   {
     id: "GHSA-fc5q-39xc-vjpf",
     approvedBy: "owner",
-    approvedAt: "2026-11-18",
-    expiresAt: "2026-11-25",
+    approvedAt: "2026-11-26",
+    expiresAt: "2026-12-02",
     reason:
       "picomatch≤4.0.7 no patch; prod path only via @sentry/nextjs→rollup; owner rejected remove-Sentry/wait",
   },

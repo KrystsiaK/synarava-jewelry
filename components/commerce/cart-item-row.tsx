@@ -28,6 +28,7 @@ type CartItemRowProps = {
     maxQuantity?: number | null;
     price: string;
     total: string;
+    wornTogetherWith?: string[];
   };
 };
 
@@ -64,6 +65,11 @@ export function CartItemRow({ item }: CartItemRowProps) {
         <div>
           <p className="font-serif text-[1.5rem]">{item.title}</p>
           <p className="mt-1 text-sm leading-6 text-foreground/60">{item.materialLine}</p>
+          {item.wornTogetherWith && item.wornTogetherWith.length > 0 ? (
+            <p className="mt-2 text-sm leading-6 text-foreground/55">
+              {t("cart.wornTogetherWith", { titles: item.wornTogetherWith.join(", ") })}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-3">

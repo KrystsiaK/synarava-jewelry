@@ -1,5 +1,5 @@
 const mocks = vi.hoisted(() => ({
-  addShopifyProductToCart: vi.fn(),
+  addShopifyMerchandiseLinesToCart: vi.fn(),
   findFirst: vi.fn(),
 }));
 
@@ -12,8 +12,7 @@ vi.mock("@/lib/db", () => ({
 }));
 
 vi.mock("@/lib/shopify/cart", () => ({
-  addShopifyProductToCart: mocks.addShopifyProductToCart,
-  addShopifyMerchandiseLinesToCart: vi.fn(),
+  addShopifyMerchandiseLinesToCart: mocks.addShopifyMerchandiseLinesToCart,
   getShopifyCartCount: vi.fn(),
   getShopifyCartLineQuantity: vi.fn(),
   getShopifyCartViewModel: vi.fn(),
@@ -65,11 +64,9 @@ describe("addStorefrontProductToCart", () => {
     expect(mocks.findFirst).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({ slug: "local-slug" }),
     }));
-    expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(
-      "shopify-handle",
-      1,
-      "gid://shopify/ProductVariant/123",
-    );
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalledWith([
+      { merchandiseId: "gid://shopify/ProductVariant/123", quantity: 1 },
+    ]);
   });
 
   it("refuses to add a product that isn't locally visible, even without a merchandiseId (REV-08)", async () => {
@@ -77,7 +74,7 @@ describe("addStorefrontProductToCart", () => {
 
     await expect(addStorefrontProductToCart("hidden-slug", 2)).rejects.toThrow("Product not available.");
 
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
   });
 
   it("refuses an explicit merchandiseId that isn't visible locally", async () => {
@@ -87,7 +84,7 @@ describe("addStorefrontProductToCart", () => {
       addStorefrontProductToCart("hidden-slug", 1, "gid://shopify/ProductVariant/selected"),
     ).rejects.toThrow("Product not available.");
 
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
   });
 
   it("keeps an explicitly selected merchandise id and checks it against the same visibility policy", async () => {
@@ -126,11 +123,9 @@ describe("addStorefrontProductToCart", () => {
         },
       }),
     }));
-    expect(mocks.addShopifyProductToCart).toHaveBeenCalledWith(
-      "local-slug",
-      1,
-      "gid://shopify/ProductVariant/selected",
-    );
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalledWith([
+      { merchandiseId: "gid://shopify/ProductVariant/selected", quantity: 1 },
+    ]);
   });
 
   it("refuses add-to-cart when our stock is zero (DENY)", async () => {
@@ -151,7 +146,7 @@ describe("addStorefrontProductToCart", () => {
     await expect(addStorefrontProductToCart("local-slug", 1)).rejects.toThrow(
       "Product is out of stock.",
     );
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
   });
 
   it("refuses add-to-cart when Shopify snapshot inventory is zero (DENY)", async () => {
@@ -166,7 +161,7 @@ describe("addStorefrontProductToCart", () => {
     await expect(addStorefrontProductToCart("local-slug", 1)).rejects.toThrow(
       "Product is out of stock.",
     );
-    expect(mocks.addShopifyProductToCart).not.toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).not.toHaveBeenCalled();
   });
 
   it("allows add-to-cart when Shopify copy is missing but ours is in stock", async () => {
@@ -178,6 +173,52 @@ describe("addStorefrontProductToCart", () => {
 
     await addStorefrontProductToCart("local-slug", 1);
 
-    expect(mocks.addShopifyProductToCart).toHaveBeenCalled();
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalled();
+  });
+
+  it("allows CONTINUE at zero local stock (same rule as PDP availableWithoutCount)", async () => {
+    mocks.findFirst.mockResolvedValue(
+      inStockProduct({
+        shopifySnapshot: {
+          variants: [{ id: "gid://shopify/ProductVariant/123", inventoryQuantity: 0 }],
+        },
+        variants: [
+          {
+            shopifyVariantId: "gid://shopify/ProductVariant/123",
+            status: "ACTIVE",
+            stockOnHand: 0,
+            inventoryPolicy: "CONTINUE",
+            tracked: true,
+          },
+        ],
+      }),
+    );
+
+    await addStorefrontProductToCart("local-slug", 1);
+    expect(mocks.addShopifyMerchandiseLinesToCart).toHaveBeenCalled();
+  });
+
+  it("refuses DENY when Shopify snapshot qty is 0 even if UI stock count could look confusing", async () => {
+    // Catalog available=false for this case; a stale client that still POSTs must fail.
+    mocks.findFirst.mockResolvedValue(
+      inStockProduct({
+        shopifySnapshot: {
+          variants: [{ id: "gid://shopify/ProductVariant/123", inventoryQuantity: 0 }],
+        },
+        variants: [
+          {
+            shopifyVariantId: "gid://shopify/ProductVariant/123",
+            status: "ACTIVE",
+            stockOnHand: 0,
+            inventoryPolicy: "DENY",
+            tracked: true,
+          },
+        ],
+      }),
+    );
+
+    await expect(addStorefrontProductToCart("local-slug", 1)).rejects.toThrow(
+      "Product is out of stock.",
+    );
   });
 });

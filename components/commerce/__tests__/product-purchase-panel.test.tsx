@@ -100,7 +100,7 @@ describe("ProductPurchasePanel", () => {
 
     render(<ProductPurchasePanel product={unavailable} />);
 
-    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Out of stock")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add" })).toBeDisabled();
   });
 
@@ -116,8 +116,25 @@ describe("ProductPurchasePanel", () => {
 
     renderPanel(soldOut);
 
-    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Out of stock")).toBeInTheDocument();
     expect(screen.getByText(RESTOCK_NOTICE)).toBeInTheDocument();
+  });
+
+  it("keeps add enabled at zero qty without a green 0-in-stock label when still available", () => {
+    const oversell = {
+      ...product,
+      variantDetails: product.variantDetails.map((variant) => ({
+        ...variant,
+        stockOnHand: 0,
+        available: true,
+      })),
+    };
+
+    renderPanel(oversell);
+
+    expect(screen.getByText("Available")).toBeInTheDocument();
+    expect(screen.queryByText(/0 in stock/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add" })).not.toBeDisabled();
   });
 
   it("hides the restock notice when the selected variant is in stock", () => {
@@ -139,7 +156,7 @@ describe("ProductPurchasePanel", () => {
 
     renderPanel(soldOut, { "product.restockNotice": "" });
 
-    expect(screen.getByText("This option is unavailable")).toBeInTheDocument();
+    expect(screen.getByText("Out of stock")).toBeInTheDocument();
     expect(screen.queryByText(RESTOCK_NOTICE)).not.toBeInTheDocument();
   });
 

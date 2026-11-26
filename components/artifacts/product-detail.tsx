@@ -14,7 +14,15 @@ import {
 import Link from "next/link";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
-import { ProductMediaGallery } from "@/components/artifacts/product-media-gallery";
+import { ProductPairingAwareGallery } from "@/components/commerce/product-pairing-gallery";
+import { ProductPairingCarousel } from "@/components/commerce/product-pairing-carousel";
+import {
+  ProductPairingSelectionProvider,
+  useOptionalProductPairingSelection,
+} from "@/components/commerce/product-pairing-selection";
+import { ProductPurchaseSelectionProvider } from "@/components/commerce/product-purchase-selection";
+import type { ProductPairingPartner } from "@/lib/commerce/product-pairing-partners";
+import { Suspense } from "react";
 import { ProductHeroDescription } from "@/components/artifacts/product-hero-description";
 import { RichText } from "@/components/content/rich-text";
 import { trackCommerceEvent } from "@/lib/analytics/commerce";
@@ -100,7 +108,8 @@ function ProductHero({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.75, ease }}
         >
-          <ProductMediaGallery product={product} />
+          <ProductPairingAwareGallery product={product} />
+          <ProductPairingCarousel />
         </motion.div>
 
         <motion.div className="lg:order-1 lg:col-span-5 lg:row-start-1 lg:pt-2">
@@ -182,6 +191,7 @@ function ProductHero({
             transition={{ duration: 0.7, ease, delay: 0.55 }}
           >
             <ProductSpecifications product={product} />
+            <PartnerProductSection />
           </motion.div>
         </motion.div>
       </div>
@@ -189,7 +199,69 @@ function ProductHero({
   );
 }
 
-function ProductSpecifications({ product }: { product: ProductSummary }) {
+export function PartnerProductSection() {
+  const pairing = useOptionalProductPairingSelection();
+  const { locale, t } = useTranslations();
+  const partner = pairing?.selectedPartner;
+  if (!partner) return null;
+  const partnerProduct = partner.product;
+
+  return (
+    <section
+      data-component="PartnerProductSection"
+      className="mt-10 space-y-6 border-t border-foreground/14 pt-8"
+      aria-label={t("product.pairings.partnerSectionLabel")}
+    >
+      <div className="flex items-start gap-4">
+        {partnerProduct.image ? (
+          <span className="relative size-16 shrink-0 overflow-hidden bg-surface sm:size-20">
+            <Image
+              src={partnerProduct.image}
+              alt=""
+              fill
+              sizes="80px"
+              className="object-cover"
+            />
+          </span>
+        ) : null}
+        <div className="min-w-0">
+          <p className="label-mono text-couture-red">{t("product.pairings.partnerEyebrow")}</p>
+          <DisplayHeading
+            as="h2"
+            className="mt-2 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-none text-foreground"
+          >
+            <Link
+              href={localePath(locale, `/products/${partnerProduct.slug}`)}
+              className="underline-offset-4 hover:text-couture-red hover:underline"
+            >
+              {formatDisplayTitle(partnerProduct.title)}
+            </Link>
+          </DisplayHeading>
+        </div>
+      </div>
+
+      {partnerProduct.description ? (
+        <div className="prose prose-sm max-w-[68ch] text-foreground/75">
+          <RichText content={partnerProduct.description} />
+        </div>
+      ) : null}
+
+      <ProductSpecifications
+        product={partnerProduct}
+        headingIdPrefix={`partner-${partnerProduct.slug}-`}
+      />
+    </section>
+  );
+}
+
+export function ProductSpecifications({
+  product,
+  headingIdPrefix = "",
+}: {
+  product: ProductSummary;
+  /** Avoid duplicate spec-* ids when a partner block sits beside the product. */
+  headingIdPrefix?: string;
+}) {
   const { t, locale } = useTranslations();
   const presentation = getProductPresentation(t);
   type SpecificationRow = {
@@ -266,10 +338,12 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
 
       {specificationGroups.length > 0 ? (
         <div className="mt-6 grid content-start gap-7">
-          {specificationGroups.map(([group, rows]) => (
-            <section key={group} aria-labelledby={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}>
+          {specificationGroups.map(([group, rows]) => {
+            const headingId = `${headingIdPrefix}spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
+            return (
+            <section key={group} aria-labelledby={headingId}>
               <h3
-                id={`spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`}
+                id={headingId}
                 className="mb-2 font-serif text-lg text-foreground/88"
               >
                 {group}
@@ -306,7 +380,8 @@ function ProductSpecifications({ product }: { product: ProductSummary }) {
                 ))}
               </dl>
             </section>
-          ))}
+            );
+          })}
         </div>
       ) : null}
     </section>
@@ -959,6 +1034,7 @@ export function ProductDetail({
   isSignedIn = false,
   submitReviewAction,
   relatedProducts = [],
+  pairingPartners = [],
 }: {
   product: ProductSummary;
   fitVideoSrc?: string;
@@ -969,6 +1045,7 @@ export function ProductDetail({
     formData: FormData,
   ) => Promise<ProductReviewActionState>;
   relatedProducts?: ProductSummary[];
+  pairingPartners?: ProductPairingPartner[];
 }) {
   const trackedProduct = useRef<string | null>(null);
   const { locale } = useTranslations();
@@ -1001,7 +1078,12 @@ export function ProductDetail({
     if (product.collectionSlug) clarityTag("collection", product.collectionSlug);
   }, [locale, product.categorySlug, product.collectionSlug, product.currency, product.priceAmount, product.sku, product.slug, product.stockOnHand, product.title]);
 
-  return (
+  const purchaseProducts = [
+    product,
+    ...pairingPartners.map((partner) => partner.product),
+  ];
+
+  const body = (
     <main data-component="ProductDetail"
       className="product-detail-experience artifact-shell min-h-screen overflow-x-clip bg-background text-foreground"
     >
@@ -1021,5 +1103,19 @@ export function ProductDetail({
       ) : null}
       <ProductFooter product={product} />
     </main>
+  );
+
+  return (
+    <ProductPurchaseSelectionProvider products={purchaseProducts}>
+      {pairingPartners.length > 0 ? (
+        <Suspense fallback={body}>
+          <ProductPairingSelectionProvider product={product} partners={pairingPartners}>
+            {body}
+          </ProductPairingSelectionProvider>
+        </Suspense>
+      ) : (
+        body
+      )}
+    </ProductPurchaseSelectionProvider>
   );
 }

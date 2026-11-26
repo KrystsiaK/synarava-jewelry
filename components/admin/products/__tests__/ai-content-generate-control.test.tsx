@@ -35,6 +35,17 @@ vi.mock("@/app/admin/actions/products", () => ({
   setPrimaryProductMediaAction: vi.fn(),
 }));
 
+vi.mock("@/app/admin/actions/product-pairings", () => ({
+  listProductPairingsAction: vi.fn().mockResolvedValue({ pairings: [] }),
+  searchPairingCandidatesAction: vi.fn().mockResolvedValue([]),
+  createProductPairingAction: vi.fn(),
+  deleteProductPairingAction: vi.fn(),
+  reorderProductPairingAction: vi.fn(),
+  uploadProductPairingImageAction: vi.fn(),
+  deleteProductPairingImageAction: vi.fn(),
+  reorderProductPairingImageAction: vi.fn(),
+}));
+
 vi.mock("@/app/admin/actions/sync", async () => {
   const { adminSyncActionMocks } = await import("@/test/mocks/admin-sync-actions");
   return {

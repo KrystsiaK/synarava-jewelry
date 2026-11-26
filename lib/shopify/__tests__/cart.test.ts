@@ -27,7 +27,7 @@ vi.mock("@/lib/shopify/customer-account/session", () => ({
 }));
 
 import {
-  addShopifyProductToCart,
+  addShopifyMerchandiseLinesToCart,
   getShopifyCartLineQuantity,
   getShopifyCartViewModel,
   getShopifyCheckoutUrl,
@@ -147,7 +147,7 @@ describe("getShopifyCartLineQuantity", () => {
   });
 });
 
-describe("addShopifyProductToCart", () => {
+describe("addShopifyMerchandiseLinesToCart", () => {
   const existingCart = {
     id: "gid://shopify/Cart/1",
     checkoutUrl: "https://checkout.example",
@@ -167,11 +167,9 @@ describe("addShopifyProductToCart", () => {
         },
       });
 
-    const result = await addShopifyProductToCart(
-      "birch-bracelet",
-      1,
-      "gid://shopify/ProductVariant/1",
-    );
+    const result = await addShopifyMerchandiseLinesToCart([
+      { merchandiseId: "gid://shopify/ProductVariant/1", quantity: 1 },
+    ]);
 
     expect(result.warnings).toEqual(["Only 1 left — we added what's available."]);
     expect(result.cart).toEqual(existingCart);
@@ -182,11 +180,9 @@ describe("addShopifyProductToCart", () => {
       .mockResolvedValueOnce({ cart: existingCart })
       .mockResolvedValueOnce({ cartLinesAdd: { cart: existingCart, userErrors: [], warnings: [] } });
 
-    const result = await addShopifyProductToCart(
-      "birch-bracelet",
-      1,
-      "gid://shopify/ProductVariant/1",
-    );
+    const result = await addShopifyMerchandiseLinesToCart([
+      { merchandiseId: "gid://shopify/ProductVariant/1", quantity: 1 },
+    ]);
 
     expect(result.warnings).toEqual([]);
   });
