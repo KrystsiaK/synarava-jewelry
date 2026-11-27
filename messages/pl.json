@@ -113,7 +113,7 @@
       "carouselTitle": "Noś razem",
       "soldOut": "Wyprzedane",
       "addKit": "Dodaj komplet",
-      "addCurrentOnly": "Tylko ten produkt",
+      "addCurrentOnly": "Tylko {title}",
       "kitTotal": "Suma kompletu {total}",
       "partnerSectionLabel": "Produkt partnerski",
       "partnerEyebrow": "Noszone z",

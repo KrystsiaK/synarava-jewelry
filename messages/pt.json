@@ -456,7 +456,7 @@
       "carouselTitle": "Usar juntas",
       "soldOut": "Esgotado",
       "addKit": "Adicionar conjunto",
-      "addCurrentOnly": "Adicionar só esta peça",
+      "addCurrentOnly": "Adicionar só {title}",
       "kitTotal": "Total do conjunto {total}",
       "partnerSectionLabel": "Peça para usar em conjunto",
       "partnerEyebrow": "Usar com",

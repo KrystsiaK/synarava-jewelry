@@ -15,7 +15,6 @@ import Link from "next/link";
 
 import { ProductPurchasePanel } from "@/components/commerce/product-purchase-panel";
 import { ProductPairingAwareGallery } from "@/components/commerce/product-pairing-gallery";
-import { ProductPairingCarousel } from "@/components/commerce/product-pairing-carousel";
 import {
   ProductPairingSelectionProvider,
   useOptionalProductPairingSelection,
@@ -94,6 +93,8 @@ function ProductHero({
   isSignedIn: boolean;
 }) {
   const { t, locale, plural } = useTranslations();
+  const pairing = useOptionalProductPairingSelection();
+  const hasPairs = (pairing?.partners.length ?? 0) > 0;
   const heroDescription =
     product.shortDescription.trim() ||
     truncateText(plainTextFromRichText(product.description), 220);
@@ -101,7 +102,7 @@ function ProductHero({
 
   return (
     <header data-component="ProductHero" className="bg-background pt-24 text-foreground md:pt-28">
-      <div className="site-shell grid gap-8 pb-14 pt-3 md:pt-5 lg:grid-cols-12 lg:items-start lg:gap-x-10 lg:pb-20 xl:gap-x-16">
+      <div className="site-shell grid gap-6 pb-10 pt-3 md:pt-5 lg:grid-cols-12 lg:items-start lg:gap-x-10 lg:pb-12 xl:gap-x-16">
         <motion.div
           className="lg:order-2 lg:col-span-7 lg:col-start-6"
           initial={{ opacity: 0, scale: 0.985 }}
@@ -109,14 +110,13 @@ function ProductHero({
           transition={{ duration: 0.75, ease }}
         >
           <ProductPairingAwareGallery product={product} />
-          <ProductPairingCarousel />
         </motion.div>
 
         <motion.div className="lg:order-1 lg:col-span-5 lg:row-start-1 lg:pt-2">
           <div>
             <motion.nav
               aria-label="Breadcrumb"
-              className="mb-4 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.18em] text-foreground/52 md:mb-6 md:text-[0.68rem]"
+              className="mb-3 flex items-center gap-2 text-[0.65rem] font-sans font-semibold uppercase tracking-[0.18em] text-foreground/52 md:mb-4 md:text-[0.68rem]"
               initial={{ opacity: 0, x: -16 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.7, ease }}
@@ -143,10 +143,14 @@ function ProductHero({
               reveal
               text={product.title}
               accentClassName="italic text-couture-red"
-              className="max-w-[12ch] text-balance text-[clamp(2.65rem,5.5vw,5.5rem)] leading-[0.93] tracking-[-0.035em]"
+              className={`text-balance leading-[0.93] tracking-[-0.035em] ${
+                hasPairs
+                  ? "max-w-[14ch] text-[clamp(2.1rem,4.2vw,3.75rem)]"
+                  : "max-w-[12ch] text-[clamp(2.65rem,5.5vw,5.5rem)]"
+              }`}
             />
 
-            {heroDescription ? (
+            {!hasPairs && heroDescription ? (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -160,7 +164,7 @@ function ProductHero({
             ) : null}
 
             <motion.div
-              className="mt-4 flex flex-wrap items-center gap-4"
+              className="mt-3 flex flex-wrap items-center gap-4 md:mt-4"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.7, ease, delay: 0.68 }}
@@ -180,43 +184,56 @@ function ProductHero({
             </motion.div>
           </div>
 
-          <motion.div className="mt-7 md:mt-9">
+          <motion.div className={hasPairs ? "mt-4 md:mt-5" : "mt-7 md:mt-9"}>
             <ProductPurchasePanel product={product} />
           </motion.div>
 
+          {!hasPairs ? (
+            <motion.div
+              className="mt-8"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, ease, delay: 0.55 }}
+            >
+              <ProductSpecifications product={product} />
+            </motion.div>
+          ) : null}
+        </motion.div>
+
+        {hasPairs ? (
           <motion.div
-            className="mt-8"
+            className="lg:col-span-12 lg:order-3"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, ease, delay: 0.55 }}
+            transition={{ duration: 0.7, ease, delay: 0.4 }}
           >
-            <ProductSpecifications product={product} />
-            <PartnerProductSection />
+            <ProductPairingDetails product={product} />
           </motion.div>
-        </motion.div>
+        ) : null}
       </div>
     </header>
   );
 }
 
-export function PartnerProductSection() {
-  const pairing = useOptionalProductPairingSelection();
-  const { locale, t } = useTranslations();
-  const partner = pairing?.selectedPartner;
-  if (!partner) return null;
-  const partnerProduct = partner.product;
+function ProductDetailColumn({
+  product,
+  headingIdPrefix = "",
+}: {
+  product: ProductSummary;
+  headingIdPrefix?: string;
+}) {
+  const { locale } = useTranslations();
+  const summary =
+    product.shortDescription.trim() ||
+    truncateText(plainTextFromRichText(product.description), 220);
 
   return (
-    <section
-      data-component="PartnerProductSection"
-      className="mt-10 space-y-6 border-t border-foreground/14 pt-8"
-      aria-label={t("product.pairings.partnerSectionLabel")}
-    >
+    <article data-component="ProductDetailColumn" className="min-w-0 space-y-5">
       <div className="flex items-start gap-4">
-        {partnerProduct.image ? (
+        {product.image ? (
           <span className="relative size-16 shrink-0 overflow-hidden bg-surface sm:size-20">
             <Image
-              src={partnerProduct.image}
+              src={product.image}
               alt=""
               fill
               sizes="80px"
@@ -225,42 +242,83 @@ export function PartnerProductSection() {
           </span>
         ) : null}
         <div className="min-w-0">
-          <p className="label-mono text-couture-red">{t("product.pairings.partnerEyebrow")}</p>
           <DisplayHeading
-            as="h2"
-            className="mt-2 text-[clamp(1.75rem,3.5vw,2.75rem)] leading-none text-foreground"
+            as="h3"
+            className="text-[clamp(1.35rem,2.5vw,1.85rem)] leading-none text-foreground"
           >
             <Link
-              href={localePath(locale, `/products/${partnerProduct.slug}`)}
+              href={localePath(locale, `/products/${product.slug}`)}
               className="underline-offset-4 hover:text-couture-red hover:underline"
             >
-              {formatDisplayTitle(partnerProduct.title)}
+              {formatDisplayTitle(product.title)}
             </Link>
           </DisplayHeading>
         </div>
       </div>
 
-      {partnerProduct.description ? (
-        <div className="prose prose-sm max-w-[68ch] text-foreground/75">
-          <RichText content={partnerProduct.description} />
-        </div>
+      {summary || product.description ? (
+        <ProductHeroDescription
+          summary={summary || plainTextFromRichText(product.description)}
+          description={product.description || summary}
+        />
       ) : null}
 
       <ProductSpecifications
-        product={partnerProduct}
-        headingIdPrefix={`partner-${partnerProduct.slug}-`}
+        product={product}
+        headingIdPrefix={headingIdPrefix}
+        showHeading={false}
       />
+    </article>
+  );
+}
+
+/** Full-width “Details that matter” — product + selected pair side by side. */
+export function ProductPairingDetails({ product }: { product: ProductSummary }) {
+  const pairing = useOptionalProductPairingSelection();
+  const { t } = useTranslations();
+  const partner = pairing?.selectedPartner?.product ?? null;
+
+  return (
+    <section
+      data-component="ProductPairingDetails"
+      className="border-t border-foreground/14 pt-8"
+      aria-label={t("product.specifications.title")}
+    >
+      <DisplayHeading
+        as="h2"
+        text={t("product.specifications.title")}
+        className="text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground"
+      />
+      <div
+        className={`mt-8 grid gap-10 ${partner ? "lg:grid-cols-2 lg:gap-12" : ""}`}
+      >
+        <ProductDetailColumn product={product} />
+        {partner ? (
+          <ProductDetailColumn
+            product={partner}
+            headingIdPrefix={`partner-${partner.slug}-`}
+          />
+        ) : null}
+      </div>
     </section>
   );
+}
+
+/** @deprecated Prefer ProductPairingDetails — kept for any external imports. */
+export function PartnerProductSection() {
+  return null;
 }
 
 export function ProductSpecifications({
   product,
   headingIdPrefix = "",
+  showHeading = true,
 }: {
   product: ProductSummary;
   /** Avoid duplicate spec-* ids when a partner block sits beside the product. */
   headingIdPrefix?: string;
+  /** When false, render characteristic groups only (shared Details heading lives above). */
+  showHeading?: boolean;
 }) {
   const { t, locale } = useTranslations();
   const presentation = getProductPresentation(t);
@@ -325,19 +383,28 @@ export function ProductSpecifications({
   if (specificationGroups.length === 0 && !product.categoryName) return null;
 
   return (
-    <section data-component="ProductSpecifications" className="border-t border-foreground/14 pt-6">
-      <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
-      <DisplayHeading
-        as="h2"
-        text={t("product.specifications.title")}
-        className="mt-3 text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground"
-      />
+    <section
+      data-component="ProductSpecifications"
+      className={showHeading ? "border-t border-foreground/14 pt-6" : undefined}
+    >
+      {showHeading ? (
+        <>
+          <p className="label-mono text-couture-red">{t("product.specifications.eyebrow")}</p>
+          <DisplayHeading
+            as="h2"
+            text={t("product.specifications.title")}
+            className="mt-3 text-[clamp(1.6rem,3vw,2.25rem)] leading-none text-foreground"
+          />
+        </>
+      ) : null}
       {product.categoryName ? (
-        <p className="mt-3 text-sm text-foreground/70">{product.categoryName}</p>
+        <p className={showHeading ? "mt-3 text-sm text-foreground/70" : "text-sm text-foreground/70"}>
+          {product.categoryName}
+        </p>
       ) : null}
 
       {specificationGroups.length > 0 ? (
-        <div className="mt-6 grid content-start gap-7">
+        <div className={`${showHeading || product.categoryName ? "mt-6" : ""} grid content-start gap-7`}>
           {specificationGroups.map(([group, rows]) => {
             const headingId = `${headingIdPrefix}spec-${group.replace(/[^a-z0-9]+/gi, "-").toLowerCase()}`;
             return (

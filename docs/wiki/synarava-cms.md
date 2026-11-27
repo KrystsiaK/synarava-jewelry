@@ -43,6 +43,7 @@ two visual variants remain. Agent skill encodes this contract.
 | `AdminHelpIndex` / `AdminHelpArticle` | Read-only admin documentation index and article surface (safe Markdown, status, TOC, diagrams, steps, callouts, recovery cards) |
 | `AdminOrderedList` | Ordered rows with up/down + remove (+ optional Add); same `onChange` API reserved for future DnD |
 | `AdminMediaGallery` | Product (and future entity) gallery grid — add / move / remove / cover / alt by frame id; confirm via `AdminConfirmModal` |
+| `AdminMediaTiles` | Compact equal-size photo tiles + matching Add tile (← → × under each photo); used by product pair photos |
 | `AdminAlert` | Form-level error or success banner (transparent wash, theme-aware ink) |
 | `AdminSerpPreview` | Google-style search listing preview + soft 60/160 char meters for SEO title/description |
 | `ConflictResolver` / `ConflictRow` | ONE Shopify-vs-Synarava conflict UI (cell select → Apply → confirm preview → write). Confirm rows use plain-language headlines, source→target flow, and before/after on the written side (`conflict-resolver-confirm`). Adapters only supply data/apply. |

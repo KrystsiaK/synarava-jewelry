@@ -113,7 +113,7 @@
       "carouselTitle": "Zusammen tragen",
       "soldOut": "Ausverkauft",
       "addKit": "Set hinzufügen",
-      "addCurrentOnly": "Nur dieses Stück",
+      "addCurrentOnly": "Nur {title}",
       "kitTotal": "Set insgesamt {total}",
       "partnerSectionLabel": "Partnerstück",
       "partnerEyebrow": "Getragen mit",

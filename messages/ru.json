@@ -255,7 +255,7 @@
       "carouselTitle": "Носится вместе",
       "soldOut": "Нет в наличии",
       "addKit": "Добавить комплект",
-      "addCurrentOnly": "Только этот товар",
+      "addCurrentOnly": "Только {title}",
       "kitTotal": "Итого комплект {total}",
       "partnerSectionLabel": "Парный товар",
       "partnerEyebrow": "Носится с",
