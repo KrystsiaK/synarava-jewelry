@@ -202,7 +202,7 @@ function ProductHero({
 
         {hasPairs ? (
           <motion.div
-            className="lg:col-span-12"
+            className="lg:col-span-12 lg:order-3"
             initial={{ opacity: 0, y: 18 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease, delay: 0.4 }}
