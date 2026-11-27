@@ -3,6 +3,7 @@
 import Link from "next/link";
 
 import { AddToCartButton } from "@/components/commerce/add-to-cart-button";
+import { ProductPairingCarousel } from "@/components/commerce/product-pairing-carousel";
 import { useOptionalProductPairingSelection } from "@/components/commerce/product-pairing-selection";
 import { useProductVariantSelection } from "@/components/commerce/use-product-variant-selection";
 import { ArtifactButton } from "@/components/ui";
@@ -125,12 +126,76 @@ function StockStatusRow({
   );
 }
 
+function PriceBlock({
+  product,
+  selectedVariant,
+}: {
+  product: ProductSummary;
+  selectedVariant: ProductSummary["variantDetails"][number] | null;
+}) {
+  const price = selectedVariant ? selectedVariant.price : product.price;
+  const compareAtPrice = selectedVariant ? selectedVariant.compareAtPrice : product.compareAtPrice;
+  const discount = discountPercent(
+    selectedVariant ? selectedVariant.priceAmount : product.priceAmount,
+    selectedVariant ? selectedVariant.compareAtAmount : product.compareAtAmount,
+  );
+
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
+      <p className="font-serif text-2xl text-foreground md:text-3xl">{price}</p>
+      {compareAtPrice && compareAtPrice !== price ? (
+        <p className="text-sm text-foreground/48 line-through">{compareAtPrice}</p>
+      ) : null}
+      {discount != null ? (
+        <span className="bg-couture-red px-2 py-0.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
+          −{discount}%
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function KitSummaryLine({
+  product,
+  state,
+}: {
+  product: ProductSummary;
+  state: ReturnType<typeof useProductVariantSelection>;
+}) {
+  const { t, plural, locale } = useTranslations();
+  const price = state.selectedVariant ? state.selectedVariant.price : product.price;
+  const signal = purchaseStockSignal({
+    selectedVariant: state.selectedVariant,
+    purchasableVariantCount: state.purchasableVariants.length,
+  });
+
+  return (
+    <p
+      data-product-slug={product.slug}
+      className="text-sm leading-6 text-foreground/78"
+    >
+      <Link
+        href={localePath(locale, `/products/${product.slug}`)}
+        className="font-medium text-foreground underline-offset-4 hover:text-couture-red hover:underline"
+      >
+        {product.title}
+      </Link>
+      <span className="text-foreground/40"> · </span>
+      <span>{stockLabel(signal, t, plural)}</span>
+      <span className="text-foreground/40"> · </span>
+      <span className="tabular-nums">{price}</span>
+    </p>
+  );
+}
+
 function StandalonePurchase({
   product,
   compact,
+  showPairings,
 }: {
   product: ProductSummary;
   compact: boolean;
+  showPairings: boolean;
 }) {
   const { t } = useTranslations();
   const {
@@ -148,28 +213,18 @@ function StandalonePurchase({
     selectedVariant && !selectedVariant.available
       ? t("product.restockNotice").trim()
       : "";
-  const price = selectedVariant ? selectedVariant.price : product.price;
-  const compareAtPrice = selectedVariant ? selectedVariant.compareAtPrice : product.compareAtPrice;
-  const discount = discountPercent(
-    selectedVariant ? selectedVariant.priceAmount : product.priceAmount,
-    selectedVariant ? selectedVariant.compareAtAmount : product.compareAtAmount,
-  );
 
   return (
-    <div data-component="ProductPurchasePanel" className={compact ? "space-y-4" : "border-y border-foreground/14 py-5 md:py-6"}>
-      <div className={compact ? "mb-4" : "mb-5 flex flex-wrap items-end justify-between gap-4"} aria-live="polite">
-        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
-          <p className="font-serif text-2xl text-foreground md:text-3xl">{price}</p>
-          {compareAtPrice && compareAtPrice !== price ? (
-            <p className="text-sm text-foreground/48 line-through">{compareAtPrice}</p>
-          ) : null}
-          {discount != null ? (
-            <span className="bg-couture-red px-2 py-0.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
-              −{discount}%
-            </span>
-          ) : null}
+    <div
+      data-component="ProductPurchasePanel"
+      className={compact ? "space-y-4" : "border-y border-foreground/14 py-5 md:py-6"}
+    >
+      <div className={compact ? "mb-3 space-y-3" : "mb-4 space-y-3"}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <PriceBlock product={product} selectedVariant={selectedVariant ?? null} />
+          <StockStatusRow signal={signal} restockNotice={restockNotice} />
         </div>
-        <StockStatusRow signal={signal} restockNotice={restockNotice} />
+        {showPairings ? <ProductPairingCarousel /> : null}
       </div>
 
       <div className={compact ? "space-y-4" : "space-y-5"}>
@@ -193,65 +248,6 @@ function StandalonePurchase({
           />
         </div>
       </div>
-    </div>
-  );
-}
-
-function KitLine({
-  product,
-  state,
-}: {
-  product: ProductSummary;
-  state: ReturnType<typeof useProductVariantSelection>;
-}) {
-  const { t, locale } = useTranslations();
-  const price = state.selectedVariant ? state.selectedVariant.price : product.price;
-  const compareAtPrice = state.selectedVariant
-    ? state.selectedVariant.compareAtPrice
-    : product.compareAtPrice;
-  const discount = discountPercent(
-    state.selectedVariant ? state.selectedVariant.priceAmount : product.priceAmount,
-    state.selectedVariant ? state.selectedVariant.compareAtAmount : product.compareAtAmount,
-  );
-  const signal = purchaseStockSignal({
-    selectedVariant: state.selectedVariant,
-    purchasableVariantCount: state.purchasableVariants.length,
-  });
-  const restockNotice =
-    state.selectedVariant && !state.selectedVariant.available
-      ? t("product.restockNotice").trim()
-      : "";
-
-  return (
-    <div data-product-slug={product.slug} className="space-y-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <Link
-          href={localePath(locale, `/products/${product.slug}`)}
-          className="font-serif text-xl text-foreground underline-offset-4 hover:text-couture-red hover:underline"
-        >
-          {product.title}
-        </Link>
-        <div className="text-right" aria-live="polite">
-          <p className="font-serif text-xl text-foreground">{price}</p>
-          {compareAtPrice && compareAtPrice !== price ? (
-            <p className="text-sm text-foreground/48 line-through">{compareAtPrice}</p>
-          ) : null}
-          {discount != null ? (
-            <span className="mt-1 inline-block bg-couture-red px-2 py-0.5 font-sans text-[0.68rem] font-semibold uppercase tracking-[0.1em] text-white">
-              −{discount}%
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      <StockStatusRow signal={signal} restockNotice={restockNotice} />
-
-      <OptionButtons
-        product={product}
-        selection={state.selection}
-        purchasableVariants={state.purchasableVariants}
-        chooseOption={state.chooseOption}
-      />
     </div>
   );
 }
@@ -287,67 +283,103 @@ function KitPurchase({
     !secondarySignal.canPurchase ? partnerProduct.title : null,
   ].filter(Boolean) as string[];
 
+  const primaryRestock =
+    primary.selectedVariant && !primary.selectedVariant.available
+      ? t("product.restockNotice").trim()
+      : "";
+
   return (
     <div
       data-component="ProductPurchasePanel"
       data-pairing="kit"
-      className={compact ? "space-y-5" : "space-y-6 border-y border-foreground/14 py-5 md:py-6"}
+      className={compact ? "space-y-4" : "border-y border-foreground/14 py-5 md:py-6"}
     >
-      <KitLine product={product} state={primary} />
-      <KitLine product={partnerProduct} state={secondary} />
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <PriceBlock product={product} selectedVariant={primary.selectedVariant ?? null} />
+          <StockStatusRow signal={primarySignal} restockNotice={primaryRestock} />
+        </div>
+        <ProductPairingCarousel />
+      </div>
 
-      {unavailableTitles.length > 0 ? (
-        <ul className="space-y-1 text-xs font-semibold uppercase tracking-[0.13em] text-couture-red">
-          {unavailableTitles.map((title) => (
-            <li key={title}>
-              {t("product.pairings.kitUnavailableNotice", { title })}
-            </li>
-          ))}
-        </ul>
-      ) : null}
+      <div className="space-y-3 border-t border-foreground/14 pt-4">
+        <KitSummaryLine product={product} state={primary} />
+        <KitSummaryLine product={partnerProduct} state={secondary} />
 
-      <p className="font-serif text-2xl text-foreground">
-        {t("product.pairings.kitTotal", {
-          total: formatCurrency(kitTotal, product.currency, locale),
-        })}
-      </p>
+        {product.options.length > 0 || partnerProduct.options.length > 0 ? (
+          <div className="space-y-4 pt-1">
+            <OptionButtons
+              product={product}
+              selection={primary.selection}
+              purchasableVariants={primary.purchasableVariants}
+              chooseOption={primary.chooseOption}
+            />
+            <OptionButtons
+              product={partnerProduct}
+              selection={secondary.selection}
+              purchasableVariants={secondary.purchasableVariants}
+              chooseOption={secondary.chooseOption}
+            />
+          </div>
+        ) : null}
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-        <AddToCartButton
-          lines={[
-            {
-              productSlug: product.slug,
-              merchandiseId: primary.selectedVariant?.merchandiseId ?? undefined,
-              sku: primary.selectedVariant?.sku || product.sku,
-              itemName: product.title,
-              price: primaryPrice,
-            },
-            {
-              productSlug: partnerProduct.slug,
-              merchandiseId: secondary.selectedVariant?.merchandiseId ?? undefined,
-              sku: secondary.selectedVariant?.sku || partnerProduct.sku,
-              itemName: partnerProduct.title,
-              price: secondaryPrice,
-            },
-          ]}
-          value={kitTotal}
-          currency={product.currency}
-          disabled={!kitAvailable}
-          label={t("product.pairings.addKit")}
-          unavailableLabel={t("product.outOfStock")}
-        />
-        <AddToCartButton
-          productSlug={product.slug}
-          merchandiseId={primary.selectedVariant?.merchandiseId ?? undefined}
-          sku={primary.selectedVariant?.sku || product.sku}
-          itemName={product.title}
-          value={primaryPrice}
-          currency={product.currency}
-          disabled={!primarySignal.canPurchase}
-          label={t("product.pairings.addCurrentOnly")}
-          variant="secondary"
-          unavailableLabel={unavailableCtaLabel(primarySignal, t)}
-        />
+        {unavailableTitles.length > 0 ? (
+          <ul className="space-y-1 text-xs font-semibold uppercase tracking-[0.13em] text-couture-red">
+            {unavailableTitles.map((title) => (
+              <li key={title}>
+                {t("product.pairings.kitUnavailableNotice", { title })}
+              </li>
+            ))}
+          </ul>
+        ) : null}
+
+        <p className="font-serif text-2xl text-foreground">
+          {t("product.pairings.kitTotal", {
+            total: formatCurrency(kitTotal, product.currency, locale),
+          })}
+        </p>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="min-w-0 [&_[data-component=AddToCartButton]]:block [&_a]:w-full [&_button]:w-full">
+            <AddToCartButton
+              lines={[
+                {
+                  productSlug: product.slug,
+                  merchandiseId: primary.selectedVariant?.merchandiseId ?? undefined,
+                  sku: primary.selectedVariant?.sku || product.sku,
+                  itemName: product.title,
+                  price: primaryPrice,
+                },
+                {
+                  productSlug: partnerProduct.slug,
+                  merchandiseId: secondary.selectedVariant?.merchandiseId ?? undefined,
+                  sku: secondary.selectedVariant?.sku || partnerProduct.sku,
+                  itemName: partnerProduct.title,
+                  price: secondaryPrice,
+                },
+              ]}
+              value={kitTotal}
+              currency={product.currency}
+              disabled={!kitAvailable}
+              label={t("product.pairings.addKit")}
+              unavailableLabel={t("product.outOfStock")}
+            />
+          </div>
+          <div className="min-w-0 [&_[data-component=AddToCartButton]]:block [&_button]:w-full">
+            <AddToCartButton
+              productSlug={product.slug}
+              merchandiseId={primary.selectedVariant?.merchandiseId ?? undefined}
+              sku={primary.selectedVariant?.sku || product.sku}
+              itemName={product.title}
+              value={primaryPrice}
+              currency={product.currency}
+              disabled={!primarySignal.canPurchase}
+              label={t("product.pairings.addCurrentOnly", { title: product.title })}
+              variant="secondary"
+              unavailableLabel={unavailableCtaLabel(primarySignal, t)}
+            />
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -356,6 +388,8 @@ function KitPurchase({
 /** Hero + compact panels share partner selection via ProductPairingSelectionProvider. */
 export function ProductPurchasePanel({ product, compact = false }: ProductPurchasePanelProps) {
   const pairing = useOptionalProductPairingSelection();
+  const showPairings = (pairing?.partners.length ?? 0) > 0;
+
   if (pairing?.selectedPartner) {
     return (
       <KitPurchase
@@ -365,5 +399,11 @@ export function ProductPurchasePanel({ product, compact = false }: ProductPurcha
       />
     );
   }
-  return <StandalonePurchase product={product} compact={compact} />;
+  return (
+    <StandalonePurchase
+      product={product}
+      compact={compact}
+      showPairings={showPairings}
+    />
+  );
 }

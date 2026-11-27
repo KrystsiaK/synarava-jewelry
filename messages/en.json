@@ -456,7 +456,7 @@
       "carouselTitle": "Wear together",
       "soldOut": "Sold out",
       "addKit": "Add set",
-      "addCurrentOnly": "Add this piece only",
+      "addCurrentOnly": "Add {title} only",
       "kitTotal": "Set total {total}",
       "partnerSectionLabel": "Wear-together partner",
       "partnerEyebrow": "Worn with",

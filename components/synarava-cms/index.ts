@@ -184,6 +184,12 @@ export {
 } from "@/components/admin/shared/admin-media-gallery";
 
 export {
+  AdminMediaTiles,
+  type AdminMediaTileItem,
+  type AdminMediaTilesProps,
+} from "@/components/admin/shared/admin-media-tiles";
+
+export {
   OwnershipLabel,
   type AdminFieldOwner,
 } from "@/components/admin/shared/ownership-label";
